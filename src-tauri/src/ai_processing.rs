@@ -8,7 +8,7 @@ use image::imageops::{self, FilterType};
 use image::{
     DynamicImage, GenericImageView, GrayImage, Rgb, Rgb32FImage, RgbImage, Rgba, RgbaImage,
 };
-use ndarray::{Array, Array4, IxDyn};
+use ndarray::{Array, Array3, Array4, IxDyn};
 use ort::session::Session;
 use ort::value::Tensor;
 use serde::{Deserialize, Serialize};
@@ -34,6 +34,13 @@ const SAM3_TOKENIZER_URL: &str =
     "https://huggingface.co/CyberTimon/RapidRAW-Models/raw/main/sam3_tokenizer.json?download=true";
 const SAM3_TOKENIZER_FILENAME: &str = "sam3_tokenizer.json";
 const SAM3_INPUT_SIZE: u32 = 1008;
+
+const TRACKER_VISION_URL: &str = "https://huggingface.co/CyberTimon/RapidRAW-Models/resolve/main/tracker_vision_encoder.onnx?download=true";
+const TRACKER_VISION_FILENAME: &str = "tracker_vision_encoder.onnx";
+const TRACKER_VISION_SHA256: &str = ""; // fixme: add hash
+const TRACKER_DECODER_URL: &str = "https://huggingface.co/CyberTimon/RapidRAW-Models/resolve/main/tracker_prompt_encoder_mask_decoder.onnx?download=true";
+const TRACKER_DECODER_FILENAME: &str = "tracker_prompt_encoder_mask_decoder.onnx";
+const TRACKER_DECODER_SHA256: &str = ""; // fixme: add hash
 
 const U2NETP_URL: &str =
     "https://huggingface.co/CyberTimon/RapidRAW-Models/resolve/main/u2net.onnx?download=true";
@@ -72,6 +79,8 @@ pub struct AiModels {
     pub sam3_text: Mutex<Session>,
     pub sam3_decoder: Mutex<Session>,
     pub sam3_tokenizer: Tokenizer,
+    pub tracker_vision: Mutex<Session>,
+    pub tracker_decoder: Mutex<Session>,
     pub u2netp: Mutex<Session>,
     pub sky_seg: Mutex<Session>,
     pub depth_anything: Mutex<Session>,
@@ -93,6 +102,15 @@ pub struct ImageEmbeddings {
 }
 
 #[derive(Clone)]
+pub struct TrackerEmbeddings {
+    pub path_hash: String,
+    pub emb0: Array<f32, IxDyn>,
+    pub emb1: Array<f32, IxDyn>,
+    pub emb2: Array<f32, IxDyn>,
+    pub original_size: (u32, u32),
+}
+
+#[derive(Clone)]
 pub struct CachedDepthMap {
     pub path_hash: String,
     pub depth_image: GrayImage,
@@ -105,6 +123,7 @@ pub struct AiState {
     pub clip_models: Option<Arc<ClipModels>>,
     pub lama_model: Option<Arc<Mutex<Session>>>,
     pub embeddings: Option<ImageEmbeddings>,
+    pub tracker_embeddings: Option<TrackerEmbeddings>,
     pub depth_map: Option<CachedDepthMap>,
 }
 
@@ -233,6 +252,24 @@ pub async fn get_or_init_ai_models(
     download_and_verify_model(
         app_handle,
         &models_dir,
+        TRACKER_VISION_FILENAME,
+        TRACKER_VISION_URL,
+        TRACKER_VISION_SHA256,
+        "SAM3 Tracker Vision",
+    )
+    .await?;
+    download_and_verify_model(
+        app_handle,
+        &models_dir,
+        TRACKER_DECODER_FILENAME,
+        TRACKER_DECODER_URL,
+        TRACKER_DECODER_SHA256,
+        "SAM3 Tracker Decoder",
+    )
+    .await?;
+    download_and_verify_model(
+        app_handle,
+        &models_dir,
         U2NETP_FILENAME,
         U2NETP_URL,
         U2NETP_SHA256,
@@ -270,6 +307,8 @@ pub async fn get_or_init_ai_models(
     let sam3_vision_path = models_dir.join(SAM3_VISION_FILENAME);
     let sam3_text_path = models_dir.join(SAM3_TEXT_FILENAME);
     let sam3_decoder_path = models_dir.join(SAM3_DECODER_FILENAME);
+    let tracker_vision_path = models_dir.join(TRACKER_VISION_FILENAME);
+    let tracker_decoder_path = models_dir.join(TRACKER_DECODER_FILENAME);
     let u2netp_path = models_dir.join(U2NETP_FILENAME);
     let sky_seg_path = models_dir.join(SKYSEG_FILENAME);
     let depth_path = models_dir.join(DEPTH_FILENAME);
@@ -279,6 +318,9 @@ pub async fn get_or_init_ai_models(
     let sam3_decoder = Session::builder()?.commit_from_file(sam3_decoder_path)?;
     let sam3_tokenizer =
         Tokenizer::from_file(tokenizer_path).map_err(|e| anyhow::anyhow!(e.to_string()))?;
+
+    let tracker_vision = Session::builder()?.commit_from_file(tracker_vision_path)?;
+    let tracker_decoder = Session::builder()?.commit_from_file(tracker_decoder_path)?;
 
     let u2netp = Session::builder()?.commit_from_file(u2netp_path)?;
     let sky_seg = Session::builder()?.commit_from_file(sky_seg_path)?;
@@ -291,6 +333,8 @@ pub async fn get_or_init_ai_models(
         sam3_text: Mutex::new(sam3_text),
         sam3_decoder: Mutex::new(sam3_decoder),
         sam3_tokenizer,
+        tracker_vision: Mutex::new(tracker_vision),
+        tracker_decoder: Mutex::new(tracker_decoder),
         u2netp: Mutex::new(u2netp),
         sky_seg: Mutex::new(sky_seg),
         depth_anything: Mutex::new(depth_anything),
@@ -306,6 +350,7 @@ pub async fn get_or_init_ai_models(
             clip_models: None,
             lama_model: None,
             embeddings: None,
+            tracker_embeddings: None,
             depth_map: None,
         });
     }
@@ -366,6 +411,7 @@ pub async fn get_or_init_denoise_model(
             clip_models: None,
             lama_model: None,
             embeddings: None,
+            tracker_embeddings: None,
             depth_map: None,
         });
     }
@@ -437,6 +483,7 @@ pub async fn get_or_init_clip_models(
             clip_models: Some(clip_models.clone()),
             lama_model: None,
             embeddings: None,
+            tracker_embeddings: None,
             depth_map: None,
         });
     }
@@ -497,6 +544,7 @@ pub async fn get_or_init_lama_model(
             clip_models: None,
             lama_model: Some(lama_model.clone()),
             embeddings: None,
+            tracker_embeddings: None,
             depth_map: None,
         });
     }
@@ -1381,6 +1429,236 @@ pub fn run_sam3_decoder(
     }
 
     let feathered_mask = image::imageops::blur(&final_mask, 1.0);
+
+    Ok(feathered_mask)
+}
+
+pub fn generate_tracker_embeddings(
+    image: &DynamicImage,
+    tracker_vision: &Mutex<Session>,
+) -> Result<TrackerEmbeddings> {
+    let total_start = std::time::Instant::now();
+    let (orig_width, orig_height) = image.dimensions();
+
+    let step_start = std::time::Instant::now();
+    let resized_image = image.resize_exact(SAM3_INPUT_SIZE, SAM3_INPUT_SIZE, FilterType::Triangle);
+    let rgb_image = resized_image.into_rgb8();
+    let raw_pixels = rgb_image.as_raw();
+    log::info!(
+        "Tracker Vision [1/4]: Image resize took {:?}",
+        step_start.elapsed()
+    );
+
+    let step_start = std::time::Instant::now();
+    let mut input_tensor: Array<f32, _> =
+        Array::zeros((1, 3, SAM3_INPUT_SIZE as usize, SAM3_INPUT_SIZE as usize));
+
+    let mean = [0.485, 0.456, 0.406];
+    let std = [0.229, 0.224, 0.225];
+
+    let w_usize = SAM3_INPUT_SIZE as usize;
+    for y in 0..w_usize {
+        for x in 0..w_usize {
+            let idx = (y * w_usize + x) * 3;
+            input_tensor[[0, 0, y, x]] = ((raw_pixels[idx] as f32 / 255.0) - mean[0]) / std[0];
+            input_tensor[[0, 1, y, x]] = ((raw_pixels[idx + 1] as f32 / 255.0) - mean[1]) / std[1];
+            input_tensor[[0, 2, y, x]] = ((raw_pixels[idx + 2] as f32 / 255.0) - mean[2]) / std[2];
+        }
+    }
+
+    let input_tensor_ort =
+        Tensor::from_array(input_tensor.into_dyn().as_standard_layout().into_owned())?;
+    log::info!(
+        "Tracker Vision [2/4]: Tensor preparation took {:?}",
+        step_start.elapsed()
+    );
+
+    let step_start = std::time::Instant::now();
+    let mut session = tracker_vision.lock().unwrap();
+    let outputs = session.run(ort::inputs![input_tensor_ort])?;
+    log::info!(
+        "Tracker Vision [3/4]: ONNX inference took {:?}",
+        step_start.elapsed()
+    );
+
+    let step_start = std::time::Instant::now();
+    let emb0 = outputs[0].try_extract_array::<f32>()?.to_owned().into_dyn();
+    let emb1 = outputs[1].try_extract_array::<f32>()?.to_owned().into_dyn();
+    let emb2 = outputs[2].try_extract_array::<f32>()?.to_owned().into_dyn();
+    log::info!(
+        "Tracker Vision [4/4]: Output extraction took {:?}",
+        step_start.elapsed()
+    );
+
+    log::info!("Tracker Vision: TOTAL TIME {:?}", total_start.elapsed());
+
+    Ok(TrackerEmbeddings {
+        path_hash: "".to_string(),
+        emb0,
+        emb1,
+        emb2,
+        original_size: (orig_width, orig_height),
+    })
+}
+
+pub fn run_sam3_tracker_decoder(
+    decoder: &Mutex<Session>,
+    embeddings: &TrackerEmbeddings,
+    unrotated_start: (f64, f64),
+    unrotated_end: (f64, f64),
+    high_res_guide: &DynamicImage,
+) -> Result<GrayImage> {
+    let total_start = std::time::Instant::now();
+
+    let step_start = std::time::Instant::now();
+    let (orig_w, orig_h) = embeddings.original_size;
+
+    let rx1 = unrotated_start.0.min(unrotated_end.0) as f32;
+    let ry1 = unrotated_start.1.min(unrotated_end.1) as f32;
+    let rx2 = unrotated_start.0.max(unrotated_end.0) as f32;
+    let ry2 = unrotated_start.1.max(unrotated_end.1) as f32;
+
+    let scale_x = 1008.0 / orig_w as f32;
+    let scale_y = 1008.0 / orig_h as f32;
+
+    let sx1 = rx1 * scale_x;
+    let sy1 = ry1 * scale_y;
+    let sx2 = rx2 * scale_x;
+    let sy2 = ry2 * scale_y;
+
+    let pts_arr = Array4::<f32>::zeros((1, 1, 1, 2));
+    let labels_arr = Array3::from_elem((1, 1, 1), -1_i64); // Fixed to i64
+    let boxes_arr = Array3::from_shape_vec((1, 1, 4), vec![sx1, sy1, sx2, sy2])?;
+
+    let t_pts = Tensor::from_array(pts_arr.into_dyn().as_standard_layout().into_owned())?;
+    let t_labels = Tensor::from_array(labels_arr.into_dyn().as_standard_layout().into_owned())?;
+    let t_boxes = Tensor::from_array(boxes_arr.into_dyn().as_standard_layout().into_owned())?;
+
+    let t_emb0 = Tensor::from_array(embeddings.emb0.clone().as_standard_layout().into_owned())?;
+    let t_emb1 = Tensor::from_array(embeddings.emb1.clone().as_standard_layout().into_owned())?;
+    let t_emb2 = Tensor::from_array(embeddings.emb2.clone().as_standard_layout().into_owned())?;
+    log::info!(
+        "Tracker Decoder [1/5]: Tensor preparation took {:?}",
+        step_start.elapsed()
+    );
+
+    let step_start = std::time::Instant::now();
+    let (iou_scores, pred_masks) = {
+        let mut session = decoder.lock().unwrap();
+        let decoder_outputs = session.run(ort::inputs![
+            t_pts, t_labels, t_boxes, t_emb0, t_emb1, t_emb2
+        ])?;
+
+        let ious = decoder_outputs[0].try_extract_array::<f32>()?.to_owned();
+        let masks = decoder_outputs[1].try_extract_array::<f32>()?.to_owned();
+
+        (ious, masks)
+    };
+    log::info!(
+        "Tracker Decoder [2/5]: ONNX inference took {:?}",
+        step_start.elapsed()
+    );
+
+    let step_start = std::time::Instant::now();
+    let iou_slice = iou_scores.as_slice().unwrap();
+    let mut best_idx = 0;
+    let mut best_iou = f32::MIN;
+    for (i, &iou) in iou_slice.iter().enumerate() {
+        if iou > best_iou {
+            best_iou = iou;
+            best_idx = i;
+        }
+    }
+
+    let mask_dims = pred_masks.shape();
+    let h = mask_dims[3] as usize;
+    let w = mask_dims[4] as usize;
+
+    let masks_5d = pred_masks
+        .into_dimensionality::<ndarray::Ix5>()
+        .map_err(|e| anyhow::anyhow!("Expected 5D mask array: {}", e))?;
+    let mask_view = masks_5d.slice(ndarray::s![0, 0, best_idx, .., ..]);
+
+    let mut mask_data = Vec::with_capacity(h * w);
+    for val in mask_view.iter() {
+        if *val <= 0.0 {
+            mask_data.push(0);
+        } else {
+            let v_clipped = val.clamp(-50.0, 50.0);
+            let prob = 1.0 / (1.0 + (-v_clipped).exp());
+            mask_data.push((prob * 255.0).clamp(0.0, 255.0) as u8);
+        }
+    }
+
+    let mask_img = GrayImage::from_raw(w as u32, h as u32, mask_data).unwrap();
+    log::info!(
+        "Tracker Decoder [3/5]: Mask extraction & sigmoid took {:?}",
+        step_start.elapsed()
+    );
+
+    let step_start = std::time::Instant::now();
+    let low_res_resized = image::imageops::resize(&mask_img, orig_w, orig_h, FilterType::Triangle);
+    log::info!(
+        "Tracker Decoder [4/5]: Base mask resize & blur took {:?}",
+        step_start.elapsed()
+    );
+
+    let step_start = std::time::Instant::now();
+
+    let long_side_u32 = orig_w.max(orig_h);
+    let valid_w = ((orig_w as f64 / long_side_u32 as f64) * w as f64).round() as u32;
+    let valid_h = ((orig_h as f64 / long_side_u32 as f64) * h as f64).round() as u32;
+
+    let low_res_cropped =
+        image::imageops::crop_imm(&mask_img, 0, 0, valid_w.max(1), valid_h.max(1)).to_image();
+    log::info!(
+        "Tracker Decoder [4/5]: Base mask crop & blur took {:?}",
+        step_start.elapsed()
+    );
+
+    let step_start = std::time::Instant::now();
+
+    let smoothed_low_res = image::imageops::blur(&mask_img, 1.5);
+    log::info!(
+        "Tracker Decoder [4/5]: Base mask blur took {:?}",
+        step_start.elapsed()
+    );
+
+    let step_start = std::time::Instant::now();
+    let guide_rgb = high_res_guide.to_rgb8();
+
+    let dynamic_radius = (orig_w.max(orig_h) / 200).max(8) as usize;
+    let mut final_mask = fast_color_guided_filter(
+        &guide_rgb,
+        &smoothed_low_res,
+        dynamic_radius,
+        1e-3,
+        2.5,
+        0.50,
+    );
+
+    let mut lut = [0u8; 256];
+    for i in 0..=255 {
+        if i <= 32 {
+            lut[i] = 0;
+        } else if i >= 247 {
+            lut[i] = 255;
+        } else {
+            lut[i] = (((i as f32 - 32.0) / (247.0 - 32.0)) * 255.0).round() as u8;
+        }
+    }
+
+    for p in final_mask.pixels_mut() {
+        p[0] = lut[p[0] as usize];
+    }
+
+    let feathered_mask = image::imageops::blur(&final_mask, 1.0);
+    log::info!(
+        "Tracker Decoder [5/5]: Guided filter & LUT cleanup took {:?}",
+        step_start.elapsed()
+    );
+
+    log::info!("Tracker Decoder: TOTAL TIME {:?}", total_start.elapsed());
 
     Ok(feathered_mask)
 }

@@ -12,8 +12,9 @@ use serde_json::Value;
 use crate::ai_connector;
 use crate::ai_processing::{
     self, AiDepthMaskParameters, AiForegroundMaskParameters, AiSkyMaskParameters,
-    AiSubjectMaskParameters, CachedDepthMap, generate_image_embeddings, get_or_init_ai_models,
-    run_depth_anything_model, run_sam3_decoder, run_sky_seg_model, run_u2netp_model,
+    AiSubjectMaskParameters, CachedDepthMap, generate_image_embeddings,
+    generate_tracker_embeddings, get_or_init_ai_models, run_depth_anything_model, run_sam3_decoder,
+    run_sam3_tracker_decoder, run_sky_seg_model, run_u2netp_model,
 };
 use crate::app_settings::load_settings;
 use crate::app_state::AppState;
@@ -219,33 +220,7 @@ pub async fn generate_ai_subject_mask(
     };
 
     let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
-
-    let embeddings = {
-        let mut ai_state_lock = state.ai_state.lock().unwrap();
-        let ai_state = ai_state_lock.as_mut().unwrap();
-
-        if let Some(cached_embeddings) = &ai_state.embeddings {
-            if cached_embeddings.path_hash == path_hash {
-                cached_embeddings.clone()
-            } else {
-                let mut new_embeddings =
-                    generate_image_embeddings(warped_image.as_ref(), &models.sam3_vision)
-                        .map_err(|e| e.to_string())?;
-                new_embeddings.path_hash = path_hash.clone();
-                ai_state.embeddings = Some(new_embeddings.clone());
-                new_embeddings
-            }
-        } else {
-            let mut new_embeddings =
-                generate_image_embeddings(warped_image.as_ref(), &models.sam3_vision)
-                    .map_err(|e| e.to_string())?;
-            new_embeddings.path_hash = path_hash.clone();
-            ai_state.embeddings = Some(new_embeddings.clone());
-            new_embeddings
-        }
-    };
-
-    let (img_w, img_h) = embeddings.original_size;
+    let (img_w, img_h) = warped_image.dimensions();
 
     let (coarse_rotated_w, coarse_rotated_h) = if orientation_steps % 2 == 1 {
         (img_h as f64, img_w as f64)
@@ -317,18 +292,80 @@ pub async fn generate_ai_subject_mask(
     let unrotated_start_point = (min_x, min_y);
     let unrotated_end_point = (max_x, max_y);
 
-    let mask_bitmap = run_sam3_decoder(
-        &models.sam3_text,
-        &models.sam3_decoder,
-        &models.sam3_tokenizer,
-        &embeddings,
-        &text_prompt,
-        use_box,
-        unrotated_start_point,
-        unrotated_end_point,
-        warped_image.as_ref(),
-    )
-    .map_err(|e| e.to_string())?;
+    let mask_bitmap = if use_box {
+        let tracker_embeddings = {
+            let mut ai_state_lock = state.ai_state.lock().unwrap();
+            let ai_state = ai_state_lock.as_mut().unwrap();
+
+            if let Some(cached_embeddings) = &ai_state.tracker_embeddings {
+                if cached_embeddings.path_hash == path_hash {
+                    cached_embeddings.clone()
+                } else {
+                    let mut new_embeddings =
+                        generate_tracker_embeddings(warped_image.as_ref(), &models.tracker_vision)
+                            .map_err(|e| e.to_string())?;
+                    new_embeddings.path_hash = path_hash.clone();
+                    ai_state.tracker_embeddings = Some(new_embeddings.clone());
+                    new_embeddings
+                }
+            } else {
+                let mut new_embeddings =
+                    generate_tracker_embeddings(warped_image.as_ref(), &models.tracker_vision)
+                        .map_err(|e| e.to_string())?;
+                new_embeddings.path_hash = path_hash.clone();
+                ai_state.tracker_embeddings = Some(new_embeddings.clone());
+                new_embeddings
+            }
+        };
+
+        run_sam3_tracker_decoder(
+            &models.tracker_decoder,
+            &tracker_embeddings,
+            unrotated_start_point,
+            unrotated_end_point,
+            warped_image.as_ref(),
+        )
+        .map_err(|e| e.to_string())?
+    } else {
+        let embeddings = {
+            let mut ai_state_lock = state.ai_state.lock().unwrap();
+            let ai_state = ai_state_lock.as_mut().unwrap();
+
+            if let Some(cached_embeddings) = &ai_state.embeddings {
+                if cached_embeddings.path_hash == path_hash {
+                    cached_embeddings.clone()
+                } else {
+                    let mut new_embeddings =
+                        generate_image_embeddings(warped_image.as_ref(), &models.sam3_vision)
+                            .map_err(|e| e.to_string())?;
+                    new_embeddings.path_hash = path_hash.clone();
+                    ai_state.embeddings = Some(new_embeddings.clone());
+                    new_embeddings
+                }
+            } else {
+                let mut new_embeddings =
+                    generate_image_embeddings(warped_image.as_ref(), &models.sam3_vision)
+                        .map_err(|e| e.to_string())?;
+                new_embeddings.path_hash = path_hash.clone();
+                ai_state.embeddings = Some(new_embeddings.clone());
+                new_embeddings
+            }
+        };
+
+        run_sam3_decoder(
+            &models.sam3_text,
+            &models.sam3_decoder,
+            &models.sam3_tokenizer,
+            &embeddings,
+            &text_prompt,
+            false,
+            unrotated_start_point,
+            unrotated_end_point,
+            warped_image.as_ref(),
+        )
+        .map_err(|e| e.to_string())?
+    };
+
     let base64_data = encode_to_base64_png(&mask_bitmap)?;
 
     Ok(AiSubjectMaskParameters {
