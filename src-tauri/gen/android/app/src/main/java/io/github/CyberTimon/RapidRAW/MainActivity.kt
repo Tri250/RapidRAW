@@ -26,7 +26,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
-class MainActivity : TauriActivity() {
+class MainActivity : WryActivity() {
+  private var webView: WebView? = null
   private val safeMarginBackgroundColor = Color.rgb(6, 8, 12)
 
   // 原生渲染层

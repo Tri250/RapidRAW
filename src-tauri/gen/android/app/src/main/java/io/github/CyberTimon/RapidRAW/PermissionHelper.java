@@ -2,6 +2,8 @@ package io.github.CyberTimon.RapidRAW;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Environment;
@@ -83,6 +85,88 @@ public class PermissionHelper {
             }
         }
         return missing.toArray(new String[0]);
+    }
+
+    /**
+     * 检查多个权限是否全部授予
+     */
+    public static boolean hasPermissions(Context context, String[] permissions) {
+        if (context == null || permissions == null) return false;
+        for (String perm : permissions) {
+            if (ContextCompat.checkSelfPermission(context, perm) != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 检查权限是否在 AndroidManifest.xml 中定义
+     */
+    public static boolean hasDefinedPermission(Context context, String permission) {
+        boolean hasPermission = false;
+        String[] requestedPermissions = getManifestPermissions(context);
+        if (requestedPermissions != null && requestedPermissions.length > 0) {
+            List<String> requestedPermissionsList = java.util.Arrays.asList(requestedPermissions);
+            ArrayList<String> requestedPermissionsArrayList = new ArrayList<>(requestedPermissionsList);
+            if (requestedPermissionsArrayList.contains(permission)) {
+                hasPermission = true;
+            }
+        }
+        return hasPermission;
+    }
+
+    /**
+     * 检查多个权限是否全部在 Manifest 中定义
+     */
+    public static boolean hasDefinedPermissions(Context context, String[] permissions) {
+        for (String permission : permissions) {
+            if (!hasDefinedPermission(context, permission)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 获取未在 Manifest 中定义的权限
+     */
+    public static String[] getUndefinedPermissions(Context context, String[] neededPermissions) {
+        ArrayList<String> undefinedPermissions = new ArrayList<>();
+        String[] requestedPermissions = getManifestPermissions(context);
+        if (requestedPermissions != null && requestedPermissions.length > 0) {
+            List<String> requestedPermissionsList = java.util.Arrays.asList(requestedPermissions);
+            ArrayList<String> requestedPermissionsArrayList = new ArrayList<>(requestedPermissionsList);
+            for (String permission : neededPermissions) {
+                if (!requestedPermissionsArrayList.contains(permission)) {
+                    undefinedPermissions.add(permission);
+                }
+            }
+            return undefinedPermissions.toArray(new String[0]);
+        }
+        return neededPermissions;
+    }
+
+    /**
+     * 获取 Manifest 中定义的所有权限
+     */
+    private static String[] getManifestPermissions(Context context) {
+        String[] requestedPermissions = null;
+        try {
+            PackageManager pm = context.getPackageManager();
+            PackageInfo packageInfo;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                packageInfo = pm.getPackageInfo(context.getPackageName(),
+                        PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS));
+            } else {
+                packageInfo = pm.getPackageInfo(context.getPackageName(), PackageManager.GET_PERMISSIONS);
+            }
+            if (packageInfo != null) {
+                requestedPermissions = packageInfo.requestedPermissions;
+            }
+        } catch (Exception ignored) {
+        }
+        return requestedPermissions;
     }
 
     /**
