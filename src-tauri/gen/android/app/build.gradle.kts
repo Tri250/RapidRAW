@@ -31,7 +31,7 @@ android {
             if (keystorePropertiesFile.exists()) {
                 val keystoreProperties = Properties()
                 keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
-                
+
                 keyAlias = keystoreProperties["keyAlias"] as String
                 keyPassword = keystoreProperties["password"] as String
                 storeFile = file(keystoreProperties["storeFile"] as String)
@@ -54,7 +54,12 @@ android {
             }
         }
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            // 如果 release 签名配置不完整（缺少 storeFile 等），回退到 debug 签名以避免构建失败
+            if (signingConfigs.getByName("release").storeFile != null) {
+                signingConfig = signingConfigs.getByName("release")
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
+            }
             
             isMinifyEnabled = true
             isShrinkResources = true
