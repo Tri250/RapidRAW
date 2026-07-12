@@ -5,6 +5,7 @@ import android.view.GestureDetector
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
+import android.view.VelocityTracker
 import android.view.View
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -20,6 +21,8 @@ class GestureHandler(context: Context) {
         fun onLongPressStart()  // Show original image
         fun onLongPressEnd()    // Show edited image
         fun onSingleTap()       // Toggle UI
+        fun onSwipeLeft()
+        fun onSwipeRight()
     }
 
     var callback: GestureCallback? = null
@@ -36,6 +39,18 @@ class GestureHandler(context: Context) {
 
     // View reference for haptic feedback
     private var targetView: View? = null
+
+    // 滑动导航相关
+    private var velocityTracker: VelocityTracker? = null
+    private var swipeStartX = 0f
+    private var swipeStartY = 0f
+    private var isSwiping = false
+    private var isSwipeHorizontal = false
+
+    companion object {
+        private const val SWIPE_THRESHOLD = 100 // dp
+        private const val SWIPE_VELOCITY_THRESHOLD = 300 // dp/s
+    }
 
     init {
         scaleDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
@@ -134,5 +149,58 @@ class GestureHandler(context: Context) {
         cumulativeRotation = 0.0f
         callback?.onZoomChanged(1.0f, 0f, 0f)
         callback?.onRotationChanged(0.0f)
+    }
+
+    /**
+     * 处理水平滑动手势（图片导航）
+     */
+    private fun handleSwipeGesture(event: MotionEvent) {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                swipeStartX = event.x
+                swipeStartY = event.y
+                isSwiping = false
+                isSwipeHorizontal = false
+                velocityTracker = VelocityTracker.obtain()
+                velocityTracker?.addMovement(event)
+            }
+            MotionEvent.ACTION_MOVE -> {
+                velocityTracker?.addMovement(event)
+                val dx = event.x - swipeStartX
+                val dy = event.y - swipeStartY
+
+                if (!isSwiping && (Math.abs(dx) > 20 || Math.abs(dy) > 20)) {
+                    isSwiping = true
+                    isSwipeHorizontal = Math.abs(dx) > Math.abs(dy)
+                }
+            }
+            MotionEvent.ACTION_UP -> {
+                velocityTracker?.addMovement(event)
+                velocityTracker?.computeCurrentVelocity(1000)
+
+                val velocityX = velocityTracker?.xVelocity ?: 0f
+                val dx = event.x - swipeStartX
+
+                if (isSwipeHorizontal && Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                    if (dx > 0) {
+                        callback?.onSwipeRight()
+                    } else {
+                        callback?.onSwipeLeft()
+                    }
+                }
+
+                velocityTracker?.recycle()
+                velocityTracker = null
+                isSwiping = false
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                velocityTracker?.recycle()
+                velocityTracker = null
+                isSwiping = false
+            }
+        }
+    }
+
+    interface GestureListener : GestureCallback {
     }
 }

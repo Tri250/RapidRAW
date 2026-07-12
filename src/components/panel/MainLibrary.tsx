@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { getVersion } from '@tauri-apps/api/app';
 import { open } from '@tauri-apps/plugin-shell';
 import {
@@ -17,7 +17,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
-import SettingsPanel from './SettingsPanel';
+const SettingsPanel = lazy(() => import('./SettingsPanel'));
 import { ThemeProps, THEMES, DEFAULT_THEME_ID } from '../../utils/themes';
 import {
   AppSettings,
@@ -264,13 +264,15 @@ export default function MainLibrary(props: MainLibraryProps) {
 
             <div className="w-full h-full flex flex-col p-8 lg:p-16 overflow-y-auto custom-scrollbar relative z-10">
               {showSettings ? (
-                <SettingsPanel
-                  appSettings={props.appSettings}
-                  onBack={() => setShowSettings(false)}
-                  onLibraryRefresh={props.onLibraryRefresh}
-                  onSettingsChange={props.onSettingsChange}
-                  rootPaths={props.rootPaths}
-                />
+                <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin h-6 w-6 border-2 border-text-primary border-t-transparent rounded-full" /></div>}>
+                  <SettingsPanel
+                    appSettings={props.appSettings}
+                    onBack={() => setShowSettings(false)}
+                    onLibraryRefresh={props.onLibraryRefresh}
+                    onSettingsChange={props.onSettingsChange}
+                    rootPaths={props.rootPaths}
+                  />
+                </Suspense>
               ) : (
                 <>
                   <div className="my-auto text-left relative z-10">

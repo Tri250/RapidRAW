@@ -14,6 +14,7 @@ import GlobalTooltip from './components/ui/GlobalTooltip';
 import AppModals from './components/modals/AppModals';
 import PrivacyConsentModal from './components/modals/PrivacyConsentModal';
 import ErrorBoundary from './components/ui/ErrorBoundary';
+import MobileAccessibilityHelper from './components/ui/MobileAccessibilityHelper';
 
 import EditorView from './components/views/EditorView';
 import LibraryView from './components/views/LibraryView';
@@ -627,6 +628,7 @@ function App() {
   return (
     <ErrorBoundary>
     <>
+    <MobileAccessibilityHelper />
       <ImageProcessingManager
         transformWrapperRef={transformWrapperRef}
         prevAdjustmentsRef={prevAdjustmentsRef}

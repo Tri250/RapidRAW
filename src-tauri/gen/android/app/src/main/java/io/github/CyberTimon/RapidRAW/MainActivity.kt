@@ -294,6 +294,26 @@ class MainActivity : TauriActivity() {
     webView.setBackgroundColor(Color.TRANSPARENT)
     webView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
+    // WebView 性能优化
+    webView.settings.apply {
+        // 启用 DOM Storage（缓存）
+        domStorageEnabled = true
+        // 启用数据库缓存
+        databaseEnabled = true
+        // 设置缓存模式：有网络时使用缓存，无网络时仅缓存
+        cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+        // 启用硬件加速
+        setSupportZoom(false)
+        // 禁用不必要的功能
+        javaScriptCanOpenWindowsAutomatically = false
+        // 文字大小由前端控制
+        textZoom = 100
+        // 预渲染优化
+        offscreenPreRaster = true
+        // 启用安全浏览
+        safeBrowsingEnabled = true
+    }
+
     // 初始化原生渲染层（WGPU 直出 SurfaceView）
     initNativeRenderSurface()
 

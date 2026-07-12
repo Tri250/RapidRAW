@@ -88,3 +88,29 @@
 -optimizations code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
 -optimizationpasses 5
 -allowaccessmodification
+
+# 保留新增辅助类
+-keep class io.github.CyberTimon.RapidRAW.GlobalErrorHandler { *; }
+-keep class io.github.CyberTimon.RapidRAW.PermissionHelper { *; }
+-keep class io.github.CyberTimon.RapidRAW.StorageHelper { *; }
+-keep class io.github.CyberTimon.RapidRAW.NetworkHelper { *; }
+-keep class io.github.CyberTimon.RapidRAW.ThermalMonitor { *; }
+-keep class io.github.CyberTimon.RapidRAW.RapidRAWApplication { *; }
+
+# 保留 ThermalMonitor 内部类
+-keep class io.github.CyberTimon.RapidRAW.ThermalMonitor$ThermalStatus { *; }
+-keep class io.github.CyberTimon.RapidRAW.ThermalMonitor$ThermalParams { *; }
+-keep class io.github.CyberTimon.RapidRAW.ThermalMonitor$ThermalCallback { *; }
+
+# 保留 StorageHelper 内部类
+-keep class io.github.CyberTimon.RapidRAW.StorageHelper$StorageInfo { *; }
+
+# 保留 NetworkHelper 内部类
+-keep class io.github.CyberTimon.RapidRAW.NetworkHelper$NetworkType { *; }
+-keep class io.github.CyberTimon.RapidRAW.NetworkHelper$NetworkCallback { *; }
+
+# 保留 PermissionHelper 内部类
+-keep class io.github.CyberTimon.RapidRAW.PermissionHelper$PermissionInfo { *; }
+
+# 保留崩溃信息序列化
+-keepclassmembers class io.github.CyberTimon.RapidRAW.GlobalErrorHandler$Companion { *; }
