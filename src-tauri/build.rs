@@ -106,11 +106,11 @@ fn main() {
                 "libonnxruntime.dylib",
                 "2b885992d3d6fa4130d39ec84a80d7504ff52750027c547bb22c86165f19406a",
             ),
-            ("android", "aarch64") => (
-                "libonnxruntime-android-arm64-v8a.so",
-                "libonnxruntime.so",
-                "999ecfdb5b5a13e4097487773b6d71ce8a075408a237daab072e8f5e817bd78e",
-            ),
+            ("android", "aarch64") => {
+                println!("cargo:warning=ONNX Runtime not used for Android target. Skipping download.");
+                tauri_build::build();
+                return;
+            },
             _ => panic!("Unsupported target: {}-{}", target_os, target_arch),
         };
 
