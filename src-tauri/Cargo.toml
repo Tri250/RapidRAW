@@ -9,6 +9,10 @@ rust-version = "1.96"
 name = "rapidraw_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+default = ["ai"]
+ai = ["dep:ort", "dep:ndarray", "dep:tokenizers"]
+
 [dependencies]
 tauri = { version = "2.11", features = [ "macos-private-api", "rustls-tls", "protocol-asset" ] }
 tauri-plugin-dialog = "2.7.1"
@@ -31,8 +35,8 @@ uuid = { version = "1.23", features = ["v4", "serde"] }
 walkdir = "2.5.0"
 imageproc = "0.27.0"
 rusttype = "0.9"
-ort = { version = "=2.0.0-rc.10", features = ["ndarray", "load-dynamic"] }
-ndarray = "0.16"
+ort = { version = "=2.0.0-rc.10", features = ["ndarray", "load-dynamic"], optional = true }
+ndarray = { version = "0.16", optional = true }
 futures-util = "0.3"
 tauri-plugin-process = "2.3.1"
 tauri-plugin-os = "2.3.2"
@@ -41,7 +45,7 @@ log = "0.4"
 fern = "0.7"
 little_exif = "0.6.23"
 chrono = "0.4"
-tokenizers = { version = "0.23.1", default-features = false, features = ["onig"] }
+tokenizers = { version = "0.23.1", default-features = false, features = ["onig"], optional = true }
 once_cell = "1.21"
 futures = "0.3.32"
 sha2 = "0.11"
