@@ -526,6 +526,7 @@ export default function ExportPanel({
           outputFormat: selectedFormat.extensions[0],
           currentEditPath: selectedImage?.path || null,
           currentEditAdjustments: adjustments || null,
+          isAndroid: isAndroid,
         });
       }
     } catch (error) {

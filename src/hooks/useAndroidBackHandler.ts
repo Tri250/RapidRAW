@@ -90,6 +90,22 @@ export function useAndroidBackHandler() {
         ui.setUI({ collageModalState: { isOpen: false, sourceImages: [] } });
         return;
       }
+      if (ui.isConfigurePresetModalOpen) {
+        ui.setUI({ isConfigurePresetModalOpen: false });
+        return;
+      }
+      if (ui.isLensCorrectionModalOpen) {
+        ui.setUI({ isLensCorrectionModalOpen: false });
+        return;
+      }
+      if (ui.isTransformModalOpen) {
+        ui.setUI({ isTransformModalOpen: false });
+        return;
+      }
+      if (ui.isLibraryExportPanelVisible) {
+        ui.setUI({ isLibraryExportPanelVisible: false });
+        return;
+      }
 
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
     };

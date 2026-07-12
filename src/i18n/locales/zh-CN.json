@@ -1344,6 +1344,14 @@
       "noiseReduction": "降噪",
       "title": "调整可见性"
     },
+    "android": {
+      "title": "Android 设置",
+      "permissionsNote": "Android 需要存储权限以访问和保存照片",
+      "performanceMode": "性能模式",
+      "performanceModeDesc": "降低处理质量以提升低端设备的响应速度",
+      "autoSave": "自动保存",
+      "autoSaveDesc": "每次编辑后自动保存，防止系统回收进程导致数据丢失"
+    },
     "categories": {
       "general": "通用",
       "processing": "处理",

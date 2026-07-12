@@ -48,6 +48,7 @@ const REQUIRED_PERMISSIONS: &[AndroidPermission] = &[
 
 /// 检查并请求 Android 运行时权限
 /// 返回未被授予的权限列表
+#[cfg(target_os = "android")]
 pub fn check_and_request_permissions() -> Vec<String> {
     use jni::objects::JObject;
     use jni::JNIEnv;
@@ -96,7 +97,13 @@ pub fn check_and_request_permissions() -> Vec<String> {
     denied_permissions
 }
 
+#[cfg(not(target_os = "android"))]
+pub fn check_and_request_permissions() -> Vec<String> {
+    vec![]
+}
+
 /// 检查是否允许访问所有文件（Android 11+）
+#[cfg(target_os = "android")]
 pub fn has_manage_external_storage_permission() -> bool {
     use jni::objects::JObject;
 
@@ -145,8 +152,14 @@ pub fn has_manage_external_storage_permission() -> bool {
         == 0
 }
 
+#[cfg(not(target_os = "android"))]
+pub fn has_manage_external_storage_permission() -> bool {
+    true
+}
+
 /// 请求运行时权限
-/// 返回 true 表示所有权限已授予
+/// 返回 true 表示请求已成功发起或所有权限已授予
+#[cfg(target_os = "android")]
 pub fn request_permissions() -> bool {
     let denied = check_and_request_permissions();
     if denied.is_empty() {
@@ -155,7 +168,6 @@ pub fn request_permissions() -> bool {
 
     // 使用 JNI 启动权限请求 Activity
     use jni::objects::JObject;
-    use jni::JNIEnv;
 
     let vm = match jni::JavaVM::from_raw(
         ndk_context::android_context().vm().cast(),
@@ -203,7 +215,7 @@ pub fn request_permissions() -> bool {
     }
 
     // 调用 requestPermissions (需要 Activity 上下文)
-    let _ = env.call_static_method(
+    let request_result = env.call_static_method(
         "io/github/CyberTimon/RapidRAW/PermissionHelper",
         "requestPermissions",
         "(Landroid/app/Activity;[Ljava/lang/String;)V",
@@ -213,7 +225,14 @@ pub fn request_permissions() -> bool {
         ],
     );
 
-    denied.is_empty()
+    // 权限请求是异步的，无法立即确认授予结果
+    // 返回 true 表示请求已成功发起，false 表示请求发起失败
+    request_result.is_ok()
+}
+
+#[cfg(not(target_os = "android"))]
+pub fn request_permissions() -> bool {
+    true
 }
 
 /// Tauri 命令：检查 Android 权限状态
@@ -236,6 +255,7 @@ pub fn android_has_manage_storage() -> Result<bool, String> {
 }
 
 /// 初始化 Android 权限检查（在 app 启动时调用）
+#[cfg(target_os = "android")]
 pub fn init_permissions(app: &tauri::AppHandle) {
     let denied = check_and_request_permissions();
     if !denied.is_empty() {
@@ -249,4 +269,9 @@ pub fn init_permissions(app: &tauri::AppHandle) {
         log::info!("Android: 所有必需权限已授予");
         let _ = app.emit("android-permissions-granted", true);
     }
+}
+
+#[cfg(not(target_os = "android"))]
+pub fn init_permissions(_app: &tauri::AppHandle) {
+    // No-op on non-Android platforms
 }

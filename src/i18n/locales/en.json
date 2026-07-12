@@ -1508,6 +1508,14 @@
       "saved": "Saved Lenses",
       "title": "My Lenses"
     },
+    "android": {
+      "title": "Android Settings",
+      "permissionsNote": "Android may require storage permissions to access and save photos. If images fail to load, please grant the necessary permissions in your device settings.",
+      "performanceMode": "Performance Mode",
+      "performanceModeDesc": "Reduce processing quality for smoother editing on low-end devices. This lowers preview resolution and disables live previews.",
+      "autoSave": "Auto-Save",
+      "autoSaveDesc": "Automatically save adjustments after each edit. Prevents data loss on devices where the app may be killed by the system."
+    },
     "processing": {
       "ai": {
         "cloud": {

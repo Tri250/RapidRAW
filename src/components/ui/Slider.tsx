@@ -539,7 +539,7 @@ const Slider = ({
         />
         <input
           ref={rangeInputRef}
-          className={`absolute top-1/2 left-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer m-0 p-0 slider-input z-10 ${
+          className={`absolute top-1/2 -translate-y-1/2 left-0 w-full min-h-[44px] appearance-none bg-transparent cursor-pointer m-0 p-0 slider-input z-10 ${
             isDragging ? 'slider-thumb-active' : ''
           }`}
           style={{ margin: 0, touchAction: isDragging ? 'none' : 'pan-y' }}

@@ -498,3 +498,33 @@
     font-size: 0.8125rem;
   }
 }
+
+/* Android / Mobile Touch Optimizations */
+@media (pointer: coarse) {
+  /* Ensure minimum touch target size */
+  button,
+  [role="button"],
+  .switch-container,
+  input[type="range"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent text selection during touch interactions */
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Improve scroll performance */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Optimize touch scrolling */
+  .overflow-y-auto,
+  .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}

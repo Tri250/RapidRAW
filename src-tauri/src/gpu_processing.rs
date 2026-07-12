@@ -1827,6 +1827,21 @@ fn process_and_get_dynamic_image_inner(
     analytics_config: Option<crate::AnalyticsConfig>,
 ) -> Result<DynamicImage, String> {
     let start_time = Instant::now();
+
+    // Check for pending Android GPU cache release requests
+    #[cfg(target_os = "android")]
+    {
+        let release_type = crate::android_integration::check_gpu_cache_release_request();
+        if release_type > 0 {
+            let fraction = if release_type == 2 {
+                Some(crate::android_integration::get_gpu_cache_release_fraction())
+            } else {
+                None
+            };
+            crate::android_integration::apply_gpu_cache_release(state, fraction);
+        }
+    }
+
     let (width, height) = base_image.dimensions();
     let device = &context.device;
     let queue = &context.queue;

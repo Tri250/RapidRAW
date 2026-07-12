@@ -18,6 +18,9 @@ import {
   Image as ImageIcon,
   Mouse,
   Touchpad,
+  Smartphone,
+  Zap,
+  Save,
 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -1324,6 +1327,49 @@ export default function SettingsPanel({
                     </div>
                   </div>
                 </div>
+
+                {osPlatform === 'android' && (
+                  <div className="p-6 bg-surface rounded-xl shadow-md">
+                    <div className="flex items-center gap-3 mb-8">
+                      <Smartphone size={24} className="text-accent" />
+                      <Text variant={TextVariants.title} color={TextColors.accent}>
+                        {t('settings.android.title')}
+                      </Text>
+                    </div>
+                    <div className="space-y-8">
+                      <div className="p-3 bg-blue-900/10 border border-blue-500/50 rounded-lg flex items-start gap-3">
+                        <Info size={18} className="shrink-0 mt-0.5" />
+                        <Text variant={TextVariants.small}>
+                          {t('settings.android.permissionsNote')}
+                        </Text>
+                      </div>
+
+                      <SettingItem
+                        label={t('settings.android.performanceMode')}
+                        description={t('settings.android.performanceModeDesc')}
+                      >
+                        <Switch
+                          checked={appSettings?.androidPerformanceMode ?? false}
+                          id="android-performance-mode-toggle"
+                          label={t('settings.android.performanceMode')}
+                          onChange={(checked) => onSettingsChange({ ...appSettings, androidPerformanceMode: checked })}
+                        />
+                      </SettingItem>
+
+                      <SettingItem
+                        label={t('settings.android.autoSave')}
+                        description={t('settings.android.autoSaveDesc')}
+                      >
+                        <Switch
+                          checked={appSettings?.androidAutoSave ?? true}
+                          id="android-auto-save-toggle"
+                          label={t('settings.android.autoSave')}
+                          onChange={(checked) => onSettingsChange({ ...appSettings, androidAutoSave: checked })}
+                        />
+                      </SettingItem>
+                    </div>
+                  </div>
+                )}
 
                 <div className="p-6 bg-surface rounded-xl shadow-md">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">

@@ -502,6 +502,8 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
   const [previews, setPreviews] = useState<Record<string, string | null>>({});
   const [isGeneratingPreviews, setIsGeneratingPreviews] = useState(false);
   const [configureModalState, setConfigureModalState] = useState<ModalState>({ isOpen: false, preset: null });
+  const isConfigurePresetModalOpen = useUIStore((s) => s.isConfigurePresetModalOpen);
+  const setUI = useUIStore((s) => s.setUI);
   const [isAddFolderModalOpen, setIsAddFolderModalOpen] = useState(false);
   const [renameFolderState, setRenameFolderState] = useState<FolderState>({ isOpen: false, folder: null });
   const [expandedFolders, setExpandedFolders] = useState(new Set<string>());
@@ -867,6 +869,7 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
       }
     }
     setConfigureModalState({ isOpen: false, preset: null });
+    setUI({ isConfigurePresetModalOpen: false });
   };
 
   const handleAddFolder = (name: string) => {
@@ -1071,7 +1074,7 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
         {
           icon: Settings2,
           label: t('editor.presets.menu.configurePreset'),
-          onClick: () => setConfigureModalState({ isOpen: true, preset: data as Preset }),
+          onClick: () => { setConfigureModalState({ isOpen: true, preset: data as Preset }); setUI({ isConfigurePresetModalOpen: true }); },
         },
         { type: OPTION_SEPARATOR },
         {
@@ -1111,7 +1114,7 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
       {
         icon: Plus,
         label: t('editor.presets.menu.newPreset'),
-        onClick: () => setConfigureModalState({ isOpen: true, preset: null }),
+        onClick: () => { setConfigureModalState({ isOpen: true, preset: null }); setUI({ isConfigurePresetModalOpen: true }); },
       },
       {
         icon: FolderPlus,
@@ -1164,7 +1167,7 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
             <button
               className="p-2 rounded-full hover:bg-surface transition-colors"
               disabled={isLoading}
-              onClick={() => setConfigureModalState({ isOpen: true, preset: null })}
+              onClick={() => { setConfigureModalState({ isOpen: true, preset: null }); setUI({ isConfigurePresetModalOpen: true }); }}
               data-tooltip={t('editor.presets.tooltips.saveNew')}
             >
               <Plus size={18} />
@@ -1277,9 +1280,9 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
         </div>
 
         <ConfigurePresetModal
-          isOpen={configureModalState.isOpen}
+          isOpen={isConfigurePresetModalOpen}
           initialPreset={configureModalState.preset}
-          onClose={() => setConfigureModalState({ isOpen: false, preset: null })}
+          onClose={() => { setConfigureModalState({ isOpen: false, preset: null }); setUI({ isConfigurePresetModalOpen: false }); }}
           onSave={handleSaveConfiguredPreset}
         />
         <CreateFolderModal

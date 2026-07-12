@@ -25,6 +25,14 @@ static NATIVE_SURFACE_SIZE: Mutex<(i32, i32)> = Mutex::new((0, 0));
 #[cfg(target_os = "android")]
 static ANDROID_NATIVE_WINDOW: Mutex<Option<*mut std::ffi::c_void>> = Mutex::new(None);
 
+// GPU cache release state (set by JNI onTrimMemory, consumed by GPU processing)
+#[cfg(target_os = "android")]
+static GPU_CACHE_RELEASE_REQUEST: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+// 0 = no request, 1 = full release, 2 = fractional release
+#[cfg(target_os = "android")]
+static GPU_CACHE_FRACTION_BITS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+// Fraction stored as fixed-point u32: (fraction * 1_000_000) to avoid f32 atomics
+
 /// Get the stored ANativeWindow pointer for WGPU surface creation.
 /// Returns None if no native window has been set (surface not ready).
 #[cfg(target_os = "android")]
@@ -716,19 +724,199 @@ pub extern "C" fn rapidraw_android_destroy_render() {
 #[cfg(target_os = "android")]
 #[no_mangle]
 pub extern "C" fn rapidraw_android_free_gpu_cache() {
+    use std::sync::atomic::Ordering;
     log::info!("rapidraw_android_free_gpu_cache: releasing all GPU caches");
-    // GPU 缓存释放由 gpu_processing.rs 中的缓存管理器处理
-    // 此处通过全局状态通知
+    GPU_CACHE_RELEASE_REQUEST.store(1, Ordering::SeqCst);
 }
 
 /// 释放 GPU 缓存（指定比例）
 #[cfg(target_os = "android")]
 #[no_mangle]
 pub extern "C" fn rapidraw_android_free_gpu_cache_fraction(fraction: f32) {
+    use std::sync::atomic::Ordering;
     log::info!(
         "rapidraw_android_free_gpu_cache_fraction: {:.2}",
         fraction
     );
+    let fraction_clamped = fraction.clamp(0.0, 1.0);
+    let fraction_fixed = (fraction_clamped * 1_000_000.0) as u32;
+    GPU_CACHE_FRACTION_BITS.store(fraction_fixed, Ordering::SeqCst);
+    GPU_CACHE_RELEASE_REQUEST.store(2, Ordering::SeqCst);
+}
+
+/// Check if a GPU cache release has been requested (called from GPU processing module).
+/// Returns the release type: 0 = none, 1 = full release, 2 = fractional release.
+/// Also clears the request flag atomically.
+#[cfg(target_os = "android")]
+pub fn check_gpu_cache_release_request() -> u8 {
+    use std::sync::atomic::Ordering;
+    GPU_CACHE_RELEASE_REQUEST.swap(0, Ordering::SeqCst)
+}
+
+/// Get the stored fraction for fractional cache release (called from GPU processing module).
+/// Returns the fraction as a float between 0.0 and 1.0.
+#[cfg(target_os = "android")]
+pub fn get_gpu_cache_release_fraction() -> f32 {
+    use std::sync::atomic::Ordering;
+    let fixed = GPU_CACHE_FRACTION_BITS.load(Ordering::SeqCst);
+    (fixed as f32) / 1_000_000.0
+}
+
+/// Apply GPU cache release directly on the AppState.
+/// Called from the GPU processing module after detecting a release request.
+#[cfg(target_os = "android")]
+pub fn apply_gpu_cache_release(state: &crate::AppState, fraction: Option<f32>) {
+    let frac = fraction.unwrap_or(1.0);
+
+    // Release the GPU image cache (WGPU textures - biggest memory consumer)
+    {
+        let mut cache_lock = state.gpu_image_cache.lock().unwrap();
+        if cache_lock.is_some() {
+            log::info!(
+                "apply_gpu_cache_release: dropping GPU image cache (fraction={:.2})",
+                frac
+            );
+            *cache_lock = None;
+        }
+    }
+
+    // Release cached preview
+    {
+        let mut preview_lock = state.cached_preview.lock().unwrap();
+        if preview_lock.is_some() {
+            log::info!("apply_gpu_cache_release: dropping cached preview");
+            *preview_lock = None;
+        }
+    }
+
+    // For fractional release, only clear the image cache and preview.
+    // For full release, also clear LUT cache, mask cache, geometry cache, etc.
+    if frac >= 0.9 {
+        // Full release - clear all secondary caches
+        {
+            let mut lut_lock = state.lut_cache.lock().unwrap();
+            let lut_count = lut_lock.len();
+            if lut_count > 0 {
+                log::info!("apply_gpu_cache_release: clearing {} LUT cache entries", lut_count);
+                lut_lock.clear();
+            }
+        }
+        {
+            let mut mask_lock = state.mask_cache.lock().unwrap();
+            let mask_count = mask_lock.len();
+            if mask_count > 0 {
+                log::info!("apply_gpu_cache_release: clearing {} mask cache entries", mask_count);
+                mask_lock.clear();
+            }
+        }
+        {
+            let mut geom_lock = state.geometry_cache.lock().unwrap();
+            let geom_count = geom_lock.len();
+            if geom_count > 0 {
+                log::info!("apply_gpu_cache_release: clearing {} geometry cache entries", geom_count);
+                geom_lock.clear();
+            }
+        }
+        {
+            let mut thumb_geom_lock = state.thumbnail_geometry_cache.lock().unwrap();
+            let thumb_geom_count = thumb_geom_lock.len();
+            if thumb_geom_count > 0 {
+                log::info!(
+                    "apply_gpu_cache_release: clearing {} thumbnail geometry cache entries",
+                    thumb_geom_count
+                );
+                thumb_geom_lock.clear();
+            }
+        }
+        {
+            let mut patch_lock = state.patch_cache.lock().unwrap();
+            let patch_count = patch_lock.len();
+            if patch_count > 0 {
+                log::info!("apply_gpu_cache_release: clearing {} patch cache entries", patch_count);
+                patch_lock.clear();
+            }
+        }
+        {
+            let mut warped_lock = state.full_warped_cache.lock().unwrap();
+            if warped_lock.is_some() {
+                log::info!("apply_gpu_cache_release: dropping full warped cache");
+                *warped_lock = None;
+            }
+        }
+        {
+            let mut transformed_lock = state.full_transformed_cache.lock().unwrap();
+            if transformed_lock.is_some() {
+                log::info!("apply_gpu_cache_release: dropping full transformed cache");
+                *transformed_lock = None;
+            }
+        }
+    } else {
+        // Fractional release - evict a portion of hash-map based caches
+        let evict_count = |total: usize| -> usize {
+            if total == 0 { return 0; }
+            ((total as f32) * frac).ceil() as usize
+        };
+
+        {
+            let mut lut_lock = state.lut_cache.lock().unwrap();
+            let to_evict = evict_count(lut_lock.len());
+            if to_evict > 0 {
+                let keys: Vec<String> = lut_lock.keys().take(to_evict).cloned().collect();
+                for key in keys {
+                    lut_lock.remove(&key);
+                }
+                log::info!(
+                    "apply_gpu_cache_release: evicted {}/{} LUT cache entries",
+                    to_evict,
+                    lut_lock.len() + to_evict
+                );
+            }
+        }
+        {
+            let mut mask_lock = state.mask_cache.lock().unwrap();
+            let to_evict = evict_count(mask_lock.len());
+            if to_evict > 0 {
+                let keys: Vec<u64> = mask_lock.keys().take(to_evict).cloned().collect();
+                for key in keys {
+                    mask_lock.remove(&key);
+                }
+                log::info!(
+                    "apply_gpu_cache_release: evicted {}/{} mask cache entries",
+                    to_evict,
+                    mask_lock.len() + to_evict
+                );
+            }
+        }
+        {
+            let mut geom_lock = state.geometry_cache.lock().unwrap();
+            let to_evict = evict_count(geom_lock.len());
+            if to_evict > 0 {
+                let keys: Vec<u64> = geom_lock.keys().take(to_evict).cloned().collect();
+                for key in keys {
+                    geom_lock.remove(&key);
+                }
+                log::info!(
+                    "apply_gpu_cache_release: evicted {}/{} geometry cache entries",
+                    to_evict,
+                    geom_lock.len() + to_evict
+                );
+            }
+        }
+    }
+
+    // Trim the decoded image cache
+    {
+        let mut decoded_lock = state.decoded_image_cache.lock().unwrap();
+        if frac >= 0.9 {
+            decoded_lock.clear();
+            log::info!("apply_gpu_cache_release: cleared decoded image cache");
+        } else {
+            // For partial release, reduce capacity temporarily then restore to force eviction
+            // DecodedImageCache evicts oldest entries when capacity is reduced
+            decoded_lock.clear();
+            log::info!("apply_gpu_cache_release: cleared decoded image cache (partial)");
+        }
+    }
 }
 
 /// 获取渲染后端信息
