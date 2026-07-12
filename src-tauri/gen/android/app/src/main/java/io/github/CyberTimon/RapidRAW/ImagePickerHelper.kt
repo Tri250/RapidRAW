@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import java.util.ArrayList
@@ -18,7 +19,7 @@ import java.util.ArrayList
  * - 支持多选、RAW 格式过滤
  * - 结果通过 JNI 回调传递给 Rust 侧
  */
-class ImagePickerHelper(private val activity: Activity) {
+class ImagePickerHelper(private val activity: ComponentActivity) {
 
     /**
      * 选择结果回调 —— 由 Rust 侧通过 JNI 注册
@@ -134,7 +135,7 @@ class ImagePickerHelper(private val activity: Activity) {
     /**
      * 打开文件夹选择器（用于批量导入整个文件夹）
      */
-    private val openDocumentTreeLauncher: ActivityResultLauncher<Intent?> =
+    private val openDocumentTreeLauncher: ActivityResultLauncher<Intent> =
         activity.activityResultRegistry.register(
             "open_document_tree",
             ActivityResultContracts.StartActivityForResult()

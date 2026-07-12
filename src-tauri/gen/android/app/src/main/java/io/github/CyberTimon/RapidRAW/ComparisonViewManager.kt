@@ -5,7 +5,7 @@ import android.graphics.*
 import android.view.MotionEvent
 import android.view.View
 
-class ComparisonViewManager(context: Context) {
+class ComparisonViewManager(private val context: Context) {
     enum class ComparisonMode {
         NONE,           // No comparison
         SPLIT_VERTICAL, // Left/right split

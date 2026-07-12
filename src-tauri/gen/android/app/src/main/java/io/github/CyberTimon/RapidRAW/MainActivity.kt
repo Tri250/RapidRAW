@@ -28,7 +28,6 @@ import androidx.core.view.WindowInsetsCompat
 
 class MainActivity : TauriActivity() {
   private val safeMarginBackgroundColor = Color.rgb(6, 8, 12)
-  private var webView: WebView? = null
 
   // 原生渲染层
   private var nativeRenderSurface: NativeRenderSurface? = null
@@ -414,6 +413,12 @@ class MainActivity : TauriActivity() {
         }
         override fun onSingleTap() {
           webView?.evaluateJavascript("window.__onSingleTap?.()", null)
+        }
+        override fun onSwipeLeft() {
+          webView?.evaluateJavascript("window.__onSwipeLeft?.()", null)
+        }
+        override fun onSwipeRight() {
+          webView?.evaluateJavascript("window.__onSwipeRight?.()", null)
         }
       }
     }

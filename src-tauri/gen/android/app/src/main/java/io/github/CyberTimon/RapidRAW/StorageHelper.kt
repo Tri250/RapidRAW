@@ -36,7 +36,7 @@ object StorageHelper {
     }
 
     fun getExternalStorageInfo(): StorageInfo {
-        if (!Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED) {
+        if (Environment.getExternalStorageState() != Environment.MEDIA_MOUNTED) {
             return StorageInfo(0, 0, true, true)
         }
         val stat = StatFs(Environment.getExternalStorageDirectory().absolutePath)

@@ -6,10 +6,6 @@ import android.graphics.Rect
 import android.os.Build
 import android.util.DisplayMetrics
 import android.view.WindowMetrics
-import android.window.ScreenArea
-import androidx.window.layout.WindowInfoTracker
-import androidx.window.layout.DisplayFeature
-import androidx.window.layout.FoldingFeature
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
@@ -114,12 +110,11 @@ class FoldableAdapter(private val context: Context) {
      */
     fun isFoldedOpen(): Boolean {
         // 通过屏幕尺寸判断
+        val wm = context.getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager
         val metrics = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            context.display?.let { display ->
-                val bounds = display.currentWindowMetrics.bounds
-                val shortest = minOf(bounds.width(), bounds.height())
-                shortest > 1800 // 展开后短边通常 > 180dp
-            } ?: false
+            val bounds = wm.currentWindowMetrics.bounds
+            val shortest = minOf(bounds.width(), bounds.height())
+            shortest > 1800 // 展开后短边通常 > 180dp
         } else {
             val dm = context.resources.displayMetrics
             val shortestDp = minOf(dm.widthPixels, dm.heightPixels) / dm.density
