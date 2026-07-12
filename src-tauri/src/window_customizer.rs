@@ -41,6 +41,61 @@ unsafe fn apply_macos_window_rounding(ns_view: *mut objc::runtime::Object) {
     let () = msg_send![ns_window, invalidateShadow];
 }
 
+#[cfg(target_os = "android")]
+unsafe fn configure_android_webview(_webview: *mut std::ffi::c_void) {
+    // Android WebView 触摸和渲染优化
+    // 通过 JNI 调用 WebView 设置
+    use jni::objects::{JObject, JValue};
+    use jni::JNIEnv;
+
+    let vm = match jni::JavaVM::from_raw(ndk_context::android_context().vm().cast()) {
+        Ok(vm) => vm,
+        Err(_) => return,
+    };
+    let mut env = match vm.attach_current_thread() {
+        Ok(env) => env,
+        Err(_) => return,
+    };
+
+    // 获取 WebView 实例
+    let webview_obj = unsafe { JObject::from_raw(_webview.cast()) };
+    if webview_obj.is_null() {
+        return;
+    }
+
+    // 获取 WebSettings
+    if let Ok(settings) = env.call_method(
+        &webview_obj,
+        "getSettings",
+        "()Landroid/webkit/WebSettings;",
+        &[],
+    )
+    .and_then(|v| v.l())
+    {
+        let settings = settings.as_obj();
+
+        // 启用硬件加速渲染
+        let _ = env.call_method(settings, "setRenderPriority", "(Landroid/webkit/WebSettings$RenderPriority;)V",
+            &[JValue::from(env.find_class("android/webkit/WebSettings$RenderPriority")
+                .and_then(|cls| env.get_static_field(cls, "HIGH", "Landroid/webkit/WebSettings$RenderPriority;")
+                    .and_then(|v| v.l())).unwrap_or(JObject::null()))]);
+
+        // 优化触摸滚动
+        let _ = env.call_method(settings, "setSupportZoom", "(Z)V", &[JValue::from(false)]);
+        let _ = env.call_method(settings, "setBuiltInZoomControls", "(Z)V", &[JValue::from(false)]);
+        let _ = env.call_method(settings, "setDisplayZoomControls", "(Z)V", &[JValue::from(false)]);
+        let _ = env.call_method(settings, "setAllowFileAccess", "(Z)V", &[JValue::from(true)]);
+        let _ = env.call_method(settings, "setDomStorageEnabled", "(Z)V", &[JValue::from(true)]);
+        let _ = env.call_method(settings, "setDatabaseEnabled", "(Z)V", &[JValue::from(true)]);
+        // 使用更平滑的滚动
+        let _ = env.call_method(settings, "setLoadWithOverviewMode", "(Z)V", &[JValue::from(true)]);
+        let _ = env.call_method(settings, "setUseWideViewPort", "(Z)V", &[JValue::from(true)]);
+    }
+
+    // 设置 WebView 透明背景
+    let _ = env.call_method(&webview_obj, "setBackgroundColor", "(I)V", &[JValue::from(0x00000000)]);
+}
+
 impl Default for PinchZoomDisablePlugin {
     fn default() -> Self {
         Self
@@ -57,6 +112,11 @@ impl<R: Runtime> Plugin<R> for PinchZoomDisablePlugin {
             #[cfg(target_os = "macos")]
             unsafe {
                 apply_macos_window_rounding(_webview.inner().cast());
+            }
+
+            #[cfg(target_os = "android")]
+            unsafe {
+                configure_android_webview(_webview.inner().cast());
             }
 
             #[cfg(target_os = "linux")]

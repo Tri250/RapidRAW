@@ -22,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": null,
+      "csp": "default-src 'self'; img-src 'self' asset: https://* http://* data: blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://huggingface.co https://raw.githubusercontent.com https://getrapidraw.com http://localhost:* http://127.0.0.1:* http://10.* http://192.168.*; script-src 'self' 'unsafe-inline'; font-src 'self' data:",
       "capabilities": ["default"],
       "assetProtocol": {
         "enable": true,

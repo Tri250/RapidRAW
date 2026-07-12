@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- 默认：仅允许 HTTPS 加密流量 -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- 信任系统 CA 证书 -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- AI 模型下载：HuggingFace CDN -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">huggingface.co</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- 预设下载：GitHub Raw -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">raw.githubusercontent.com</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- RapidRAW 云服务 API -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">getrapidraw.com</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- 本地 AI Connector (允许开发者本地 HTTP 连接) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.0.0</domain>
+        <domain includeSubdomains="true">192.168.0.0</domain>
+    </domain-config>
+</network-security-config>

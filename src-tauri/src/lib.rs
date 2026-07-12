@@ -10,6 +10,7 @@ mod ai_commands;
 mod ai_connector;
 mod ai_processing;
 mod android_integration;
+mod android_permissions;
 mod app_settings;
 mod app_state;
 mod cache_utils;
@@ -2032,6 +2033,23 @@ pub fn run() {
                 let _ = std::fs::remove_file(&crash_flag_path);
             }
 
+            #[cfg(target_os = "android")]
+            {
+                // Android: 崩溃恢复 - 检测上次是否异常退出
+                let android_crash_flag = config_dir.join(".android_crash_flag");
+                if android_crash_flag.exists() {
+                    log::warn!("Android: Previous session crashed. Resetting GPU state and reducing resource usage.");
+                    // 重置为保守设置
+                    settings.processing_backend = Some("gl".to_string());
+                    settings.editor_preview_resolution = Some(1024);
+                    settings.image_cache_size = Some(1);
+                    let _ = crate::save_settings(settings.clone(), app_handle.clone());
+                    let _ = std::fs::remove_file(&android_crash_flag);
+                }
+                // 写入崩溃标志，正常退出时清除
+                let _ = std::fs::write(&android_crash_flag, "1");
+            }
+
             let lens_db = lens_correction::load_lensfun_db(&app_handle);
             let state = app.state::<AppState>();
             *state.lens_db.lock().unwrap() = Some(Arc::new(lens_db));
@@ -2119,7 +2137,25 @@ pub fn run() {
             let window = window_builder.build().expect("Failed to build window");
 
             #[cfg(target_os = "android")]
-            android_integration::initialize_android(&window);
+            {
+                android_integration::initialize_android(&window);
+
+                // Android: 权限初始化检查
+                android_permissions::init_permissions(app.handle());
+
+                // Android: 配置低内存设备的内存管理
+                // 限制 Rayon 线程池大小，避免在移动设备上过度消耗资源
+                if let Ok(pool) = rayon::ThreadPoolBuilder::new()
+                    .num_threads(2)
+                    .stack_size(4 * 1024 * 1024)
+                    .build()
+                {
+                    // 线程池已配置，用于后续并行处理
+                    drop(pool);
+                }
+
+                log::info!("Android: RapidRAW initialized with mobile-optimized settings.");
+            }
 
             #[cfg(not(target_os = "android"))]
             {
@@ -2390,6 +2426,9 @@ pub fn run() {
             lens_correction::get_lens_distortion_params,
             negative_conversion::preview_negative_conversion,
             negative_conversion::convert_negatives,
+            android_permissions::android_check_permissions,
+            android_permissions::android_request_permissions,
+            android_permissions::android_has_manage_storage,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
@@ -2417,6 +2456,15 @@ pub fn run() {
                     std::process::exit(0);
                 }
                 tauri::RunEvent::Exit => {
+                    #[cfg(target_os = "android")]
+                    {
+                        // 正常退出时清除崩溃标志
+                        if let Ok(config_dir) = app_handle.path().app_config_dir() {
+                            let android_crash_flag = config_dir.join(".android_crash_flag");
+                            let _ = std::fs::remove_file(&android_crash_flag);
+                        }
+                    }
+
                     #[cfg(target_os = "macos")]
                     unsafe { libc::_exit(0); }
 

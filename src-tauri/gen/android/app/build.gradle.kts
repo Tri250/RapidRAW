@@ -19,7 +19,7 @@ android {
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "false"
         applicationId = "io.github.CyberTimon.RapidRAW"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 36
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
@@ -57,6 +57,9 @@ android {
             signingConfig = signingConfigs.getByName("release")
             
             isMinifyEnabled = true
+            isShrinkResources = true
+            isDebuggable = false
+            isJniDebuggable = false
             proguardFiles(
                 *fileTree(".") { include("**/*.pro") }
                     .plus(getDefaultProguardFile("proguard-android-optimize.txt"))
@@ -64,11 +67,23 @@ android {
             )
         }
     }
+
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
     buildFeatures {
         buildConfig = true
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    // NDK ABI 过滤 - 仅保留主流架构以减少 APK 体积
+    ndk {
+        abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
     }
 }
 

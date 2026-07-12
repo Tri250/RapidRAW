@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-  <external-path name="my_images" path="." />
-  <cache-path name="my_cache_images" path="." />
+    <!-- 应用专属外部存储 (Android 10+ 推荐) -->
+    <external-files-path name="external_files" path="." />
+    <!-- 应用专属外部缓存 -->
+    <external-cache-path name="external_cache" path="." />
+    <!-- 内部文件存储 -->
+    <files-path name="internal_files" path="." />
+    <!-- 内部缓存 -->
+    <cache-path name="internal_cache" path="." />
+    <!-- 共享外部存储 (兼容旧版 Android，仅用于读取) -->
+    <external-path name="shared_external" path="." />
 </paths>
