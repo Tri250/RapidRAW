@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { Undo2, Redo2, GitBranch, Circle, SlidersHorizontal, Crop, Sparkles, Package } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import clsx from 'clsx';
+import Text from '../../ui/Text';
+import { TextColors, TextVariants, TextWeights } from '../../../types/typography';
 
 interface HistoryNode {
   id: number;
@@ -17,12 +22,30 @@ interface EditHistoryPanelProps {
   onHistorySelect?: (nodeId: number) => void;
 }
 
+function getEditTypeIcon(editType: string) {
+  switch (editType) {
+    case 'initial_state':
+      return Circle;
+    case 'adjustment':
+      return SlidersHorizontal;
+    case 'crop':
+      return Crop;
+    case 'mask_edit':
+      return Sparkles;
+    case 'batch_operation':
+      return Package;
+    default:
+      if (editType.startsWith('preset_')) return Sparkles;
+      return Circle;
+  }
+}
+
 export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({ isOpen, onClose, onHistorySelect }) => {
+  const { t } = useTranslation();
   const [historyTree, setHistoryTree] = useState<string>('');
   const [historySummary, setHistorySummary] = useState<HistoryNode[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 初始化编辑历史
   useEffect(() => {
     if (isOpen && !historyTree) {
       initHistory();
@@ -31,11 +54,14 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({ isOpen, onCl
 
   const initHistory = async () => {
     try {
+      setIsLoading(true);
       const tree = await invoke<string>('edit_history_new');
       setHistoryTree(tree);
       await refreshSummary(tree);
     } catch (e) {
-      console.error('初始化编辑历史失败:', e);
+      console.error('Failed to initialize edit history:', e);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -45,24 +71,14 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({ isOpen, onCl
       const summary = JSON.parse(summaryJson) as HistoryNode[];
       setHistorySummary(summary);
     } catch (e) {
-      console.error('获取历史摘要失败:', e);
+      console.error('Failed to get history summary:', e);
     }
   };
 
-  const handlePushEdit = useCallback(async (editType: string, editData: string, label?: string) => {
-    try {
-      const newTree = await invoke<string>('edit_history_push', {
-        treeJson: historyTree,
-        editType,
-        editData,
-        label: label || null,
-      });
-      setHistoryTree(newTree);
-      await refreshSummary(newTree);
-    } catch (e) {
-      console.error('推送编辑操作失败:', e);
-    }
-  }, [historyTree]);
+  const getSummary = async (tree: string): Promise<HistoryNode[]> => {
+    const summaryJson = await invoke<string>('edit_history_get_summary', { treeJson: tree });
+    return JSON.parse(summaryJson) as HistoryNode[];
+  };
 
   const handleUndo = async () => {
     try {
@@ -73,7 +89,7 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({ isOpen, onCl
       const current = summary.find(n => n.is_current);
       if (current && onHistorySelect) onHistorySelect(current.id);
     } catch (e) {
-      console.error('撤销失败:', e);
+      console.error('Undo failed:', e);
     }
   };
 
@@ -86,7 +102,7 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({ isOpen, onCl
       const current = summary.find(n => n.is_current);
       if (current && onHistorySelect) onHistorySelect(current.id);
     } catch (e) {
-      console.error('重做失败:', e);
+      console.error('Redo failed:', e);
     }
   };
 
@@ -97,7 +113,7 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({ isOpen, onCl
       await refreshSummary(newTree);
       if (onHistorySelect) onHistorySelect(nodeId);
     } catch (e) {
-      console.error('切换历史节点失败:', e);
+      console.error('Switch to history node failed:', e);
     }
   };
 
@@ -111,235 +127,168 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({ isOpen, onCl
       setHistoryTree(newTree);
       await refreshSummary(newTree);
     } catch (e) {
-      console.error('创建分支失败:', e);
+      console.error('Create branch failed:', e);
     }
-  };
-
-  const handleCollapseBranch = async (branchNodeId: number) => {
-    try {
-      const newTree = await invoke<string>('edit_history_collapse_branch', {
-        treeJson: historyTree,
-        branchNodeId,
-      });
-      setHistoryTree(newTree);
-      await refreshSummary(newTree);
-    } catch (e) {
-      console.error('折叠分支失败:', e);
-    }
-  };
-
-  const getSummary = async (tree: string): Promise<HistoryNode[]> => {
-    const summaryJson = await invoke<string>('edit_history_get_summary', { treeJson: tree });
-    return JSON.parse(summaryJson) as HistoryNode[];
   };
 
   const formatTime = (timestamp: number): string => {
     const date = new Date(timestamp * 1000);
-    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
-  const getEditTypeIcon = (editType: string): string => {
-    switch (editType) {
-      case '初始状态': return '🏠';
-      case '调整变更': return '🎨';
-      case '裁剪': return '✂️';
-      case '蒙版编辑': return '🎭';
-      case '批量操作': return '📦';
-      default:
-        if (editType.startsWith('应用预设')) return '⚡';
-        return '📝';
-    }
-  };
+  const canUndo = historySummary.some(n => n.is_current && n.id !== 1);
+  const currentNodeIndex = historySummary.findIndex(n => n.is_current);
+  const canRedo = currentNodeIndex >= 0 && currentNodeIndex < historySummary.length - 1;
+  const branchCount = historySummary.filter(n => n.is_branch_point).length;
 
   if (!isOpen) return null;
 
   return (
-    <div style={{
-      position: 'absolute',
-      right: 0,
-      top: 0,
-      bottom: 0,
-      width: '280px',
-      backgroundColor: 'rgba(18, 20, 26, 0.97)',
-      borderLeft: '1px solid rgba(255,255,255,0.08)',
-      display: 'flex',
-      flexDirection: 'column',
-      zIndex: 100,
-      color: '#e0e0e0',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    }}>
-      {/* 头部 */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12px 16px',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-      }}>
-        <span style={{ fontSize: '14px', fontWeight: 600 }}>编辑历史</span>
-        <div style={{ display: 'flex', gap: '4px' }}>
+    <div className="flex flex-col h-full">
+      {/* Title bar */}
+      <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface">
+        <Text variant={TextVariants.title}>{t('editor.history.title')}</Text>
+        <div className="flex items-center gap-1">
           <button
             onClick={handleUndo}
-            disabled={!historySummary.some(n => n.is_current && n.id !== 1)}
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '4px',
-              color: '#e0e0e0',
-              padding: '4px 8px',
-              cursor: 'pointer',
-              fontSize: '12px',
-            }}
-            title="撤销"
+            disabled={!canUndo}
+            className={clsx(
+              'p-1.5 rounded-md transition-colors',
+              canUndo
+                ? 'text-text-secondary hover:bg-surface hover:text-text-primary'
+                : 'text-text-tertiary cursor-not-allowed',
+            )}
+            data-tooltip={t('editor.history.undo')}
           >
-            ↩ 撤销
+            <Undo2 size={16} />
           </button>
           <button
             onClick={handleRedo}
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '4px',
-              color: '#e0e0e0',
-              padding: '4px 8px',
-              cursor: 'pointer',
-              fontSize: '12px',
-            }}
-            title="重做"
+            disabled={!canRedo}
+            className={clsx(
+              'p-1.5 rounded-md transition-colors',
+              canRedo
+                ? 'text-text-secondary hover:bg-surface hover:text-text-primary'
+                : 'text-text-tertiary cursor-not-allowed',
+            )}
+            data-tooltip={t('editor.history.redo')}
           >
-            ↪ 重做
-          </button>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#888',
-              cursor: 'pointer',
-              fontSize: '16px',
-              padding: '2px 6px',
-            }}
-          >
-            ✕
+            <Redo2 size={16} />
           </button>
         </div>
       </div>
 
-      {/* 历史列表 */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '8px 0',
-      }}>
-        {historySummary.map((node, index) => (
-          <div key={node.id}>
-            {/* 连接线 */}
-            {index > 0 && (
-              <div style={{
-                marginLeft: '28px',
-                width: '2px',
-                height: '12px',
-                backgroundColor: node.is_current ? '#4a9eff' : 'rgba(255,255,255,0.15)',
-              }} />
-            )}
+      {/* History list */}
+      <div className="grow overflow-y-auto p-4 custom-scrollbar">
+        {isLoading ? (
+          <Text variant={TextVariants.body} color={TextColors.secondary} className="text-center mt-4">
+            ...
+          </Text>
+        ) : historySummary.length === 0 ? (
+          <Text variant={TextVariants.body} color={TextColors.secondary} className="text-center mt-4">
+            {t('editor.history.noHistory')}
+          </Text>
+        ) : (
+          <div className="flex flex-col">
+            {historySummary.map((node, index) => {
+              const Icon = getEditTypeIcon(node.edit_type);
+              const isLast = index === historySummary.length - 1;
+              return (
+                <div key={node.id}>
+                  {/* Timeline connector line */}
+                  {!isLast && (
+                    <div
+                      className={clsx(
+                        'ml-[11px] w-0.5 h-3',
+                        node.is_current ? 'bg-accent' : 'bg-surface',
+                      )}
+                    />
+                  )}
 
-            {/* 节点 */}
-            <div
-              onClick={() => handleSwitchTo(node.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '8px 16px',
-                cursor: 'pointer',
-                backgroundColor: node.is_current ? 'rgba(74, 158, 255, 0.15)' : 'transparent',
-                borderLeft: node.is_current ? '3px solid #4a9eff' : '3px solid transparent',
-                transition: 'background-color 0.15s',
-              }}
-              onMouseEnter={(e) => {
-                if (!node.is_current) {
-                  (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(255,255,255,0.04)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!node.is_current) {
-                  (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
-                }
-              }}
-            >
-              {/* 节点图标 */}
-              <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px',
-                backgroundColor: node.is_current ? '#4a9eff' : node.is_branch_point ? 'rgba(255,180,0,0.3)' : 'rgba(255,255,255,0.08)',
-                flexShrink: 0,
-              }}>
-                {node.is_branch_point ? '⑂' : getEditTypeIcon(node.edit_type)}
-              </div>
+                  {/* Node row */}
+                  <div
+                    onClick={() => handleSwitchTo(node.id)}
+                    className={clsx(
+                      'flex items-center gap-3 px-2 py-1.5 rounded-lg cursor-pointer transition-colors',
+                      node.is_current
+                        ? 'bg-accent/10 border-l-2 border-accent'
+                        : 'hover:bg-card-active border-l-2 border-transparent',
+                    )}
+                  >
+                    {/* Icon circle */}
+                    <div
+                      className={clsx(
+                        'w-6 h-6 rounded-full flex items-center justify-center shrink-0',
+                        node.is_current
+                          ? 'bg-accent text-accent-foreground'
+                          : node.is_branch_point
+                            ? 'bg-amber-500/20 text-amber-500'
+                            : 'bg-surface text-text-secondary',
+                      )}
+                    >
+                      {node.is_branch_point ? (
+                        <GitBranch size={12} />
+                      ) : (
+                        <Icon size={12} />
+                      )}
+                    </div>
 
-              {/* 节点信息 */}
-              <div style={{ marginLeft: '10px', flex: 1, minWidth: 0 }}>
-                <div style={{
-                  fontSize: '13px',
-                  fontWeight: node.is_current ? 600 : 400,
-                  color: node.is_current ? '#4a9eff' : '#ccc',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {node.label}
+                    {/* Node info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Text
+                          as="span"
+                          variant={TextVariants.small}
+                          weight={node.is_current ? TextWeights.semibold : TextWeights.normal}
+                          color={node.is_current ? TextColors.accent : TextColors.primary}
+                          className="truncate"
+                        >
+                          {node.label}
+                        </Text>
+                        {node.is_current && (
+                          <span className="text-[10px] font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded shrink-0">
+                            {t('editor.history.current')}
+                          </span>
+                        )}
+                      </div>
+                      <Text as="span" variant={TextVariants.small} color={TextColors.secondary}>
+                        {formatTime(node.timestamp)}
+                        {node.branch_count > 1 && ` · ${node.branch_count} ${t('editor.history.branches', { count: node.branch_count })}`}
+                      </Text>
+                    </div>
+
+                    {/* Branch action */}
+                    {node.is_branch_point && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const name = prompt(t('editor.history.branchName'));
+                          if (name) handleCreateBranch(node.id, name);
+                        }}
+                        className="p-1 rounded text-amber-500 hover:bg-amber-500/10 transition-colors shrink-0"
+                        data-tooltip={t('editor.history.createBranch')}
+                      >
+                        <GitBranch size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div style={{
-                  fontSize: '11px',
-                  color: '#888',
-                  marginTop: '2px',
-                }}>
-                  {formatTime(node.timestamp)}
-                  {node.branch_count > 1 && ` · ${node.branch_count}个分支`}
-                </div>
-              </div>
-
-              {/* 分支操作 */}
-              {node.is_branch_point && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const name = prompt('输入分支名称:', `分支-${Date.now() % 1000}`);
-                    if (name) handleCreateBranch(node.id, name);
-                  }}
-                  style={{
-                    background: 'rgba(255,180,0,0.15)',
-                    border: '1px solid rgba(255,180,0,0.3)',
-                    borderRadius: '3px',
-                    color: '#ffb400',
-                    fontSize: '10px',
-                    padding: '2px 6px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  +分支
-                </button>
-              )}
-            </div>
+              );
+            })}
           </div>
-        ))}
+        )}
       </div>
 
-      {/* 底部统计 */}
-      <div style={{
-        padding: '8px 16px',
-        borderTop: '1px solid rgba(255,255,255,0.08)',
-        fontSize: '11px',
-        color: '#666',
-        display: 'flex',
-        justifyContent: 'space-between',
-      }}>
-        <span>{historySummary.length} 步操作</span>
-        <span>{historySummary.filter(n => n.is_branch_point).length} 个分支点</span>
+      {/* Footer stats */}
+      <div className="shrink-0 border-t border-surface p-3">
+        <div className="flex justify-between">
+          <Text variant={TextVariants.small} color={TextColors.secondary}>
+            {t('editor.history.steps', { count: historySummary.length })}
+          </Text>
+          <Text variant={TextVariants.small} color={TextColors.secondary}>
+            {t('editor.history.branches', { count: branchCount })}
+          </Text>
+        </div>
       </div>
     </div>
   );

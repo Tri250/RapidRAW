@@ -508,6 +508,21 @@
       "exporting": "Exporting…",
       "savesTo": "External edit — saves to"
     },
+    "history": {
+      "title": "Edit History",
+      "undo": "Undo",
+      "redo": "Redo",
+      "steps": "{{count}} steps",
+      "branches": "{{count}} branch points",
+      "createBranch": "New Branch",
+      "branchName": "Branch name",
+      "initialState": "Initial State",
+      "adjustmentChange": "Adjustment",
+      "cropChange": "Crop",
+      "presetApplied": "Preset",
+      "noHistory": "No edits yet",
+      "current": "Current"
+    },
     "masks": {
       "actions": {
         "addNewComponent": "Add New Component",
@@ -699,6 +714,7 @@
         "adjust": "Adjust",
         "crop": "Crop",
         "export": "Export",
+        "history": "Edit History",
         "info": "Info",
         "inpaint": "Inpaint",
         "masks": "Masks",
@@ -1653,6 +1669,29 @@
       "wgpuLabel": "Enable Direct WGPU Render",
       "workerThreads": "Thumbnail Worker Threads",
       "workerThreadsDesc": "Number of parallel threads used to generate thumbnails. Higher values speed up library loading but use more CPU & RAM."
+    },
+    "colorScience": {
+      "title": "Color Science",
+      "pipeline": "Color Pipeline",
+      "pipelineDesc": "Select the color rendering pipeline for image processing.",
+      "pipelineSimplifiedAces": "Simplified ACES (Default)",
+      "pipelineAces20": "ACES 2.0",
+      "pipelineOpenDRT": "OpenDRT",
+      "displayColorSpace": "Display Color Space",
+      "displayColorSpaceDesc": "Target color space for the output image.",
+      "colorSpaceSrgb": "sRGB / Rec.709",
+      "colorSpaceP3": "Display P3",
+      "colorSpaceRec2020": "Rec.2020",
+      "eotf": "Transfer Function (EOTF)",
+      "eotfDesc": "Electro-optical transfer function for display encoding.",
+      "eotfSrgb": "sRGB",
+      "eotfGamma22": "Gamma 2.2",
+      "eotfGamma24": "Gamma 2.4 (BT.1886)",
+      "eotfPQ": "PQ (ST.2084)",
+      "hdrOutput": "HDR Output",
+      "hdrOutputDesc": "Enable High Dynamic Range output for compatible displays.",
+      "peakLuminance": "Peak Luminance",
+      "peakLuminanceDesc": "Maximum display brightness in nits. Higher values enable HDR highlights."
     },
     "tagging": {
       "addCustomPlaceholder": "Add custom AI tags (comma separated)...",

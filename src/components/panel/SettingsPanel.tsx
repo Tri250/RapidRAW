@@ -21,6 +21,7 @@ import {
   Smartphone,
   Zap,
   Save,
+  Palette,
 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -554,6 +555,7 @@ export default function SettingsPanel({
   const [logPathLoading, setLogPathLoading] = useState(true);
   const [logPathError, setLogPathError] = useState(false);
   const [dpr, setDpr] = useState(() => (typeof window !== 'undefined' ? window.devicePixelRatio : 1));
+  const [colorScienceConfig, setColorScienceConfig] = useState<any>(null);
 
   const settingCategories = useMemo(
     () => [
@@ -610,6 +612,34 @@ export default function SettingsPanel({
     () => [
       { value: 'poppins', label: t('settings.general.poppins') },
       { value: 'system', label: t('settings.general.system') },
+    ],
+    [t],
+  );
+
+  const colorSciencePipelineOptions = useMemo<OptionItem<string>[]>(
+    () => [
+      { value: 'SimplifiedAces', label: t('settings.colorScience.pipelineSimplifiedAces') },
+      { value: 'Aces20', label: t('settings.colorScience.pipelineAces20') },
+      { value: 'OpenDRT', label: t('settings.colorScience.pipelineOpenDRT') },
+    ],
+    [t],
+  );
+
+  const colorScienceDisplayColorSpaceOptions = useMemo<OptionItem<string>[]>(
+    () => [
+      { value: 'SRGB', label: t('settings.colorScience.colorSpaceSrgb') },
+      { value: 'DisplayP3', label: t('settings.colorScience.colorSpaceP3') },
+      { value: 'Rec2020', label: t('settings.colorScience.colorSpaceRec2020') },
+    ],
+    [t],
+  );
+
+  const colorScienceEotfOptions = useMemo<OptionItem<string>[]>(
+    () => [
+      { value: 'SRGB', label: t('settings.colorScience.eotfSrgb') },
+      { value: 'Gamma22', label: t('settings.colorScience.eotfGamma22') },
+      { value: 'Gamma24', label: t('settings.colorScience.eotfGamma24') },
+      { value: 'PQ', label: t('settings.colorScience.eotfPQ') },
     ],
     [t],
   );
@@ -677,6 +707,30 @@ export default function SettingsPanel({
     invoke<string[]>('get_lensfun_makers').then(setLensMakers).catch(console.error);
   }, []);
 
+  useEffect(() => {
+    const initColorScienceConfig = async () => {
+      try {
+        const storedConfig = appSettings?.colorScienceConfig;
+        const configJson = storedConfig || JSON.stringify({
+          pipeline: 'SimplifiedAces',
+          display_color_space: 'SRGB',
+          eotf: 'SRGB',
+          peak_luminance: 203.0,
+          hdr_enabled: false,
+        });
+        const result = await invoke<string>('color_science_get_config', { configJson });
+        const parsed = JSON.parse(result);
+        setColorScienceConfig(parsed);
+        if (!storedConfig) {
+          onSettingsChange({ ...appSettings, colorScienceConfig: result });
+        }
+      } catch (error) {
+        console.error('Failed to initialize color science config:', error);
+      }
+    };
+    initColorScienceConfig();
+  }, []);
+
   const handleProcessingSettingChange = async (key: string, value: any) => {
     setProcessingSettings((prev) => ({ ...prev, [key]: value }));
 
@@ -697,6 +751,21 @@ export default function SettingsPanel({
       ) {
         await invoke('clear_image_caches');
       }
+    }
+  };
+
+  const handleColorScienceChange = async (updates: Record<string, any>) => {
+    try {
+      const currentConfigJson = appSettings?.colorScienceConfig || JSON.stringify(colorScienceConfig);
+      const result = await invoke<string>('color_science_update_config', {
+        configJson: currentConfigJson,
+        updates: JSON.stringify(updates),
+      });
+      const parsed = JSON.parse(result);
+      setColorScienceConfig(parsed);
+      onSettingsChange({ ...appSettings, colorScienceConfig: result });
+    } catch (error) {
+      console.error('Failed to update color science config:', error);
     }
   };
 
@@ -1370,6 +1439,96 @@ export default function SettingsPanel({
                     </div>
                   </div>
                 )}
+
+                <div className="p-6 bg-surface rounded-xl shadow-md">
+                  <div className="flex items-center gap-3 mb-8">
+                    <Palette size={24} className="text-accent" />
+                    <Text variant={TextVariants.title} color={TextColors.accent}>
+                      {t('settings.colorScience.title')}
+                    </Text>
+                  </div>
+                  <div className="space-y-8">
+                    <SettingItem
+                      label={t('settings.colorScience.pipeline')}
+                      description={t('settings.colorScience.pipelineDesc')}
+                    >
+                      <Dropdown
+                        onChange={(value: any) => handleColorScienceChange({ pipeline: value })}
+                        options={colorSciencePipelineOptions}
+                        value={colorScienceConfig?.pipeline || 'SimplifiedAces'}
+                        triggerClassName="bg-bg-primary"
+                      />
+                    </SettingItem>
+
+                    <SettingItem
+                      label={t('settings.colorScience.displayColorSpace')}
+                      description={t('settings.colorScience.displayColorSpaceDesc')}
+                    >
+                      <Dropdown
+                        onChange={(value: any) => handleColorScienceChange({ display_color_space: value })}
+                        options={colorScienceDisplayColorSpaceOptions}
+                        value={colorScienceConfig?.display_color_space || 'SRGB'}
+                        triggerClassName="bg-bg-primary"
+                      />
+                    </SettingItem>
+
+                    <SettingItem
+                      label={t('settings.colorScience.eotf')}
+                      description={t('settings.colorScience.eotfDesc')}
+                    >
+                      <Dropdown
+                        onChange={(value: any) => handleColorScienceChange({ eotf: value })}
+                        options={colorScienceEotfOptions}
+                        value={colorScienceConfig?.eotf || 'SRGB'}
+                        triggerClassName="bg-bg-primary"
+                      />
+                    </SettingItem>
+
+                    <SettingItem
+                      label={t('settings.colorScience.hdrOutput')}
+                      description={t('settings.colorScience.hdrOutputDesc')}
+                    >
+                      <Switch
+                        checked={colorScienceConfig?.hdr_enabled ?? false}
+                        id="hdr-output-toggle"
+                        label={t('settings.colorScience.hdrOutput')}
+                        onChange={(checked) => handleColorScienceChange({ hdr_enabled: checked })}
+                      />
+                    </SettingItem>
+
+                    <AnimatePresence>
+                      {(colorScienceConfig?.hdr_enabled ?? false) && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3, ease: 'easeInOut' }}
+                          className="overflow-hidden"
+                        >
+                          <div className="pl-4 border-l-2 border-border-color ml-1">
+                            <SettingItem
+                              label={t('settings.colorScience.peakLuminance')}
+                              description={t('settings.colorScience.peakLuminanceDesc')}
+                            >
+                              <Slider
+                                label={t('settings.colorScience.peakLuminance')}
+                                min={100}
+                                max={10000}
+                                step={100}
+                                value={colorScienceConfig?.peak_luminance ?? 203}
+                                defaultValue={203}
+                                onChange={(e: any) =>
+                                  handleColorScienceChange({ peak_luminance: parseFloat(e.target.value) })
+                                }
+                                suffix=" nits"
+                              />
+                            </SettingItem>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
 
                 <div className="p-6 bg-surface rounded-xl shadow-md">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">

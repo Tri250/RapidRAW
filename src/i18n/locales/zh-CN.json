@@ -508,6 +508,21 @@
       "exporting": "正在导出…",
       "savesTo": "外部编辑 — 保存至"
     },
+    "history": {
+      "title": "编辑历史",
+      "undo": "撤销",
+      "redo": "重做",
+      "steps": "{{count}} 步操作",
+      "branches": "{{count}} 个分支点",
+      "createBranch": "新建分支",
+      "branchName": "分支名称",
+      "initialState": "初始状态",
+      "adjustmentChange": "调整",
+      "cropChange": "裁剪",
+      "presetApplied": "预设",
+      "noHistory": "暂无编辑记录",
+      "current": "当前"
+    },
     "masks": {
       "actions": {
         "addNewComponent": "添加新组件",
@@ -699,6 +714,7 @@
         "adjust": "调整",
         "crop": "裁剪",
         "export": "导出",
+        "history": "编辑历史",
         "info": "信息",
         "inpaint": "修复",
         "masks": "蒙版",
@@ -1653,6 +1669,29 @@
       "wgpuLabel": "启用直接 WGPU 渲染",
       "workerThreads": "缩略图工作线程数",
       "workerThreadsDesc": "用于生成缩略图的并行线程数。较高的值可加快图库加载速度，但会占用更多 CPU 和内存。"
+    },
+    "colorScience": {
+      "title": "色彩科学",
+      "pipeline": "色彩管线",
+      "pipelineDesc": "选择用于图像处理的色彩渲染管线。",
+      "pipelineSimplifiedAces": "简化 ACES（默认）",
+      "pipelineAces20": "ACES 2.0",
+      "pipelineOpenDRT": "OpenDRT",
+      "displayColorSpace": "显示色彩空间",
+      "displayColorSpaceDesc": "输出图像的目标色彩空间。",
+      "colorSpaceSrgb": "sRGB / Rec.709",
+      "colorSpaceP3": "Display P3",
+      "colorSpaceRec2020": "Rec.2020",
+      "eotf": "传输函数 (EOTF)",
+      "eotfDesc": "用于显示编码的电光传输函数。",
+      "eotfSrgb": "sRGB",
+      "eotfGamma22": "Gamma 2.2",
+      "eotfGamma24": "Gamma 2.4 (BT.1886)",
+      "eotfPQ": "PQ (ST.2084)",
+      "hdrOutput": "HDR 输出",
+      "hdrOutputDesc": "为兼容显示器启用高动态范围输出。",
+      "peakLuminance": "峰值亮度",
+      "peakLuminanceDesc": "显示器的最大亮度（尼特）。较高的值可呈现 HDR 高光。"
     },
     "tagging": {
       "addCustomPlaceholder": "添加自定义 AI 标签（逗号分隔）...",

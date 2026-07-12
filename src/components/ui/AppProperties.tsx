@@ -121,6 +121,7 @@ export enum Panel {
   Ai = 'ai',
   Crop = 'crop',
   Export = 'export',
+  History = 'history',
   Masks = 'masks',
   Metadata = 'metadata',
   Presets = 'presets',
@@ -211,6 +212,7 @@ export interface AppSettings {
   exifOverlay?: ExifOverlay;
   language?: string;
   folderTreeSort?: FolderTreeSort;
+  colorScienceConfig?: string;
 }
 
 export interface BrushSettings {
