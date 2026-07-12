@@ -7,13 +7,18 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.os.StrictMode
 import android.provider.Settings
 import android.view.Gravity
+import android.view.InputDevice
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
 import android.widget.FrameLayout
 import android.widget.Toast
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import kotlin.math.atan2
 import org.json.JSONArray
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.OnBackPressedCallback
@@ -43,6 +48,16 @@ class MainActivity : TauriActivity() {
   private lateinit var onboardingManager: OnboardingManager
   private lateinit var foldableAdapter: FoldableAdapter
 
+  // 热降频监控
+  private lateinit var thermalMonitor: ThermalMonitor
+
+  // 状态保存 Key
+  companion object {
+    private const val KEY_CURRENT_IMAGE_PATH = "current_image_path"
+    private const val KEY_IS_EDITING = "is_editing"
+    private const val KEY_EDITOR_STATE = "editor_state_json"
+  }
+
   // 权限请求启动器
   private val permissionLauncher = registerForActivityResult(
     ActivityResultContracts.RequestMultiplePermissions()
@@ -67,8 +82,31 @@ class MainActivity : TauriActivity() {
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    // 安装 SplashScreen（Android 12+ 系统 API，11- 自动降级）
+    val splashScreen = installSplashScreen()
+
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
+
+    // 启用 StrictMode 检测 ANR 隐患（仅 Debug 模式）
+    if (BuildConfig.DEBUG) {
+      StrictMode.setThreadPolicy(
+        StrictMode.ThreadPolicy.Builder()
+          .detectDiskReads()
+          .detectDiskWrites()
+          .detectNetwork()
+          .penaltyLog()
+          .build()
+      )
+      StrictMode.setVmPolicy(
+        StrictMode.VmPolicy.Builder()
+          .detectLeakedSqlLiteObjects()
+          .detectLeakedClosableObjects()
+          .detectActivityLeaks()
+          .penaltyLog()
+          .build()
+      )
+    }
 
     // 初始化管理器
     memoryManager = MemoryManager.getInstance(this)
@@ -79,6 +117,7 @@ class MainActivity : TauriActivity() {
 
     onboardingManager = OnboardingManager(this)
     foldableAdapter = FoldableAdapter(this)
+    thermalMonitor = ThermalMonitor.getInstance(this)
 
     // 检查是否需要显示引导页
     if (onboardingManager.shouldShowOnboarding()) {
@@ -147,6 +186,24 @@ class MainActivity : TauriActivity() {
 
     // 更新动态快捷方式
     shortcutHelper.updateDynamicShortcuts()
+
+    // 恢复上次保存的状态
+    if (savedInstanceState != null) {
+      restoreEditorState(savedInstanceState)
+    }
+
+    // 设置热降频回调
+    thermalMonitor.callback = object : ThermalMonitor.ThermalCallback {
+      override fun onThermalStatusChanged(status: ThermalMonitor.ThermalStatus, temperature: Float) {
+        webView?.evaluateJavascript(
+          "window.__onThermalChanged?.('${status.label}', $temperature, ${status.level})",
+          null
+        )
+      }
+      override fun onThrottleLevelChanged(level: Int) {
+        webView?.evaluateJavascript("window.__onThrottleLevelChanged?.($level)", null)
+      }
+    }
   }
 
   override fun onNewIntent(intent: Intent) {
@@ -342,7 +399,7 @@ class MainActivity : TauriActivity() {
     }
 
     nativeRenderSurface!!.setOnTouchListener { _, event ->
-      gestureHandler.onTouchEvent(event)
+      handleNativeTouchEvent(event)
     }
 
     // 初始化比较视图管理器，覆盖在渲染层之上
@@ -540,11 +597,44 @@ class MainActivity : TauriActivity() {
   override fun onPause() {
     super.onPause()
     nativeRenderSurface?.pauseRendering()
+    // 检查热降频状态
+    thermalMonitor.checkThermalStatus()
   }
 
   override fun onResume() {
     super.onResume()
     nativeRenderSurface?.resumeRendering()
+  }
+
+  override fun onSaveInstanceState(outState: Bundle) {
+    super.onSaveInstanceState(outState)
+    // 保存当前编辑状态，防止进程死亡后丢失
+    webView?.evaluateJavascript(
+      "JSON.stringify({path: window.__getCurrentImagePath?.(), isEditing: window.__isEditing?.(), editorState: window.__getEditorState?.()})",
+      { result ->
+        if (result != null && result != "null") {
+          outState.putString(KEY_EDITOR_STATE, result)
+        }
+      }
+    )
+  }
+
+  override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+    super.onRestoreInstanceState(savedInstanceState)
+    restoreEditorState(savedInstanceState)
+  }
+
+  /**
+   * 从 Bundle 恢复编辑状态
+   */
+  private fun restoreEditorState(savedInstanceState: Bundle) {
+    val editorState = savedInstanceState.getString(KEY_EDITOR_STATE)
+    if (editorState != null) {
+      webView?.evaluateJavascript(
+        "window.__restoreEditorState?.($editorState)",
+        null
+      )
+    }
   }
 
   override fun onDestroy() {
@@ -553,5 +643,28 @@ class MainActivity : TauriActivity() {
     shortcutHelper.clearDynamicShortcuts()
     thumbnailAccelerator.shutdown()
     super.onDestroy()
+  }
+
+  /**
+   * 处理原生渲染层的触控事件（含触控笔压力感应）
+   */
+  private fun handleNativeTouchEvent(event: MotionEvent): Boolean {
+    // 触控笔压力感应
+    if (event.isFromSource(InputDevice.SOURCE_STYLUS) || event.getToolType(0) == MotionEvent.TOOL_TYPE_STYLUS) {
+      val pressure = event.getPressure(0)
+      val orientation = if (event.pointerCount >= 1) event.getOrientation(0) else 0f
+      val tilt = if (event.pointerCount >= 1) {
+        val tiltX = event.getAxisValue(MotionEvent.AXIS_TILT, 0)
+        val tiltY = event.getAxisValue(MotionEvent.AXIS_TILT, 1)
+        Math.toDegrees(atan2(tiltY.toDouble(), tiltX.toDouble())).toFloat()
+      } else 0f
+
+      webView?.evaluateJavascript(
+        "window.__onStylusEvent?.({action:${event.actionMasked},x:${event.x},y:${event.y},pressure:$pressure,orientation:$orientation,tilt:$tilt})",
+        null
+      )
+    }
+
+    return gestureHandler.onTouchEvent(event)
   }
 }

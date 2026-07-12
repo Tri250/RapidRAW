@@ -13,6 +13,7 @@ import Resizer from './components/ui/Resizer';
 import GlobalTooltip from './components/ui/GlobalTooltip';
 import AppModals from './components/modals/AppModals';
 import PrivacyConsentModal from './components/modals/PrivacyConsentModal';
+import ErrorBoundary from './components/ui/ErrorBoundary';
 
 import EditorView from './components/views/EditorView';
 import LibraryView from './components/views/LibraryView';
@@ -624,6 +625,7 @@ function App() {
   const useMacWindowShell = osPlatform === 'macos' && !appSettings?.decorations && !isWindowFullScreen && !isFullScreen;
 
   return (
+    <ErrorBoundary>
     <>
       <ImageProcessingManager
         transformWrapperRef={transformWrapperRef}
@@ -798,6 +800,7 @@ function App() {
         />
       </div>
     </>
+    </ErrorBoundary>
   );
 }
 

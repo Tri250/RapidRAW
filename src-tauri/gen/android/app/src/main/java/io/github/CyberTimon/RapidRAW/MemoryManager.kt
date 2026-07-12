@@ -254,6 +254,62 @@ class MemoryManager private constructor(private val context: Context) {
         updateMemoryStats()
     }
 
+    /**
+     * OOM 保护：检查是否有足够内存加载指定大小的图像
+     *
+     * 策略：
+     * - 估算图像解码后内存占用（宽×高×4字节 RGBA + 30% overhead）
+     * - 预留 20% 堆空间给系统和其他缓存
+     * - 如果超出预算，先尝试释放 L2 缓存再重试
+     *
+     * @return true 表示可以安全加载，false 表示需要降采样或拒绝加载
+     */
+    fun canLoadImage(width: Int, height: Int): Boolean {
+        updateMemoryStats()
+
+        val estimatedBytes = (width.toLong() * height * 4 * 1.3).toLong() // RGBA + overhead
+        val availableBytes = totalMemoryBytes.get() - heapUsedBytes.get()
+        val reservedBytes = (totalMemoryBytes.get() * 0.2).toLong() // 预留 20%
+        val usableBytes = availableBytes - reservedBytes
+
+        if (estimatedBytes <= usableBytes) {
+            return true
+        }
+
+        // 尝试释放 L2 缓存以腾出空间
+        if (estimatedBytes <= usableBytes + thumbnailCache.size() * 50_000L) {
+            evictL2Cache(1.0f)
+            updateMemoryStats()
+            val newUsable = (totalMemoryBytes.get() - heapUsedBytes.get()) - reservedBytes
+            return estimatedBytes <= newUsable
+        }
+
+        return false
+    }
+
+    /**
+     * 获取建议的图像加载策略
+     *
+     * @return 建议的最大解码尺寸（取短边），0 表示不应加载
+     */
+    fun getRecommendedMaxDimension(originalWidth: Int, originalHeight: Int): Int {
+        if (canLoadImage(originalWidth, originalHeight)) {
+            return maxOf(originalWidth, originalHeight)
+        }
+
+        // 逐级降采样：50%, 25%, 12.5%
+        val steps = listOf(2, 4, 8)
+        for (step in steps) {
+            val w = originalWidth / step
+            val h = originalHeight / step
+            if (w > 0 && h > 0 && canLoadImage(w, h)) {
+                return maxOf(w, h)
+            }
+        }
+
+        return 0 // 内存不足，不应加载
+    }
+
     // ========== 内存监控 ==========
 
     private fun updateMemoryStats() {
