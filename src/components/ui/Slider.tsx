@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { hapticOnSliderChange } from '../../utils/hapticFeedback';
 import { GLOBAL_KEYS } from './AppProperties';
 
 type SliderChangeEvent =
@@ -294,6 +295,7 @@ const Slider = ({
 
     if (!isDragging) {
       setDisplayValue(Number(e.target.value));
+      hapticOnSliderChange();
       onChange(e);
     }
   };

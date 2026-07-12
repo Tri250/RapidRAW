@@ -1,6 +1,7 @@
 import React from 'react';
 import clsx from 'clsx';
 import { motion } from 'framer-motion';
+import { hapticOnToggle } from '../../utils/hapticFeedback';
 import Text from './Text';
 import { TextVariants } from '../../types/typography';
 
@@ -61,7 +62,7 @@ const Switch = ({
           className="sr-only"
           disabled={disabled}
           id={uniqueId}
-          onChange={(e: any) => !disabled && onChange(e.target.checked)}
+          onChange={(e: any) => !disabled && (hapticOnToggle(), onChange(e.target.checked))}
           type="checkbox"
         />
         <div className={clsx('w-full h-full bg-card-active/50 rounded-full shadow-inner', trackClassName)}></div>

@@ -17,7 +17,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
 class MainActivity : TauriActivity() {
-  private val safeMarginBackgroundColor = Color.rgb(24, 24, 24)
+  private val safeMarginBackgroundColor = Color.rgb(6, 8, 12)
   private var webView: WebView? = null
 
   // 权限请求启动器

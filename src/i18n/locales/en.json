@@ -1693,8 +1693,14 @@
     },
     "themes": {
       "dark": "Dark",
+      "deepSpaceBlack": "Deep Space Black",
       "grey": "Grey",
-      "light": "Light"
+      "light": "Light",
+      "snow": "Snow",
+      "arctic": "Arctic",
+      "blue": "Blue",
+      "mutedGreen": "Muted Green",
+      "sepia": "Sepia"
     },
     "title": "Settings",
     "tooltips": {

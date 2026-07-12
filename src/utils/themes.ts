@@ -9,6 +9,23 @@ export interface ThemeProps {
 
 export const THEMES: Array<ThemeProps> = [
   {
+    id: Theme.DeepSpaceBlack,
+    name: 'settings.themes.deepSpaceBlack',
+    splashImage: '/splash-dark.jpg',
+    cssVariables: {
+      '--app-bg-primary': 'rgb(6, 8, 12)',
+      '--app-bg-secondary': 'rgb(12, 15, 22)',
+      '--app-surface': 'rgb(9, 12, 18)',
+      '--app-card-active': 'rgb(18, 22, 32)',
+      '--app-button-text': 'rgb(6, 8, 12)',
+      '--app-text-primary': 'rgb(222, 228, 240)',
+      '--app-text-secondary': 'rgb(130, 142, 162)',
+      '--app-accent': 'rgb(25, 145, 125)',
+      '--app-border-color': 'rgb(22, 26, 36)',
+      '--app-hover-color': 'rgb(25, 145, 125)',
+    },
+  },
+  {
     id: Theme.Dark,
     name: 'settings.themes.dark',
     splashImage: '/splash-dark.jpg',
@@ -130,7 +147,7 @@ export const THEMES: Array<ThemeProps> = [
   {
     id: Theme.Sepia,
     name: 'settings.themes.sepia',
-    splashImage: '/splash-sepia.jpg',
+    splashImage: '/splash-dark.jpg',
     cssVariables: {
       '--app-bg-primary': 'rgb(40, 35, 30)',
       '--app-bg-secondary': 'rgb(48, 42, 36)',
@@ -146,4 +163,4 @@ export const THEMES: Array<ThemeProps> = [
   },
 ];
 
-export const DEFAULT_THEME_ID = Theme.Dark;
+export const DEFAULT_THEME_ID = Theme.DeepSpaceBlack;

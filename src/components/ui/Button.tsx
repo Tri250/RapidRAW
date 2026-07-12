@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import { hapticOnButtonPress } from '../../utils/hapticFeedback';
 
 interface ButtonProps {
   autoFocus?: boolean;
@@ -12,6 +13,11 @@ interface ButtonProps {
 }
 
 const Button = ({ children, onClick, disabled, className = '', ...props }: ButtonProps) => {
+  const handleClick = (e: React.MouseEvent) => {
+    hapticOnButtonPress();
+    onClick?.(e);
+  };
+
   const baseClasses = `
     flex items-center justify-center gap-2 sm:gap-3
     font-semibold py-2.5 px-4 sm:px-5 rounded-md
@@ -34,7 +40,7 @@ const Button = ({ children, onClick, disabled, className = '', ...props }: Butto
   );
 
   return (
-    <button onClick={onClick} disabled={disabled} className={combinedClasses} {...props}>
+    <button onClick={handleClick} disabled={disabled} className={combinedClasses} {...props}>
       {children}
     </button>
   );

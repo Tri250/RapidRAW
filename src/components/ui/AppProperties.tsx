@@ -149,6 +149,7 @@ export enum Theme {
   Arctic = 'arctic',
   Blue = 'blue',
   Dark = 'dark',
+  DeepSpaceBlack = 'deep-space-black',
   Grey = 'grey',
   Light = 'light',
   MutedGreen = 'muted-green',
