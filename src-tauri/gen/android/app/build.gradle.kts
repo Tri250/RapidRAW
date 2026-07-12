@@ -86,11 +86,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
-    // NDK ABI 过滤 - 仅保留主流架构以减少 APK 体积
-    ndk {
-        abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
-    }
-
     // 外部原生构建（Rust 通过 Cargo 编译，此处配置 NDK 工具链）
     externalNativeBuild {
         cmake {
