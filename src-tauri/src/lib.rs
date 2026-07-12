@@ -14,8 +14,10 @@ mod android_permissions;
 mod app_settings;
 mod app_state;
 mod cache_utils;
+mod color_science;
 mod culling;
 mod denoising;
+mod edit_history;
 mod exif_processing;
 mod export_processing;
 mod file_management;
@@ -2449,6 +2451,19 @@ pub fn run() {
             android_permissions::android_check_permissions,
             android_permissions::android_request_permissions,
             android_permissions::android_has_manage_storage,
+            android_integration::edit_history_new,
+            android_integration::edit_history_push,
+            android_integration::edit_history_undo,
+            android_integration::edit_history_redo,
+            android_integration::edit_history_create_branch,
+            android_integration::edit_history_switch_to,
+            android_integration::edit_history_get_path,
+            android_integration::edit_history_get_summary,
+            android_integration::edit_history_get_branches,
+            android_integration::edit_history_collapse_branch,
+            android_integration::color_science_get_config,
+            android_integration::color_science_update_config,
+            android_integration::color_science_process,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

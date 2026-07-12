@@ -86,6 +86,14 @@ android {
         abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
     }
 
+    // 外部原生构建（Rust 通过 Cargo 编译，此处配置 NDK 工具链）
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
     // Android 性能优化
     androidResources {
         additionalParameters += listOf("--no-version-vectors")
@@ -115,8 +123,11 @@ dependencies {
     implementation("androidx.webkit:webkit:1.14.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.activity:activity-ktx:1.10.1")
+    implementation("androidx.core:core-ktx:1.15.0")
     implementation("com.google.android.material:material:1.12.0")
     implementation("rustls:rustls-platform-verifier:0.1.1")
+    // Kotlin 协程（用于异步操作）
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.4")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")

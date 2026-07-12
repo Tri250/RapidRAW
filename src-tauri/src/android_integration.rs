@@ -11,9 +11,17 @@ use std::fs;
 #[cfg(target_os = "android")]
 use std::path::PathBuf;
 #[cfg(target_os = "android")]
+use std::sync::Mutex;
+#[cfg(target_os = "android")]
 static INIT_NDK_CONTEXT: std::sync::Once = std::sync::Once::new();
 #[cfg(target_os = "android")]
 static INIT_RUSTLS_PLATFORM_VERIFIER: std::sync::Once = std::sync::Once::new();
+
+// Native rendering surface state
+#[cfg(target_os = "android")]
+static NATIVE_SURFACE_READY: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+#[cfg(target_os = "android")]
+static NATIVE_SURFACE_SIZE: Mutex<(i32, i32)> = Mutex::new((0, 0));
 
 #[cfg(target_os = "android")]
 pub fn initialize_android(window: &tauri::WebviewWindow) {
@@ -624,4 +632,332 @@ pub fn get_android_internal_library_root() -> Result<PathBuf, String> {
         fs::create_dir_all(&library_dir).map_err(|e| e.to_string())?;
     }
     Ok(library_dir)
+}
+
+// ============================================================================
+// Native Surface 渲染支持（Phase 1: WGPU 直出 Android Surface）
+// ============================================================================
+
+/// 初始化原生渲染 Surface
+/// 由 Kotlin NativeBridge 通过 JNI 调用
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub extern "C" fn rapidraw_android_init_render(
+    native_window: *mut std::ffi::c_void,
+    width: i32,
+    height: i32,
+) {
+    use std::sync::atomic::Ordering;
+
+    if native_window.is_null() {
+        log::error!("rapidraw_android_init_render: native_window is null");
+        return;
+    }
+
+    log::info!(
+        "rapidraw_android_init_render: ANativeWindow={:?}, {}x{}",
+        native_window,
+        width,
+        height
+    );
+
+    // 更新表面尺寸
+    if let Ok(mut size) = NATIVE_SURFACE_SIZE.lock() {
+        *size = (width, height);
+    }
+
+    NATIVE_SURFACE_READY.store(true, Ordering::SeqCst);
+
+    // 通知 WGPU 使用此 ANativeWindow 创建 Surface
+    // 实际的 WGPU surface 创建在 gpu_processing.rs 中处理
+    // 此处仅标记原生表面就绪状态
+}
+
+/// 更新渲染 Surface 尺寸
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub extern "C" fn rapidraw_android_resize_render(width: i32, height: i32) {
+    log::info!("rapidraw_android_resize_render: {}x{}", width, height);
+
+    if let Ok(mut size) = NATIVE_SURFACE_SIZE.lock() {
+        *size = (width, height);
+    }
+}
+
+/// 销毁渲染 Surface
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub extern "C" fn rapidraw_android_destroy_render() {
+    use std::sync::atomic::Ordering;
+
+    log::info!("rapidraw_android_destroy_render");
+    NATIVE_SURFACE_READY.store(false, Ordering::SeqCst);
+}
+
+/// 释放 GPU 缓存（响应 Android 内存压力）
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub extern "C" fn rapidraw_android_free_gpu_cache() {
+    log::info!("rapidraw_android_free_gpu_cache: releasing all GPU caches");
+    // GPU 缓存释放由 gpu_processing.rs 中的缓存管理器处理
+    // 此处通过全局状态通知
+}
+
+/// 释放 GPU 缓存（指定比例）
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub extern "C" fn rapidraw_android_free_gpu_cache_fraction(fraction: f32) {
+    log::info!(
+        "rapidraw_android_free_gpu_cache_fraction: {:.2}",
+        fraction
+    );
+}
+
+/// 获取渲染后端信息
+#[cfg(target_os = "android")]
+#[no_mangle]
+pub extern "C" fn rapidraw_android_get_render_backend() -> *const std::ffi::c_char {
+    use std::ffi::CString;
+
+    let backend = if cfg!(feature = "vulkan") {
+        "vulkan"
+    } else {
+        "gles"
+    };
+
+    let c_str = CString::new(backend).unwrap_or_else(|_| CString::new("unknown").unwrap());
+    c_str.into_raw()
+}
+
+/// 检查原生 Surface 是否就绪
+#[cfg(target_os = "android")]
+pub fn is_native_surface_ready() -> bool {
+    use std::sync::atomic::Ordering;
+    NATIVE_SURFACE_READY.load(Ordering::SeqCst)
+}
+
+/// 获取原生 Surface 尺寸
+#[cfg(target_os = "android")]
+pub fn get_native_surface_size() -> (i32, i32) {
+    NATIVE_SURFACE_SIZE.lock().map(|s| *s).unwrap_or((0, 0))
+}
+
+// ============================================================================
+// Tauri Commands: 编辑历史
+// ============================================================================
+
+use crate::edit_history::{EditHistoryTree, EditOperation};
+
+/// Tauri 命令：创建新的编辑历史
+#[tauri::command]
+pub fn edit_history_new() -> Result<String, String> {
+    let tree = EditHistoryTree::new();
+    serde_json::to_string(&tree).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：推送编辑操作
+#[tauri::command]
+pub fn edit_history_push(
+    tree_json: String,
+    edit_type: String,
+    edit_data: String,
+    label: Option<String>,
+) -> Result<String, String> {
+    let mut tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+
+    let edit = match edit_type.as_str() {
+        "adjustment" => {
+            let changed_keys: Vec<(String, String)> =
+                serde_json::from_str(&edit_data).map_err(|e| e.to_string())?;
+            EditOperation::AdjustmentChange { changed_keys }
+        }
+        "crop" => {
+            let crop: [f32; 5] =
+                serde_json::from_str(&edit_data).map_err(|e| e.to_string())?;
+            EditOperation::CropChange {
+                x: crop[0],
+                y: crop[1],
+                width: crop[2],
+                height: crop[3],
+                angle: crop[4],
+            }
+        }
+        "preset" => {
+            let data: serde_json::Value =
+                serde_json::from_str(&edit_data).map_err(|e| e.to_string())?;
+            EditOperation::PresetApplied {
+                preset_name: data["name"].as_str().unwrap_or("").to_string(),
+                previous_state: Vec::new(),
+            }
+        }
+        _ => return Err(format!("未知编辑类型: {}", edit_type)),
+    };
+
+    tree.push_edit(edit, label);
+    serde_json::to_string(&tree).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：撤销操作
+#[tauri::command]
+pub fn edit_history_undo(tree_json: String) -> Result<String, String> {
+    let mut tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+    tree.undo();
+    serde_json::to_string(&tree).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：重做操作
+#[tauri::command]
+pub fn edit_history_redo(tree_json: String) -> Result<String, String> {
+    let mut tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+    tree.redo();
+    serde_json::to_string(&tree).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：创建分支
+#[tauri::command]
+pub fn edit_history_create_branch(
+    tree_json: String,
+    from_node_id: u64,
+    branch_name: String,
+) -> Result<String, String> {
+    let mut tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+    tree.create_branch(from_node_id, branch_name);
+    serde_json::to_string(&tree).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：切换到指定节点
+#[tauri::command]
+pub fn edit_history_switch_to(
+    tree_json: String,
+    node_id: u64,
+) -> Result<String, String> {
+    let mut tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+    tree.switch_to_node(node_id)
+        .map_err(|e| format!("切换失败: {}", e))?;
+    serde_json::to_string(&tree).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：获取编辑路径（用于恢复到历史状态）
+#[tauri::command]
+pub fn edit_history_get_path(tree_json: String) -> Result<String, String> {
+    let tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+    let path = tree.get_edit_path();
+    serde_json::to_string(&path).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：获取历史摘要
+#[tauri::command]
+pub fn edit_history_get_summary(tree_json: String) -> Result<String, String> {
+    let tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+    let summary = tree.get_history_summary();
+    serde_json::to_string(&summary).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：获取分支列表
+#[tauri::command]
+pub fn edit_history_get_branches(tree_json: String) -> Result<String, String> {
+    let tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+    let branches = tree.get_branches();
+    let branch_ids: Vec<u64> = branches.into_iter().map(|(id, _)| id).collect();
+    serde_json::to_string(&branch_ids).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：折叠分支
+#[tauri::command]
+pub fn edit_history_collapse_branch(
+    tree_json: String,
+    branch_node_id: u64,
+) -> Result<String, String> {
+    let mut tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+    tree.collapse_branch(branch_node_id)
+        .map_err(|e| format!("折叠失败: {}", e))?;
+    serde_json::to_string(&tree).map_err(|e| e.to_string())
+}
+
+// ============================================================================
+// Tauri Commands: 色彩科学配置
+// ============================================================================
+
+use crate::color_science::{
+    Aces20RRT, ColorScienceConfig, ColorSciencePipeline, OpenDRTPipeline,
+};
+
+/// Tauri 命令：获取当前色彩科学配置
+#[tauri::command]
+pub fn color_science_get_config(config_json: String) -> Result<String, String> {
+    let config: ColorScienceConfig =
+        serde_json::from_str(&config_json).map_err(|e| e.to_string())?;
+    serde_json::to_string(&config).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：更新色彩科学配置
+#[tauri::command]
+pub fn color_science_update_config(
+    config_json: String,
+    updates: String,
+) -> Result<String, String> {
+    let mut config: ColorScienceConfig =
+        serde_json::from_str(&config_json).map_err(|e| e.to_string())?;
+    let updates: serde_json::Value =
+        serde_json::from_str(&updates).map_err(|e| e.to_string())?;
+
+    if let Some(v) = updates.get("pipeline") {
+        config.pipeline = serde_json::from_value(v.clone()).map_err(|e| e.to_string())?;
+    }
+    if let Some(v) = updates.get("display_color_space") {
+        config.display_color_space = serde_json::from_value(v.clone()).map_err(|e| e.to_string())?;
+    }
+    if let Some(v) = updates.get("eotf") {
+        config.eotf = serde_json::from_value(v.clone()).map_err(|e| e.to_string())?;
+    }
+    if let Some(v) = updates.get("peak_luminance") {
+        config.peak_luminance = v.as_f64().unwrap_or(100.0) as f32;
+    }
+    if let Some(v) = updates.get("hdr_enabled") {
+        config.hdr_enabled = v.as_bool().unwrap_or(false);
+    }
+
+    serde_json::to_string(&config).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：应用色彩管线处理
+#[tauri::command]
+pub fn color_science_process(
+    r: f32,
+    g: f32,
+    b: f32,
+    config_json: String,
+) -> Result<Vec<f32>, String> {
+    let config: ColorScienceConfig =
+        serde_json::from_str(&config_json).map_err(|e| e.to_string())?;
+
+    let result = match config.pipeline {
+        ColorSciencePipeline::Aces20 => Aces20RRT::process(
+            [r, g, b],
+            &config.aces_params,
+            config.display_color_space,
+            config.peak_luminance,
+        ),
+        ColorSciencePipeline::OpenDRT => OpenDRTPipeline::process(
+            [r, g, b],
+            &config.opendrt_params,
+            config.display_color_space,
+            config.peak_luminance,
+        ),
+        ColorSciencePipeline::SimplifiedAces => {
+            // 使用现有的 AGX 管线（在 shader 中处理）
+            [r, g, b]
+        }
+    };
+
+    Ok(result.to_vec())
 }

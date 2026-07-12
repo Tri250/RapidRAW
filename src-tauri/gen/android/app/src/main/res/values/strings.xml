@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">RapidRAW</string>
     <string name="main_activity_title">RapidRAW</string>
+    <string name="shortcut_import">导入图片</string>
+    <string name="shortcut_import_long">导入新图片到 RapidRAW</string>
+    <string name="shortcut_library">图库</string>
+    <string name="shortcut_library_long">打开 RapidRAW 图库</string>
 </resources>
