@@ -1836,5 +1836,20 @@
         "vectorscope": "Vectorscope"
       }
     }
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "intro": "Welcome to RapidRAW. Before using this application, please read and agree to our privacy policy. We are committed to protecting your personal information and processing your data in accordance with the law.",
+    "permissionsTitle": "Device Permissions",
+    "permissionsDesc": "RapidRAW requires storage permissions to read and edit your photos, network access to download AI models and presets, and optional EXIF location access to display photo metadata. All processing is performed locally on your device.",
+    "noCollectionTitle": "What We Do NOT Collect",
+    "noCollectionDesc": "We do not collect personal identity information, device location data, usage behavior data, or build user profiles. No third-party advertising or tracking SDKs are integrated.",
+    "aiTitle": "AI Features",
+    "aiDesc": "All AI-powered features (denoising, super-resolution, inpainting, segmentation, semantic search) run entirely on your device. Your images are never uploaded to any external server.",
+    "storageTitle": "Data Storage",
+    "storageDesc": "Your original images and editing data are stored locally on your device. Application caches are stored in private directories inaccessible to other apps. All network communication uses HTTPS/TLS encryption.",
+    "fullPolicy": "This is a summary of our privacy policy. Continuing means you agree to the full privacy policy available in the application settings.",
+    "agree": "Agree and Continue",
+    "decline": "Decline"
   }
 }

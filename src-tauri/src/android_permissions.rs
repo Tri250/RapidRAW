@@ -39,7 +39,6 @@ impl AndroidPermission {
 /// 所需的全部权限列表
 const REQUIRED_PERMISSIONS: &[AndroidPermission] = &[
     AndroidPermission::ReadMediaImages,
-    AndroidPermission::ReadMediaVideo,
     AndroidPermission::ReadExternalStorage,
     AndroidPermission::WriteExternalStorage,
     AndroidPermission::AccessMediaLocation,

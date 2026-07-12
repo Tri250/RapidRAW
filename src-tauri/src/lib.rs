@@ -1202,7 +1202,7 @@ fn generate_preset_preview(
 #[tauri::command]
 async fn fetch_community_presets() -> Result<Vec<CommunityPreset>, String> {
     let client = reqwest::Client::new();
-    let url = "https://raw.githubusercontent.com/CyberTimon/RapidRAW-Presets/main/manifest.json";
+    let url = "https://cdn.jsdelivr.net/gh/CyberTimon/RapidRAW-Presets@main/manifest.json";
 
     let response = client
         .get(url)

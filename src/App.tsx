@@ -12,6 +12,7 @@ import ExportPanel from './components/panel/right/ExportPanel';
 import Resizer from './components/ui/Resizer';
 import GlobalTooltip from './components/ui/GlobalTooltip';
 import AppModals from './components/modals/AppModals';
+import PrivacyConsentModal from './components/modals/PrivacyConsentModal';
 
 import EditorView from './components/views/EditorView';
 import LibraryView from './components/views/LibraryView';
@@ -185,6 +186,14 @@ function App() {
   const [isResizing, setIsResizing] = useState(false);
   const [thumbnailSize, setThumbnailSize] = useState(defaultThumbnailSize);
   const [thumbnailAspectRatio, setThumbnailAspectRatio] = useState(ThumbnailAspectRatio.Cover);
+
+  const [privacyConsented, setPrivacyConsented] = useState(() => {
+    try {
+      return localStorage.getItem('rapidraw-privacy-consent') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   const { requestThumbnails, clearThumbnailQueue, markGenerated } = useThumbnails();
 
@@ -624,6 +633,20 @@ function App() {
         currentResRef={currentResRef}
       />
       <ImageLoaderManager cachedEditStateRef={cachedEditStateRef} />
+      <PrivacyConsentModal
+        isOpen={!privacyConsented}
+        onAgree={() => {
+          try {
+            localStorage.setItem('rapidraw-privacy-consent', 'true');
+          } catch {}
+          setPrivacyConsented(true);
+        }}
+        onDecline={() => {
+          if (typeof window !== 'undefined') {
+            window.close();
+          }
+        }}
+      />
       <div
         className={clsx(
           'flex flex-col h-screen font-sans text-text-primary overflow-hidden select-none',

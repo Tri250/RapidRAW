@@ -12,7 +12,7 @@ import Text from '../ui/Text';
 import { TextColors, TextVariants, TextWeights } from '../../types/typography';
 import Dropdown from '../ui/Dropdown';
 
-const DEFAULT_PREVIEW_IMAGE_URL = 'https://raw.githubusercontent.com/CyberTimon/RapidRAW-Presets/main/sample-image.jpg';
+const DEFAULT_PREVIEW_IMAGE_URL = 'https://cdn.jsdelivr.net/gh/CyberTimon/RapidRAW-Presets@main/sample-image.jpg';
 
 interface CommunityPreset {
   name: string;

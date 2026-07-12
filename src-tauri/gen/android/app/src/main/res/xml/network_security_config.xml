@@ -8,7 +8,7 @@
         </trust-anchors>
     </base-config>
 
-    <!-- AI 模型下载：HuggingFace CDN -->
+    <!-- AI 模型下载：HuggingFace CDN (国内暂不可达，需后续替换) -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">huggingface.co</domain>
         <trust-anchors>
@@ -16,9 +16,9 @@
         </trust-anchors>
     </domain-config>
 
-    <!-- 预设下载：GitHub Raw -->
+    <!-- 预设下载：jsDelivr CDN (国内可访问) -->
     <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">raw.githubusercontent.com</domain>
+        <domain includeSubdomains="true">cdn.jsdelivr.net</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
@@ -36,7 +36,5 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
-        <domain includeSubdomains="true">10.0.0.0</domain>
-        <domain includeSubdomains="true">192.168.0.0</domain>
     </domain-config>
 </network-security-config>
