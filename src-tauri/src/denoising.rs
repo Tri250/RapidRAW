@@ -15,6 +15,11 @@ use std::sync::atomic::{AtomicI64, AtomicUsize, Ordering as AtomicOrdering};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter};
 
+#[cfg(not(target_os = "android"))]
+type AiDenoiseSession = Option<Arc<Mutex<ort::session::Session>>>;
+#[cfg(target_os = "android")]
+type AiDenoiseSession = ();
+
 struct ProgressReporter<'a> {
     counter: &'a Arc<AtomicUsize>,
     total_work: usize,
@@ -59,16 +64,23 @@ pub async fn apply_denoising(
     let (source_path, _) = parse_virtual_path(&path);
     let path_str = source_path.to_string_lossy().to_string();
 
-    let mut ai_session = None;
+    let mut ai_session = AiDenoiseSession::default();
     if method == "ai" {
-        let session = crate::ai_processing::get_or_init_denoise_model(
-            &app_handle,
-            &state.ai_state,
-            &state.ai_init_lock,
-        )
-        .await
-        .map_err(|e| e.to_string())?;
-        ai_session = Some(session);
+        #[cfg(not(target_os = "android"))]
+        {
+            let session = crate::ai_processing::get_or_init_denoise_model(
+                &app_handle,
+                &state.ai_state,
+                &state.ai_init_lock,
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+            ai_session = Some(session);
+        }
+        #[cfg(target_os = "android")]
+        {
+            log::warn!("AI denoising is not available on Android; falling back to BM3D.");
+        }
     }
 
     let denoise_result_handle = state.denoise_result.clone();
@@ -95,16 +107,23 @@ pub async fn batch_denoise_images(
     app_handle: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<String>, String> {
-    let mut ai_session = None;
+    let mut ai_session = AiDenoiseSession::default();
     if method == "ai" {
-        let session = crate::ai_processing::get_or_init_denoise_model(
-            &app_handle,
-            &state.ai_state,
-            &state.ai_init_lock,
-        )
-        .await
-        .map_err(|e| e.to_string())?;
-        ai_session = Some(session);
+        #[cfg(not(target_os = "android"))]
+        {
+            let session = crate::ai_processing::get_or_init_denoise_model(
+                &app_handle,
+                &state.ai_state,
+                &state.ai_init_lock,
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+            ai_session = Some(session);
+        }
+        #[cfg(target_os = "android")]
+        {
+            log::warn!("AI denoising is not available on Android; falling back to BM3D.");
+        }
     }
 
     tokio::task::spawn_blocking(move || {
@@ -299,7 +318,7 @@ fn denoise_image(
     intensity: f32,
     method: String,
     app_handle: AppHandle,
-    ai_session: Option<Arc<Mutex<ort::session::Session>>>,
+    _ai_session: AiDenoiseSession,
 ) -> Result<(DynamicImage, String), String> {
     let path = Path::new(&path_str);
     if !path.exists() {
@@ -324,14 +343,21 @@ fn denoise_image(
     let rgb_img_for_denoiser = dynamic_img.to_rgb32f();
 
     let out_dynamic = if method == "ai" {
-        let session_arc = ai_session.ok_or_else(|| "AI Session not provided".to_string())?;
-        crate::ai_processing::run_ai_denoise(
-            &rgb_img_for_denoiser,
-            intensity,
-            &session_arc,
-            &app_handle,
-        )
-        .map_err(|e| e.to_string())?
+        #[cfg(target_os = "android")]
+        {
+            run_bm3d(&rgb_img_for_denoiser, intensity, &app_handle)?
+        }
+        #[cfg(not(target_os = "android"))]
+        {
+            let session_arc = _ai_session.ok_or_else(|| "AI Session not provided".to_string())?;
+            crate::ai_processing::run_ai_denoise(
+                &rgb_img_for_denoiser,
+                intensity,
+                &session_arc,
+                &app_handle,
+            )
+            .map_err(|e| e.to_string())?
+        }
     } else {
         run_bm3d(&rgb_img_for_denoiser, intensity, &app_handle)?
     };

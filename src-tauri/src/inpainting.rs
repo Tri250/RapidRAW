@@ -5,7 +5,9 @@ use base64::{Engine as _, engine::general_purpose};
 use image::{DynamicImage, GenericImageView, Rgb, RgbImage, RgbaImage};
 use serde_json::Value;
 
+#[cfg(not(target_os = "android"))]
 use crate::ai_connector;
+#[cfg(not(target_os = "android"))]
 use crate::ai_processing;
 use crate::app_settings::load_settings;
 use crate::app_state::AppState;
@@ -302,6 +304,7 @@ pub async fn generate_manual_cleanup_patch(
     Ok(result_json)
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn invoke_generative_replace_with_mask_def(
     path: String,

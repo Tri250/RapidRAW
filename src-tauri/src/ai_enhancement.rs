@@ -1,3 +1,5 @@
+#![cfg(not(target_os = "android"))]
+
 //! AI 增强模块
 //! 
 //! 提供 AI 降噪和 AI 超分辨率功能

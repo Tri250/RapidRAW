@@ -6,9 +6,13 @@ use mimalloc::MiMalloc;
 static GLOBAL: MiMalloc = MiMalloc;
 
 mod adjustment_utils;
+#[cfg(not(target_os = "android"))]
 mod ai_commands;
+#[cfg(not(target_os = "android"))]
 mod ai_connector;
+#[cfg(not(target_os = "android"))]
 mod ai_enhancement;
+#[cfg(not(target_os = "android"))]
 mod ai_processing;
 mod android_integration;
 mod android_permissions;
@@ -2333,7 +2337,9 @@ pub fn run() {
             gpu_context: Mutex::new(None),
             gpu_image_cache: Mutex::new(None),
             gpu_processor: Mutex::new(None),
+            #[cfg(not(target_os = "android"))]
             ai_state: Mutex::new(None),
+            #[cfg(not(target_os = "android"))]
             ai_init_lock: TokioMutex::new(()),
             export_task_handle: Mutex::new(None),
             hdr_result: Arc::new(Mutex::new(None)),
@@ -2388,16 +2394,27 @@ pub fn run() {
             cache_utils::clear_image_caches,
             app_settings::load_settings,
             app_settings::save_settings,
+            #[cfg(not(target_os = "android"))]
             ai_commands::generate_ai_subject_mask,
+            #[cfg(not(target_os = "android"))]
             ai_commands::precompute_ai_subject_mask,
+            #[cfg(not(target_os = "android"))]
             ai_commands::generate_ai_foreground_mask,
+            #[cfg(not(target_os = "android"))]
             ai_commands::generate_ai_sky_mask,
+            #[cfg(not(target_os = "android"))]
             ai_commands::generate_ai_depth_mask,
+            #[cfg(not(target_os = "android"))]
             ai_commands::check_ai_connector_status,
+            #[cfg(not(target_os = "android"))]
             ai_commands::test_ai_connector_connection,
+            #[cfg(not(target_os = "android"))]
             ai_enhancement::apply_ai_enhance,
+            #[cfg(not(target_os = "android"))]
             ai_enhancement::apply_ai_denoise,
+            #[cfg(not(target_os = "android"))]
             ai_enhancement::apply_ai_upscale,
+            #[cfg(not(target_os = "android"))]
             inpainting::invoke_generative_replace_with_mask_def,
             inpainting::generate_manual_cleanup_patch,
             denoising::apply_denoising,
@@ -2453,7 +2470,9 @@ pub fn run() {
             file_management::save_albums,
             file_management::add_to_album,
             file_management::get_album_images,
+            #[cfg(not(target_os = "android"))]
             tagging::start_background_indexing,
+            #[cfg(not(target_os = "android"))]
             tagging::clear_ai_tags,
             tagging::clear_all_tags,
             tagging::add_tag_for_paths,
