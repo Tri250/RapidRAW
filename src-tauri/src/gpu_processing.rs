@@ -9,6 +9,7 @@ use std::num::NonZero;
 use tauri::Manager;
 use wgpu::util::{DeviceExt, TextureDataOrder};
 
+use crate::gpu_vendor::{GpuVendor, ShaderOptimization};
 use crate::image_processing::{AllAdjustments, GpuContext, MAX_MASKS};
 use crate::lut_processing::Lut;
 use crate::{AppState, GpuImageCache};
@@ -193,8 +194,35 @@ pub fn get_or_init_gpu_context(
         }
     };
 
-    #[cfg(any(target_os = "android", target_os = "linux"))]
-    let surface_opt: Option<wgpu::Surface> = None;
+    #[cfg(target_os = "linux")]
+    let surface_opt: Option<wgpu::Surface<'static>> = None;
+
+    #[cfg(target_os = "android")]
+    let surface_opt: Option<wgpu::Surface<'static>> = {
+        let native_window = crate::android_integration::get_android_native_window();
+        if let Some(window) = native_window {
+            use raw_window_handle::AndroidNdkHandle;
+            let handle = AndroidNdkHandle::new(
+                std::ptr::NonNull::new(window).unwrap(),
+            );
+            match unsafe { instance.create_surface(handle) } {
+                Ok(surface) => {
+                    log::info!("Successfully created WGPU surface from Android native window");
+                    Some(surface)
+                }
+                Err(e) => {
+                    log::warn!(
+                        "Failed to create Android WGPU surface, falling back to compute-only: {}",
+                        e
+                    );
+                    None
+                }
+            }
+        } else {
+            log::warn!("Android native window not available, falling back to compute-only");
+            None
+        }
+    };
 
     let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
         power_preference: wgpu::PowerPreference::HighPerformance,
@@ -207,6 +235,16 @@ pub fn get_or_init_gpu_context(
         }
         format!("Failed to find a wgpu adapter: {}", e)
     })?;
+
+    let adapter_info = adapter.get_info();
+    let vendor = GpuVendor::from_adapter_info(&adapter_info);
+    let shader_optimization = vendor.get_shader_compile_options();
+    log::info!(
+        "GPU adapter: {} (vendor: {:?}, backend: {:?})",
+        adapter_info.name,
+        vendor,
+        adapter_info.backend
+    );
 
     let mut required_features = wgpu::Features::empty();
     if adapter
@@ -399,14 +437,169 @@ pub fn get_or_init_gpu_context(
         None
     };
 
-    #[cfg(any(target_os = "android", target_os = "linux"))]
+    #[cfg(target_os = "linux")]
     let display_opt = None;
+
+    #[cfg(target_os = "android")]
+    let display_opt = if let Some(surface) = surface_opt {
+        let swapchain_caps = surface.get_capabilities(&adapter);
+        let swapchain_format = swapchain_caps
+            .formats
+            .iter()
+            .copied()
+            .find(|f| !f.is_srgb())
+            .unwrap_or(swapchain_caps.formats[0]);
+
+        let alpha_mode = if swapchain_caps
+            .alpha_modes
+            .contains(&wgpu::CompositeAlphaMode::PreMultiplied)
+        {
+            wgpu::CompositeAlphaMode::PreMultiplied
+        } else if swapchain_caps
+            .alpha_modes
+            .contains(&wgpu::CompositeAlphaMode::PostMultiplied)
+        {
+            wgpu::CompositeAlphaMode::PostMultiplied
+        } else {
+            swapchain_caps.alpha_modes[0]
+        };
+
+        let (surface_w, surface_h) = crate::android_integration::get_native_surface_size();
+        let width = (surface_w.max(1) as u32).max(1);
+        let height = (surface_h.max(1) as u32).max(1);
+
+        let config = wgpu::SurfaceConfiguration {
+            width,
+            height,
+            format: swapchain_format,
+            color_space: wgpu::SurfaceColorSpace::Auto,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            present_mode: wgpu::PresentMode::Fifo,
+            alpha_mode,
+            view_formats: vec![],
+            desired_maximum_frame_latency: 2,
+        };
+        surface.configure(&device, &config);
+
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Display Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("shaders/display.wgsl").into()),
+        });
+
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Display BGL"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    count: None,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    count: None,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    count: None,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                },
+            ],
+        });
+
+        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Display Pipeline Layout"),
+            bind_group_layouts: &[Some(&bind_group_layout)],
+            immediate_size: 0,
+        });
+
+        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Display Pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("vs_main"),
+                buffers: &[],
+                compilation_options: Default::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("fs_main"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: swapchain_format,
+                    blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: Default::default(),
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleStrip,
+                ..Default::default()
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            multiview_mask: NonZero::new(0),
+            cache: None,
+        });
+
+        let transform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Transform Buffer"),
+            size: std::mem::size_of::<DisplayTransform>() as u64,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("Display Sampler"),
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+
+        Some(WgpuDisplay {
+            surface,
+            config,
+            pipeline,
+            bind_group_layout,
+            transform_buffer,
+            latest_transform: DisplayTransform {
+                rect: [0.0, 0.0, 100.0, 100.0],
+                clip: [0.0, 0.0, 10000.0, 10000.0],
+                window: [width as f32, height as f32],
+                image_size: [100.0, 100.0],
+                texture_size: [100.0, 100.0],
+                pixelated: 0.0,
+                _pad: 0.0,
+                bg_primary: [24.0 / 255.0, 24.0 / 255.0, 24.0 / 255.0, 1.0],
+                bg_secondary: [35.0 / 255.0, 35.0 / 255.0, 35.0 / 255.0, 1.0],
+            },
+            sampler,
+            current_bind_group: None,
+        })
+    } else {
+        None
+    };
 
     let new_context = GpuContext {
         device: Arc::new(device),
         queue: Arc::new(queue),
         limits,
         display: Arc::new(std::sync::Mutex::new(display_opt)),
+        vendor,
+        shader_optimization,
     };
     *context_lock = Some(new_context.clone());
     Ok(new_context)

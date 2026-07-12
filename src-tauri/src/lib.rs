@@ -8,12 +8,14 @@ static GLOBAL: MiMalloc = MiMalloc;
 mod adjustment_utils;
 mod ai_commands;
 mod ai_connector;
+mod ai_enhancement;
 mod ai_processing;
 mod android_integration;
 mod android_permissions;
 mod app_settings;
 mod app_state;
 mod cache_utils;
+mod camera_profiles;
 mod color_science;
 mod culling;
 mod denoising;
@@ -23,6 +25,7 @@ mod export_processing;
 mod file_management;
 mod formats;
 mod gpu_processing;
+mod gpu_vendor;
 mod hdr_deghosting;
 mod image_loader;
 mod image_processing;
@@ -37,6 +40,7 @@ mod preset_converter;
 mod raw_processing;
 mod tagging;
 mod tagging_utils;
+mod watermark;
 mod window_customizer;
 
 use std::collections::{HashMap, hash_map::DefaultHasher};
@@ -1966,6 +1970,16 @@ fn frontend_ready(
     })
 }
 
+#[tauri::command]
+pub fn get_camera_profiles() -> Result<Vec<camera_profiles::CameraProfile>, String> {
+    Ok(camera_profiles::CameraProfile::all_presets())
+}
+
+#[tauri::command]
+pub fn detect_camera_profile(exif_make: String, exif_model: String) -> Result<camera_profiles::CameraProfile, String> {
+    Ok(camera_profiles::detect_camera_profile(&exif_make, &exif_model))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let _ = rayon::ThreadPoolBuilder::new()
@@ -2381,6 +2395,9 @@ pub fn run() {
             ai_commands::generate_ai_depth_mask,
             ai_commands::check_ai_connector_status,
             ai_commands::test_ai_connector_connection,
+            ai_enhancement::apply_ai_enhance,
+            ai_enhancement::apply_ai_denoise,
+            ai_enhancement::apply_ai_upscale,
             inpainting::invoke_generative_replace_with_mask_def,
             inpainting::generate_manual_cleanup_patch,
             denoising::apply_denoising,
@@ -2441,6 +2458,8 @@ pub fn run() {
             tagging::clear_all_tags,
             tagging::add_tag_for_paths,
             tagging::remove_tag_for_paths,
+            watermark::apply_watermark,
+            watermark::preview_watermark,
             culling::cull_images,
             lens_correction::get_lensfun_makers,
             lens_correction::get_lensfun_lenses_for_maker,
@@ -2464,6 +2483,9 @@ pub fn run() {
             android_integration::color_science_get_config,
             android_integration::color_science_update_config,
             android_integration::color_science_process,
+            get_camera_profiles,
+            detect_camera_profile,
+            gpu_vendor::get_gpu_info,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

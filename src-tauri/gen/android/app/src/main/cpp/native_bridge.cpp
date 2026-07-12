@@ -38,6 +38,9 @@ extern "C" {
     const char* rapidraw_android_get_render_backend();
 }
 
+// Track the current ANativeWindow for proper lifecycle management
+static ANativeWindow* g_currentNativeWindow = nullptr;
+
 extern "C" {
 
 JNIEXPORT void JNICALL
@@ -53,11 +56,19 @@ Java_io_github_CyberTimon_RapidRAW_NativeBridge_initRenderSurface(
         return;
     }
 
+    // Release any previously held ANativeWindow
+    if (g_currentNativeWindow != nullptr) {
+        ANativeWindow_release(g_currentNativeWindow);
+        g_currentNativeWindow = nullptr;
+    }
+
     ANativeWindow* nativeWindow = ANativeWindow_fromSurface(env, surface);
     if (nativeWindow == nullptr) {
         LOGE("initRenderSurface: failed to get ANativeWindow from Surface");
         return;
     }
+
+    g_currentNativeWindow = nativeWindow;
 
     // 设置窗口缓冲区格式为 RGBA_8888
     ANativeWindow_setBuffersGeometry(nativeWindow, width, height, AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM);
@@ -84,6 +95,12 @@ Java_io_github_CyberTimon_RapidRAW_NativeBridge_destroyRenderSurface(
 ) {
     LOGI("destroyRenderSurface");
     rapidraw_android_destroy_render();
+
+    // Release the ANativeWindow reference
+    if (g_currentNativeWindow != nullptr) {
+        ANativeWindow_release(g_currentNativeWindow);
+        g_currentNativeWindow = nullptr;
+    }
 }
 
 JNIEXPORT void JNICALL

@@ -57,8 +57,8 @@ public class ExportForegroundService extends Service {
         int maxProgress = intent.getIntExtra("maxProgress", 100);
         boolean indeterminate = intent.getBooleanExtra("indeterminate", progress < 0);
 
-        if (title == null) title = "RapidRAW Export";
-        if (content == null) content = "Exporting images...";
+        if (title == null) title = "RapidRAW 导出";
+        if (content == null) content = "正在导出图片...";
 
         Notification notification = buildProgressNotification(title, content, progress, maxProgress, indeterminate);
 
@@ -82,20 +82,20 @@ public class ExportForegroundService extends Service {
             // 导出进度通知渠道
             NotificationChannel progressChannel = new NotificationChannel(
                 CHANNEL_ID,
-                "Export Service",
+                "导出服务",
                 NotificationManager.IMPORTANCE_LOW
             );
-            progressChannel.setDescription("RapidRAW export progress notifications");
+            progressChannel.setDescription("RapidRAW 导出进度通知");
             progressChannel.setShowBadge(false);
             notificationManager.createNotificationChannel(progressChannel);
 
             // 导出完成通知渠道
             NotificationChannel completeChannel = new NotificationChannel(
                 CHANNEL_COMPLETE_ID,
-                "Export Complete",
+                "导出完成",
                 NotificationManager.IMPORTANCE_DEFAULT
             );
-            completeChannel.setDescription("RapidRAW export completion notifications");
+            completeChannel.setDescription("RapidRAW 导出完成通知");
             completeChannel.setShowBadge(true);
             notificationManager.createNotificationChannel(completeChannel);
         }
@@ -233,7 +233,7 @@ public class ExportForegroundService extends Service {
 
         Notification notification = new NotificationCompat.Builder(context, CHANNEL_COMPLETE_ID)
             .setContentTitle("导出失败")
-            .setContentText(fileName + ": " + errorMessage)
+            .setContentText(fileName + "：" + errorMessage)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

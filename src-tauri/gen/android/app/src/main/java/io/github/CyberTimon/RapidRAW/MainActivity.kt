@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import android.webkit.WebView
 import android.widget.FrameLayout
 import android.widget.Toast
+import org.json.JSONArray
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,6 +33,11 @@ class MainActivity : TauriActivity() {
   private lateinit var mediaStoreManager: MediaStoreManager
   private lateinit var imagePickerHelper: ImagePickerHelper
   private lateinit var shortcutHelper: ShortcutHelper
+  private lateinit var thumbnailAccelerator: ThumbnailAccelerator
+
+  // 手势处理与比较视图
+  private lateinit var gestureHandler: GestureHandler
+  private lateinit var comparisonViewManager: ComparisonViewManager
 
   // 权限请求启动器
   private val permissionLauncher = registerForActivityResult(
@@ -65,6 +71,10 @@ class MainActivity : TauriActivity() {
     mediaStoreManager = MediaStoreManager.getInstance(this)
     imagePickerHelper = ImagePickerHelper(this)
     shortcutHelper = ShortcutHelper(this)
+    thumbnailAccelerator = ThumbnailAccelerator(this)
+
+    // OEM 适配初始化
+    OEMAdapter.requestBatteryOptimizationWhitelist(this)
 
     // 设置内存压力回调
     memoryManager.memoryPressureCallback = object : MemoryManager.MemoryPressureCallback {
@@ -212,6 +222,9 @@ class MainActivity : TauriActivity() {
     webView.setBackgroundColor(Color.TRANSPARENT)
     webView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
+    // 初始化原生渲染层（WGPU 直出 SurfaceView）
+    initNativeRenderSurface()
+
     onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
       override fun handleOnBackPressed() {
         this@MainActivity.webView?.evaluateJavascript("window.__handleAndroidBack()", null)
@@ -267,6 +280,62 @@ class MainActivity : TauriActivity() {
     val rootLayout = findViewById<ViewGroup>(android.R.id.content)
     if (rootLayout is FrameLayout) {
       rootLayout.addView(nativeRenderSurface, 0,
+        FrameLayout.LayoutParams(
+          FrameLayout.LayoutParams.MATCH_PARENT,
+          FrameLayout.LayoutParams.MATCH_PARENT
+        ))
+    }
+
+    // 初始化手势处理器，绑定到原生渲染层
+    gestureHandler = GestureHandler(this).apply {
+      setTargetView(nativeRenderSurface!!)
+      callback = object : GestureHandler.GestureCallback {
+        override fun onZoomChanged(scale: Float, focusX: Float, focusY: Float) {
+          webView?.evaluateJavascript(
+            "window.__onGestureZoom?.($scale, $focusX, $focusY)",
+            null
+          )
+        }
+        override fun onRotationChanged(angle: Float) {
+          webView?.evaluateJavascript(
+            "window.__onGestureRotate?.($angle)",
+            null
+          )
+        }
+        override fun onPanChanged(dx: Float, dy: Float) {
+          webView?.evaluateJavascript(
+            "window.__onGesturePan?.($dx, $dy)",
+            null
+          )
+        }
+        override fun onDoubleTap() {
+          gestureHandler.resetTransform()
+          webView?.evaluateJavascript("window.__onDoubleTap?.()", null)
+        }
+        override fun onLongPressStart() {
+          showOriginalTemporarily()
+          webView?.evaluateJavascript("window.__onLongPressStart?.()", null)
+        }
+        override fun onLongPressEnd() {
+          comparisonViewManager.disable()
+          webView?.evaluateJavascript("window.__onLongPressEnd?.()", null)
+        }
+        override fun onSingleTap() {
+          webView?.evaluateJavascript("window.__onSingleTap?.()", null)
+        }
+      }
+    }
+
+    nativeRenderSurface!!.setOnTouchListener { _, event ->
+      gestureHandler.onTouchEvent(event)
+    }
+
+    // 初始化比较视图管理器，覆盖在渲染层之上
+    comparisonViewManager = ComparisonViewManager(this)
+    val comparisonOverlay = comparisonViewManager.getView()
+    comparisonOverlay.visibility = View.GONE
+    if (rootLayout is FrameLayout) {
+      rootLayout.addView(comparisonOverlay,
         FrameLayout.LayoutParams(
           FrameLayout.LayoutParams.MATCH_PARENT,
           FrameLayout.LayoutParams.MATCH_PARENT
@@ -353,6 +422,86 @@ class MainActivity : TauriActivity() {
     startActivity(Intent.createChooser(shareIntent, "分享到"))
   }
 
+  /** 循环切换比较视图模式 */
+  fun cycleComparisonMode() {
+    if (!::comparisonViewManager.isInitialized) return
+    comparisonViewManager.cycleMode()
+    val comparisonOverlay = comparisonViewManager.getView()
+    comparisonOverlay.visibility = if (comparisonViewManager.mode != ComparisonViewManager.ComparisonMode.NONE) {
+      View.VISIBLE
+    } else {
+      View.GONE
+    }
+    webView?.evaluateJavascript(
+      "window.__onComparisonModeChanged?.('${comparisonViewManager.mode.name}')",
+      null
+    )
+  }
+
+  /** 临时显示原始图像（长按比较） */
+  fun showOriginalTemporarily() {
+    if (!::comparisonViewManager.isInitialized) return
+    comparisonViewManager.mode = ComparisonViewManager.ComparisonMode.FULL_TOGGLE
+    comparisonViewManager.isShowingOriginal = true
+    comparisonViewManager.getView().visibility = View.VISIBLE
+    webView?.evaluateJavascript(
+      "window.__onComparisonModeChanged?.('${comparisonViewManager.mode.name}')",
+      null
+    )
+  }
+
+  /** 获取设备信息 */
+  fun getDeviceInfo(): String {
+    return OEMAdapter.getDeviceInfo(this)
+  }
+
+  /** 请求电池优化白名单 */
+  fun requestBatteryWhitelist() {
+    OEMAdapter.requestBatteryOptimizationWhitelist(this)
+  }
+
+  /** 生成缩略图 */
+  fun generateThumbnail(path: String, maxWidth: Int, maxHeight: Int) {
+    thumbnailAccelerator.generateThumbnail(path, maxWidth, maxHeight) { resultPath ->
+      if (resultPath.isNotEmpty()) {
+        webView?.evaluateJavascript("window.__onThumbnailReady?.('$resultPath')", null)
+      }
+    }
+  }
+
+  /** 批量生成缩略图 */
+  fun generateBatchThumbnails(pathsJson: String) {
+    try {
+      val jsonArray = JSONArray(pathsJson)
+      val paths = mutableListOf<String>()
+      for (i in 0 until jsonArray.length()) {
+        paths.add(jsonArray.getString(i))
+      }
+      thumbnailAccelerator.generateBatchThumbnails(
+        paths = paths,
+        onProgress = { current, total ->
+          webView?.evaluateJavascript("window.__onBatchThumbnailProgress?.($current, $total)", null)
+        },
+        onComplete = { results ->
+          val resultJson = JSONArray()
+          for ((source, thumb) in results) {
+            val entry = org.json.JSONObject().apply {
+              put("source", source)
+              put("thumbnail", thumb)
+            }
+            resultJson.put(entry)
+          }
+          webView?.evaluateJavascript(
+            "window.__onBatchThumbnailComplete?.('${resultJson.toString().replace("'", "\\'")}')",
+            null
+          )
+        }
+      )
+    } catch (e: Exception) {
+      webView?.evaluateJavascript("window.__onBatchThumbnailComplete?.('[]')", null)
+    }
+  }
+
   override fun onPause() {
     super.onPause()
     nativeRenderSurface?.pauseRendering()
@@ -367,6 +516,7 @@ class MainActivity : TauriActivity() {
     nativeRenderSurface?.release()
     nativeRenderSurface = null
     shortcutHelper.clearDynamicShortcuts()
+    thumbnailAccelerator.shutdown()
     super.onDestroy()
   }
 }

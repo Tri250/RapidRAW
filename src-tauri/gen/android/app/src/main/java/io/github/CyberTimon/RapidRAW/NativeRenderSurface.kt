@@ -103,6 +103,13 @@ class NativeRenderSurface(context: Context, attrs: AttributeSet? = null) :
                     surfaceWidth = holder.surfaceFrame.width()
                     surfaceHeight = holder.surfaceFrame.height()
 
+                    // Notify Rust via JNI: ANativeWindow is ready for WGPU
+                    NativeBridge.initRenderSurface(
+                        holder.surface,
+                        surfaceWidth,
+                        surfaceHeight
+                    )
+
                     renderCallback?.onNativeSurfaceReady(
                         holder.surface,
                         surfaceWidth,
@@ -119,6 +126,7 @@ class NativeRenderSurface(context: Context, attrs: AttributeSet? = null) :
                     surfaceWidth = width
                     surfaceHeight = height
                     if (isSurfaceReady.get()) {
+                        NativeBridge.resizeRenderSurface(width, height)
                         renderCallback?.onNativeSurfaceSizeChanged(
                             holder.surface,
                             width,
@@ -129,6 +137,7 @@ class NativeRenderSurface(context: Context, attrs: AttributeSet? = null) :
 
                 override fun surfaceDestroyed(holder: SurfaceHolder) {
                     isSurfaceReady.set(false)
+                    NativeBridge.destroyRenderSurface()
                     renderCallback?.onNativeSurfaceDestroyed()
                     currentSurface = null
                 }
@@ -165,6 +174,9 @@ class NativeRenderSurface(context: Context, attrs: AttributeSet? = null) :
                     surfaceWidth = width
                     surfaceHeight = height
 
+                    // Notify Rust via JNI: ANativeWindow is ready for WGPU
+                    NativeBridge.initRenderSurface(surface, width, height)
+
                     renderCallback?.onNativeSurfaceReady(surface, width, height)
                 }
 
@@ -176,12 +188,14 @@ class NativeRenderSurface(context: Context, attrs: AttributeSet? = null) :
                     surfaceWidth = width
                     surfaceHeight = height
                     currentSurface?.let { surface ->
+                        NativeBridge.resizeRenderSurface(width, height)
                         renderCallback?.onNativeSurfaceSizeChanged(surface, width, height)
                     }
                 }
 
                 override fun onSurfaceTextureDestroyed(surfaceTexture: SurfaceTexture): Boolean {
                     isSurfaceReady.set(false)
+                    NativeBridge.destroyRenderSurface()
                     renderCallback?.onNativeSurfaceDestroyed()
                     currentSurface?.release()
                     currentSurface = null
@@ -258,6 +272,11 @@ class NativeRenderSurface(context: Context, attrs: AttributeSet? = null) :
             val surface = Surface(st)
             currentSurface = surface
             isSurfaceReady.set(true)
+            NativeBridge.initRenderSurface(
+                surface,
+                renderTextureView!!.width,
+                renderTextureView!!.height
+            )
             renderCallback?.onNativeSurfaceReady(
                 surface,
                 renderTextureView!!.width,

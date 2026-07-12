@@ -20,6 +20,7 @@ tauri-plugin-fs = "2.5.1"
 rayon = "1.12.0"
 blake3 = "1.8.5"
 wgpu = "30.0"
+raw-window-handle = "0.6"
 pollster = "0.4"
 bytemuck = { version = "1.25", features = ["derive"] }
 anyhow = "1.0.103"
@@ -29,6 +30,7 @@ tokio = { version = "1", features = ["full"] }
 uuid = { version = "1.23", features = ["v4", "serde"] }
 walkdir = "2.5.0"
 imageproc = "0.27.0"
+rusttype = "0.9"
 ort = { version = "=2.0.0-rc.10", features = ["ndarray", "load-dynamic"] }
 ndarray = "0.16"
 futures-util = "0.3"

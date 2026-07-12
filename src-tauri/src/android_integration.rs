@@ -22,6 +22,15 @@ static INIT_RUSTLS_PLATFORM_VERIFIER: std::sync::Once = std::sync::Once::new();
 static NATIVE_SURFACE_READY: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 #[cfg(target_os = "android")]
 static NATIVE_SURFACE_SIZE: Mutex<(i32, i32)> = Mutex::new((0, 0));
+#[cfg(target_os = "android")]
+static ANDROID_NATIVE_WINDOW: Mutex<Option<*mut std::ffi::c_void>> = Mutex::new(None);
+
+/// Get the stored ANativeWindow pointer for WGPU surface creation.
+/// Returns None if no native window has been set (surface not ready).
+#[cfg(target_os = "android")]
+pub fn get_android_native_window() -> Option<*mut std::ffi::c_void> {
+    ANDROID_NATIVE_WINDOW.lock().ok().and_then(|g| *g)
+}
 
 #[cfg(target_os = "android")]
 pub fn initialize_android(window: &tauri::WebviewWindow) {
@@ -661,6 +670,11 @@ pub extern "C" fn rapidraw_android_init_render(
         height
     );
 
+    // Store the ANativeWindow pointer for WGPU surface creation
+    if let Ok(mut window_ptr) = ANDROID_NATIVE_WINDOW.lock() {
+        *window_ptr = Some(native_window);
+    }
+
     // 更新表面尺寸
     if let Ok(mut size) = NATIVE_SURFACE_SIZE.lock() {
         *size = (width, height);
@@ -692,6 +706,10 @@ pub extern "C" fn rapidraw_android_destroy_render() {
 
     log::info!("rapidraw_android_destroy_render");
     NATIVE_SURFACE_READY.store(false, Ordering::SeqCst);
+    // Clear the stored ANativeWindow pointer
+    if let Ok(mut window_ptr) = ANDROID_NATIVE_WINDOW.lock() {
+        *window_ptr = None;
+    }
 }
 
 /// 释放 GPU 缓存（响应 Android 内存压力）

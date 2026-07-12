@@ -2318,6 +2318,8 @@ pub struct GpuContext {
     pub queue: Arc<wgpu::Queue>,
     pub limits: wgpu::Limits,
     pub display: Arc<std::sync::Mutex<Option<WgpuDisplay>>>,
+    pub vendor: crate::gpu_vendor::GpuVendor,
+    pub shader_optimization: crate::gpu_vendor::ShaderOptimization,
 }
 
 #[inline(always)]
