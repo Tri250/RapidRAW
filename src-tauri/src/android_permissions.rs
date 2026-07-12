@@ -52,9 +52,9 @@ pub fn check_and_request_permissions() -> Vec<String> {
     use jni::objects::JObject;
     use jni::JNIEnv;
 
-    let vm = match jni::JavaVM::from_raw(
-        ndk_context::android_context().vm().cast(),
-    ) {
+    let vm = match unsafe {
+        jni::JavaVM::from_raw(ndk_context::android_context().vm().cast())
+    } {
         Ok(vm) => vm,
         Err(_) => return vec![],
     };
@@ -64,25 +64,29 @@ pub fn check_and_request_permissions() -> Vec<String> {
         Err(_) => return vec![],
     };
 
-    let context = unsafe {
-        JObject::from_raw(
-            ndk_context::android_context().context().cast(),
-        )
-    };
+    let context = env
+        .new_local_ref(unsafe {
+            JObject::from_raw(ndk_context::android_context().context().cast())
+        })
+        .unwrap_or_else(|_| JObject::null());
 
     let mut denied_permissions: Vec<String> = Vec::new();
 
     for permission in REQUIRED_PERMISSIONS {
-        let perm_name = env
-            .new_string(permission.permission_name())
-            .unwrap_or_else(|_| env.new_string("").unwrap());
+        let perm_name = match env.new_string(permission.permission_name()) {
+            Ok(s) => s,
+            Err(_) => match env.new_string("") {
+                Ok(s) => s,
+                Err(_) => continue,
+            },
+        };
 
         let has_permission = env
             .call_method(
                 &context,
                 "checkSelfPermission",
                 "(Ljava/lang/String;)I",
-                &[jni::objects::JValue::Object(&perm_name)],
+                &[(&perm_name).into()],
             )
             .and_then(|v| v.i())
             .unwrap_or(-1);
@@ -106,9 +110,9 @@ pub fn check_and_request_permissions() -> Vec<String> {
 pub fn has_manage_external_storage_permission() -> bool {
     use jni::objects::JObject;
 
-    let vm = match jni::JavaVM::from_raw(
-        ndk_context::android_context().vm().cast(),
-    ) {
+    let vm = match unsafe {
+        jni::JavaVM::from_raw(ndk_context::android_context().vm().cast())
+    } {
         Ok(vm) => vm,
         Err(_) => return false,
     };
@@ -131,20 +135,22 @@ pub fn has_manage_external_storage_permission() -> bool {
         }
     }
 
-    let context = unsafe {
-        JObject::from_raw(
-            ndk_context::android_context().context().cast(),
-        )
+    let context = env
+        .new_local_ref(unsafe {
+            JObject::from_raw(ndk_context::android_context().context().cast())
+        })
+        .unwrap_or_else(|_| JObject::null());
+
+    let perm_str = match env.new_string("android.permission.MANAGE_EXTERNAL_STORAGE") {
+        Ok(s) => s,
+        Err(_) => return false,
     };
 
     env.call_method(
         &context,
         "checkSelfPermission",
         "(Ljava/lang/String;)I",
-        &[jni::objects::JValue::Object(
-            &env.new_string("android.permission.MANAGE_EXTERNAL_STORAGE")
-                .unwrap(),
-        )],
+        &[(&perm_str).into()],
     )
     .and_then(|v| v.i())
     .unwrap_or(-1)
@@ -168,9 +174,9 @@ pub fn request_permissions() -> bool {
     // 使用 JNI 启动权限请求 Activity
     use jni::objects::JObject;
 
-    let vm = match jni::JavaVM::from_raw(
-        ndk_context::android_context().vm().cast(),
-    ) {
+    let vm = match unsafe {
+        jni::JavaVM::from_raw(ndk_context::android_context().vm().cast())
+    } {
         Ok(vm) => vm,
         Err(_) => return false,
     };
@@ -180,11 +186,11 @@ pub fn request_permissions() -> bool {
         Err(_) => return false,
     };
 
-    let context = unsafe {
-        JObject::from_raw(
-            ndk_context::android_context().context().cast(),
-        )
-    };
+    let context = env
+        .new_local_ref(unsafe {
+            JObject::from_raw(ndk_context::android_context().context().cast())
+        })
+        .unwrap_or_else(|_| JObject::null());
 
     // 转换为 Java 字符串数组
     let string_class = match env.find_class("java/lang/String") {
@@ -206,11 +212,7 @@ pub fn request_permissions() -> bool {
             Ok(s) => s,
             Err(_) => return false,
         };
-        let _ = env.set_object_array_element(
-            &perm_array,
-            i as i32,
-            jni::objects::JValue::Object(&perm_str),
-        );
+        let _ = env.set_object_array_element(&perm_array, i as i32, &perm_str);
     }
 
     // 调用 requestPermissions (需要 Activity 上下文)
@@ -218,10 +220,7 @@ pub fn request_permissions() -> bool {
         "io/github/CyberTimon/RapidRAW/PermissionHelper",
         "requestPermissions",
         "(Landroid/app/Activity;[Ljava/lang/String;)V",
-        &[
-            jni::objects::JValue::Object(&context),
-            jni::objects::JValue::Object(&perm_array),
-        ],
+        &[(&context).into(), (&perm_array).into()],
     );
 
     // 权限请求是异步的，无法立即确认授予结果
@@ -256,6 +255,7 @@ pub fn android_has_manage_storage() -> Result<bool, String> {
 /// 初始化 Android 权限检查（在 app 启动时调用）
 #[cfg(target_os = "android")]
 pub fn init_permissions(app: &tauri::AppHandle) {
+    use tauri::Emitter;
     let denied = check_and_request_permissions();
     if !denied.is_empty() {
         log::warn!(

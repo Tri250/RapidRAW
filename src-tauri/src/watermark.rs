@@ -3,9 +3,9 @@
 //! 支持文字水印和图片水印，国内摄影社区常用功能
 
 use base64::{Engine as _, engine::general_purpose};
+use ab_glyph::FontArc;
 use image::{DynamicImage, GenericImageView, Rgba, RgbaImage};
 use imageproc::drawing;
-use rusttype::{Font, Scale};
 use serde::{Deserialize, Serialize};
 use std::io::Cursor;
 
@@ -152,10 +152,10 @@ fn apply_text_watermark(
     let opacity = (config.opacity * 255.0) as u8;
     
     // 使用 imageproc 绘制文字
-    let scale = Scale::uniform(font_size);
+    let scale = ab_glyph::PxScale::from(font_size);
     let font_data = include_bytes!("../assets/fonts/NotoSansSC-Regular.otf");
-    let font = Font::try_from_bytes(font_data as &[u8])
-        .ok_or("Failed to load font")?;
+    let font = FontArc::try_from_slice(font_data)
+        .map_err(|_| "Failed to load font".to_string())?;
     
     // 阴影
     if text_config.shadow {
@@ -276,14 +276,11 @@ fn blend_watermark_region(
                 if wm_idx + 3 < wm_data.len() {
                     let wm_a = (wm_data[wm_idx + 3] as u16 * opacity as u16 / 255) as u8;
                     if wm_a > 0 {
-                        let img_idx = ((iy * img_width + ix) * 4) as usize;
-                        if img_idx + 3 < image.len() {
-                            let img_pixel = &mut image[img_idx..img_idx + 4];
-                            let alpha = wm_a as f32 / 255.0;
-                            img_pixel[0] = (img_pixel[0] as f32 * (1.0 - alpha) + wm_data[wm_idx] as f32 * alpha) as u8;
-                            img_pixel[1] = (img_pixel[1] as f32 * (1.0 - alpha) + wm_data[wm_idx + 1] as f32 * alpha) as u8;
-                            img_pixel[2] = (img_pixel[2] as f32 * (1.0 - alpha) + wm_data[wm_idx + 2] as f32 * alpha) as u8;
-                        }
+                        let img_pixel = image.get_pixel_mut(ix, iy);
+                        let alpha = wm_a as f32 / 255.0;
+                        img_pixel[0] = (img_pixel[0] as f32 * (1.0 - alpha) + wm_data[wm_idx] as f32 * alpha) as u8;
+                        img_pixel[1] = (img_pixel[1] as f32 * (1.0 - alpha) + wm_data[wm_idx + 1] as f32 * alpha) as u8;
+                        img_pixel[2] = (img_pixel[2] as f32 * (1.0 - alpha) + wm_data[wm_idx + 2] as f32 * alpha) as u8;
                     }
                 }
             }
@@ -340,23 +337,17 @@ fn apply_exif_watermark(
                 if ix < img_width && iy < img_height {
                     let is_border = dx < 2 || dx >= box_width - 2 || dy < 2 || dy >= box_height - 2;
                     if is_border {
-                        let idx = ((iy * img_width + ix) * 4) as usize;
-                        if idx + 3 < image.len() {
-                            image[idx] = border_color[0];
-                            image[idx + 1] = border_color[1];
-                            image[idx + 2] = border_color[2];
-                            image[idx + 3] = 255;
-                        }
+                        image.put_pixel(ix, iy, Rgba([border_color[0], border_color[1], border_color[2], 255]));
                     }
                 }
             }
         }
     }
     
-    let scale = Scale::uniform(font_size);
+    let scale = ab_glyph::PxScale::from(font_size);
     let font_data = include_bytes!("../assets/fonts/NotoSansSC-Regular.otf");
-    let font = Font::try_from_bytes(font_data as &[u8])
-        .ok_or("Failed to load font")?;
+    let font = FontArc::try_from_slice(font_data)
+        .map_err(|_| "Failed to load font".to_string())?;
     let text_color = Rgba(exif_config.color);
     
     for (i, line) in lines.iter().enumerate() {

@@ -201,11 +201,16 @@ pub fn get_or_init_gpu_context(
     let surface_opt: Option<wgpu::Surface<'static>> = {
         let native_window = crate::android_integration::get_android_native_window();
         if let Some(window) = native_window {
-            use raw_window_handle::AndroidNdkHandle;
-            let handle = AndroidNdkHandle::new(
+            use raw_window_handle::{AndroidNdkWindowHandle, AndroidDisplayHandle, RawWindowHandle, RawDisplayHandle};
+            let window_handle = AndroidNdkWindowHandle::new(
                 std::ptr::NonNull::new(window).unwrap(),
             );
-            match unsafe { instance.create_surface(handle) } {
+            let display_handle = AndroidDisplayHandle::new();
+            let target = wgpu::SurfaceTargetUnsafe::RawHandle {
+                raw_display_handle: Some(RawDisplayHandle::Android(display_handle)),
+                raw_window_handle: RawWindowHandle::AndroidNdk(window_handle),
+            };
+            match unsafe { instance.create_surface_unsafe(target) } {
                 Ok(surface) => {
                     log::info!("Successfully created WGPU surface from Android native window");
                     Some(surface)

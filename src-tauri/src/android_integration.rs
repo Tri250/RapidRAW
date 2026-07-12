@@ -23,7 +23,14 @@ static NATIVE_SURFACE_READY: std::sync::atomic::AtomicBool = std::sync::atomic::
 #[cfg(target_os = "android")]
 static NATIVE_SURFACE_SIZE: Mutex<(i32, i32)> = Mutex::new((0, 0));
 #[cfg(target_os = "android")]
-static ANDROID_NATIVE_WINDOW: Mutex<Option<*mut std::ffi::c_void>> = Mutex::new(None);
+#[derive(Clone, Copy)]
+struct SendablePtr(*mut std::ffi::c_void);
+#[cfg(target_os = "android")]
+unsafe impl Send for SendablePtr {}
+#[cfg(target_os = "android")]
+unsafe impl Sync for SendablePtr {}
+#[cfg(target_os = "android")]
+static ANDROID_NATIVE_WINDOW: Mutex<Option<SendablePtr>> = Mutex::new(None);
 
 // GPU cache release state (set by JNI onTrimMemory, consumed by GPU processing)
 #[cfg(target_os = "android")]
@@ -37,7 +44,7 @@ static GPU_CACHE_FRACTION_BITS: std::sync::atomic::AtomicU32 = std::sync::atomic
 /// Returns None if no native window has been set (surface not ready).
 #[cfg(target_os = "android")]
 pub fn get_android_native_window() -> Option<*mut std::ffi::c_void> {
-    ANDROID_NATIVE_WINDOW.lock().ok().and_then(|g| *g)
+    ANDROID_NATIVE_WINDOW.lock().ok().and_then(|g| g.map(|s| s.0))
 }
 
 #[cfg(target_os = "android")]
@@ -658,7 +665,7 @@ pub fn get_android_internal_library_root() -> Result<PathBuf, String> {
 /// 初始化原生渲染 Surface
 /// 由 Kotlin NativeBridge 通过 JNI 调用
 #[cfg(target_os = "android")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rapidraw_android_init_render(
     native_window: *mut std::ffi::c_void,
     width: i32,
@@ -680,7 +687,7 @@ pub extern "C" fn rapidraw_android_init_render(
 
     // Store the ANativeWindow pointer for WGPU surface creation
     if let Ok(mut window_ptr) = ANDROID_NATIVE_WINDOW.lock() {
-        *window_ptr = Some(native_window);
+        *window_ptr = Some(SendablePtr(native_window));
     }
 
     // 更新表面尺寸
@@ -697,7 +704,7 @@ pub extern "C" fn rapidraw_android_init_render(
 
 /// 更新渲染 Surface 尺寸
 #[cfg(target_os = "android")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rapidraw_android_resize_render(width: i32, height: i32) {
     log::info!("rapidraw_android_resize_render: {}x{}", width, height);
 
@@ -708,7 +715,7 @@ pub extern "C" fn rapidraw_android_resize_render(width: i32, height: i32) {
 
 /// 销毁渲染 Surface
 #[cfg(target_os = "android")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rapidraw_android_destroy_render() {
     use std::sync::atomic::Ordering;
 
@@ -722,7 +729,7 @@ pub extern "C" fn rapidraw_android_destroy_render() {
 
 /// 释放 GPU 缓存（响应 Android 内存压力）
 #[cfg(target_os = "android")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rapidraw_android_free_gpu_cache() {
     use std::sync::atomic::Ordering;
     log::info!("rapidraw_android_free_gpu_cache: releasing all GPU caches");
@@ -731,7 +738,7 @@ pub extern "C" fn rapidraw_android_free_gpu_cache() {
 
 /// 释放 GPU 缓存（指定比例）
 #[cfg(target_os = "android")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rapidraw_android_free_gpu_cache_fraction(fraction: f32) {
     use std::sync::atomic::Ordering;
     log::info!(
@@ -921,7 +928,7 @@ pub fn apply_gpu_cache_release(state: &crate::AppState, fraction: Option<f32>) {
 
 /// 获取渲染后端信息
 #[cfg(target_os = "android")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rapidraw_android_get_render_backend() -> *const std::ffi::c_char {
     use std::ffi::CString;
 

@@ -106,7 +106,7 @@ fn main() {
                 "libonnxruntime.dylib",
                 "2b885992d3d6fa4130d39ec84a80d7504ff52750027c547bb22c86165f19406a",
             ),
-            ("android", "aarch64") => {
+            ("android", "aarch64") | ("android", "arm") | ("android", "x86_64") | ("android", "x86") => {
                 println!("cargo:warning=ONNX Runtime not used for Android target. Skipping download.");
                 tauri_build::build();
                 return;

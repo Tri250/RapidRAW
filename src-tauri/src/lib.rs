@@ -1974,15 +1974,18 @@ fn frontend_ready(
     })
 }
 
-#[tauri::command]
-pub fn get_camera_profiles() -> Result<Vec<camera_profiles::CameraProfile>, String> {
-    Ok(camera_profiles::CameraProfile::all_presets())
-}
+mod camera_profile_commands {
+    #[tauri::command]
+    pub fn get_camera_profiles() -> Result<Vec<crate::camera_profiles::CameraProfile>, String> {
+        Ok(crate::camera_profiles::CameraProfile::all_presets())
+    }
 
-#[tauri::command]
-pub fn detect_camera_profile(exif_make: String, exif_model: String) -> Result<camera_profiles::CameraProfile, String> {
-    Ok(camera_profiles::detect_camera_profile(&exif_make, &exif_model))
+    #[tauri::command]
+    pub fn detect_camera_profile(exif_make: String, exif_model: String) -> Result<crate::camera_profiles::CameraProfile, String> {
+        Ok(crate::camera_profiles::detect_camera_profile(&exif_make, &exif_model))
+    }
 }
+use camera_profile_commands::{get_camera_profiles, detect_camera_profile};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

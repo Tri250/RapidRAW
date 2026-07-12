@@ -181,7 +181,7 @@ impl GpuProfiler {
     /// 获取性能报告
     pub fn get_report(&self) -> String {
         format!(
-            "GPU: {:?}\nFPS: avg={:.1f} min={:.1f} max={:.1f}\nFrames: {} total, {} dropped ({:.1}%)\n",
+            "GPU: {:?}\nFPS: avg={:.1} min={:.1} max={:.1}\nFrames: {} total, {} dropped ({:.1}%)\n",
             self.vendor,
             self.average_fps,
             self.min_fps,
