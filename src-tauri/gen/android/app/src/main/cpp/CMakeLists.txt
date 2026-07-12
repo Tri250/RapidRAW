@@ -14,6 +14,11 @@ add_library(native_bridge SHARED
     native_bridge.cpp
 )
 
+# Android 15+ (API 35) 16KB 页大小对齐支持
+target_link_options(native_bridge PRIVATE
+    "-Wl,-z,max-page-size=16384"
+)
+
 # 链接 Rust 库和 Android 系统库
 target_link_libraries(native_bridge
     rapidraw_lib

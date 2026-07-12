@@ -36,6 +36,7 @@ public class PermissionHelper {
 
     /**
      * 请求管理所有文件权限 (Android 11+)
+     * Android 14+ 使用 ActivityResultContracts 代替 startActivityForResult
      */
     public static void requestManageStoragePermission(Activity activity) {
         if (activity == null) return;
@@ -44,7 +45,8 @@ public class PermissionHelper {
             if (!Environment.isExternalStorageManager()) {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                 intent.setData(Uri.parse("package:" + activity.getPackageName()));
-                activity.startActivityForResult(intent, REQUEST_CODE_MANAGE_STORAGE);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                activity.startActivity(intent);
             }
         }
     }

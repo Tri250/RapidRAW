@@ -287,7 +287,13 @@ class MainActivity : TauriActivity() {
     this.webView = webView
 
     webView.setBackgroundColor(safeMarginBackgroundColor)
-    webView.fitsSystemWindows = true
+
+    // Android 15+ edge-to-edge: 使用 WindowInsetsCompat 替代 fitsSystemWindows
+    ViewCompat.setOnApplyWindowInsetsListener(webView) { v, insets ->
+        val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+        v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+        insets
+    }
 
     // 设置渲染层透明背景，让原生渲染层可见
     webView.setBackgroundColor(Color.TRANSPARENT)

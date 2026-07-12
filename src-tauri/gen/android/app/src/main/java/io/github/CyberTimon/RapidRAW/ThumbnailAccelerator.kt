@@ -2,31 +2,18 @@ package io.github.CyberTimon.RapidRAW
 
 import android.content.Context
 import android.graphics.*
-import android.renderscript.*
-import android.os.Build
 import java.io.File
 import java.util.concurrent.Executors
 import kotlin.math.min
 
 /**
- * GPU 加速缩略图生成器
- * 
- * 使用 Android RenderScript / Vulkan 加速缩略图生成
+ * 缩略图生成器
+ *
+ * 使用 BitmapFactory + 内存缓存加速缩略图生成
  */
 class ThumbnailAccelerator(private val context: Context) {
-    
+
     private val executor = Executors.newFixedThreadPool(2)
-    private var renderScript: RenderScript? = null
-    
-    init {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            try {
-                renderScript = RenderScript.create(context)
-            } catch (e: Exception) {
-                // RenderScript not available
-            }
-        }
-    }
     
     /**
      * 异步生成缩略图
@@ -136,7 +123,5 @@ class ThumbnailAccelerator(private val context: Context) {
     
     fun shutdown() {
         executor.shutdown()
-        renderScript?.destroy()
-        renderScript = null
     }
 }

@@ -12,6 +12,7 @@ import android.os.IBinder;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 
 /**
  * RapidRAW 导出前台服务（增强版）
@@ -156,7 +157,7 @@ public class ExportForegroundService extends Service {
         serviceIntent.putExtra("progress", progress);
         serviceIntent.putExtra("maxProgress", maxProgress);
         serviceIntent.putExtra("indeterminate", false);
-        context.startService(serviceIntent);
+        ContextCompat.startForegroundService(context, serviceIntent);
     }
 
     /**
@@ -171,7 +172,7 @@ public class ExportForegroundService extends Service {
         serviceIntent.putExtra("title", title);
         serviceIntent.putExtra("content", content);
         serviceIntent.putExtra("indeterminate", true);
-        context.startService(serviceIntent);
+        ContextCompat.startForegroundService(context, serviceIntent);
     }
 
     /**
@@ -248,6 +249,6 @@ public class ExportForegroundService extends Service {
     public static void stopExportService(android.content.Context context) {
         Intent serviceIntent = new Intent(context, ExportForegroundService.class);
         serviceIntent.putExtra("action", "stop");
-        context.startService(serviceIntent);
+        ContextCompat.startForegroundService(context, serviceIntent);
     }
 }

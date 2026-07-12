@@ -35,11 +35,13 @@ object StorageHelper {
         return createStorageInfo(stat)
     }
 
-    fun getExternalStorageInfo(): StorageInfo {
+    fun getExternalStorageInfo(context: Context): StorageInfo {
+        val externalDir = context.getExternalFilesDir(null)
+            ?: return StorageInfo(0, 0, true, true)
         if (Environment.getExternalStorageState() != Environment.MEDIA_MOUNTED) {
             return StorageInfo(0, 0, true, true)
         }
-        val stat = StatFs(Environment.getExternalStorageDirectory().absolutePath)
+        val stat = StatFs(externalDir.absolutePath)
         return createStorageInfo(stat)
     }
 
@@ -62,7 +64,7 @@ object StorageHelper {
      * @return true 如果有足够空间
      */
     fun hasEnoughSpace(context: Context, requiredMB: Long): Boolean {
-        val info = getExternalStorageInfo()
+        val info = getExternalStorageInfo(context)
         val availableAfter = info.availableMB - requiredMB
         if (availableAfter < MIN_FREE_SPACE_MB) {
             Log.w(TAG, "Insufficient storage: need ${requiredMB}MB, available ${info.availableMB}MB")
@@ -76,7 +78,7 @@ object StorageHelper {
      */
     fun getStorageStatusJson(context: Context): String {
         val internal = getInternalStorageInfo(context)
-        val external = getExternalStorageInfo()
+        val external = getExternalStorageInfo(context)
         return """{"internal":{"totalMB":${internal.totalMB},"availableMB":${internal.availableMB},"isLow":${internal.isLow}},""" +
                 """"external":{"totalMB":${external.totalMB},"availableMB":${external.availableMB},"isLow":${external.isLow},"isCritical":${external.isCritical}}}"""
     }
