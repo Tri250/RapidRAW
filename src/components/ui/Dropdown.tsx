@@ -40,14 +40,16 @@ const Dropdown = <T extends React.Key>({
   const selectedOption = options.find((opt) => opt.value === value) || null;
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside, { passive: true });
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, []);
 
@@ -108,8 +110,9 @@ const Dropdown = <T extends React.Key>({
         aria-haspopup="listbox"
         disabled={disabled}
         className={clsx(
-          'w-full border border-border-color rounded-md px-3 mr-4 py-2 flex justify-between items-center text-left disabled:opacity-50 disabled:cursor-not-allowed',
+          'w-full border border-border-color rounded-md px-3 sm:px-4 mr-0 sm:mr-4 py-2.5 sm:py-2 flex justify-between items-center text-left disabled:opacity-50 disabled:cursor-not-allowed',
           'focus:ring-accent focus:border-accent focus:outline-hidden focus:ring-2',
+          'min-h-[40px] sm:min-h-[36px]',
           triggerClassName || 'bg-surface',
         )}
         onClick={() => setIsOpen(!isOpen)}
@@ -156,7 +159,8 @@ const Dropdown = <T extends React.Key>({
                     key={option.value}
                     onClick={() => handleSelect(option)}
                     className={clsx(
-                      'w-full text-left px-3 py-2 rounded-md flex items-center justify-between',
+                      'w-full text-left px-3 py-2.5 sm:py-2 rounded-md flex items-center justify-between',
+                      'min-h-[40px] sm:min-h-[36px]',
                       'transition-colors duration-150 hover:bg-bg-primary',
                       {
                         'bg-bg-primary': isSelected,

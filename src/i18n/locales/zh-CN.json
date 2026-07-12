@@ -1694,7 +1694,12 @@
     "themes": {
       "dark": "深色",
       "grey": "灰色",
-      "light": "浅色"
+      "light": "浅色",
+      "snow": "雪白",
+      "arctic": "极光蓝",
+      "blue": "深蓝",
+      "mutedGreen": "柔绿",
+      "sepia": "暖棕"
     },
     "title": "设置",
     "tooltips": {

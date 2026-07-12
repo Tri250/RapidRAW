@@ -477,7 +477,7 @@ const Slider = ({
         >
           <span
             aria-hidden={isLabelHovered && typeof label === 'string'}
-            className={`col-start-1 row-start-1 text-sm font-medium text-text-secondary select-none transition-opacity duration-200 ease-in-out ${
+            className={`col-start-1 row-start-1 text-xs sm:text-sm font-medium text-text-secondary select-none transition-opacity duration-200 ease-in-out ${
               isLabelHovered && typeof label === 'string' ? 'opacity-0' : 'opacity-100'
             }`}
           >
@@ -486,7 +486,7 @@ const Slider = ({
           {typeof label === 'string' && (
             <span
               aria-hidden={!isLabelHovered}
-              className={`col-start-1 row-start-1 text-sm font-medium text-text-primary select-none transition-opacity duration-200 ease-in-out pointer-events-none ${
+              className={`col-start-1 row-start-1 text-xs sm:text-sm font-medium text-text-primary select-none transition-opacity duration-200 ease-in-out pointer-events-none ${
                 isLabelHovered ? 'opacity-100' : 'opacity-0'
               }`}
             >

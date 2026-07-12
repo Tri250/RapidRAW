@@ -117,8 +117,13 @@
     @apply text-text-primary font-sans;
   }
 
+  /* 使用 :focus-visible 保留键盘焦点指示器，移除鼠标点击时的轮廓 */
   *:focus {
     outline: none !important;
+  }
+  *:focus-visible {
+    outline: 2px solid var(--app-accent) !important;
+    outline-offset: 2px;
   }
 
   .enable-color-transitions *,
@@ -437,5 +442,59 @@
 @layer utilities {
   .text-shadow-shiny {
     text-shadow: 0 0 18px rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* ============================================================
+   移动端适配：Android 触控优化
+   针对国内摄影用户在小屏设备上的操作体验
+   ============================================================ */
+
+/* 触控设备：增大滑块拇指 */
+@media (pointer: coarse) {
+  .slider-input::-webkit-slider-thumb {
+    height: 24px;
+    width: 24px;
+    margin-top: -8px;
+  }
+  .slider-input::-moz-range-thumb {
+    height: 24px;
+    width: 24px;
+  }
+
+  /* 增大滚动条宽度 */
+  ::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+/* 移动端竖屏：小屏手机 (< 480px) */
+@media (pointer: coarse) and (max-width: 480px) {
+  /* 增大间距 */
+  .mb-2 {
+    margin-bottom: 0.75rem;
+  }
+
+  /* 按钮最小触控区域 */
+  button,
+  [role='button'],
+  input[type='range'] {
+    min-height: 44px;
+  }
+
+  /* 输入框增大 */
+  input[type='text'],
+  input[type='number'] {
+    min-height: 44px;
+    font-size: 16px !important;
+  }
+}
+
+/* 极窄屏幕 (< 360px) */
+@media (pointer: coarse) and (max-width: 360px) {
+  button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
   }
 }
