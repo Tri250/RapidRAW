@@ -85,6 +85,26 @@ android {
     ndk {
         abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
     }
+
+    // Android 性能优化
+    androidResources {
+        additionalParameters += listOf("--no-version-vectors")
+    }
+
+    // 打包选项
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true  // 保持 .so 文件未压缩，提升加载速度
+        }
+        resources {
+            excludes += listOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE*",
+                "META-INF/NOTICE*",
+                "META-INF/*.kotlin_module"
+            )
+        }
+    }
 }
 
 rust {

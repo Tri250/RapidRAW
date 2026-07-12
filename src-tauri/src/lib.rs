@@ -109,7 +109,27 @@ pub fn register_exit_handler() {
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "android")]
+pub fn register_exit_handler() {
+    // Android has its own crash handling via logcat and tombstone.
+    // We register a panic hook to ensure error messages are properly logged.
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        // Log the panic to Android logcat for debugging
+        let location = info.location().map(|l| format!("{}:{}", l.file(), l.line())).unwrap_or_else(|| "unknown".to_string());
+        let msg = if let Some(s) = info.payload().downcast_ref::<&str>() {
+            s.to_string()
+        } else if let Some(s) = info.payload().downcast_ref::<String>() {
+            s.clone()
+        } else {
+            "Unknown panic".to_string()
+        };
+        log::error!("[RapidRAW] Panic at {}: {}", location, msg);
+        default_hook(info);
+    }));
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "android")))]
 pub fn register_exit_handler() {}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
