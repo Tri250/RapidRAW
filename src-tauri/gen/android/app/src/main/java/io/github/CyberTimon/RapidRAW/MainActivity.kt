@@ -39,6 +39,10 @@ class MainActivity : TauriActivity() {
   private lateinit var gestureHandler: GestureHandler
   private lateinit var comparisonViewManager: ComparisonViewManager
 
+  // 新手引导与折叠屏适配
+  private lateinit var onboardingManager: OnboardingManager
+  private lateinit var foldableAdapter: FoldableAdapter
+
   // 权限请求启动器
   private val permissionLauncher = registerForActivityResult(
     ActivityResultContracts.RequestMultiplePermissions()
@@ -72,6 +76,14 @@ class MainActivity : TauriActivity() {
     imagePickerHelper = ImagePickerHelper(this)
     shortcutHelper = ShortcutHelper(this)
     thumbnailAccelerator = ThumbnailAccelerator(this)
+
+    onboardingManager = OnboardingManager(this)
+    foldableAdapter = FoldableAdapter(this)
+
+    // 检查是否需要显示引导页
+    if (onboardingManager.shouldShowOnboarding()) {
+        webView?.evaluateJavascript("window.__showOnboarding?.()", null)
+    }
 
     // OEM 适配初始化
     OEMAdapter.requestBatteryOptimizationWhitelist(this)
@@ -151,6 +163,9 @@ class MainActivity : TauriActivity() {
       "window.__onThemeChanged?.($isDarkMode, '${if (isDarkMode) "dark" else "light"}')",
       null
     )
+    // 通知前端设备状态变化
+    val deviceState = foldableAdapter.getDeviceStateJson()
+    webView?.evaluateJavascript("window.__onDeviceStateChanged?.($deviceState)", null)
   }
 
   /**
@@ -458,6 +473,26 @@ class MainActivity : TauriActivity() {
   /** 请求电池优化白名单 */
   fun requestBatteryWhitelist() {
     OEMAdapter.requestBatteryOptimizationWhitelist(this)
+  }
+
+  /** 标记引导页完成 */
+  fun markOnboardingCompleted() {
+    onboardingManager.markOnboardingCompleted()
+  }
+
+  /** 获取设备状态信息（供前端调用） */
+  fun getDeviceState(): String {
+    return foldableAdapter.getDeviceStateJson()
+  }
+
+  /** 检查是否为平板 */
+  fun isTablet(): Boolean {
+    return foldableAdapter.isTablet()
+  }
+
+  /** 检查是否为折叠屏展开状态 */
+  fun isFoldedOpen(): Boolean {
+    return foldableAdapter.isFoldedOpen()
   }
 
   /** 生成缩略图 */
