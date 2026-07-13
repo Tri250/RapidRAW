@@ -31,6 +31,10 @@ val rustlsPlatformVerifierMavenRepo: String? = try {
 
 allprojects {
     repositories {
+        maven { url = uri("${rootProject.projectDir}/../../../../local-maven-repo") }
+        maven { url = uri("https://maven.aliyun.com/repository/google") }
+        maven { url = uri("https://maven.aliyun.com/repository/central") }
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
         google()
         mavenCentral()
         if (rustlsPlatformVerifierMavenRepo != null) {
