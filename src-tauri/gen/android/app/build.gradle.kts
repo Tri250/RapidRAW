@@ -75,6 +75,12 @@ rust {
     rootDirRel = "../../../"
 }
 
+configurations.all {
+    resolutionStrategy {
+        force("androidx.lifecycle:lifecycle-process:2.8.7")
+    }
+}
+
 dependencies {
     implementation("androidx.webkit:webkit:1.14.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
