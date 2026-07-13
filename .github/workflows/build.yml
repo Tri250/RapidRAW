@@ -36,9 +36,14 @@ on:
         type: string
         default: ''
 
+env:
+  CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+  NODE_OPTIONS: --max-old-space-size=8192
+
 jobs:
   build:
     runs-on: ${{ inputs.platform }}
+    timeout-minutes: 180
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -100,15 +105,19 @@ jobs:
           link-to-sdk: true
 
       - name: Install frontend dependencies
-        run: npm install
+        run: npm ci
 
       - name: Setup Android signing
         if: inputs.mobile == 'android' && github.event_name != 'pull_request'
+        env:
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_BASE64: ${{ secrets.ANDROID_KEY_BASE64 }}
         run: |
           cd src-tauri/gen/android
-          echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
-          echo "password=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
-          echo "${{ secrets.ANDROID_KEY_BASE64 }}" | base64 -d > $RUNNER_TEMP/keystore.jks
+          echo "keyAlias=${ANDROID_KEY_ALIAS}" > keystore.properties
+          echo "password=${ANDROID_KEY_PASSWORD}" >> keystore.properties
+          echo "${ANDROID_KEY_BASE64}" | base64 -d > "$RUNNER_TEMP/keystore.jks"
           echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
 
       - name: rustup install target
@@ -119,30 +128,36 @@ jobs:
         shell: bash
         if: ${{ inputs.release-id != '' }}
         run: |
+          set -euo pipefail
           platform="${{ inputs.platform }}"
+          target="${{ inputs.target }}"
           if [[ "${{ inputs.mobile }}" == "android" ]]; then
             replacement="android"
           else
-            replacement="$(echo ${platform} | sed -E 's/-latest//')"
+            replacement="$(echo "${platform}" | sed -E 's/-latest//')"
           fi
-          patched_platform=$(echo '${{ inputs.asset-name-pattern }}' | sed -E "s/\[platform\]/${replacement}/")
+          arch="${target%%-*}"
+          pattern='${{ inputs.asset-name-pattern }}'
+          if [[ -z "$pattern" ]]; then
+            pattern='[name]_v[version]_[platform]_[arch][ext]'
+          fi
+          patched_platform=$(echo "$pattern" | sed -E "s/\[platform\]/${replacement}/")
           if [[ -n "${{ inputs.asset-prefix }}" ]]; then
             patched_platform="${{ inputs.asset-prefix }}_${patched_platform}"
           fi
-          echo "platform=${patched_platform}" >> $GITHUB_OUTPUT
+          echo "platform=${patched_platform}" >> "$GITHUB_OUTPUT"
+          echo "arch=${arch}" >> "$GITHUB_OUTPUT"
 
       - id: tauri-build
         name: Build with tauri-action
         if: ${{ inputs.mobile == '' }}
-        # FIXME set this back to a release major version, ex. v0 . This is a commit from the `dev` branch which includes PR
-        # https://github.com/tauri-apps/tauri-action/pull/1099 , adding the assetNamePattern feature.
         uses: tauri-apps/tauri-action@cf3eb9b18add8548a40584695215c80ab7274f31
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NO_STRIP: ${{ startsWith(inputs.platform, 'ubuntu') }}
+          RAPIDRAW_ONNXRUNTIME_MIRROR: ${{ vars.RAPIDRAW_ONNXRUNTIME_MIRROR || 'https://fast-cdn.rapidraw.cn/onnxruntimes-v1.22.0/' }}
         with:
           args: --verbose ${{ inputs.build-args }} ${{ inputs.target != '' && '--target' || ''  }} ${{ inputs.target }}
-          assetNamePattern: ${{ steps.patch-release-name.outputs.platform }}
           releaseId: ${{ inputs.release-id }}
           retryAttempts: 3
 
@@ -151,9 +166,6 @@ jobs:
         shell: bash
         env:
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-          ORT_SKIP_DOWNLOAD: '1'
-          ORT_LIB_LOCATION: ${{ format('{0}/src-tauri/libs/arm64-v8a', github.workspace) }}
-          ORT_STRATEGY: manual
         run: |
           npx tauri android build --verbose ${{ inputs.build-args }}
 
@@ -167,9 +179,8 @@ jobs:
           mkdir -p "$stage_dir"
 
           app_name="RapidRAW"
-          version="$(node -e "const fs=require('fs'); const conf=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8')); process.stdout.write(conf.version || '')")"
-          arch="${{ inputs.target }}"
-          arch="${arch%%-*}"
+          version="$(grep -m 1 '^version' src-tauri/Cargo.toml | sed -E 's/version *= *"([^"]+)".*/\1/')"
+          arch="${{ steps.patch-release-name.outputs.arch }}"
           template='${{ steps.patch-release-name.outputs.platform }}'
 
           find src-tauri/gen/android/app/build/outputs -type f \( -name '*.apk' -o -name '*.aab' \) | while read -r file; do
@@ -185,7 +196,7 @@ jobs:
         if: ${{ inputs.mobile == 'android' && inputs.release-id != '' }}
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 

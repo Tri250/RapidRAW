@@ -51,8 +51,14 @@ android {
             }
         }
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
-            
+            val keystorePropertiesFile = rootProject.file("keystore.properties")
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            } else {
+                // 未配置签名文件时使用调试签名，避免本地/CI 无签名时构建失败
+                signingConfig = signingConfigs.getByName("debug")
+            }
+
             isMinifyEnabled = true
             proguardFiles(
                 *fileTree(".") { include("**/*.pro") }
