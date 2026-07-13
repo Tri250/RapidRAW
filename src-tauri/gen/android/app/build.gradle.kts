@@ -75,26 +75,14 @@ rust {
     rootDirRel = "../../../"
 }
 
-configurations.all {
-    resolutionStrategy {
-        force("androidx.lifecycle:lifecycle-process:2.8.7")
-    }
-}
-
 dependencies {
     implementation("androidx.webkit:webkit:1.14.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.activity:activity-ktx:1.10.1")
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-process:2.8.7")
     implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.core:core-splashscreen:1.0.1")
-    implementation("rustls:rustls-platform-verifier:0.1.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.4")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")
 }
 
 apply(from = "tauri.build.gradle.kts")

@@ -15,18 +15,6 @@ class BuildTask extends DefaultTask {
 
     @TaskAction
     void assemble() {
-        // Rust .so 已通过 cargo-ndk 预编译到 jniLibs，跳过 tauri CLI 构建
-        // 检查预编译 .so 是否存在
-        def jniDir = new File(project.projectDir, "src/main/jniLibs")
-        if (jniDir.exists()) {
-            def soFiles = jniDir.listFiles()?.collectMany { it.listFiles()?.findAll { f -> f.name.endsWith(".so") } } ?: []
-            if (soFiles) {
-                project.logger.lifecycle("Using pre-built Rust libraries: ${soFiles.collect { it.name }}")
-                return
-            }
-        }
-        // 如果没有预编译 .so，回退到 tauri CLI
-        project.logger.lifecycle("No pre-built .so found, falling back to tauri CLI build...")
         String executable = "npm"
         try {
             runTauriCli(executable)

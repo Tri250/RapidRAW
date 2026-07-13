@@ -1,5 +1,5 @@
-[http]
-proxy = "http://127.0.0.1:18080"
-
-[https]
-proxy = "http://127.0.0.1:18080"
+# [http]
+# proxy = "http://127.0.0.1:18080"
+# 
+# [https]
+# proxy = "http://127.0.0.1:18080"
