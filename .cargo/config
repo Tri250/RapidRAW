@@ -1,5 +1,21 @@
+[source.crates-io]
+replace-with = "rsproxy-sparse"
+
+[source.rsproxy]
+registry = "https://rsproxy.cn/crates.io-index"
+
+[source.rsproxy-sparse]
+registry = "sparse+https://rsproxy.cn/index/"
+
+[registries.rsproxy]
+index = "https://rsproxy.cn/crates.io-index"
+
+[net]
+git-fetch-with-cli = true
+
+# 如需使用本地代理，取消注释并修改以下配置
 # [http]
-# proxy = "http://127.0.0.1:18080"
-# 
+# proxy = "http://127.0.0.1:7890"
+#
 # [https]
-# proxy = "http://127.0.0.1:18080"
+# proxy = "http://127.0.0.1:7890"

@@ -1,2 +1,26 @@
 [tools]
 java = "17.0.2"
+node = "22.14.0"
+rust = "1.95.0"
+
+[env]
+# Rust 国内镜像
+RUSTUP_DIST_SERVER = "https://rsproxy.cn"
+RUSTUP_UPDATE_ROOT = "https://rsproxy.cn/rustup"
+CARGO_REGISTRIES_CRATES_IO_PROTOCOL = "sparse"
+
+# Node 国内镜像（.npmrc 已包含，此处作为备用）
+NPM_CONFIG_REGISTRY = "https://registry.npmmirror.com"
+
+# Android 工具链（按实际安装路径修改）
+# ANDROID_HOME = "{{env.HOME}}/Android/Sdk"
+# NDK_HOME = "{{env.HOME}}/Android/Sdk/ndk/26.2.11394342"
+
+# ONNX Runtime 下载源
+RAPIDRAW_ONNXRUNTIME_MIRROR = "https://fast-cdn.rapidraw.cn/onnxruntimes-v1.22.0/"
+
+# 构建选项
+NODE_OPTIONS = "--max-old-space-size=8192"
+
+[settings]
+experimental = true

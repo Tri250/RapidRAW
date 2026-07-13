@@ -123,6 +123,33 @@ fn main() {
     fs::create_dir_all(&dest_dir).unwrap();
     let dest_path = dest_dir.join(lib_name);
 
+    // 优先使用环境变量指定的预置 ONNX Runtime 库路径
+    if let Ok(prebuilt_path) = env::var("RAPIDRAW_ONNXRUNTIME_PATH") {
+        let prebuilt = PathBuf::from(prebuilt_path);
+        if prebuilt.is_file() {
+            println!(
+                "cargo:warning=Using prebuilt ONNX Runtime from RAPIDRAW_ONNXRUNTIME_PATH: {:?}",
+                prebuilt
+            );
+            match verify_sha256(&prebuilt, expected_hash) {
+                Ok(true) => {
+                    fs::copy(&prebuilt, &dest_path).unwrap();
+                    setup_android_jni_if_needed(&target_os, &manifest_dir, &dest_path, lib_name);
+                    tauri_build::build();
+                    return;
+                }
+                Ok(false) => {
+                    println!("cargo:warning=Prebuilt ONNX Runtime hash mismatch. Falling back to download.");
+                }
+                Err(e) => {
+                    println!("cargo:warning=Could not verify prebuilt ONNX Runtime: {}. Falling back to download.", e);
+                }
+            }
+        } else {
+            println!("cargo:warning=RAPIDRAW_ONNXRUNTIME_PATH points to non-existent file. Falling back to download.");
+        }
+    }
+
     let mut is_valid = false;
     if dest_path.exists() {
         match verify_sha256(&dest_path, expected_hash) {
@@ -153,27 +180,51 @@ fn main() {
             "cargo:warning=Downloading ONNX Runtime library for {}-{}...",
             target_os, target_arch
         );
-        let base_url =
-            "https://huggingface.co/CyberTimon/RapidRAW-Models/resolve/main/onnxruntimes-v1.22.0/";
-        let download_url = format!("{}{}?download=true", base_url, download_filename);
-        println!("cargo:warning=URL: {}", download_url);
 
-        if let Err(e) = download_and_verify(&download_url, &dest_path, expected_hash) {
+        // 国内镜像优先，官方源作为回退
+        let base_urls = vec![
+            env::var("RAPIDRAW_ONNXRUNTIME_MIRROR").unwrap_or_else(|_| {
+                "https://fast-cdn.rapidraw.cn/onnxruntimes-v1.22.0/".to_string()
+            }),
+            "https://huggingface.co/CyberTimon/RapidRAW-Models/resolve/main/onnxruntimes-v1.22.0/".to_string(),
+        ];
+
+        let mut last_error: Option<Box<dyn std::error::Error>> = None;
+        for base_url in &base_urls {
+            let download_url = format!("{}{}?download=true", base_url, download_filename);
+            println!("cargo:warning=Trying URL: {}", download_url);
+            match download_and_verify(&download_url, &dest_path, expected_hash) {
+                Ok(()) => {
+                    last_error = None;
+                    break;
+                }
+                Err(e) => {
+                    println!("cargo:warning=Failed to download from {}: {}", base_url, e);
+                    last_error = Some(e);
+                }
+            }
+        }
+
+        if let Err(e) = last_error {
             panic!("Failed to download and verify ONNX Runtime library: {}", e);
         }
     }
 
-    if target_os == "android" {
-        let jni_libs_dir = manifest_dir.join("gen/android/app/src/main/jniLibs/arm64-v8a");
-        fs::create_dir_all(&jni_libs_dir).unwrap();
-        fs::copy(&dest_path, jni_libs_dir.join(lib_name)).unwrap();
-
-        println!("cargo:rustc-env=ORT_LIB_LOCATION={}", dest_dir.display());
-        println!("cargo:rustc-env=ORT_STRATEGY=manual");
-        println!("cargo:rustc-link-search=native={}", dest_dir.display());
-    }
+    setup_android_jni_if_needed(&target_os, &manifest_dir, &dest_path, lib_name);
 
     println!("cargo:rerun-if-changed=build.rs");
 
     tauri_build::build()
+}
+
+fn setup_android_jni_if_needed(target_os: &str, manifest_dir: &Path, dest_path: &Path, lib_name: &str) {
+    if target_os == "android" {
+        let jni_libs_dir = manifest_dir.join("gen/android/app/src/main/jniLibs/arm64-v8a");
+        fs::create_dir_all(&jni_libs_dir).unwrap();
+        fs::copy(dest_path, jni_libs_dir.join(lib_name)).unwrap();
+
+        println!("cargo:rustc-env=ORT_LIB_LOCATION={}", manifest_dir.join("libs").join("arm64-v8a").display());
+        println!("cargo:rustc-env=ORT_STRATEGY=manual");
+        println!("cargo:rustc-link-search=native={}", manifest_dir.join("libs").join("arm64-v8a").display());
+    }
 }
