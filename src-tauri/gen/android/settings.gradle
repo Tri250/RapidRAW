@@ -1,3 +1,20 @@
+// 国内网络环境 Gradle 配置
+// 使用方法：
+//   1. 复制为 settings.gradle 覆盖默认配置
+//   2. 或在 CI 中执行：cp settings.cn.gradle settings.gradle
+
+pluginManagement {
+    repositories {
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
 include ':app'
 
 apply from: 'tauri.settings.gradle'

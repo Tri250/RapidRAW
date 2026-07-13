@@ -29,7 +29,7 @@ else
 fi
 
 log_info "Verifying Cargo.lock is up to date..."
-if ! cargo generate-lockfile --manifest-path src-tauri/Cargo.toml --dry-run &>/dev/null; then
+if ! cargo metadata --locked --manifest-path src-tauri/Cargo.toml &>/dev/null; then
   log_error "Cargo.lock may be out of sync with Cargo.toml"
   errors=$((errors + 1))
 else
