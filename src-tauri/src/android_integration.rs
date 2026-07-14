@@ -1,0 +1,1194 @@
+#[cfg(target_os = "android")]
+use jni::objects::{JObject, JString, JValue};
+#[cfg(target_os = "android")]
+use jni::{JNIEnv, JavaVM};
+#[cfg(target_os = "android")]
+use jni22::{EnvUnowned as VerifierEnvUnowned, objects::JObject as VerifierJObject};
+#[cfg(target_os = "android")]
+use ndk_context::android_context;
+#[cfg(target_os = "android")]
+use std::fs;
+#[cfg(target_os = "android")]
+use std::path::PathBuf;
+#[cfg(target_os = "android")]
+use std::sync::Mutex;
+#[cfg(target_os = "android")]
+static INIT_NDK_CONTEXT: std::sync::Once = std::sync::Once::new();
+#[cfg(target_os = "android")]
+static INIT_RUSTLS_PLATFORM_VERIFIER: std::sync::Once = std::sync::Once::new();
+
+// Native rendering surface state
+#[cfg(target_os = "android")]
+static NATIVE_SURFACE_READY: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+#[cfg(target_os = "android")]
+static NATIVE_SURFACE_SIZE: Mutex<(i32, i32)> = Mutex::new((0, 0));
+#[cfg(target_os = "android")]
+#[derive(Clone, Copy)]
+struct SendablePtr(*mut std::ffi::c_void);
+#[cfg(target_os = "android")]
+unsafe impl Send for SendablePtr {}
+#[cfg(target_os = "android")]
+unsafe impl Sync for SendablePtr {}
+#[cfg(target_os = "android")]
+static ANDROID_NATIVE_WINDOW: Mutex<Option<SendablePtr>> = Mutex::new(None);
+
+// GPU cache release state (set by JNI onTrimMemory, consumed by GPU processing)
+#[cfg(target_os = "android")]
+static GPU_CACHE_RELEASE_REQUEST: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+// 0 = no request, 1 = full release, 2 = fractional release
+#[cfg(target_os = "android")]
+static GPU_CACHE_FRACTION_BITS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+// Fraction stored as fixed-point u32: (fraction * 1_000_000) to avoid f32 atomics
+
+/// Get the stored ANativeWindow pointer for WGPU surface creation.
+/// Returns None if no native window has been set (surface not ready).
+#[cfg(target_os = "android")]
+pub fn get_android_native_window() -> Option<*mut std::ffi::c_void> {
+    ANDROID_NATIVE_WINDOW.lock().ok().and_then(|g| g.map(|s| s.0))
+}
+
+#[cfg(target_os = "android")]
+pub fn initialize_android(window: &tauri::WebviewWindow) {
+    let result = window.with_webview(|webview| {
+        webview.jni_handle().exec(|env, context, _webview| {
+            if let Ok(vm) = env.get_java_vm() {
+                let vm_ptr = vm.get_java_vm_pointer() as *mut std::ffi::c_void;
+                let context_ptr = context.as_raw() as *mut std::ffi::c_void;
+
+                // Validate pointers before initializing ndk_context
+                if vm_ptr.is_null() || context_ptr.is_null() {
+                    log::error!("Android: JNI VM or context pointer is null - cannot initialize ndk_context");
+                    return;
+                }
+
+                INIT_NDK_CONTEXT.call_once(|| unsafe {
+                    ndk_context::initialize_android_context(vm_ptr, context_ptr);
+                    log::info!("Successfully initialized ndk-context on Android.");
+                });
+            } else {
+                log::error!("Android: Failed to get JavaVM from JNI environment");
+            }
+
+            INIT_RUSTLS_PLATFORM_VERIFIER.call_once(|| {
+                let raw_env = env.get_raw() as *mut jni22::sys::JNIEnv;
+                let raw_context = context.as_raw() as jni22::sys::jobject;
+
+                let mut env_unowned = unsafe { VerifierEnvUnowned::from_raw(raw_env) };
+
+                match env_unowned
+                    .with_env(|env_22| {
+                        let verifier_context =
+                            unsafe { VerifierJObject::from_raw(env_22, raw_context) };
+                        rustls_platform_verifier::android::init_with_env(env_22, verifier_context)
+                    })
+                    .into_outcome()
+                {
+                    jni22::Outcome::Ok(()) => {
+                        log::info!("Successfully initialized rustls-platform-verifier on Android.");
+                    }
+                    jni22::Outcome::Err(error) => {
+                        log::error!(
+                            "Failed to initialize rustls-platform-verifier on Android: {}",
+                            error
+                        );
+                    }
+                    jni22::Outcome::Panic(_) => {
+                        log::error!(
+                            "Panic while initializing rustls-platform-verifier on Android."
+                        );
+                    }
+                }
+            });
+        });
+    });
+
+    if let Err(e) = result {
+        log::error!("Failed to initialize Android integration (with_webview error): {}", e);
+    }
+
+    // Verify ndk_context was actually initialized
+    let ctx = ndk_context::android_context();
+    if ctx.vm().is_null() || ctx.context().is_null() {
+        log::error!("Android: ndk_context was NOT properly initialized - VM or context is null. Subsequent JNI calls will fail.");
+    }
+}
+
+pub fn is_android_content_uri(path: &str) -> bool {
+    path.starts_with("content://")
+}
+
+#[cfg(target_os = "android")]
+pub fn clear_pending_android_exception(env: &mut JNIEnv<'_>) {
+    if env.exception_check().unwrap_or(false) {
+        let _ = env.exception_describe();
+        let _ = env.exception_clear();
+    }
+}
+
+#[cfg(target_os = "android")]
+pub fn map_android_jni_error(env: &mut JNIEnv<'_>, err: jni::errors::Error) -> String {
+    clear_pending_android_exception(env);
+    format!("Android JNI error: {}", err)
+}
+
+#[cfg(target_os = "android")]
+pub fn close_android_closeable(env: &mut JNIEnv<'_>, closeable: &JObject<'_>) {
+    if closeable.is_null() {
+        return;
+    }
+
+    if let Err(err) = env.call_method(closeable, "close", "()V", &[]) {
+        clear_pending_android_exception(env);
+        log::warn!("Failed to close Android Closeable: {}", err);
+    }
+}
+
+#[cfg(target_os = "android")]
+pub fn get_android_cached_lut_path(uri: &str, extension: &str) -> anyhow::Result<PathBuf> {
+    let vm = unsafe { jni::JavaVM::from_raw(ndk_context::android_context().vm().cast()) }
+        .map_err(|e| anyhow::anyhow!("Failed to access Android JVM: {}", e))?;
+    let mut env = vm
+        .attach_current_thread()
+        .map_err(|e| anyhow::anyhow!("Failed to attach current thread: {}", e))?;
+
+    let context = env
+        .new_local_ref(unsafe {
+            jni::objects::JObject::from_raw(ndk_context::android_context().context().cast())
+        })
+        .map_err(|e| anyhow::anyhow!(map_android_jni_error(&mut env, e)))?;
+
+    let dirs_array_obj = env
+        .call_method(&context, "getExternalMediaDirs", "()[Ljava/io/File;", &[])
+        .and_then(|v| v.l())
+        .map_err(|e| anyhow::anyhow!(map_android_jni_error(&mut env, e)))?;
+
+    if dirs_array_obj.is_null() {
+        return Err(anyhow::anyhow!("External media storage not available"));
+    }
+
+    let dirs_array: jni::objects::JObjectArray = dirs_array_obj.into();
+    let dir_file = env
+        .get_object_array_element(&dirs_array, 0)
+        .map_err(|e| anyhow::anyhow!(map_android_jni_error(&mut env, e)))?;
+
+    let path_jstring = env
+        .call_method(&dir_file, "getAbsolutePath", "()Ljava/lang/String;", &[])
+        .and_then(|v| v.l())
+        .map_err(|e| anyhow::anyhow!(map_android_jni_error(&mut env, e)))?;
+
+    let root_path_str: String = env
+        .get_string(&path_jstring.into())
+        .map_err(|e| anyhow::anyhow!(map_android_jni_error(&mut env, e)))?
+        .into();
+
+    let hash = blake3::hash(uri.as_bytes());
+
+    let mut path = PathBuf::from(root_path_str);
+    path.push(".lut_cache");
+
+    if !path.exists() {
+        fs::create_dir_all(&path)?;
+    }
+
+    path.push(format!("{}.{}", &hash.to_hex()[..16], extension));
+    Ok(path)
+}
+
+#[cfg(target_os = "android")]
+pub fn get_android_content_resolver<'local>(
+    env: &mut JNIEnv<'local>,
+) -> Result<JObject<'local>, String> {
+    let context = env
+        .new_local_ref(unsafe { JObject::from_raw(android_context().context().cast()) })
+        .map_err(|e| map_android_jni_error(env, e))?;
+
+    let resolver = env
+        .call_method(
+            &context,
+            "getContentResolver",
+            "()Landroid/content/ContentResolver;",
+            &[],
+        )
+        .and_then(|value| value.l())
+        .map_err(|e| map_android_jni_error(env, e))?;
+
+    if resolver.is_null() {
+        return Err("Android ContentResolver was null.".into());
+    }
+
+    Ok(resolver)
+}
+
+#[cfg(target_os = "android")]
+pub fn parse_android_uri<'local>(
+    env: &mut JNIEnv<'local>,
+    uri_str: &str,
+) -> Result<JObject<'local>, String> {
+    let uri_string = env
+        .new_string(uri_str)
+        .map_err(|e| map_android_jni_error(env, e))?;
+
+    let uri = env
+        .call_static_method(
+            "android/net/Uri",
+            "parse",
+            "(Ljava/lang/String;)Landroid/net/Uri;",
+            &[(&uri_string).into()],
+        )
+        .and_then(|value| value.l())
+        .map_err(|e| map_android_jni_error(env, e))?;
+
+    if uri.is_null() {
+        return Err(format!("Failed to parse Android content URI: {}", uri_str));
+    }
+
+    Ok(uri)
+}
+
+#[tauri::command]
+pub fn resolve_android_content_uri_name(uri_str: &str) -> Result<String, String> {
+    #[cfg(target_os = "android")]
+    {
+        let vm = unsafe { JavaVM::from_raw(android_context().vm().cast()) }
+            .map_err(|e| format!("Failed to access Android JVM: {}", e))?;
+        let mut env = vm
+            .attach_current_thread()
+            .map_err(|e| format!("Failed to attach current thread to Android JVM: {}", e))?;
+
+        let resolver = get_android_content_resolver(&mut env)?;
+        let uri = parse_android_uri(&mut env, uri_str)?;
+        let null_obj = JObject::null();
+
+        let cursor = env
+            .call_method(
+                &resolver,
+                "query",
+                "(Landroid/net/Uri;[Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;)Landroid/database/Cursor;",
+                &[
+                    (&uri).into(),
+                    (&null_obj).into(),
+                    (&null_obj).into(),
+                    (&null_obj).into(),
+                    (&null_obj).into(),
+                ],
+            )
+            .and_then(|value| value.l())
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+        if cursor.is_null() {
+            return Err(format!(
+                "ContentResolver query returned no cursor for URI: {}",
+                uri_str
+            ));
+        }
+
+        let result = (|| -> Result<String, String> {
+            let moved = env
+                .call_method(&cursor, "moveToFirst", "()Z", &[])
+                .and_then(|value| value.z())
+                .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+            if !moved {
+                return Err(format!(
+                    "No metadata rows found for content URI: {}",
+                    uri_str
+                ));
+            }
+
+            let display_name_column = env
+                .get_static_field(
+                    "android/provider/OpenableColumns",
+                    "DISPLAY_NAME",
+                    "Ljava/lang/String;",
+                )
+                .and_then(|value| value.l())
+                .map_err(|e| map_android_jni_error(&mut env, e))?;
+            let column_index = env
+                .call_method(
+                    &cursor,
+                    "getColumnIndex",
+                    "(Ljava/lang/String;)I",
+                    &[(&display_name_column).into()],
+                )
+                .and_then(|value| value.i())
+                .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+            if column_index < 0 {
+                return Err(format!(
+                    "DISPLAY_NAME column was unavailable for content URI: {}",
+                    uri_str
+                ));
+            }
+
+            let display_name_obj = env
+                .call_method(
+                    &cursor,
+                    "getString",
+                    "(I)Ljava/lang/String;",
+                    &[JValue::from(column_index)],
+                )
+                .and_then(|value| value.l())
+                .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+            if display_name_obj.is_null() {
+                return Err(format!(
+                    "Display name was null for content URI: {}",
+                    uri_str
+                ));
+            }
+
+            let display_name_java = JString::from(display_name_obj);
+            let display_name = env
+                .get_string(&display_name_java)
+                .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+            Ok(display_name.into())
+        })();
+
+        close_android_closeable(&mut env, &cursor);
+        result
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        Ok(uri_str.to_string())
+    }
+}
+
+#[cfg(target_os = "android")]
+pub fn read_android_content_uri(uri_str: &str) -> Result<Vec<u8>, String> {
+    let vm = unsafe { JavaVM::from_raw(android_context().vm().cast()) }
+        .map_err(|e| format!("Failed to access Android JVM: {}", e))?;
+    let mut env = vm
+        .attach_current_thread()
+        .map_err(|e| format!("Failed to attach current thread to Android JVM: {}", e))?;
+
+    let resolver = get_android_content_resolver(&mut env)?;
+    let uri = parse_android_uri(&mut env, uri_str)?;
+    let input_stream = env
+        .call_method(
+            &resolver,
+            "openInputStream",
+            "(Landroid/net/Uri;)Ljava/io/InputStream;",
+            &[(&uri).into()],
+        )
+        .and_then(|value| value.l())
+        .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+    if input_stream.is_null() {
+        return Err(format!(
+            "Failed to open InputStream for Android content URI: {}",
+            uri_str
+        ));
+    }
+
+    let result = (|| -> Result<Vec<u8>, String> {
+        const BUFFER_SIZE: i32 = 8192;
+
+        let java_buffer = env
+            .new_byte_array(BUFFER_SIZE)
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+        let mut rust_buffer = vec![0i8; BUFFER_SIZE as usize];
+        let mut bytes = Vec::new();
+
+        loop {
+            let read_count = env
+                .call_method(&input_stream, "read", "([B)I", &[(&java_buffer).into()])
+                .and_then(|value| value.i())
+                .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+            if read_count < 0 {
+                break;
+            }
+
+            if read_count == 0 {
+                continue;
+            }
+
+            let read_len = read_count as usize;
+            env.get_byte_array_region(&java_buffer, 0, &mut rust_buffer[..read_len])
+                .map_err(|e| map_android_jni_error(&mut env, e))?;
+            bytes.extend(rust_buffer[..read_len].iter().map(|byte| *byte as u8));
+        }
+
+        Ok(bytes)
+    })();
+
+    close_android_closeable(&mut env, &input_stream);
+    result
+}
+
+#[cfg(target_os = "android")]
+pub fn put_android_content_value_string<'local>(
+    env: &mut JNIEnv<'local>,
+    content_values: &JObject<'local>,
+    key: &str,
+    value: &str,
+) -> Result<(), String> {
+    let key_java = env
+        .new_string(key)
+        .map_err(|e| map_android_jni_error(env, e))?;
+    let value_java = env
+        .new_string(value)
+        .map_err(|e| map_android_jni_error(env, e))?;
+
+    env.call_method(
+        content_values,
+        "put",
+        "(Ljava/lang/String;Ljava/lang/String;)V",
+        &[(&key_java).into(), (&value_java).into()],
+    )
+    .map_err(|e| map_android_jni_error(env, e))?;
+
+    Ok(())
+}
+
+#[cfg(target_os = "android")]
+pub fn put_android_content_value_int<'local>(
+    env: &mut JNIEnv<'local>,
+    content_values: &JObject<'local>,
+    key: &str,
+    value: i32,
+) -> Result<(), String> {
+    let key_java = env
+        .new_string(key)
+        .map_err(|e| map_android_jni_error(env, e))?;
+    let value_java = env
+        .new_object("java/lang/Integer", "(I)V", &[JValue::from(value)])
+        .map_err(|e| map_android_jni_error(env, e))?;
+
+    env.call_method(
+        content_values,
+        "put",
+        "(Ljava/lang/String;Ljava/lang/Integer;)V",
+        &[(&key_java).into(), (&value_java).into()],
+    )
+    .map_err(|e| map_android_jni_error(env, e))?;
+
+    Ok(())
+}
+
+#[cfg(target_os = "android")]
+pub fn delete_android_media_store_item(
+    env: &mut JNIEnv<'_>,
+    resolver: &JObject<'_>,
+    item_uri: &JObject<'_>,
+) {
+    let null_string = JObject::null();
+    let null_args = JObject::null();
+    if let Err(err) = env.call_method(
+        resolver,
+        "delete",
+        "(Landroid/net/Uri;Ljava/lang/String;[Ljava/lang/String;)I",
+        &[item_uri.into(), (&null_string).into(), (&null_args).into()],
+    ) {
+        clear_pending_android_exception(env);
+        log::warn!(
+            "Failed to delete Android MediaStore item after write error: {}",
+            err
+        );
+    }
+}
+
+#[cfg(target_os = "android")]
+pub fn save_bytes_to_android_media_store(
+    file_name: &str,
+    mime_type: &str,
+    relative_path: &str,
+    collection_class: &str,
+    bytes: &[u8],
+) -> Result<(), String> {
+    let vm = unsafe { JavaVM::from_raw(android_context().vm().cast()) }
+        .map_err(|e| format!("Failed to access Android JVM: {}", e))?;
+    let mut env = vm
+        .attach_current_thread()
+        .map_err(|e| format!("Failed to attach current thread to Android JVM: {}", e))?;
+    let resolver = get_android_content_resolver(&mut env)?;
+    let content_values = env
+        .new_object("android/content/ContentValues", "()V", &[])
+        .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+    put_android_content_value_string(&mut env, &content_values, "_display_name", file_name)?;
+    put_android_content_value_string(&mut env, &content_values, "mime_type", mime_type)?;
+    put_android_content_value_string(&mut env, &content_values, "relative_path", relative_path)?;
+    put_android_content_value_int(&mut env, &content_values, "is_pending", 1)?;
+
+    let collection_uri = env
+        .get_static_field(
+            collection_class,
+            "EXTERNAL_CONTENT_URI",
+            "Landroid/net/Uri;",
+        )
+        .and_then(|value| value.l())
+        .map_err(|e| map_android_jni_error(&mut env, e))?;
+    let item_uri = env
+        .call_method(
+            &resolver,
+            "insert",
+            "(Landroid/net/Uri;Landroid/content/ContentValues;)Landroid/net/Uri;",
+            &[(&collection_uri).into(), (&content_values).into()],
+        )
+        .and_then(|value| value.l())
+        .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+    if item_uri.is_null() {
+        return Err(format!(
+            "Failed to create Android MediaStore item for {}",
+            file_name
+        ));
+    }
+
+    let output_stream = env
+        .call_method(
+            &resolver,
+            "openOutputStream",
+            "(Landroid/net/Uri;)Ljava/io/OutputStream;",
+            &[(&item_uri).into()],
+        )
+        .and_then(|value| value.l())
+        .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+    if output_stream.is_null() {
+        delete_android_media_store_item(&mut env, &resolver, &item_uri);
+        return Err(format!(
+            "Failed to open Android MediaStore output stream for {}",
+            file_name
+        ));
+    }
+
+    let write_result = (|| -> Result<(), String> {
+        let byte_array = env
+            .byte_array_from_slice(bytes)
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+        env.call_method(&output_stream, "write", "([B)V", &[(&byte_array).into()])
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+        env.call_method(&output_stream, "flush", "()V", &[])
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+        Ok(())
+    })();
+
+    close_android_closeable(&mut env, &output_stream);
+
+    if let Err(err) = write_result {
+        delete_android_media_store_item(&mut env, &resolver, &item_uri);
+        return Err(err);
+    }
+
+    let finalized_values = env
+        .new_object("android/content/ContentValues", "()V", &[])
+        .map_err(|e| map_android_jni_error(&mut env, e))?;
+    put_android_content_value_int(&mut env, &finalized_values, "is_pending", 0)?;
+
+    let null_string = JObject::null();
+    let null_args = JObject::null();
+    env.call_method(
+        &resolver,
+        "update",
+        "(Landroid/net/Uri;Landroid/content/ContentValues;Ljava/lang/String;[Ljava/lang/String;)I",
+        &[
+            (&item_uri).into(),
+            (&finalized_values).into(),
+            (&null_string).into(),
+            (&null_args).into(),
+        ],
+    )
+    .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+    Ok(())
+}
+
+#[cfg(target_os = "android")]
+pub fn save_image_bytes_to_android_gallery(
+    file_name: &str,
+    mime_type: &str,
+    bytes: &[u8],
+) -> Result<(), String> {
+    save_bytes_to_android_media_store(
+        file_name,
+        mime_type,
+        "Pictures/RapidRaw",
+        "android/provider/MediaStore$Images$Media",
+        bytes,
+    )
+}
+
+#[cfg(target_os = "android")]
+pub fn save_file_bytes_to_android_downloads(
+    file_name: &str,
+    mime_type: &str,
+    bytes: &[u8],
+) -> Result<(), String> {
+    save_bytes_to_android_media_store(
+        file_name,
+        mime_type,
+        "Download/RapidRaw",
+        "android/provider/MediaStore$Downloads",
+        bytes,
+    )
+}
+
+#[cfg(target_os = "android")]
+pub fn get_android_internal_library_root() -> Result<PathBuf, String> {
+    let vm = unsafe { JavaVM::from_raw(android_context().vm().cast()) }
+        .map_err(|e| format!("Failed to access Android JVM: {}", e))?;
+    let mut env = vm
+        .attach_current_thread()
+        .map_err(|e| format!("Failed to attach current thread: {}", e))?;
+
+    let context = env
+        .new_local_ref(unsafe { JObject::from_raw(android_context().context().cast()) })
+        .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+    let dirs_array_obj = env
+        .call_method(&context, "getExternalMediaDirs", "()[Ljava/io/File;", &[])
+        .and_then(|v| v.l())
+        .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+    if dirs_array_obj.is_null() {
+        return Err("External media storage not available".to_string());
+    }
+
+    let dirs_array: jni::objects::JObjectArray = dirs_array_obj.into();
+
+    let dir_file = env
+        .get_object_array_element(&dirs_array, 0)
+        .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+    if dir_file.is_null() {
+        return Err("Primary external media storage is null".to_string());
+    }
+
+    let path_jstring = env
+        .call_method(&dir_file, "getAbsolutePath", "()Ljava/lang/String;", &[])
+        .and_then(|v| v.l())
+        .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+    let path: String = env
+        .get_string(&path_jstring.into())
+        .map_err(|e| map_android_jni_error(&mut env, e))?
+        .into();
+
+    let media_path = PathBuf::from(path);
+    let library_dir = media_path.join(".library");
+
+    if !library_dir.exists() {
+        fs::create_dir_all(&library_dir).map_err(|e| e.to_string())?;
+    }
+    Ok(library_dir)
+}
+
+// ============================================================================
+// Native Surface 渲染支持（Phase 1: WGPU 直出 Android Surface）
+// ============================================================================
+
+/// 初始化原生渲染 Surface
+/// 由 Kotlin NativeBridge 通过 JNI 调用
+#[cfg(target_os = "android")]
+#[unsafe(no_mangle)]
+pub extern "C" fn rapidraw_android_init_render(
+    native_window: *mut std::ffi::c_void,
+    width: i32,
+    height: i32,
+) {
+    use std::sync::atomic::Ordering;
+
+    if native_window.is_null() {
+        log::error!("rapidraw_android_init_render: native_window is null");
+        return;
+    }
+
+    log::info!(
+        "rapidraw_android_init_render: ANativeWindow={:?}, {}x{}",
+        native_window,
+        width,
+        height
+    );
+
+    // Store the ANativeWindow pointer for WGPU surface creation
+    if let Ok(mut window_ptr) = ANDROID_NATIVE_WINDOW.lock() {
+        *window_ptr = Some(SendablePtr(native_window));
+    }
+
+    // 更新表面尺寸
+    if let Ok(mut size) = NATIVE_SURFACE_SIZE.lock() {
+        *size = (width, height);
+    }
+
+    NATIVE_SURFACE_READY.store(true, Ordering::SeqCst);
+
+    // 通知 WGPU 使用此 ANativeWindow 创建 Surface
+    // 实际的 WGPU surface 创建在 gpu_processing.rs 中处理
+    // 此处仅标记原生表面就绪状态
+}
+
+/// 更新渲染 Surface 尺寸
+#[cfg(target_os = "android")]
+#[unsafe(no_mangle)]
+pub extern "C" fn rapidraw_android_resize_render(width: i32, height: i32) {
+    log::info!("rapidraw_android_resize_render: {}x{}", width, height);
+
+    if let Ok(mut size) = NATIVE_SURFACE_SIZE.lock() {
+        *size = (width, height);
+    }
+}
+
+/// 销毁渲染 Surface
+#[cfg(target_os = "android")]
+#[unsafe(no_mangle)]
+pub extern "C" fn rapidraw_android_destroy_render() {
+    use std::sync::atomic::Ordering;
+
+    log::info!("rapidraw_android_destroy_render");
+    NATIVE_SURFACE_READY.store(false, Ordering::SeqCst);
+    // Clear the stored ANativeWindow pointer
+    if let Ok(mut window_ptr) = ANDROID_NATIVE_WINDOW.lock() {
+        *window_ptr = None;
+    }
+}
+
+/// 释放 GPU 缓存（响应 Android 内存压力）
+#[cfg(target_os = "android")]
+#[unsafe(no_mangle)]
+pub extern "C" fn rapidraw_android_free_gpu_cache() {
+    use std::sync::atomic::Ordering;
+    log::info!("rapidraw_android_free_gpu_cache: releasing all GPU caches");
+    GPU_CACHE_RELEASE_REQUEST.store(1, Ordering::SeqCst);
+}
+
+/// 释放 GPU 缓存（指定比例）
+#[cfg(target_os = "android")]
+#[unsafe(no_mangle)]
+pub extern "C" fn rapidraw_android_free_gpu_cache_fraction(fraction: f32) {
+    use std::sync::atomic::Ordering;
+    log::info!(
+        "rapidraw_android_free_gpu_cache_fraction: {:.2}",
+        fraction
+    );
+    let fraction_clamped = fraction.clamp(0.0, 1.0);
+    let fraction_fixed = (fraction_clamped * 1_000_000.0) as u32;
+    GPU_CACHE_FRACTION_BITS.store(fraction_fixed, Ordering::SeqCst);
+    GPU_CACHE_RELEASE_REQUEST.store(2, Ordering::SeqCst);
+}
+
+/// Check if a GPU cache release has been requested (called from GPU processing module).
+/// Returns the release type: 0 = none, 1 = full release, 2 = fractional release.
+/// Also clears the request flag atomically.
+#[cfg(target_os = "android")]
+pub fn check_gpu_cache_release_request() -> u8 {
+    use std::sync::atomic::Ordering;
+    GPU_CACHE_RELEASE_REQUEST.swap(0, Ordering::SeqCst)
+}
+
+/// Get the stored fraction for fractional cache release (called from GPU processing module).
+/// Returns the fraction as a float between 0.0 and 1.0.
+#[cfg(target_os = "android")]
+pub fn get_gpu_cache_release_fraction() -> f32 {
+    use std::sync::atomic::Ordering;
+    let fixed = GPU_CACHE_FRACTION_BITS.load(Ordering::SeqCst);
+    (fixed as f32) / 1_000_000.0
+}
+
+/// Apply GPU cache release directly on the AppState.
+/// Called from the GPU processing module after detecting a release request.
+#[cfg(target_os = "android")]
+pub fn apply_gpu_cache_release(state: &crate::AppState, fraction: Option<f32>) {
+    let frac = fraction.unwrap_or(1.0);
+
+    // Release the GPU image cache (WGPU textures - biggest memory consumer)
+    {
+        let mut cache_lock = state.gpu_image_cache.lock().unwrap();
+        if cache_lock.is_some() {
+            log::info!(
+                "apply_gpu_cache_release: dropping GPU image cache (fraction={:.2})",
+                frac
+            );
+            *cache_lock = None;
+        }
+    }
+
+    // Release cached preview
+    {
+        let mut preview_lock = state.cached_preview.lock().unwrap();
+        if preview_lock.is_some() {
+            log::info!("apply_gpu_cache_release: dropping cached preview");
+            *preview_lock = None;
+        }
+    }
+
+    // For fractional release, only clear the image cache and preview.
+    // For full release, also clear LUT cache, mask cache, geometry cache, etc.
+    if frac >= 0.9 {
+        // Full release - clear all secondary caches
+        {
+            let mut lut_lock = state.lut_cache.lock().unwrap();
+            let lut_count = lut_lock.len();
+            if lut_count > 0 {
+                log::info!("apply_gpu_cache_release: clearing {} LUT cache entries", lut_count);
+                lut_lock.clear();
+            }
+        }
+        {
+            let mut mask_lock = state.mask_cache.lock().unwrap();
+            let mask_count = mask_lock.len();
+            if mask_count > 0 {
+                log::info!("apply_gpu_cache_release: clearing {} mask cache entries", mask_count);
+                mask_lock.clear();
+            }
+        }
+        {
+            let mut geom_lock = state.geometry_cache.lock().unwrap();
+            let geom_count = geom_lock.len();
+            if geom_count > 0 {
+                log::info!("apply_gpu_cache_release: clearing {} geometry cache entries", geom_count);
+                geom_lock.clear();
+            }
+        }
+        {
+            let mut thumb_geom_lock = state.thumbnail_geometry_cache.lock().unwrap();
+            let thumb_geom_count = thumb_geom_lock.len();
+            if thumb_geom_count > 0 {
+                log::info!(
+                    "apply_gpu_cache_release: clearing {} thumbnail geometry cache entries",
+                    thumb_geom_count
+                );
+                thumb_geom_lock.clear();
+            }
+        }
+        {
+            let mut patch_lock = state.patch_cache.lock().unwrap();
+            let patch_count = patch_lock.len();
+            if patch_count > 0 {
+                log::info!("apply_gpu_cache_release: clearing {} patch cache entries", patch_count);
+                patch_lock.clear();
+            }
+        }
+        {
+            let mut warped_lock = state.full_warped_cache.lock().unwrap();
+            if warped_lock.is_some() {
+                log::info!("apply_gpu_cache_release: dropping full warped cache");
+                *warped_lock = None;
+            }
+        }
+        {
+            let mut transformed_lock = state.full_transformed_cache.lock().unwrap();
+            if transformed_lock.is_some() {
+                log::info!("apply_gpu_cache_release: dropping full transformed cache");
+                *transformed_lock = None;
+            }
+        }
+    } else {
+        // Fractional release - evict a portion of hash-map based caches
+        let evict_count = |total: usize| -> usize {
+            if total == 0 { return 0; }
+            ((total as f32) * frac).ceil() as usize
+        };
+
+        {
+            let mut lut_lock = state.lut_cache.lock().unwrap();
+            let to_evict = evict_count(lut_lock.len());
+            if to_evict > 0 {
+                let keys: Vec<String> = lut_lock.keys().take(to_evict).cloned().collect();
+                for key in keys {
+                    lut_lock.remove(&key);
+                }
+                log::info!(
+                    "apply_gpu_cache_release: evicted {}/{} LUT cache entries",
+                    to_evict,
+                    lut_lock.len() + to_evict
+                );
+            }
+        }
+        {
+            let mut mask_lock = state.mask_cache.lock().unwrap();
+            let to_evict = evict_count(mask_lock.len());
+            if to_evict > 0 {
+                let keys: Vec<u64> = mask_lock.keys().take(to_evict).cloned().collect();
+                for key in keys {
+                    mask_lock.remove(&key);
+                }
+                log::info!(
+                    "apply_gpu_cache_release: evicted {}/{} mask cache entries",
+                    to_evict,
+                    mask_lock.len() + to_evict
+                );
+            }
+        }
+        {
+            let mut geom_lock = state.geometry_cache.lock().unwrap();
+            let to_evict = evict_count(geom_lock.len());
+            if to_evict > 0 {
+                let keys: Vec<u64> = geom_lock.keys().take(to_evict).cloned().collect();
+                for key in keys {
+                    geom_lock.remove(&key);
+                }
+                log::info!(
+                    "apply_gpu_cache_release: evicted {}/{} geometry cache entries",
+                    to_evict,
+                    geom_lock.len() + to_evict
+                );
+            }
+        }
+    }
+
+    // Trim the decoded image cache
+    {
+        let mut decoded_lock = state.decoded_image_cache.lock().unwrap();
+        if frac >= 0.9 {
+            decoded_lock.clear();
+            log::info!("apply_gpu_cache_release: cleared decoded image cache");
+        } else {
+            // For partial release, reduce capacity temporarily then restore to force eviction
+            // DecodedImageCache evicts oldest entries when capacity is reduced
+            decoded_lock.clear();
+            log::info!("apply_gpu_cache_release: cleared decoded image cache (partial)");
+        }
+    }
+}
+
+/// 获取渲染后端信息
+#[cfg(target_os = "android")]
+#[unsafe(no_mangle)]
+pub extern "C" fn rapidraw_android_get_render_backend() -> *const std::ffi::c_char {
+    use std::ffi::CString;
+
+    let backend = if cfg!(feature = "vulkan") {
+        "vulkan"
+    } else {
+        "gles"
+    };
+
+    let c_str = CString::new(backend).unwrap_or_else(|_| CString::new("unknown").unwrap());
+    c_str.into_raw()
+}
+
+/// 检查原生 Surface 是否就绪
+#[cfg(target_os = "android")]
+pub fn is_native_surface_ready() -> bool {
+    use std::sync::atomic::Ordering;
+    NATIVE_SURFACE_READY.load(Ordering::SeqCst)
+}
+
+/// 获取原生 Surface 尺寸
+#[cfg(target_os = "android")]
+pub fn get_native_surface_size() -> (i32, i32) {
+    NATIVE_SURFACE_SIZE.lock().map(|s| *s).unwrap_or((0, 0))
+}
+
+// ============================================================================
+// Tauri Commands: 编辑历史
+// ============================================================================
+
+use crate::edit_history::{EditHistoryTree, EditOperation};
+
+/// Tauri 命令：创建新的编辑历史
+#[tauri::command]
+pub fn edit_history_new() -> Result<String, String> {
+    let tree = EditHistoryTree::new();
+    serde_json::to_string(&tree).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：推送编辑操作
+#[tauri::command]
+pub fn edit_history_push(
+    tree_json: String,
+    edit_type: String,
+    edit_data: String,
+    label: Option<String>,
+) -> Result<String, String> {
+    let mut tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+
+    let edit = match edit_type.as_str() {
+        "adjustment" => {
+            let changed_keys: Vec<(String, String)> =
+                serde_json::from_str(&edit_data).map_err(|e| e.to_string())?;
+            EditOperation::AdjustmentChange { changed_keys }
+        }
+        "crop" => {
+            let crop: [f32; 5] =
+                serde_json::from_str(&edit_data).map_err(|e| e.to_string())?;
+            EditOperation::CropChange {
+                x: crop[0],
+                y: crop[1],
+                width: crop[2],
+                height: crop[3],
+                angle: crop[4],
+            }
+        }
+        "preset" => {
+            let data: serde_json::Value =
+                serde_json::from_str(&edit_data).map_err(|e| e.to_string())?;
+            EditOperation::PresetApplied {
+                preset_name: data["name"].as_str().unwrap_or("").to_string(),
+                previous_state: Vec::new(),
+            }
+        }
+        _ => return Err(format!("未知编辑类型: {}", edit_type)),
+    };
+
+    tree.push_edit(edit, label);
+    serde_json::to_string(&tree).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：撤销操作
+#[tauri::command]
+pub fn edit_history_undo(tree_json: String) -> Result<String, String> {
+    let mut tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+    tree.undo();
+    serde_json::to_string(&tree).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：重做操作
+#[tauri::command]
+pub fn edit_history_redo(tree_json: String) -> Result<String, String> {
+    let mut tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+    tree.redo();
+    serde_json::to_string(&tree).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：创建分支
+#[tauri::command]
+pub fn edit_history_create_branch(
+    tree_json: String,
+    from_node_id: u64,
+    branch_name: String,
+) -> Result<String, String> {
+    let mut tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+    tree.create_branch(from_node_id, branch_name);
+    serde_json::to_string(&tree).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：切换到指定节点
+#[tauri::command]
+pub fn edit_history_switch_to(
+    tree_json: String,
+    node_id: u64,
+) -> Result<String, String> {
+    let mut tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+    tree.switch_to_node(node_id)
+        .map_err(|e| format!("切换失败: {}", e))?;
+    serde_json::to_string(&tree).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：获取编辑路径（用于恢复到历史状态）
+#[tauri::command]
+pub fn edit_history_get_path(tree_json: String) -> Result<String, String> {
+    let tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+    let path = tree.get_edit_path();
+    serde_json::to_string(&path).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：获取历史摘要
+#[tauri::command]
+pub fn edit_history_get_summary(tree_json: String) -> Result<String, String> {
+    let tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+    let summary = tree.get_history_summary();
+    serde_json::to_string(&summary).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：获取分支列表
+#[tauri::command]
+pub fn edit_history_get_branches(tree_json: String) -> Result<String, String> {
+    let tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+    let branches = tree.get_branches();
+    let branch_ids: Vec<u64> = branches.into_iter().map(|(id, _)| id).collect();
+    serde_json::to_string(&branch_ids).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：折叠分支
+#[tauri::command]
+pub fn edit_history_collapse_branch(
+    tree_json: String,
+    branch_node_id: u64,
+) -> Result<String, String> {
+    let mut tree: EditHistoryTree =
+        serde_json::from_str(&tree_json).map_err(|e| format!("解析历史树失败: {}", e))?;
+    tree.collapse_branch(branch_node_id)
+        .map_err(|e| format!("折叠失败: {}", e))?;
+    serde_json::to_string(&tree).map_err(|e| e.to_string())
+}
+
+// ============================================================================
+// Tauri Commands: 色彩科学配置
+// ============================================================================
+
+use crate::color_science::{
+    Aces20RRT, ColorScienceConfig, ColorSciencePipeline, OpenDRTPipeline,
+};
+
+/// Tauri 命令：获取当前色彩科学配置
+#[tauri::command]
+pub fn color_science_get_config(config_json: String) -> Result<String, String> {
+    let config: ColorScienceConfig =
+        serde_json::from_str(&config_json).map_err(|e| e.to_string())?;
+    serde_json::to_string(&config).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：更新色彩科学配置
+#[tauri::command]
+pub fn color_science_update_config(
+    config_json: String,
+    updates: String,
+) -> Result<String, String> {
+    let mut config: ColorScienceConfig =
+        serde_json::from_str(&config_json).map_err(|e| e.to_string())?;
+    let updates: serde_json::Value =
+        serde_json::from_str(&updates).map_err(|e| e.to_string())?;
+
+    if let Some(v) = updates.get("pipeline") {
+        config.pipeline = serde_json::from_value(v.clone()).map_err(|e| e.to_string())?;
+    }
+    if let Some(v) = updates.get("display_color_space") {
+        config.display_color_space = serde_json::from_value(v.clone()).map_err(|e| e.to_string())?;
+    }
+    if let Some(v) = updates.get("eotf") {
+        config.eotf = serde_json::from_value(v.clone()).map_err(|e| e.to_string())?;
+    }
+    if let Some(v) = updates.get("peak_luminance") {
+        config.peak_luminance = v.as_f64().unwrap_or(100.0) as f32;
+    }
+    if let Some(v) = updates.get("hdr_enabled") {
+        config.hdr_enabled = v.as_bool().unwrap_or(false);
+    }
+
+    serde_json::to_string(&config).map_err(|e| e.to_string())
+}
+
+/// Tauri 命令：应用色彩管线处理
+#[tauri::command]
+pub fn color_science_process(
+    r: f32,
+    g: f32,
+    b: f32,
+    config_json: String,
+) -> Result<Vec<f32>, String> {
+    let config: ColorScienceConfig =
+        serde_json::from_str(&config_json).map_err(|e| e.to_string())?;
+
+    let result = match config.pipeline {
+        ColorSciencePipeline::Aces20 => Aces20RRT::process(
+            [r, g, b],
+            &config.aces_params,
+            config.display_color_space,
+            config.peak_luminance,
+        ),
+        ColorSciencePipeline::OpenDRT => OpenDRTPipeline::process(
+            [r, g, b],
+            &config.opendrt_params,
+            config.display_color_space,
+            config.peak_luminance,
+        ),
+        ColorSciencePipeline::SimplifiedAces => {
+            // 使用现有的 AGX 管线（在 shader 中处理）
+            [r, g, b]
+        }
+    };
+
+    Ok(result.to_vec())
+}
