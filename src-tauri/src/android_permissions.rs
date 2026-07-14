@@ -211,7 +211,19 @@ pub fn android_has_manage_storage() -> Result<bool, String> {
 #[cfg(target_os = "android")]
 pub fn init_permissions(app: &tauri::AppHandle) {
     use tauri::Emitter;
-    let denied = check_and_request_permissions();
+
+    // Safely check permissions, catching any JNI errors
+    let denied = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        check_and_request_permissions()
+    })) {
+        Ok(result) => result,
+        Err(_) => {
+            log::error!("Android: Panic during permission check - ndk_context may not be initialized");
+            let _ = app.emit("android-permissions-missing", vec!["android.permission.INTERNET".to_string()]);
+            return;
+        }
+    };
+
     if !denied.is_empty() {
         log::warn!(
             "Android: 以下权限未被授予: {:?}",

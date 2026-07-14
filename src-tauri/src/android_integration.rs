@@ -49,7 +49,7 @@ pub fn get_android_native_window() -> Option<*mut std::ffi::c_void> {
 
 #[cfg(target_os = "android")]
 pub fn initialize_android(window: &tauri::WebviewWindow) {
-    let _ = window.with_webview(|webview| {
+    let result = window.with_webview(|webview| {
         webview.jni_handle().exec(|env, context, _webview| {
             if let Ok(vm) = env.get_java_vm() {
                 let vm_ptr = vm.get_java_vm_pointer() as *mut std::ffi::c_void;
@@ -93,6 +93,10 @@ pub fn initialize_android(window: &tauri::WebviewWindow) {
             });
         });
     });
+
+    if let Err(e) = result {
+        log::error!("Failed to initialize Android integration (with_webview error): {}", e);
+    }
 }
 
 pub fn is_android_content_uri(path: &str) -> bool {

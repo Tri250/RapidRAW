@@ -2035,6 +2035,9 @@ pub fn run() {
                     }
         })
         .setup(|app| {
+            // Initialize logging FIRST so all subsequent errors are captured
+            setup_logging(&app.handle().clone());
+
             #[cfg(any(windows, target_os = "linux"))]
             {
                 let args: Vec<String> = std::env::args().skip(1).collect();
@@ -2053,7 +2056,10 @@ pub fn run() {
             }
 
             let app_handle = app.handle().clone();
-            let config_dir = app_handle.path().app_config_dir().expect("Failed to get config dir");
+            let config_dir = app_handle.path().app_config_dir().unwrap_or_else(|e| {
+                eprintln!("Failed to get config dir: {}. Using fallback.", e);
+                std::path::PathBuf::from("/data/local/tmp/rapidraw_fallback")
+            });
             let crash_flag_path = config_dir.join(".gpu_init_crash_flag");
 
             {
@@ -2135,8 +2141,6 @@ pub fn run() {
                 }
             }
 
-            setup_logging(&app_handle);
-
             if let Some(backend) = &settings.processing_backend
                 && backend != "auto" {
                     log::info!("Applied processing backend setting: {}", backend);
@@ -2170,14 +2174,26 @@ pub fn run() {
 
             let mut window_builder =
                 tauri::WebviewWindowBuilder::from_config(app.handle(), &main_window_cfg)
-                    .unwrap();
+                    .unwrap_or_else(|e| {
+                        log::error!("Failed to create window builder from config: {}", e);
+                        panic!("Failed to create window builder: {}", e);
+                    });
 
             #[cfg(not(target_os = "android"))]
             {
                 window_builder = window_builder.decorations(decorations).visible(false);
             }
 
-            let window = window_builder.build().expect("Failed to build window");
+            #[cfg(target_os = "android")]
+            {
+                window_builder = window_builder
+                    .transparent(false);
+            }
+
+            let window = window_builder.build().unwrap_or_else(|e| {
+                log::error!("Failed to build window: {}", e);
+                panic!("Failed to build window: {}", e);
+            });
 
             #[cfg(target_os = "android")]
             {
