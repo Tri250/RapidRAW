@@ -37,7 +37,7 @@
         android:label="@string/app_name"
         android:theme="@style/Theme.rapid_raw"
         android:usesCleartextTraffic="${usesCleartextTraffic}"
-        android:extractNativeLibs="true"
+        android:extractNativeLibs="false"
         android:largeHeap="true"
         android:requestLegacyExternalStorage="true">
         <activity
