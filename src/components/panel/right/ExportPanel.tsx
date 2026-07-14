@@ -600,7 +600,7 @@ export default function ExportPanel({
                     }
                     max={100}
                     min={1}
-                    onChange={(e) => setJpegQuality(parseInt(e.target.value))}
+                    onChange={(e) => setJpegQuality(parseInt(String(e.target.value), 10))}
                     step={1}
                     value={jpegQuality}
                     fillOrigin="min"
@@ -730,7 +730,7 @@ export default function ExportPanel({
                               max={50}
                               step={1}
                               value={watermarkScale}
-                              onChange={(e) => setWatermarkScale(parseInt(e.target.value))}
+                              onChange={(e) => setWatermarkScale(parseInt(String(e.target.value), 10))}
                               disabled={isExporting}
                               defaultValue={10}
                             />
@@ -740,7 +740,7 @@ export default function ExportPanel({
                               max={25}
                               step={1}
                               value={watermarkSpacing}
-                              onChange={(e) => setWatermarkSpacing(parseInt(e.target.value))}
+                              onChange={(e) => setWatermarkSpacing(parseInt(String(e.target.value), 10))}
                               disabled={isExporting}
                               defaultValue={5}
                             />
@@ -750,7 +750,7 @@ export default function ExportPanel({
                               max={100}
                               step={1}
                               value={watermarkOpacity}
-                              onChange={(e) => setWatermarkOpacity(parseInt(e.target.value))}
+                              onChange={(e) => setWatermarkOpacity(parseInt(String(e.target.value), 10))}
                               disabled={isExporting}
                               defaultValue={75}
                             />

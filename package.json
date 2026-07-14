@@ -3,6 +3,7 @@
   "version": "1.6.0",
   "author": "Timon Käch",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

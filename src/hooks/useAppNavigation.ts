@@ -155,6 +155,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
       });
 
       if (isFrontendCached) {
+        if (!cached) return;
         setEditor({
           selectedImage: {
             ...cached.selectedImage,

@@ -297,7 +297,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
     return null;
   }, [selectedImage, adjustments.crop, adjustments.orientationSteps]);
 
-  const imageRenderSize = useImageRenderSize(imageContainerRef, croppedDimensions);
+  const imageRenderSize = useImageRenderSize(imageContainerRef as React.RefObject<HTMLElement>, croppedDimensions);
   const imageRenderSizeRef = useRef(imageRenderSize);
   imageRenderSizeRef.current = imageRenderSize;
 
@@ -1273,7 +1273,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
   }, []);
 
   const overlayTriggerHash = useMemo(() => {
-    let activeMaskDef = null;
+    let activeMaskDef: any = null;
     if (activeRightPanel === Panel.Masks && activeMaskContainerId) {
       activeMaskDef = adjustments.masks?.find((c: MaskContainer) => c.id === activeMaskContainerId);
     } else if (activeRightPanel === Panel.Ai && activeAiPatchContainerId) {

@@ -213,6 +213,9 @@ export interface AppSettings {
   language?: string;
   folderTreeSort?: FolderTreeSort;
   colorScienceConfig?: string;
+  rootFolders?: string[];
+  fontFamily?: string;
+  taggingShortcuts?: string[];
 }
 
 export interface BrushSettings {
@@ -290,6 +293,7 @@ export interface Progress {
   completed?: number;
   current?: number;
   total: number;
+  stage?: string;
 }
 
 export interface SelectedImage {

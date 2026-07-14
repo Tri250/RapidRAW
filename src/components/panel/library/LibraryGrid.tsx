@@ -93,7 +93,7 @@ function ListHeader({ widths, setWidths, containerRef, sortCriteria, onSortChang
         {nextKey && (
           <div
             className="absolute right-[-3px] top-1.5 bottom-1.5 w-[6px] cursor-col-resize z-10 group flex items-center justify-center"
-            onMouseDown={(e) => handleResize(e, widthKey, nextKey)}
+            onMouseDown={(e: React.MouseEvent) => handleResize(e, widthKey, nextKey)}
           >
             <div className="w-px h-full bg-border-color/40 group-hover:bg-accent transition-colors" />
           </div>
@@ -392,7 +392,7 @@ export default function LibraryGrid(props: any) {
         targetTop += rowsInGroup * rowHeight;
       }
     } else {
-      const index = imageList.findIndex((img) => img.path === activePath);
+      const index = imageList.findIndex((img: any) => img.path === activePath);
       if (index !== -1) {
         const rowIndex = Math.floor(index / columnCount);
         targetTop = rowIndex * rowHeight;
@@ -516,8 +516,8 @@ export default function LibraryGrid(props: any) {
             rowHeight={getItemSize}
             onScroll={(e: React.UIEvent<HTMLElement>) => handleScroll(e.currentTarget.scrollTop)}
             className="custom-scrollbar"
-            rowComponent={Row}
-            rowProps={memoizedRowProps}
+            rowComponent={Row as any}
+            rowProps={memoizedRowProps as any}
           />
         </div>
       </div>
