@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use image::codecs::jpeg::JpegEncoder;
 use image::{DynamicImage, GenericImageView, GrayImage, ImageBuffer, ImageFormat, Luma, imageops};
+#[cfg(not(target_os = "android"))]
 use jxl_encoder::{LosslessConfig, LossyConfig, PixelLayout};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -458,39 +459,46 @@ fn encode_image_to_bytes(
 
     match output_format.to_lowercase().as_str() {
         "jxl" => {
-            let (width, height) = image.dimensions();
-            let has_alpha = image.color().has_alpha();
+            #[cfg(not(target_os = "android"))]
+            {
+                let (width, height) = image.dimensions();
+                let has_alpha = image.color().has_alpha();
 
-            let jxl_data = if jpeg_quality == 100 {
-                if has_alpha {
-                    let rgba = image.to_rgba8();
-                    LosslessConfig::new()
-                        .encode(rgba.as_raw(), width, height, PixelLayout::Rgba8)
-                        .map_err(|e| format!("Failed to encode lossless JXL: {}", e))?
+                let jxl_data = if jpeg_quality == 100 {
+                    if has_alpha {
+                        let rgba = image.to_rgba8();
+                        LosslessConfig::new()
+                            .encode(rgba.as_raw(), width, height, PixelLayout::Rgba8)
+                            .map_err(|e| format!("Failed to encode lossless JXL: {}", e))?
+                    } else {
+                        let rgb = image.to_rgb8();
+                        LosslessConfig::new()
+                            .encode(rgb.as_raw(), width, height, PixelLayout::Rgb8)
+                            .map_err(|e| format!("Failed to encode lossless JXL: {}", e))?
+                    }
                 } else {
-                    let rgb = image.to_rgb8();
-                    LosslessConfig::new()
-                        .encode(rgb.as_raw(), width, height, PixelLayout::Rgb8)
-                        .map_err(|e| format!("Failed to encode lossless JXL: {}", e))?
-                }
-            } else {
-                let distance = (100.0 - jpeg_quality as f32) / 10.0;
-                let distance = distance.max(0.01);
+                    let distance = (100.0 - jpeg_quality as f32) / 10.0;
+                    let distance = distance.max(0.01);
 
-                if has_alpha {
-                    let rgba = image.to_rgba8();
-                    LossyConfig::new(distance)
-                        .encode(rgba.as_raw(), width, height, PixelLayout::Rgba8)
-                        .map_err(|e| format!("Failed to encode lossy JXL: {}", e))?
-                } else {
-                    let rgb = image.to_rgb8();
-                    LossyConfig::new(distance)
-                        .encode(rgb.as_raw(), width, height, PixelLayout::Rgb8)
-                        .map_err(|e| format!("Failed to encode lossy JXL: {}", e))?
-                }
-            };
+                    if has_alpha {
+                        let rgba = image.to_rgba8();
+                        LossyConfig::new(distance)
+                            .encode(rgba.as_raw(), width, height, PixelLayout::Rgba8)
+                            .map_err(|e| format!("Failed to encode lossy JXL: {}", e))?
+                    } else {
+                        let rgb = image.to_rgb8();
+                        LossyConfig::new(distance)
+                            .encode(rgb.as_raw(), width, height, PixelLayout::Rgb8)
+                            .map_err(|e| format!("Failed to encode lossy JXL: {}", e))?
+                    }
+                };
 
-            return Ok(jxl_data);
+                return Ok(jxl_data);
+            }
+            #[cfg(target_os = "android")]
+            {
+                return Err("JXL export is not supported on Android".to_string());
+            }
         }
         "webp" => {
             let encoder = webp::Encoder::from_image(image)
