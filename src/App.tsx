@@ -459,6 +459,7 @@ function App() {
   }, [activeRightPanel, activeMaskContainerId, activeAiPatchContainerId, setEditor]);
 
   useEffect(() => {
+    if (isAndroid) return;
     const unlisten = listen('ai-connector-status-update', (event: any) => {
       setEditor({ isAIConnectorConnected: event.payload.connected });
     });
@@ -468,7 +469,7 @@ function App() {
       clearInterval(interval);
       unlisten.then((f) => f());
     };
-  }, [setEditor]);
+  }, [setEditor, isAndroid]);
 
   const createResizeHandler = (stateKey: string, startSize: number) => (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
