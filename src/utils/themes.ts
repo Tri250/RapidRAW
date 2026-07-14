@@ -164,3 +164,38 @@ export const THEMES: Array<ThemeProps> = [
 ];
 
 export const DEFAULT_THEME_ID = Theme.DeepSpaceBlack;
+
+export const LIGHT_THEME_IDS = [Theme.Light, Theme.Snow, Theme.Arctic];
+
+export function getThemeById(themeId: Theme): ThemeProps {
+  const theme = THEMES.find((t) => t.id === themeId);
+  return theme || THEMES.find((t) => t.id === DEFAULT_THEME_ID)!;
+}
+
+export function applyTheme(themeId: Theme): void {
+  const theme = getThemeById(themeId);
+  const root = document.documentElement;
+  Object.entries(theme.cssVariables).forEach(([key, value]) => {
+    root.style.setProperty(key, value as string);
+  });
+}
+
+export function isLightTheme(themeId: Theme): boolean {
+  return LIGHT_THEME_IDS.includes(themeId);
+}
+
+export function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : null;
+}
+
+export function rgbToString(r: number, g: number, b: number): string {
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
