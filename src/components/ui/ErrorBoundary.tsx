@@ -52,7 +52,9 @@ class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryStat
         url: typeof window !== 'undefined' ? window.location?.href : '',
       };
       localStorage.setItem('rapidraw-crash-state', JSON.stringify(state));
-    } catch {}
+    } catch {
+      /* noop */
+    }
 
     // 通知外部监控
     this.props.onError?.(error, errorInfo);
@@ -79,7 +81,9 @@ class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryStat
     // 清除崩溃状态并重试
     try {
       localStorage.removeItem('rapidraw-crash-state');
-    } catch {}
+    } catch {
+      /* noop */
+    }
     this.handleRetry();
   };
 
@@ -116,14 +120,7 @@ interface ErrorFallbackUIProps {
   maxRetries: number;
 }
 
-function ErrorFallbackUI({
-  error,
-  errorInfo,
-  onRetry,
-  onReset,
-  retryCount,
-  maxRetries,
-}: ErrorFallbackUIProps) {
+function ErrorFallbackUI({ error, errorInfo, onRetry, onReset, retryCount, maxRetries }: ErrorFallbackUIProps) {
   // 使用独立的 i18n 上下文，避免主 i18n 实例崩溃影响错误显示
   const fallbackText = (key: string) => {
     const texts: Record<string, string> = {
@@ -139,10 +136,7 @@ function ErrorFallbackUI({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-bg-primary p-8"
-      role="alert"
-    >
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-bg-primary p-8" role="alert">
       <div className="w-full max-w-lg rounded-xl bg-surface p-8 shadow-2xl border border-border-color">
         {/* Icon */}
         <div className="mb-6 flex justify-center">
@@ -196,11 +190,7 @@ function ErrorFallbackUI({
 
         {/* Action buttons */}
         <div className="flex flex-col gap-2">
-          <Button
-            onClick={onRetry}
-            variant="primary"
-            className="w-full focus:outline-hidden focus:ring-0"
-          >
+          <Button onClick={onRetry} variant="primary" className="w-full focus:outline-hidden focus:ring-0">
             {retryCount >= maxRetries
               ? fallbackText('reload')
               : `${fallbackText('retry')} (${retryCount + 1}/${maxRetries + 1})`}

@@ -86,7 +86,7 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({ isOpen, onCl
       setHistoryTree(newTree);
       await refreshSummary(newTree);
       const summary = await getSummary(newTree);
-      const current = summary.find(n => n.is_current);
+      const current = summary.find((n) => n.is_current);
       if (current && onHistorySelect) onHistorySelect(current.id);
     } catch (e) {
       console.error('Undo failed:', e);
@@ -99,7 +99,7 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({ isOpen, onCl
       setHistoryTree(newTree);
       await refreshSummary(newTree);
       const summary = await getSummary(newTree);
-      const current = summary.find(n => n.is_current);
+      const current = summary.find((n) => n.is_current);
       if (current && onHistorySelect) onHistorySelect(current.id);
     } catch (e) {
       console.error('Redo failed:', e);
@@ -136,10 +136,10 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({ isOpen, onCl
     return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
-  const canUndo = historySummary.some(n => n.is_current && n.id !== 1);
-  const currentNodeIndex = historySummary.findIndex(n => n.is_current);
+  const canUndo = historySummary.some((n) => n.is_current && n.id !== 1);
+  const currentNodeIndex = historySummary.findIndex((n) => n.is_current);
   const canRedo = currentNodeIndex >= 0 && currentNodeIndex < historySummary.length - 1;
-  const branchCount = historySummary.filter(n => n.is_branch_point).length;
+  const branchCount = historySummary.filter((n) => n.is_branch_point).length;
 
   if (!isOpen) return null;
 
@@ -197,12 +197,7 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({ isOpen, onCl
                 <div key={node.id}>
                   {/* Timeline connector line */}
                   {!isLast && (
-                    <div
-                      className={clsx(
-                        'ml-[11px] w-0.5 h-3',
-                        node.is_current ? 'bg-accent' : 'bg-surface',
-                      )}
-                    />
+                    <div className={clsx('ml-[11px] w-0.5 h-3', node.is_current ? 'bg-accent' : 'bg-surface')} />
                   )}
 
                   {/* Node row */}
@@ -226,11 +221,7 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({ isOpen, onCl
                             : 'bg-surface text-text-secondary',
                       )}
                     >
-                      {node.is_branch_point ? (
-                        <GitBranch size={12} />
-                      ) : (
-                        <Icon size={12} />
-                      )}
+                      {node.is_branch_point ? <GitBranch size={12} /> : <Icon size={12} />}
                     </div>
 
                     {/* Node info */}
@@ -253,7 +244,8 @@ export const EditHistoryPanel: React.FC<EditHistoryPanelProps> = ({ isOpen, onCl
                       </div>
                       <Text as="span" variant={TextVariants.small} color={TextColors.secondary}>
                         {formatTime(node.timestamp)}
-                        {node.branch_count > 1 && ` · ${node.branch_count} ${t('editor.history.branches', { count: node.branch_count })}`}
+                        {node.branch_count > 1 &&
+                          ` · ${node.branch_count} ${t('editor.history.branches', { count: node.branch_count })}`}
                       </Text>
                     </div>
 

@@ -398,7 +398,7 @@ const Slider = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const textVal = e.target.value;
-    if (!/^[0-9.,\-]*$/.test(textVal)) {
+    if (!/^[0-9.,-]*$/.test(textVal)) {
       return;
     }
     setInputValue(textVal);

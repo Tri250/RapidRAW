@@ -671,7 +671,7 @@ export default function FolderTree({
   const filteredTrees = useMemo(() => {
     let base = folderTrees;
     if (isSearching) {
-      base = base.map((tree: any) => filterTree(tree, trimmedQuery)).filter((t: any) => t !== null);
+      base = base.map((tree) => filterTree(tree, trimmedQuery)).filter((t): t is FolderTree => t !== null);
     }
     return sortFolderTree(base, folderTreeSort);
   }, [folderTrees, trimmedQuery, isSearching, folderTreeSort]);
@@ -721,7 +721,7 @@ export default function FolderTree({
       const hasBaseResults = filteredTrees && filteredTrees.length > 0;
       const hasAlbumResults = filteredAlbumTree && filteredAlbumTree.length > 0;
 
-      let newSections = [...openSections];
+      const newSections = [...openSections];
       let changed = false;
 
       if (hasPinnedResults && !newSections.includes('pinned')) {

@@ -264,7 +264,13 @@ export default function MainLibrary(props: MainLibraryProps) {
 
             <div className="w-full h-full flex flex-col p-8 lg:p-16 overflow-y-auto custom-scrollbar relative z-10">
               {showSettings ? (
-                <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin h-6 w-6 border-2 border-text-primary border-t-transparent rounded-full" /></div>}>
+                <Suspense
+                  fallback={
+                    <div className="flex items-center justify-center h-full">
+                      <div className="animate-spin h-6 w-6 border-2 border-text-primary border-t-transparent rounded-full" />
+                    </div>
+                  }
+                >
                   <SettingsPanel
                     appSettings={props.appSettings}
                     onBack={() => setShowSettings(false)}

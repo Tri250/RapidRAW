@@ -68,13 +68,21 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
           }
 
           const { width, height } = loadImageResult;
-          if (!width || !height || typeof width !== 'number' || typeof height !== 'number' || width <= 0 || height <= 0) {
+          if (
+            !width ||
+            !height ||
+            typeof width !== 'number' ||
+            typeof height !== 'number' ||
+            width <= 0 ||
+            height <= 0
+          ) {
             throw new Error(`Invalid image dimensions: ${width}x${height}`);
           }
 
           setEditor({ originalSize: { width, height } });
 
-          const effectivePreviewResolution = appSettings?.editorPreviewResolution || (useSettingsStore.getState().osPlatform === 'android' ? 1280 : 0);
+          const effectivePreviewResolution =
+            appSettings?.editorPreviewResolution || (useSettingsStore.getState().osPlatform === 'android' ? 1280 : 0);
           if (effectivePreviewResolution > 0) {
             const maxSize = effectivePreviewResolution;
             const aspectRatio = width / height;

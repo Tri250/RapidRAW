@@ -711,13 +711,15 @@ export default function SettingsPanel({
     const initColorScienceConfig = async () => {
       try {
         const storedConfig = appSettings?.colorScienceConfig;
-        const configJson = storedConfig || JSON.stringify({
-          pipeline: 'SimplifiedAces',
-          display_color_space: 'SRGB',
-          eotf: 'SRGB',
-          peak_luminance: 203.0,
-          hdr_enabled: false,
-        });
+        const configJson =
+          storedConfig ||
+          JSON.stringify({
+            pipeline: 'SimplifiedAces',
+            display_color_space: 'SRGB',
+            eotf: 'SRGB',
+            peak_luminance: 203.0,
+            hdr_enabled: false,
+          });
         const result = await invoke<string>('color_science_get_config', { configJson });
         const parsed = JSON.parse(result);
         setColorScienceConfig(parsed);
@@ -1408,9 +1410,7 @@ export default function SettingsPanel({
                     <div className="space-y-8">
                       <div className="p-3 bg-blue-900/10 border border-blue-500/50 rounded-lg flex items-start gap-3">
                         <Info size={18} className="shrink-0 mt-0.5" />
-                        <Text variant={TextVariants.small}>
-                          {t('settings.android.permissionsNote')}
-                        </Text>
+                        <Text variant={TextVariants.small}>{t('settings.android.permissionsNote')}</Text>
                       </div>
 
                       <SettingItem

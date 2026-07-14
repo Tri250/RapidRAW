@@ -1,7 +1,8 @@
-const js = require('@eslint/js');
-const tseslint = require('typescript-eslint');
-const react = require('eslint-plugin-react');
-const i18next = require('eslint-plugin-i18next');
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import i18next from 'eslint-plugin-i18next';
 
 const tsFiles = ['**/*.{ts,tsx}'];
 
@@ -14,7 +15,7 @@ const tsRecommended = tseslint.configs.recommended.map((config) =>
   config.files ? config : { ...config, files: tsFiles },
 );
 
-module.exports = [
+export default [
   {
     ignores: [
       'dist/**',
@@ -31,6 +32,7 @@ module.exports = [
     files: tsFiles,
     plugins: {
       react,
+      'react-hooks': reactHooks,
       i18next,
     },
     languageOptions: {
@@ -53,6 +55,10 @@ module.exports = [
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
       ],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unsafe-function-type': 'warn',
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
       'i18next/no-literal-string': [
         'warn',
         {

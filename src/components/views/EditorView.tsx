@@ -238,7 +238,9 @@ export default function EditorView({
             />
           )}
           {renderedRightPanel === Panel.Ai && <AIPanel />}
-          {renderedRightPanel === Panel.History && <EditHistoryPanel isOpen={true} onClose={() => handleRightPanelSelect(Panel.Adjustments)} />}
+          {renderedRightPanel === Panel.History && (
+            <EditHistoryPanel isOpen={true} onClose={() => handleRightPanelSelect(Panel.Adjustments)} />
+          )}
         </motion.div>
       )}
     </AnimatePresence>

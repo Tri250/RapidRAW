@@ -1074,7 +1074,10 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
         {
           icon: Settings2,
           label: t('editor.presets.menu.configurePreset'),
-          onClick: () => { setConfigureModalState({ isOpen: true, preset: data as Preset }); setUI({ isConfigurePresetModalOpen: true }); },
+          onClick: () => {
+            setConfigureModalState({ isOpen: true, preset: data as Preset });
+            setUI({ isConfigurePresetModalOpen: true });
+          },
         },
         { type: OPTION_SEPARATOR },
         {
@@ -1114,7 +1117,10 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
       {
         icon: Plus,
         label: t('editor.presets.menu.newPreset'),
-        onClick: () => { setConfigureModalState({ isOpen: true, preset: null }); setUI({ isConfigurePresetModalOpen: true }); },
+        onClick: () => {
+          setConfigureModalState({ isOpen: true, preset: null });
+          setUI({ isConfigurePresetModalOpen: true });
+        },
       },
       {
         icon: FolderPlus,
@@ -1167,7 +1173,10 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
             <button
               className="p-2 rounded-full hover:bg-surface transition-colors"
               disabled={isLoading}
-              onClick={() => { setConfigureModalState({ isOpen: true, preset: null }); setUI({ isConfigurePresetModalOpen: true }); }}
+              onClick={() => {
+                setConfigureModalState({ isOpen: true, preset: null });
+                setUI({ isConfigurePresetModalOpen: true });
+              }}
               data-tooltip={t('editor.presets.tooltips.saveNew')}
             >
               <Plus size={18} />
@@ -1282,7 +1291,10 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
         <ConfigurePresetModal
           isOpen={isConfigurePresetModalOpen}
           initialPreset={configureModalState.preset}
-          onClose={() => { setConfigureModalState({ isOpen: false, preset: null }); setUI({ isConfigurePresetModalOpen: false }); }}
+          onClose={() => {
+            setConfigureModalState({ isOpen: false, preset: null });
+            setUI({ isConfigurePresetModalOpen: false });
+          }}
           onSave={handleSaveConfiguredPreset}
         />
         <CreateFolderModal

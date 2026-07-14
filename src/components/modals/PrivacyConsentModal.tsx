@@ -10,11 +10,7 @@ interface PrivacyConsentModalProps {
   onDecline(): void;
 }
 
-export default function PrivacyConsentModal({
-  isOpen,
-  onAgree,
-  onDecline,
-}: PrivacyConsentModalProps) {
+export default function PrivacyConsentModal({ isOpen, onAgree, onDecline }: PrivacyConsentModalProps) {
   const { t } = useTranslation();
   const [isMounted, setIsMounted] = useState(false);
   const [show, setShow] = useState(false);
@@ -27,15 +23,12 @@ export default function PrivacyConsentModal({
     }
   }, [isOpen]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    },
-    [],
-  );
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, []);
 
   if (!isMounted) {
     return null;
@@ -62,53 +55,39 @@ export default function PrivacyConsentModal({
         `}
         onClick={(e: any) => e.stopPropagation()}
       >
-        <Text
-          variant={TextVariants.title}
-          id="privacy-consent-title"
-          className="mb-4"
-        >
+        <Text variant={TextVariants.title} id="privacy-consent-title" className="mb-4">
           {t('privacy.title')}
         </Text>
 
         <div className="max-h-[50vh] overflow-y-auto mb-6 pr-1 space-y-3 text-sm">
-          <Text color={TextColors.secondary}>
-            {t('privacy.intro')}
-          </Text>
+          <Text color={TextColors.secondary}>{t('privacy.intro')}</Text>
 
           <div>
             <Text weight={TextWeights.bold} className="mb-1">
               {t('privacy.permissionsTitle')}
             </Text>
-            <Text color={TextColors.secondary}>
-              {t('privacy.permissionsDesc')}
-            </Text>
+            <Text color={TextColors.secondary}>{t('privacy.permissionsDesc')}</Text>
           </div>
 
           <div>
             <Text weight={TextWeights.bold} className="mb-1">
               {t('privacy.noCollectionTitle')}
             </Text>
-            <Text color={TextColors.secondary}>
-              {t('privacy.noCollectionDesc')}
-            </Text>
+            <Text color={TextColors.secondary}>{t('privacy.noCollectionDesc')}</Text>
           </div>
 
           <div>
             <Text weight={TextWeights.bold} className="mb-1">
               {t('privacy.aiTitle')}
             </Text>
-            <Text color={TextColors.secondary}>
-              {t('privacy.aiDesc')}
-            </Text>
+            <Text color={TextColors.secondary}>{t('privacy.aiDesc')}</Text>
           </div>
 
           <div>
             <Text weight={TextWeights.bold} className="mb-1">
               {t('privacy.storageTitle')}
             </Text>
-            <Text color={TextColors.secondary}>
-              {t('privacy.storageDesc')}
-            </Text>
+            <Text color={TextColors.secondary}>{t('privacy.storageDesc')}</Text>
           </div>
 
           <Text color={TextColors.secondary} className="text-xs">

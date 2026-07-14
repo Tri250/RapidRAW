@@ -119,7 +119,13 @@ export default function LibraryView({
     <div className="flex flex-row grow h-full min-h-0">
       <div className="flex-1 flex flex-col min-w-0 gap-2">
         {activeView === 'community' ? (
-          <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin h-6 w-6 border-2 border-text-primary border-t-transparent rounded-full" /></div>}>
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin h-6 w-6 border-2 border-text-primary border-t-transparent rounded-full" />
+              </div>
+            }
+          >
             <CommunityPage
               onBackToLibrary={() => setUI({ activeView: 'library' })}
               supportedTypes={supportedTypes}

@@ -7,12 +7,12 @@ const isAndroid = typeof navigator !== 'undefined' && /android/i.test(navigator.
 
 // 振动持续时间 (ms) - 国内用户偏好短促清晰的反馈
 const HAPTIC_DURATION = {
-  light: 8,       // 轻触 - 滑块微调
-  medium: 12,     // 中等 - 按钮点击
-  heavy: 18,      // 重触 - 确认操作
-  selection: 5,   // 选择 - 切换选项
-  success: [10, 30, 10],  // 成功 - 模式振动
-  error: [20, 40, 20],    // 错误 - 模式振动
+  light: 8, // 轻触 - 滑块微调
+  medium: 12, // 中等 - 按钮点击
+  heavy: 18, // 重触 - 确认操作
+  selection: 5, // 选择 - 切换选项
+  success: [10, 30, 10], // 成功 - 模式振动
+  error: [20, 40, 20], // 错误 - 模式振动
 } as const;
 
 /**
