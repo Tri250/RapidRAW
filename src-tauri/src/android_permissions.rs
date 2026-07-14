@@ -171,61 +171,16 @@ pub fn request_permissions() -> bool {
         return true;
     }
 
-    // 使用 JNI 启动权限请求 Activity
-    use jni::objects::JObject;
-
-    let vm = match unsafe {
-        jni::JavaVM::from_raw(ndk_context::android_context().vm().cast())
-    } {
-        Ok(vm) => vm,
-        Err(_) => return false,
-    };
-
-    let mut env = match vm.attach_current_thread() {
-        Ok(env) => env,
-        Err(_) => return false,
-    };
-
-    let context = env
-        .new_local_ref(unsafe {
-            JObject::from_raw(ndk_context::android_context().context().cast())
-        })
-        .unwrap_or_else(|_| JObject::null());
-
-    // 转换为 Java 字符串数组
-    let string_class = match env.find_class("java/lang/String") {
-        Ok(cls) => cls,
-        Err(_) => return false,
-    };
-
-    let perm_array = match env.new_object_array(
-        denied.len() as i32,
-        &string_class,
-        &JObject::null(),
-    ) {
-        Ok(arr) => arr,
-        Err(_) => return false,
-    };
-
-    for (i, perm) in denied.iter().enumerate() {
-        let perm_str = match env.new_string(perm) {
-            Ok(s) => s,
-            Err(_) => return false,
-        };
-        let _ = env.set_object_array_element(&perm_array, i as i32, &perm_str);
-    }
-
-    // 调用 requestPermissions (需要 Activity 上下文)
-    let request_result = env.call_static_method(
-        "io/github/CyberTimon/RapidRAW/PermissionHelper",
-        "requestPermissions",
-        "(Landroid/app/Activity;[Ljava/lang/String;)V",
-        &[(&context).into(), (&perm_array).into()],
+    log::warn!(
+        "Android: Permissions need to be granted via system settings: {:?}",
+        denied
     );
 
-    // 权限请求是异步的，无法立即确认授予结果
-    // 返回 true 表示请求已成功发起，false 表示请求发起失败
-    request_result.is_ok()
+    // Note: On Android, permissions should be requested via the frontend
+    // using Tauri's standard permission APIs or system intents.
+    // Direct Activity-based permission request requires access to the
+    // current Activity which is not available from background threads.
+    false
 }
 
 #[cfg(not(target_os = "android"))]
