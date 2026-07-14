@@ -12,6 +12,12 @@ gradlePlugin {
 }
 
 repositories {
+    maven { url = uri("${rootProject.projectDir}/../../../../local-maven-repo") }
+    maven { url 'https://dl.google.com/dl/android/maven2/' }
+    maven { url 'https://maven.aliyun.com/repository/google' }
+    maven { url 'https://maven.aliyun.com/repository/central' }
+    maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+    maven { url 'https://maven.aliyun.com/repository/public' }
     google()
     mavenCentral()
     gradlePluginPortal()

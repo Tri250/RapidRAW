@@ -3,6 +3,12 @@ import java.io.ByteArrayOutputStream
 
 buildscript {
     repositories {
+        maven { url = uri("${rootProject.projectDir}/../../../../local-maven-repo") }
+        maven { url = uri("https://dl.google.com/dl/android/maven2/") }
+        maven { url = uri("https://maven.aliyun.com/repository/google") }
+        maven { url = uri("https://maven.aliyun.com/repository/central") }
+        maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
         google()
         mavenCentral()
     }
@@ -32,6 +38,7 @@ val rustlsPlatformVerifierMavenRepo: String? = try {
 allprojects {
     repositories {
         maven { url = uri("${rootProject.projectDir}/../../../../local-maven-repo") }
+        maven { url = uri("https://dl.google.com/dl/android/maven2/") }
         maven { url = uri("https://maven.aliyun.com/repository/google") }
         maven { url = uri("https://maven.aliyun.com/repository/central") }
         maven { url = uri("https://maven.aliyun.com/repository/public") }

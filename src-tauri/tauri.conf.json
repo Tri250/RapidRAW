@@ -22,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: https://* data: blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cdn.jsdelivr.net https://huggingface.co https://getrapidraw.com http://localhost:* http://127.0.0.1:*; script-src 'self'; font-src 'self' data:",
+      "csp": "default-src 'self'; img-src 'self' asset: https://* data: blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cdn.jsdelivr.net https://huggingface.co https://getrapidraw.com; script-src 'self'; font-src 'self' data:",
       "capabilities": ["default"],
       "assetProtocol": {
         "enable": true,
@@ -93,5 +93,5 @@
       }
     }
   },
-  "version": "1.1.0"
+  "version": "1.6.0"
 }
