@@ -152,7 +152,7 @@ export default function CollageModal({ isOpen, onClose, onSave, sourceImages }: 
             path: imageFile.path,
             jsAdjustments: adjustments,
           });
-          const blob = new Blob([imageData], { type: 'image/jpeg' });
+          const blob = new Blob([imageData as unknown as BlobPart], { type: 'image/jpeg' });
           const url = URL.createObjectURL(blob);
 
           return new Promise<LoadedImage>((resolve, reject) => {

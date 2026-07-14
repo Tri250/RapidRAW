@@ -25,9 +25,9 @@ export function triggerHaptic(intensity: keyof typeof HAPTIC_DURATION = 'light')
   try {
     const pattern = HAPTIC_DURATION[intensity];
     if (Array.isArray(pattern)) {
-      navigator.vibrate(pattern);
+      navigator.vibrate([...pattern] as number[]);
     } else {
-      navigator.vibrate(pattern);
+      navigator.vibrate(pattern as number);
     }
   } catch {
     // 振动不可用时静默失败

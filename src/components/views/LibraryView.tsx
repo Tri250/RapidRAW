@@ -1,7 +1,7 @@
 import { useShallow } from 'zustand/react/shallow';
 import { lazy, Suspense } from 'react';
 
-const CommunityPage = lazy(() => import('../panel/CommunityPage'));
+const CommunityPage = lazy(() => import('../panel/CommunityPage.js'));
 import MainLibrary from '../panel/MainLibrary';
 import BottomBar from '../panel/BottomBar';
 

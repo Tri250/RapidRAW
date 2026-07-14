@@ -10,6 +10,7 @@ interface ButtonProps {
   size?: string;
   title?: string;
   variant?: string;
+  tabIndex?: number;
 }
 
 const Button = ({ children, onClick, disabled, className = '', ...props }: ButtonProps) => {

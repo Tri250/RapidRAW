@@ -23,6 +23,7 @@ interface SliderProps {
   trackClassName?: string;
   fillOrigin?: 'min' | 'default';
   suffix?: string;
+  disabled?: boolean;
 }
 
 const DOUBLE_CLICK_THRESHOLD_MS = 300;
