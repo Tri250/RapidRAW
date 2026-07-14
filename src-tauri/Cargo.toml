@@ -92,7 +92,7 @@ gtk = "0.18.2"
 webkit2gtk = "=2.0.2"
 
 [build-dependencies]
-tauri-build = { version = "2.6", features = [] }
+tauri-build = { path = "/tmp/tauri-test/crates/tauri-build", features = [] }
 sha2 = "0.11"
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "rustls"] }
 hex = "0.4"
