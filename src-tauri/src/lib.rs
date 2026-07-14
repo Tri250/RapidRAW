@@ -2025,14 +2025,16 @@ pub fn run() {
         .plugin(PinchZoomDisablePlugin)
         .on_window_event(|window, event| if let tauri::WindowEvent::Resized(size) = event {
             let state = window.state::<AppState>();
-            if let Some(ctx) = state.gpu_context.lock().unwrap().as_ref()
-                && let Ok(mut display_lock) = ctx.display.try_lock()
-                    && let Some(display) = display_lock.as_mut() {
-                        display.config.width = size.width.max(1);
-                        display.config.height = size.height.max(1);
-                        display.surface.configure(&ctx.device, &display.config);
-                        display.render(&ctx.device, &ctx.queue);
-                    }
+            if let Ok(gpu_ctx_lock) = state.gpu_context.lock() {
+                if let Some(ctx) = gpu_ctx_lock.as_ref()
+                    && let Ok(mut display_lock) = ctx.display.try_lock()
+                        && let Some(display) = display_lock.as_mut() {
+                            display.config.width = size.width.max(1);
+                            display.config.height = size.height.max(1);
+                            display.surface.configure(&ctx.device, &display.config);
+                            display.render(&ctx.device, &ctx.queue);
+                        }
+            }
         })
         .setup(|app| {
             // Initialize logging FIRST so all subsequent errors are captured
@@ -2057,14 +2059,14 @@ pub fn run() {
 
             let app_handle = app.handle().clone();
             let config_dir = app_handle.path().app_config_dir().unwrap_or_else(|e| {
-                eprintln!("Failed to get config dir: {}. Using fallback.", e);
+                log::error!("Failed to get config dir: {}. Using fallback.", e);
                 std::path::PathBuf::from("/data/local/tmp/rapidraw_fallback")
             });
             let crash_flag_path = config_dir.join(".gpu_init_crash_flag");
 
             {
                 let state = app.state::<AppState>();
-                *state.gpu_crash_flag_path.lock().unwrap() = Some(crash_flag_path.clone());
+                *state.gpu_crash_flag_path.lock().unwrap_or_else(|e| e.into_inner()) = Some(crash_flag_path.clone());
             }
 
             let mut settings: AppSettings = load_settings(app_handle.clone()).unwrap_or_default();
@@ -2072,7 +2074,7 @@ pub fn run() {
             {
                 let state = app.state::<AppState>();
                 let cache_size = settings.image_cache_size.unwrap_or(5) as usize;
-                state.decoded_image_cache.lock().unwrap().set_capacity(cache_size);
+                state.decoded_image_cache.lock().unwrap_or_else(|e| e.into_inner()).set_capacity(cache_size);
             }
 
             if crash_flag_path.exists() {
@@ -2101,44 +2103,59 @@ pub fn run() {
 
             let lens_db = lens_correction::load_lensfun_db(&app_handle);
             let state = app.state::<AppState>();
-            *state.lens_db.lock().unwrap() = Some(Arc::new(lens_db));
+            *state.lens_db.lock().unwrap_or_else(|e| e.into_inner()) = Some(Arc::new(lens_db));
 
-            unsafe {
+            // WGPU_BACKEND env var must be set before any GPU initialization
+            // On Android, this is safe because setup runs before workers start
+            #[cfg(not(target_os = "android"))]
+            {
                 if let Some(backend) = &settings.processing_backend
                     && backend != "auto" {
-                        std::env::set_var("WGPU_BACKEND", backend);
+                        unsafe { std::env::set_var("WGPU_BACKEND", backend); }
                     }
 
                 if settings.linux_gpu_optimization.unwrap_or(true) {
                     #[cfg(target_os = "linux")]
                     {
-                        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
-                        std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
-                        std::env::set_var("NODEVICE_SELECT", "1");
+                        unsafe {
+                            std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+                            std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+                            std::env::set_var("NODEVICE_SELECT", "1");
+                        }
                     }
                 }
+            }
 
-                #[cfg(not(target_os = "android"))]
-                {
-                    let resource_path = app_handle
-                        .path()
-                        .resolve("resources", tauri::path::BaseDirectory::Resource)
-                        .expect("failed to resolve resource directory");
+            // Android: Set WGPU backend
+            #[cfg(target_os = "android")]
+            {
+                if let Some(backend) = &settings.processing_backend
+                    && backend != "auto" {
+                        log::info!("Android: Using GPU backend: {}", backend);
+                        unsafe { std::env::set_var("WGPU_BACKEND", backend); }
+                    }
+            }
 
-                    let ort_library_name = {
-                        #[cfg(target_os = "windows")]
-                        { "onnxruntime.dll" }
-                        #[cfg(target_os = "linux")]
-                        { "libonnxruntime.so" }
-                        #[cfg(target_os = "macos")]
-                        { "libonnxruntime.dylib" }
-                        #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
-                        { "libonnxruntime.so" }
-                    };
-                    let ort_library_path = resource_path.join(ort_library_name);
-                    std::env::set_var("ORT_DYLIB_PATH", &ort_library_path);
-                    println!("Set ORT_DYLIB_PATH to: {}", ort_library_path.display());
-                }
+            #[cfg(not(target_os = "android"))]
+            {
+                let resource_path = app_handle
+                    .path()
+                    .resolve("resources", tauri::path::BaseDirectory::Resource)
+                    .expect("failed to resolve resource directory");
+
+                let ort_library_name = {
+                    #[cfg(target_os = "windows")]
+                    { "onnxruntime.dll" }
+                    #[cfg(target_os = "linux")]
+                    { "libonnxruntime.so" }
+                    #[cfg(target_os = "macos")]
+                    { "libonnxruntime.dylib" }
+                    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
+                    { "libonnxruntime.so" }
+                };
+                let ort_library_path = resource_path.join(ort_library_name);
+                unsafe { std::env::set_var("ORT_DYLIB_PATH", &ort_library_path); }
+                println!("Set ORT_DYLIB_PATH to: {}", ort_library_path.display());
             }
 
             if let Some(backend) = &settings.processing_backend
@@ -2158,19 +2175,30 @@ pub fn run() {
             file_management::start_metadata_workers(app_handle.clone());
             jxl_oxide::integration::register_image_decoding_hook();
 
-            let window_cfg = app.config().app.windows.first().unwrap().clone();
+            let window_cfg = match app.config().app.windows.first() {
+                Some(cfg) => cfg.clone(),
+                None => {
+                    log::error!("No window configurations found in app config");
+                    return Ok(());
+                }
+            };
             let decorations = settings.decorations.unwrap_or(window_cfg.decorations);
             #[cfg(target_os = "android")]
             let _ = decorations;
 
-            let main_window_cfg = app
+            let main_window_cfg = match app
                 .config()
                 .app
                 .windows
                 .iter()
                 .find(|w| w.label == "main")
-                .expect("Main window config not found")
-                .clone();
+            {
+                Some(cfg) => cfg.clone(),
+                None => {
+                    log::error!("Main window config not found in app config");
+                    return Ok(());
+                }
+            };
 
             let mut window_builder =
                 tauri::WebviewWindowBuilder::from_config(app.handle(), &main_window_cfg)
@@ -2202,15 +2230,13 @@ pub fn run() {
                 // Android: 权限初始化检查
                 android_permissions::init_permissions(app.handle());
 
-                // Android: 配置低内存设备的内存管理
-                // 限制 Rayon 线程池大小，避免在移动设备上过度消耗资源
-                if let Ok(pool) = rayon::ThreadPoolBuilder::new()
+                // Android: 配置 Rayon 全局线程池，限制线程数避免过度消耗资源
+                if let Err(e) = rayon::ThreadPoolBuilder::new()
                     .num_threads(2)
                     .stack_size(4 * 1024 * 1024)
-                    .build()
+                    .build_global()
                 {
-                    // 线程池已配置，用于后续并行处理
-                    drop(pool);
+                    log::warn!("Android: Failed to configure Rayon global thread pool: {}", e);
                 }
 
                 log::info!("Android: RapidRAW initialized with mobile-optimized settings.");

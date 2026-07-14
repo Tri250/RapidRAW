@@ -55,10 +55,18 @@ pub fn initialize_android(window: &tauri::WebviewWindow) {
                 let vm_ptr = vm.get_java_vm_pointer() as *mut std::ffi::c_void;
                 let context_ptr = context.as_raw() as *mut std::ffi::c_void;
 
+                // Validate pointers before initializing ndk_context
+                if vm_ptr.is_null() || context_ptr.is_null() {
+                    log::error!("Android: JNI VM or context pointer is null - cannot initialize ndk_context");
+                    return;
+                }
+
                 INIT_NDK_CONTEXT.call_once(|| unsafe {
                     ndk_context::initialize_android_context(vm_ptr, context_ptr);
                     log::info!("Successfully initialized ndk-context on Android.");
                 });
+            } else {
+                log::error!("Android: Failed to get JavaVM from JNI environment");
             }
 
             INIT_RUSTLS_PLATFORM_VERIFIER.call_once(|| {
@@ -96,6 +104,12 @@ pub fn initialize_android(window: &tauri::WebviewWindow) {
 
     if let Err(e) = result {
         log::error!("Failed to initialize Android integration (with_webview error): {}", e);
+    }
+
+    // Verify ndk_context was actually initialized
+    let ctx = ndk_context::android_context();
+    if ctx.vm().is_null() || ctx.context().is_null() {
+        log::error!("Android: ndk_context was NOT properly initialized - VM or context is null. Subsequent JNI calls will fail.");
     }
 }
 

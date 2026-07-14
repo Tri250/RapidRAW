@@ -52,8 +52,15 @@ pub fn check_and_request_permissions() -> Vec<String> {
     use jni::objects::JObject;
     use jni::JNIEnv;
 
+    // Validate ndk_context before using it
+    let ctx = ndk_context::android_context();
+    if ctx.vm().is_null() || ctx.context().is_null() {
+        log::error!("Android: ndk_context not initialized - cannot check permissions");
+        return vec![];
+    }
+
     let vm = match unsafe {
-        jni::JavaVM::from_raw(ndk_context::android_context().vm().cast())
+        jni::JavaVM::from_raw(ctx.vm().cast())
     } {
         Ok(vm) => vm,
         Err(_) => return vec![],
@@ -66,7 +73,7 @@ pub fn check_and_request_permissions() -> Vec<String> {
 
     let context = env
         .new_local_ref(unsafe {
-            JObject::from_raw(ndk_context::android_context().context().cast())
+            JObject::from_raw(ctx.context().cast())
         })
         .unwrap_or_else(|_| JObject::null());
 
@@ -110,8 +117,15 @@ pub fn check_and_request_permissions() -> Vec<String> {
 pub fn has_manage_external_storage_permission() -> bool {
     use jni::objects::JObject;
 
+    // Validate ndk_context before using it
+    let ctx = ndk_context::android_context();
+    if ctx.vm().is_null() || ctx.context().is_null() {
+        log::error!("Android: ndk_context not initialized - cannot check MANAGE_EXTERNAL_STORAGE");
+        return false;
+    }
+
     let vm = match unsafe {
-        jni::JavaVM::from_raw(ndk_context::android_context().vm().cast())
+        jni::JavaVM::from_raw(ctx.vm().cast())
     } {
         Ok(vm) => vm,
         Err(_) => return false,
@@ -137,7 +151,7 @@ pub fn has_manage_external_storage_permission() -> bool {
 
     let context = env
         .new_local_ref(unsafe {
-            JObject::from_raw(ndk_context::android_context().context().cast())
+            JObject::from_raw(ctx.context().cast())
         })
         .unwrap_or_else(|_| JObject::null());
 
