@@ -70,6 +70,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{Emitter, Manager, ipc::Response};
 use tempfile::NamedTempFile;
+#[cfg(not(target_os = "android"))]
 use tokio::sync::Mutex as TokioMutex;
 
 use crate::cache_utils::{
@@ -2264,7 +2265,9 @@ pub fn run() {
             gpu_context: Mutex::new(None),
             gpu_image_cache: Mutex::new(None),
             gpu_processor: Mutex::new(None),
+            #[cfg(not(target_os = "android"))]
             ai_state: Mutex::new(None),
+            #[cfg(not(target_os = "android"))]
             ai_init_lock: TokioMutex::new(()),
             export_task_handle: Mutex::new(None),
             hdr_result: Arc::new(Mutex::new(None)),

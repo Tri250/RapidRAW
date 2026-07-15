@@ -1,18 +1,28 @@
-use anyhow::Result;
-use futures::stream::{self, StreamExt};
 use image::{DynamicImage, imageops::FilterType};
-use ndarray::{Array, Axis};
-use ort::session::Session;
-use ort::value::Tensor;
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, Manager, State};
-use tokenizers::Tokenizer;
-use tokio::task::JoinHandle;
+use tauri::{Emitter, Manager, State};
 use walkdir::WalkDir;
+
+#[cfg(not(target_os = "android"))]
+use anyhow::Result;
+#[cfg(not(target_os = "android"))]
+use futures::stream::{self, StreamExt};
+#[cfg(not(target_os = "android"))]
+use ndarray::{Array, Axis};
+#[cfg(not(target_os = "android"))]
+use ort::session::Session;
+#[cfg(not(target_os = "android"))]
+use ort::value::Tensor;
+#[cfg(not(target_os = "android"))]
+use tauri::AppHandle;
+#[cfg(not(target_os = "android"))]
+use tokenizers::Tokenizer;
+#[cfg(not(target_os = "android"))]
+use tokio::task::JoinHandle;
 
 use crate::file_management::{self, parse_virtual_path};
 use crate::formats::is_supported_image_file;
@@ -23,6 +33,7 @@ use crate::{AppState, candidates::TAG_CANDIDATES};
 pub const COLOR_TAG_PREFIX: &str = "color:";
 pub const USER_TAG_PREFIX: &str = "user:";
 
+#[cfg(not(target_os = "android"))]
 fn preprocess_clip_image(image: &DynamicImage) -> Array<f32, ndarray::Dim<[usize; 4]>> {
     let input_size = 224;
     let resized = image.resize_to_fill(input_size, input_size, FilterType::Triangle);
@@ -40,6 +51,7 @@ fn preprocess_clip_image(image: &DynamicImage) -> Array<f32, ndarray::Dim<[usize
     array
 }
 
+#[cfg(not(target_os = "android"))]
 fn softmax(array: &Array<f32, ndarray::Dim<[usize; 2]>>) -> Array<f32, ndarray::Dim<[usize; 2]>> {
     let mut new_array = array.clone();
     for mut row in new_array.axis_iter_mut(Axis(0)) {
@@ -142,6 +154,7 @@ pub fn extract_color_tags(image: &DynamicImage) -> Vec<String> {
     }
 }
 
+#[cfg(not(target_os = "android"))]
 pub fn generate_tags_with_clip(
     image: &DynamicImage,
     clip_session_mutex: &Mutex<Session>,
@@ -248,6 +261,7 @@ pub fn generate_tags_with_clip(
     Ok(final_tags)
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn start_background_indexing(
     folder_path: String,
@@ -465,6 +479,7 @@ pub fn remove_tag_for_paths(paths: Vec<String>, tag: String) -> Result<(), Strin
     Ok(())
 }
 
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub fn clear_ai_tags(root_path: String) -> Result<usize, String> {
     if !Path::new(&root_path).exists() {

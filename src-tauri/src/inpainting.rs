@@ -4,7 +4,9 @@ use base64::{Engine as _, engine::general_purpose};
 use image::{DynamicImage, GenericImageView, Rgb, RgbImage, RgbaImage};
 use serde_json::Value;
 
+#[cfg(not(target_os = "android"))]
 use crate::ai_connector;
+#[cfg(not(target_os = "android"))]
 use crate::ai_processing;
 use crate::app_settings::load_settings;
 use crate::app_state::AppState;
@@ -393,6 +395,7 @@ pub async fn invoke_generative_replace_with_mask_def(
     let mask_bitmap =
         crate::image_processing::inverse_transform_mask(mask_bitmap, &current_adjustments);
 
+    #[cfg(not(target_os = "android"))]
     let patch_rgba = if use_fast_inpaint {
         let lama_model = ai_processing::get_or_init_lama_model(
             &app_handle,
@@ -463,6 +466,11 @@ pub async fn invoke_generative_replace_with_mask_def(
             "No generative backend configured or connection invalid. Please check your AI settings."
                 .to_string(),
         );
+    };
+    #[cfg(target_os = "android")]
+    let patch_rgba: RgbaImage = {
+        let _ = (use_fast_inpaint, token, settings, path, patch_definition.prompt);
+        return Err("Generative replace is not available on Android".to_string());
     };
 
     let (patch_w, patch_h) = patch_rgba.dimensions();
