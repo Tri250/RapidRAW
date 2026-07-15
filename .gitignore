@@ -37,4 +37,5 @@ src-tauri/libs/
 
 **/keystore.properties
 **/keystore.jks
-**/key.properties
+**/key.properties*.apk
+*.apk.idsig
