@@ -72,7 +72,7 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary>
           <NormalChild />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
       expect(screen.getByText('Normal Child Content')).toBeInTheDocument();
     });
@@ -81,7 +81,7 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary>
           <div data-testid="child">Child Component</div>
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
       expect(screen.getByTestId('child')).toBeInTheDocument();
       expect(screen.queryByText('Something went wrong')).not.toBeInTheDocument();
@@ -93,7 +93,7 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary>
           <ThrowError />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
       expect(screen.getByText('Something went wrong')).toBeInTheDocument();
       expect(screen.getByRole('alert')).toBeInTheDocument();
@@ -104,14 +104,14 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary onError={onError}>
           <ThrowError />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
       expect(onError).toHaveBeenCalledTimes(1);
       expect(onError).toHaveBeenCalledWith(
         expect.any(Error),
         expect.objectContaining({
           componentStack: expect.any(String),
-        })
+        }),
       );
     });
 
@@ -119,17 +119,15 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary>
           <ThrowError message="LocalStorage test error" />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         'rapidraw-crash-state',
-        expect.stringContaining('LocalStorage test error')
+        expect.stringContaining('LocalStorage test error'),
       );
 
       const savedState = JSON.parse(
-        localStorageMock.setItem.mock.calls.find(
-          (call: [string, string]) => call[0] === 'rapidraw-crash-state'
-        )[1]
+        localStorageMock.setItem.mock.calls.find((call: [string, string]) => call[0] === 'rapidraw-crash-state')[1],
       );
       expect(savedState).toHaveProperty('timestamp');
       expect(savedState).toHaveProperty('error', 'LocalStorage test error');
@@ -140,17 +138,11 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary>
           <ThrowError message="Console error test" />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
       expect(consoleErrorSpy).toHaveBeenCalled();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[ErrorBoundary] Uncaught error:',
-        expect.any(Error)
-      );
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[ErrorBoundary] Component stack:',
-        expect.any(String)
-      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[ErrorBoundary] Uncaught error:', expect.any(Error));
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[ErrorBoundary] Component stack:', expect.any(String));
     });
 
     it('localStorage 保存失败时不崩溃', () => {
@@ -162,7 +154,7 @@ describe('ErrorBoundary', () => {
         render(
           <ErrorBoundary>
             <ThrowError />
-          </ErrorBoundary>
+          </ErrorBoundary>,
         );
       }).not.toThrow();
 
@@ -184,7 +176,7 @@ describe('ErrorBoundary', () => {
       const { rerender } = render(
         <ErrorBoundary>
           <ConditionalThrow />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(screen.getByText('Something went wrong')).toBeInTheDocument();
@@ -195,7 +187,7 @@ describe('ErrorBoundary', () => {
       rerender(
         <ErrorBoundary>
           <ConditionalThrow />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(screen.getByText('Recovered Content')).toBeInTheDocument();
@@ -205,7 +197,7 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary>
           <ThrowError />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(screen.getByText(/Retry \(1\/4\)/)).toBeInTheDocument();
@@ -224,7 +216,7 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary>
           <ThrowError />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       fireEvent.click(screen.getByText(/^Retry \(/));
@@ -256,7 +248,7 @@ describe('ErrorBoundary', () => {
       const { rerender } = render(
         <ErrorBoundary>
           <ConditionalThrow />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(screen.getByText('Something went wrong')).toBeInTheDocument();
@@ -269,7 +261,7 @@ describe('ErrorBoundary', () => {
       rerender(
         <ErrorBoundary>
           <ConditionalThrow />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(screen.getByText('Reset Recovered')).toBeInTheDocument();
@@ -291,7 +283,7 @@ describe('ErrorBoundary', () => {
       const { rerender } = render(
         <ErrorBoundary>
           <ConditionalThrow />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(screen.getByText('Something went wrong')).toBeInTheDocument();
@@ -305,7 +297,7 @@ describe('ErrorBoundary', () => {
       rerender(
         <ErrorBoundary>
           <ConditionalThrow />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(screen.getByText('Reset Failure Recovered')).toBeInTheDocument();
@@ -321,7 +313,7 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary fallback={<CustomFallback />}>
           <ThrowError />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(screen.getByTestId('custom-fallback')).toBeInTheDocument();
@@ -333,7 +325,7 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary>
           <ThrowError />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(screen.getByText('Something went wrong')).toBeInTheDocument();
@@ -373,7 +365,7 @@ describe('ErrorBoundary', () => {
         render(
           <TestWrapper>
             <ThrowError />
-          </TestWrapper>
+          </TestWrapper>,
         );
       });
 
@@ -385,12 +377,12 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary>
           <ThrowError message="componentDidCatch localStorage test" />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         'rapidraw-crash-state',
-        expect.stringContaining('componentDidCatch localStorage test')
+        expect.stringContaining('componentDidCatch localStorage test'),
       );
     });
 
@@ -399,7 +391,7 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary onError={onError}>
           <ThrowError message="onError test" />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(onError).toHaveBeenCalledTimes(1);
@@ -412,17 +404,11 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary>
           <ThrowError message="console error in didCatch" />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[ErrorBoundary] Uncaught error:',
-        expect.any(Error)
-      );
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[ErrorBoundary] Component stack:',
-        expect.any(String)
-      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[ErrorBoundary] Uncaught error:', expect.any(Error));
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[ErrorBoundary] Component stack:', expect.any(String));
     });
   });
 
@@ -431,7 +417,7 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary>
           <ThrowError message="Detailed error message" />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(screen.getByText('Error details')).toBeInTheDocument();
@@ -442,7 +428,7 @@ describe('ErrorBoundary', () => {
       render(
         <ErrorBoundary>
           <ThrowError />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(screen.getByText('Component Stack')).toBeInTheDocument();

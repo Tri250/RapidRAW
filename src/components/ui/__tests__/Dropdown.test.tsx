@@ -36,13 +36,7 @@ describe('Dropdown', () => {
 
   describe('基础渲染', () => {
     it('渲染触发按钮', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       expect(button).toBeInTheDocument();
@@ -50,74 +44,37 @@ describe('Dropdown', () => {
     });
 
     it('显示默认 placeholder 当没有值时', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       expect(screen.getByText('Select an option')).toBeInTheDocument();
     });
 
     it('显示自定义 placeholder 当没有值时', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-          placeholder="Select fruit"
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} placeholder="Select fruit" />);
 
       expect(screen.getByText('Select fruit')).toBeInTheDocument();
     });
 
     it('显示选中项的 label 当有值时', () => {
-      render(
-        <Dropdown
-          value="banana"
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value="banana" onChange={mockOnChange} options={mockOptions} />);
 
       expect(screen.getByText('Banana')).toBeInTheDocument();
     });
 
     it('value 不在 options 中时显示 placeholder', () => {
-      render(
-        <Dropdown
-          value="nonexistent"
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value="nonexistent" onChange={mockOnChange} options={mockOptions} />);
 
       expect(screen.getByText('Select an option')).toBeInTheDocument();
     });
 
     it('支持数字类型的 value', () => {
-      render(
-        <Dropdown
-          value={2}
-          onChange={mockOnChange}
-          options={numericOptions}
-        />
-      );
+      render(<Dropdown value={2} onChange={mockOnChange} options={numericOptions} />);
 
       expect(screen.getByText('Two')).toBeInTheDocument();
     });
 
     it('渲染 ChevronDown 图标', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       const svg = button.querySelector('svg');
@@ -127,28 +84,14 @@ describe('Dropdown', () => {
 
   describe('禁用状态', () => {
     it('禁用时按钮有 disabled 属性', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-          disabled={true}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} disabled={true} />);
 
       const button = screen.getByRole('button');
       expect(button).toBeDisabled();
     });
 
     it('禁用时有对应的样式类', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-          disabled={true}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} disabled={true} />);
 
       const button = screen.getByRole('button');
       expect(button.className).toContain('disabled:opacity-50');
@@ -156,14 +99,7 @@ describe('Dropdown', () => {
     });
 
     it('禁用时点击不打开下拉', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-          disabled={true}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} disabled={true} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -172,14 +108,7 @@ describe('Dropdown', () => {
     });
 
     it('非禁用时按钮没有 disabled 属性', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-          disabled={false}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} disabled={false} />);
 
       const button = screen.getByRole('button');
       expect(button).not.toBeDisabled();
@@ -188,13 +117,7 @@ describe('Dropdown', () => {
 
   describe('打开/关闭', () => {
     it('点击按钮打开下拉列表', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -206,13 +129,7 @@ describe('Dropdown', () => {
     });
 
     it('再次点击按钮关闭下拉列表', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -226,12 +143,8 @@ describe('Dropdown', () => {
       render(
         <div>
           <div data-testid="outside">Outside</div>
-          <Dropdown
-            value={null}
-            onChange={mockOnChange}
-            options={mockOptions}
-          />
-        </div>
+          <Dropdown value={null} onChange={mockOnChange} options={mockOptions} />
+        </div>,
       );
 
       const button = screen.getByRole('button');
@@ -246,12 +159,8 @@ describe('Dropdown', () => {
       render(
         <div>
           <div data-testid="outside">Outside</div>
-          <Dropdown
-            value={null}
-            onChange={mockOnChange}
-            options={mockOptions}
-          />
-        </div>
+          <Dropdown value={null} onChange={mockOnChange} options={mockOptions} />
+        </div>,
       );
 
       const button = screen.getByRole('button');
@@ -263,13 +172,7 @@ describe('Dropdown', () => {
     });
 
     it('点击下拉内容内部不关闭', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -281,13 +184,7 @@ describe('Dropdown', () => {
     });
 
     it('打开时 ChevronDown 图标旋转 180 度', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       let svg = button.querySelector('svg');
@@ -301,13 +198,7 @@ describe('Dropdown', () => {
 
   describe('选项列表', () => {
     it('显示所有选项', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -317,13 +208,7 @@ describe('Dropdown', () => {
     });
 
     it('每个选项有正确的 role 和 aria 属性', () => {
-      render(
-        <Dropdown
-          value="apple"
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value="apple" onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -335,13 +220,7 @@ describe('Dropdown', () => {
     });
 
     it('选中的选项有 Check 图标', () => {
-      render(
-        <Dropdown
-          value="banana"
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value="banana" onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -355,13 +234,7 @@ describe('Dropdown', () => {
     });
 
     it('listbox 有正确的 aria-orientation', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -373,13 +246,7 @@ describe('Dropdown', () => {
 
   describe('选择选项', () => {
     it('点击选项调用 onChange 并传入正确的值', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -390,13 +257,7 @@ describe('Dropdown', () => {
     });
 
     it('选择数字类型选项时调用 onChange 并传入数字值', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={numericOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={numericOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -407,13 +268,7 @@ describe('Dropdown', () => {
     });
 
     it('选择后关闭下拉列表', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -424,13 +279,7 @@ describe('Dropdown', () => {
     });
 
     it('选中的选项有高亮样式', () => {
-      render(
-        <Dropdown
-          value="banana"
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value="banana" onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -443,13 +292,7 @@ describe('Dropdown', () => {
     });
 
     it('未选中的选项没有高亮样式', () => {
-      render(
-        <Dropdown
-          value="banana"
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value="banana" onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -466,13 +309,7 @@ describe('Dropdown', () => {
 
   describe('搜索过滤', () => {
     it('输入可打印字符时打开搜索并过滤选项', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const container = screen.getByRole('button').parentElement;
       fireEvent.keyDown(container!, { key: 'a' });
@@ -488,12 +325,7 @@ describe('Dropdown', () => {
 
     it('使用自定义 searchPlaceholder', () => {
       render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-          searchPlaceholder="Search fruits..."
-        />
+        <Dropdown value={null} onChange={mockOnChange} options={mockOptions} searchPlaceholder="Search fruits..." />,
       );
 
       const container = screen.getByRole('button').parentElement;
@@ -503,13 +335,7 @@ describe('Dropdown', () => {
     });
 
     it('搜索词不区分大小写', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const container = screen.getByRole('button').parentElement;
       fireEvent.keyDown(container!, { key: 'C' });
@@ -519,13 +345,7 @@ describe('Dropdown', () => {
     });
 
     it('在搜索框中输入继续过滤', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const container = screen.getByRole('button').parentElement;
       fireEvent.keyDown(container!, { key: 'a' });
@@ -540,13 +360,7 @@ describe('Dropdown', () => {
     });
 
     it('清空搜索词后显示所有选项', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const container = screen.getByRole('button').parentElement;
       fireEvent.keyDown(container!, { key: 'a' });
@@ -560,13 +374,7 @@ describe('Dropdown', () => {
     });
 
     it('关闭下拉时清空搜索词和搜索状态', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       const container = button.parentElement;
@@ -585,13 +393,7 @@ describe('Dropdown', () => {
     });
 
     it('搜索无结果时不显示选项', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const container = screen.getByRole('button').parentElement;
       fireEvent.keyDown(container!, { key: 'z' });
@@ -600,13 +402,7 @@ describe('Dropdown', () => {
     });
 
     it('搜索输入框有 autoFocus', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const container = screen.getByRole('button').parentElement;
       fireEvent.keyDown(container!, { key: 'a' });
@@ -618,13 +414,7 @@ describe('Dropdown', () => {
 
   describe('键盘交互', () => {
     it('Escape 键关闭下拉', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -638,12 +428,8 @@ describe('Dropdown', () => {
       const handleKeyDown = vi.fn();
       render(
         <div onKeyDown={handleKeyDown}>
-          <Dropdown
-            value={null}
-            onChange={mockOnChange}
-            options={mockOptions}
-          />
-        </div>
+          <Dropdown value={null} onChange={mockOnChange} options={mockOptions} />
+        </div>,
       );
 
       const button = screen.getByRole('button');
@@ -654,13 +440,7 @@ describe('Dropdown', () => {
     });
 
     it('可打印字符打开搜索', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const container = screen.getByRole('button').parentElement;
       fireEvent.keyDown(container!, { key: 'x' });
@@ -670,13 +450,7 @@ describe('Dropdown', () => {
     });
 
     it('search input 获得焦点时不处理字符键', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const container = screen.getByRole('button').parentElement;
       fireEvent.keyDown(container!, { key: 'a' });
@@ -690,13 +464,7 @@ describe('Dropdown', () => {
     });
 
     it('修饰键组合不触发搜索 (metaKey)', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const container = screen.getByRole('button').parentElement;
 
@@ -705,13 +473,7 @@ describe('Dropdown', () => {
     });
 
     it('修饰键组合不触发搜索 (ctrlKey)', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const container = screen.getByRole('button').parentElement;
 
@@ -720,13 +482,7 @@ describe('Dropdown', () => {
     });
 
     it('修饰键组合不触发搜索 (altKey)', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const container = screen.getByRole('button').parentElement;
 
@@ -735,13 +491,7 @@ describe('Dropdown', () => {
     });
 
     it('Enter 键在只有一个过滤结果时选择该选项', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       const container = button.parentElement;
@@ -758,13 +508,7 @@ describe('Dropdown', () => {
     });
 
     it('Enter 键在多个过滤结果时不选择', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       const container = button.parentElement;
@@ -777,13 +521,7 @@ describe('Dropdown', () => {
     });
 
     it('Enter 键在下拉关闭时不触发选择', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       const container = button.parentElement;
@@ -793,13 +531,7 @@ describe('Dropdown', () => {
     });
 
     it('功能键不触发搜索 (如 F1)', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const container = screen.getByRole('button').parentElement;
 
@@ -811,12 +543,7 @@ describe('Dropdown', () => {
   describe('样式和 className', () => {
     it('自定义 className 被应用到容器', () => {
       const { container } = render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-          className="custom-dropdown-class"
-        />
+        <Dropdown value={null} onChange={mockOnChange} options={mockOptions} className="custom-dropdown-class" />,
       );
 
       expect(container.firstChild).toHaveClass('custom-dropdown-class');
@@ -825,12 +552,7 @@ describe('Dropdown', () => {
 
     it('triggerClassName 被应用到触发按钮', () => {
       render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-          triggerClassName="custom-trigger-class"
-        />
+        <Dropdown value={null} onChange={mockOnChange} options={mockOptions} triggerClassName="custom-trigger-class" />,
       );
 
       const button = screen.getByRole('button');
@@ -838,27 +560,14 @@ describe('Dropdown', () => {
     });
 
     it('triggerClassName 为空时使用默认 bg-surface', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       expect(button).toHaveClass('bg-surface');
     });
 
     it('triggerClassName 不为空时不使用默认 bg-surface', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-          triggerClassName="bg-red-500"
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} triggerClassName="bg-red-500" />);
 
       const button = screen.getByRole('button');
       expect(button).not.toHaveClass('bg-surface');
@@ -866,13 +575,7 @@ describe('Dropdown', () => {
     });
 
     it('按钮有基础样式类', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       expect(button.className).toContain('w-full');
@@ -886,13 +589,7 @@ describe('Dropdown', () => {
     });
 
     it('按钮有焦点样式类', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       expect(button.className).toContain('focus:ring-accent');
@@ -903,39 +600,21 @@ describe('Dropdown', () => {
 
   describe('ARIA 属性', () => {
     it('按钮有正确的 aria-haspopup 属性', () => {
-      render(
-        <Dropdown
-          value="apple"
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value="apple" onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       expect(button).toHaveAttribute('aria-haspopup', 'listbox');
     });
 
     it('关闭时 aria-expanded 为 false', () => {
-      render(
-        <Dropdown
-          value="apple"
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value="apple" onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       expect(button).toHaveAttribute('aria-expanded', 'false');
     });
 
     it('打开时 aria-expanded 为 true', () => {
-      render(
-        <Dropdown
-          value="apple"
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value="apple" onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -944,13 +623,7 @@ describe('Dropdown', () => {
     });
 
     it('选项有正确的 aria-selected 属性', () => {
-      render(
-        <Dropdown
-          value="apple"
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value="apple" onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -964,13 +637,7 @@ describe('Dropdown', () => {
     });
 
     it('listbox 有正确的 role', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -980,13 +647,7 @@ describe('Dropdown', () => {
     });
 
     it('选项有正确的 role', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -998,13 +659,7 @@ describe('Dropdown', () => {
 
   describe('空选项', () => {
     it('options 为空时打开下拉不显示选项', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={[]}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={[]} />);
 
       const button = screen.getByRole('button');
       fireEvent.click(button);
@@ -1014,14 +669,7 @@ describe('Dropdown', () => {
     });
 
     it('options 为空时显示 placeholder', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={[]}
-          placeholder="No options available"
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={[]} placeholder="No options available" />);
 
       expect(screen.getByText('No options available')).toBeInTheDocument();
     });
@@ -1029,13 +677,7 @@ describe('Dropdown', () => {
 
   describe('按钮 type 属性', () => {
     it('按钮 type 为 button', () => {
-      render(
-        <Dropdown
-          value={null}
-          onChange={mockOnChange}
-          options={mockOptions}
-        />
-      );
+      render(<Dropdown value={null} onChange={mockOnChange} options={mockOptions} />);
 
       const button = screen.getByRole('button');
       expect(button).toHaveAttribute('type', 'button');

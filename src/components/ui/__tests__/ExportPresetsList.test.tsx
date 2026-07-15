@@ -173,7 +173,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       expect(screen.getByText('ui.exportPresets.heading')).toBeInTheDocument();
@@ -186,7 +186,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });
@@ -200,12 +200,12 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const buttons = screen.getAllByRole('button');
       const plusButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip',
       );
       expect(plusButton).toBeInTheDocument();
     });
@@ -219,7 +219,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });
@@ -243,7 +243,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });
@@ -261,7 +261,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });
@@ -274,7 +274,7 @@ describe('ExportPresetsList', () => {
         expect.objectContaining({
           id: 'preset-2',
           name: 'Web Optimized',
-        })
+        }),
       );
     });
 
@@ -285,7 +285,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });
@@ -303,7 +303,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });
@@ -313,11 +313,9 @@ describe('ExportPresetsList', () => {
 
       const buttons = screen.getAllByRole('button');
       const saveButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.overwriteTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.overwriteTooltip',
       );
-      const deleteButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.deleteTooltip'
-      );
+      const deleteButton = buttons.find((btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.deleteTooltip');
 
       expect(saveButton).toBeInTheDocument();
       expect(deleteButton).toBeInTheDocument();
@@ -330,7 +328,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });
@@ -340,11 +338,9 @@ describe('ExportPresetsList', () => {
 
       const buttons = screen.getAllByRole('button');
       const saveButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.overwriteTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.overwriteTooltip',
       );
-      const deleteButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.deleteTooltip'
-      );
+      const deleteButton = buttons.find((btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.deleteTooltip');
 
       expect(saveButton).toBeUndefined();
       expect(deleteButton).toBeUndefined();
@@ -359,12 +355,12 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const buttons = screen.getAllByRole('button');
       const plusButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip',
       );
 
       fireEvent.click(plusButton!);
@@ -379,12 +375,12 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const buttons = screen.getAllByRole('button');
       const plusButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip',
       );
 
       fireEvent.click(plusButton!);
@@ -404,12 +400,12 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const buttons = screen.getAllByRole('button');
       const plusButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip',
       );
 
       fireEvent.click(plusButton!);
@@ -425,12 +421,12 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const buttons = screen.getAllByRole('button');
       const plusButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip',
       );
 
       fireEvent.click(plusButton!);
@@ -449,12 +445,12 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const buttons = screen.getAllByRole('button');
       const plusButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip',
       );
 
       fireEvent.click(plusButton!);
@@ -470,9 +466,7 @@ describe('ExportPresetsList', () => {
       const updatedSettings = mockOnSettingsChange.mock.calls[0][0];
       expect(updatedSettings.exportPresets).toHaveLength(mockPresets.length + 1);
 
-      const newPreset = updatedSettings.exportPresets.find(
-        (p: ExportPreset) => p.name === 'My New Preset'
-      );
+      const newPreset = updatedSettings.exportPresets.find((p: ExportPreset) => p.name === 'My New Preset');
       expect(newPreset).toBeDefined();
       expect(newPreset.id).toBe('test-uuid-123');
       expect(newPreset.name).toBe('My New Preset');
@@ -485,12 +479,12 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const buttons = screen.getAllByRole('button');
       const plusButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip',
       );
 
       fireEvent.click(plusButton!);
@@ -509,12 +503,12 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const buttons = screen.getAllByRole('button');
       const plusButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip',
       );
 
       fireEvent.click(plusButton!);
@@ -533,12 +527,12 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const buttons = screen.getAllByRole('button');
       const plusButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip',
       );
 
       fireEvent.click(plusButton!);
@@ -553,11 +547,14 @@ describe('ExportPresetsList', () => {
     });
 
     it('新预设创建后自动选中该预设（Dropdown 显示新预设名称）', () => {
-      const presetsWithNewOne = [...mockPresets, {
-        id: 'test-uuid-123',
-        name: 'Auto Selected',
-        ...mockCurrentSettings,
-      }];
+      const presetsWithNewOne = [
+        ...mockPresets,
+        {
+          id: 'test-uuid-123',
+          name: 'Auto Selected',
+          ...mockCurrentSettings,
+        },
+      ];
 
       const { rerender } = render(
         <ExportPresetsList
@@ -565,12 +562,12 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const buttons = screen.getAllByRole('button');
       const plusButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip',
       );
 
       fireEvent.click(plusButton!);
@@ -590,7 +587,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       expect(screen.getByText('Auto Selected')).toBeInTheDocument();
@@ -605,7 +602,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });
@@ -614,18 +611,14 @@ describe('ExportPresetsList', () => {
       fireEvent.click(screen.getByText('Web Optimized'));
 
       const buttons = screen.getAllByRole('button');
-      const deleteButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.deleteTooltip'
-      );
+      const deleteButton = buttons.find((btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.deleteTooltip');
 
       fireEvent.click(deleteButton!);
 
       expect(mockOnSettingsChange).toHaveBeenCalledTimes(1);
 
       const updatedSettings = mockOnSettingsChange.mock.calls[0][0];
-      const remainingPreset = updatedSettings.exportPresets.find(
-        (p: ExportPreset) => p.id === 'preset-2'
-      );
+      const remainingPreset = updatedSettings.exportPresets.find((p: ExportPreset) => p.id === 'preset-2');
       expect(remainingPreset).toBeUndefined();
     });
 
@@ -636,7 +629,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });
@@ -646,7 +639,7 @@ describe('ExportPresetsList', () => {
 
       const buttonsBefore = screen.getAllByRole('button');
       const deleteButton = buttonsBefore.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.deleteTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.deleteTooltip',
       );
       expect(deleteButton).toBeInTheDocument();
 
@@ -661,12 +654,12 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const buttonsAfter = screen.getAllByRole('button');
       const deleteButtonAfter = buttonsAfter.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.deleteTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.deleteTooltip',
       );
       expect(deleteButtonAfter).toBeUndefined();
     });
@@ -684,7 +677,7 @@ describe('ExportPresetsList', () => {
           }}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });
@@ -694,7 +687,7 @@ describe('ExportPresetsList', () => {
 
       const buttons = screen.getAllByRole('button');
       const saveButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.overwriteTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.overwriteTooltip',
       );
 
       fireEvent.click(saveButton!);
@@ -702,9 +695,7 @@ describe('ExportPresetsList', () => {
       expect(mockOnSettingsChange).toHaveBeenCalledTimes(1);
 
       const updatedSettings = mockOnSettingsChange.mock.calls[0][0];
-      const updatedPreset = updatedSettings.exportPresets.find(
-        (p: ExportPreset) => p.id === 'preset-1'
-      );
+      const updatedPreset = updatedSettings.exportPresets.find((p: ExportPreset) => p.id === 'preset-1');
       expect(updatedPreset).toBeDefined();
       expect(updatedPreset.jpegQuality).toBe(50);
       expect(updatedPreset.fileFormat).toBe('png');
@@ -717,7 +708,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });
@@ -727,14 +718,14 @@ describe('ExportPresetsList', () => {
 
       const buttons = screen.getAllByRole('button');
       const saveButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.overwriteTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.overwriteTooltip',
       );
 
       fireEvent.click(saveButton!);
 
       const buttonsAfter = screen.getAllByRole('button');
       const savedButton = buttonsAfter.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.savedTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.savedTooltip',
       );
       expect(savedButton).toBeInTheDocument();
     });
@@ -746,7 +737,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });
@@ -756,14 +747,14 @@ describe('ExportPresetsList', () => {
 
       const buttons = screen.getAllByRole('button');
       const saveButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.overwriteTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.overwriteTooltip',
       );
 
       fireEvent.click(saveButton!);
 
       const buttonsAfter = screen.getAllByRole('button');
       const savedButton = buttonsAfter.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.savedTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.savedTooltip',
       );
       expect(savedButton).toBeInTheDocument();
 
@@ -773,7 +764,7 @@ describe('ExportPresetsList', () => {
 
       const buttonsFinal = screen.getAllByRole('button');
       const overwriteButton = buttonsFinal.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.overwriteTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.overwriteTooltip',
       );
       expect(overwriteButton).toBeInTheDocument();
     });
@@ -785,7 +776,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });
@@ -795,14 +786,14 @@ describe('ExportPresetsList', () => {
 
       const buttons = screen.getAllByRole('button');
       const saveButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.overwriteTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.overwriteTooltip',
       );
 
       fireEvent.click(saveButton!);
 
       const buttonsAfter = screen.getAllByRole('button');
       const savedButton = buttonsAfter.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.savedTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.savedTooltip',
       );
       expect(savedButton).toBeDisabled();
     });
@@ -816,7 +807,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });
@@ -831,7 +822,7 @@ describe('ExportPresetsList', () => {
           name: 'Print Ready',
           fileFormat: 'tiff',
           jpegQuality: 100,
-        })
+        }),
       );
     });
   });
@@ -844,7 +835,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });
@@ -862,12 +853,12 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const buttons = screen.getAllByRole('button');
       const plusButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip',
       );
       expect(plusButton).toBeInTheDocument();
     });
@@ -879,15 +870,13 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const buttons = screen.getAllByRole('button');
-      const deleteButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.deleteTooltip'
-      );
+      const deleteButton = buttons.find((btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.deleteTooltip');
       const overwriteButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.overwriteTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.overwriteTooltip',
       );
 
       expect(deleteButton).toBeUndefined();
@@ -903,7 +892,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       expect(screen.getByText('ui.exportPresets.heading')).toBeInTheDocument();
@@ -916,7 +905,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });
@@ -932,12 +921,12 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const buttons = screen.getAllByRole('button');
       const plusButton = buttons.find(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip'
+        (btn) => btn.getAttribute('data-tooltip') === 'ui.exportPresets.saveAsNewTooltip',
       );
 
       fireEvent.click(plusButton!);
@@ -965,7 +954,7 @@ describe('ExportPresetsList', () => {
           currentSettings={mockCurrentSettings}
           onApplyPreset={mockOnApplyPreset}
           onSettingsChange={mockOnSettingsChange}
-        />
+        />,
       );
 
       const dropdownButton = screen.getByRole('button', { expanded: false });

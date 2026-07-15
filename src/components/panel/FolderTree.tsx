@@ -721,7 +721,7 @@ export default function FolderTree({
       const hasBaseResults = filteredTrees && filteredTrees.length > 0;
       const hasAlbumResults = filteredAlbumTree && filteredAlbumTree.length > 0;
 
-      let newSections = [...openSections];
+      const newSections = [...openSections];
       let changed = false;
 
       if (hasPinnedResults && !newSections.includes('pinned')) {

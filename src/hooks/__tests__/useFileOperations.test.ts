@@ -502,10 +502,7 @@ describe('useFileOperations', () => {
     });
 
     it('编辑器中删除当前编辑的图片时切换到下一张', async () => {
-      const sortedList = [
-        mockImageFile({ path: '/test/img1.jpg' }),
-        mockImageFile({ path: '/test/img2.jpg' }),
-      ];
+      const sortedList = [mockImageFile({ path: '/test/img1.jpg' }), mockImageFile({ path: '/test/img2.jpg' })];
       editorState.selectedImage = { path: '/test/img1.jpg' } as any;
 
       const { result } = renderHook(() =>
@@ -1051,11 +1048,9 @@ describe('useFileOperations', () => {
       const { result } = renderFileOperationsHook();
 
       await act(async () => {
-        await result.current.startImportFiles(
-          ['/source/img1.jpg', '/source/img2.jpg'],
-          '/dest/folder',
-          { someSetting: true },
-        );
+        await result.current.startImportFiles(['/source/img1.jpg', '/source/img2.jpg'], '/dest/folder', {
+          someSetting: true,
+        });
       });
 
       expect(mockInvoke).toHaveBeenCalledWith(Invokes.ImportFiles, {
@@ -1186,9 +1181,7 @@ describe('useFileOperations', () => {
       });
 
       expect(toast.error).toHaveBeenCalled();
-      expect(uiState.setUI).not.toHaveBeenCalledWith(
-        expect.objectContaining({ isImportModalOpen: true }),
-      );
+      expect(uiState.setUI).not.toHaveBeenCalledWith(expect.objectContaining({ isImportModalOpen: true }));
     });
 
     it('选择 null 时不做任何操作', async () => {

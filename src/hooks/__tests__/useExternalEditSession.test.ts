@@ -437,10 +437,9 @@ describe('useExternalEditSession', () => {
       const handleImageSelect1 = vi.fn();
       const handleImageSelect2 = vi.fn();
 
-      const { rerender } = renderHook(
-        ({ callback }) => useExternalEditSession(callback),
-        { initialProps: { callback: handleImageSelect1 } },
-      );
+      const { rerender } = renderHook(({ callback }) => useExternalEditSession(callback), {
+        initialProps: { callback: handleImageSelect1 },
+      });
 
       rerender({ callback: handleImageSelect2 });
 

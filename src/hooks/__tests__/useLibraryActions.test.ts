@@ -552,10 +552,13 @@ describe('useLibraryActions', () => {
       const { result } = renderHook(() => useLibraryActions());
 
       act(() => {
-        result.current.handleTagsChanged(['/img1.jpg'], [
-          { tag: 'mytag', isUser: true },
-          { tag: 'systemtag', isUser: false },
-        ]);
+        result.current.handleTagsChanged(
+          ['/img1.jpg'],
+          [
+            { tag: 'mytag', isUser: true },
+            { tag: 'systemtag', isUser: false },
+          ],
+        );
       });
 
       const updater = (libraryState.setLibrary as any).mock.calls[0][0];
@@ -570,10 +573,13 @@ describe('useLibraryActions', () => {
       const { result } = renderHook(() => useLibraryActions());
 
       act(() => {
-        result.current.handleTagsChanged(['/img1.jpg'], [
-          { tag: 'zebra', isUser: false },
-          { tag: 'apple', isUser: false },
-        ]);
+        result.current.handleTagsChanged(
+          ['/img1.jpg'],
+          [
+            { tag: 'zebra', isUser: false },
+            { tag: 'apple', isUser: false },
+          ],
+        );
       });
 
       const updater = (libraryState.setLibrary as any).mock.calls[0][0];
@@ -638,10 +644,7 @@ describe('useLibraryActions', () => {
         await result.current.handleUpdateExif(undefined, { Artist: 'Test' });
       });
 
-      expect(invoke).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({ paths: ['/img1.jpg'] }),
-      );
+      expect(invoke).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ paths: ['/img1.jpg'] }));
     });
 
     it('更新缓存中的图片', async () => {
@@ -1008,9 +1011,7 @@ describe('useLibraryActions', () => {
 
     it('在目标组中创建相册', async () => {
       const groupId = 'group-1';
-      libraryState.albumTree = [
-        { type: 'group', id: groupId, name: 'Group', children: [] } as AlbumGroup,
-      ];
+      libraryState.albumTree = [{ type: 'group', id: groupId, name: 'Group', children: [] } as AlbumGroup];
       uiState.albumActionTarget = groupId;
 
       vi.mocked(invoke).mockResolvedValueOnce(undefined);
@@ -1068,9 +1069,7 @@ describe('useLibraryActions', () => {
   describe('handleRenameAlbumItem', () => {
     it('重命名相册项目', async () => {
       const albumId = 'album-1';
-      libraryState.albumTree = [
-        { type: 'album', id: albumId, name: 'Old Name', images: [] } as Album,
-      ];
+      libraryState.albumTree = [{ type: 'album', id: albumId, name: 'Old Name', images: [] } as Album];
       uiState.albumActionTarget = albumId;
 
       vi.mocked(invoke).mockResolvedValueOnce(undefined);
@@ -1124,9 +1123,7 @@ describe('useLibraryActions', () => {
 
     it('invoke 失败时显示错误提示', async () => {
       const albumId = 'album-1';
-      libraryState.albumTree = [
-        { type: 'album', id: albumId, name: 'Old Name', images: [] } as Album,
-      ];
+      libraryState.albumTree = [{ type: 'album', id: albumId, name: 'Old Name', images: [] } as Album];
       uiState.albumActionTarget = albumId;
       vi.mocked(invoke).mockRejectedValueOnce(new Error('Test error'));
 

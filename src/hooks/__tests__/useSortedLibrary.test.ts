@@ -109,11 +109,7 @@ describe('useSortedLibrary', () => {
 
       const { result } = renderHook(() => useSortedLibrary());
 
-      expect(result.current.map((img) => img.path)).toEqual([
-        '/apple.jpg',
-        '/mango.jpg',
-        '/zebra.jpg',
-      ]);
+      expect(result.current.map((img) => img.path)).toEqual(['/apple.jpg', '/mango.jpg', '/zebra.jpg']);
     });
 
     it('降序排序', () => {
@@ -127,11 +123,7 @@ describe('useSortedLibrary', () => {
 
       const { result } = renderHook(() => useSortedLibrary());
 
-      expect(result.current.map((img) => img.path)).toEqual([
-        '/zebra.jpg',
-        '/mango.jpg',
-        '/apple.jpg',
-      ]);
+      expect(result.current.map((img) => img.path)).toEqual(['/zebra.jpg', '/mango.jpg', '/apple.jpg']);
     });
   });
 
@@ -297,10 +289,7 @@ describe('useSortedLibrary', () => {
     });
 
     it('未评分的图片评分为 0', () => {
-      const images = [
-        mockImageFile({ path: '/rated.jpg' }),
-        mockImageFile({ path: '/unrated.jpg' }),
-      ];
+      const images = [mockImageFile({ path: '/rated.jpg' }), mockImageFile({ path: '/unrated.jpg' })];
       mockLibraryState.imageList = images;
       mockLibraryState.imageRatings = { '/rated.jpg': 3 };
       mockLibraryState.sortCriteria = { key: 'rating', order: SortDirection.Ascending };
@@ -490,7 +479,17 @@ describe('useSortedLibrary', () => {
     it('空数组在各种排序方式下都返回空数组', () => {
       mockLibraryState.imageList = [];
 
-      const sortKeys = ['name', 'date', 'date_taken', 'rating', 'edited', 'iso', 'shutter_speed', 'aperture', 'focal_length'];
+      const sortKeys = [
+        'name',
+        'date',
+        'date_taken',
+        'rating',
+        'edited',
+        'iso',
+        'shutter_speed',
+        'aperture',
+        'focal_length',
+      ];
       const orders = [SortDirection.Ascending, SortDirection.Descending];
 
       for (const key of sortKeys) {
@@ -551,10 +550,7 @@ describe('useSortedLibrary', () => {
     });
 
     it('排序不会修改原始数组', () => {
-      const images = [
-        mockImageFile({ path: '/b.jpg' }),
-        mockImageFile({ path: '/a.jpg' }),
-      ];
+      const images = [mockImageFile({ path: '/b.jpg' }), mockImageFile({ path: '/a.jpg' })];
       const originalOrder = images.map((img) => img.path);
       mockLibraryState.imageList = images;
 
@@ -678,10 +674,7 @@ describe('useSortedLibrary', () => {
 
   describe('文件大小排序', () => {
     it('没有专门的 size 排序字段时使用默认名称排序', () => {
-      const images = [
-        mockImageFile({ path: '/large.jpg' }),
-        mockImageFile({ path: '/small.jpg' }),
-      ];
+      const images = [mockImageFile({ path: '/large.jpg' }), mockImageFile({ path: '/small.jpg' })];
       mockLibraryState.imageList = images;
       mockLibraryState.sortCriteria = { key: 'size', order: SortDirection.Ascending };
 
@@ -831,10 +824,7 @@ describe('ADVANCED_QUERY_REGEX', () => {
 
 describe('computeSortedLibrary', () => {
   it('直接调用返回排序后的列表', () => {
-    const images = [
-      mockImageFile({ path: '/b.jpg' }),
-      mockImageFile({ path: '/a.jpg' }),
-    ];
+    const images = [mockImageFile({ path: '/b.jpg' }), mockImageFile({ path: '/a.jpg' })];
     const libraryState = createLibraryState({
       imageList: images,
       sortCriteria: { key: 'name', order: SortDirection.Ascending },
@@ -943,10 +933,7 @@ describe('computeSortedLibrary', () => {
   });
 
   it('按 RAW 状态过滤 - 仅 RAW', () => {
-    const images = [
-      mockImageFile({ path: '/photo.cr2' }),
-      mockImageFile({ path: '/photo.jpg' }),
-    ];
+    const images = [mockImageFile({ path: '/photo.cr2' }), mockImageFile({ path: '/photo.jpg' })];
     const libraryState = createLibraryState({
       imageList: images,
       filterCriteria: { colors: [], rating: 0, rawStatus: RawStatus.RawOnly },
@@ -959,10 +946,7 @@ describe('computeSortedLibrary', () => {
   });
 
   it('按 RAW 状态过滤 - 仅非 RAW', () => {
-    const images = [
-      mockImageFile({ path: '/photo.cr2' }),
-      mockImageFile({ path: '/photo.jpg' }),
-    ];
+    const images = [mockImageFile({ path: '/photo.cr2' }), mockImageFile({ path: '/photo.jpg' })];
     const libraryState = createLibraryState({
       imageList: images,
       filterCriteria: { colors: [], rating: 0, rawStatus: RawStatus.NonRawOnly },
@@ -975,10 +959,7 @@ describe('computeSortedLibrary', () => {
   });
 
   it('搜索文本 - 按文件名搜索', () => {
-    const images = [
-      mockImageFile({ path: '/sunset.jpg' }),
-      mockImageFile({ path: '/portrait.jpg' }),
-    ];
+    const images = [mockImageFile({ path: '/sunset.jpg' }), mockImageFile({ path: '/portrait.jpg' })];
     const libraryState = createLibraryState({
       imageList: images,
       searchCriteria: { tags: [], text: 'sunset', mode: 'OR' },
@@ -1094,10 +1075,7 @@ describe('computeSortedLibrary', () => {
   });
 
   it('高级查询 - 评分', () => {
-    const images = [
-      mockImageFile({ path: '/high.jpg' }),
-      mockImageFile({ path: '/low.jpg' }),
-    ];
+    const images = [mockImageFile({ path: '/high.jpg' }), mockImageFile({ path: '/low.jpg' })];
     const libraryState = createLibraryState({
       imageList: images,
       imageRatings: { '/high.jpg': 5, '/low.jpg': 2 },

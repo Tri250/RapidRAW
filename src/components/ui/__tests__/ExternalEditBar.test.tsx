@@ -196,23 +196,14 @@ describe('ExternalEditBar', () => {
 
     it('没有错误信息时不显示错误文本', () => {
       render(<ExternalEditBar {...defaultProps} errorMessage="" />);
-      const errorElements = screen.queryAllByText(/./).filter(
-        (el) => el.className.includes('text-red-400')
-      );
+      const errorElements = screen.queryAllByText(/./).filter((el) => el.className.includes('text-red-400'));
       expect(errorElements.length).toBe(0);
     });
 
     it('错误状态下按钮仍可点击（isFinishing 为 false 时）', () => {
       const errorMsg = '导出失败';
       const onDone = vi.fn();
-      render(
-        <ExternalEditBar
-          {...defaultProps}
-          errorMessage={errorMsg}
-          isFinishing={false}
-          onDone={onDone}
-        />
-      );
+      render(<ExternalEditBar {...defaultProps} errorMessage={errorMsg} isFinishing={false} onDone={onDone} />);
       const button = screen.getByRole('button');
       expect(button).not.toBeDisabled();
       fireEvent.click(button);
@@ -254,9 +245,7 @@ describe('ExternalEditBar', () => {
 
     it('isFinishing 为 true 时点击不调用 onDone', () => {
       const onDone = vi.fn();
-      render(
-        <ExternalEditBar {...defaultProps} isFinishing={true} onDone={onDone} />
-      );
+      render(<ExternalEditBar {...defaultProps} isFinishing={true} onDone={onDone} />);
       fireEvent.click(screen.getByRole('button'));
       expect(onDone).not.toHaveBeenCalled();
     });
@@ -264,13 +253,7 @@ describe('ExternalEditBar', () => {
 
   describe('不同编辑状态', () => {
     it('编辑中状态：isFinishing=false, errorMessage=""', () => {
-      render(
-        <ExternalEditBar
-          {...defaultProps}
-          isFinishing={false}
-          errorMessage=""
-        />
-      );
+      render(<ExternalEditBar {...defaultProps} isFinishing={false} errorMessage="" />);
       expect(screen.getByTestId('check-icon')).toBeInTheDocument();
       expect(screen.getByText('editor.externalEdit.done')).toBeInTheDocument();
       expect(screen.queryByTestId('loader-icon')).not.toBeInTheDocument();
@@ -278,13 +261,7 @@ describe('ExternalEditBar', () => {
     });
 
     it('保存中状态：isFinishing=true, errorMessage=""', () => {
-      render(
-        <ExternalEditBar
-          {...defaultProps}
-          isFinishing={true}
-          errorMessage=""
-        />
-      );
+      render(<ExternalEditBar {...defaultProps} isFinishing={true} errorMessage="" />);
       expect(screen.getByTestId('loader-icon')).toBeInTheDocument();
       expect(screen.getByText('editor.externalEdit.exporting')).toBeInTheDocument();
       expect(screen.queryByTestId('check-icon')).not.toBeInTheDocument();
@@ -293,13 +270,7 @@ describe('ExternalEditBar', () => {
 
     it('错误状态：isFinishing=false, errorMessage="error"', () => {
       const errorMsg = '发生错误';
-      render(
-        <ExternalEditBar
-          {...defaultProps}
-          isFinishing={false}
-          errorMessage={errorMsg}
-        />
-      );
+      render(<ExternalEditBar {...defaultProps} isFinishing={false} errorMessage={errorMsg} />);
       expect(screen.getByText(errorMsg)).toBeInTheDocument();
       expect(screen.getByTestId('check-icon')).toBeInTheDocument();
       expect(screen.getByRole('button')).not.toBeDisabled();
@@ -307,13 +278,7 @@ describe('ExternalEditBar', () => {
 
     it('保存中加错误状态：isFinishing=true, errorMessage="error"', () => {
       const errorMsg = '保存时出错';
-      render(
-        <ExternalEditBar
-          {...defaultProps}
-          isFinishing={true}
-          errorMessage={errorMsg}
-        />
-      );
+      render(<ExternalEditBar {...defaultProps} isFinishing={true} errorMessage={errorMsg} />);
       expect(screen.getByText(errorMsg)).toBeInTheDocument();
       expect(screen.getByTestId('loader-icon')).toBeInTheDocument();
       expect(screen.getByRole('button')).toBeDisabled();

@@ -209,18 +209,12 @@ describe('ExportImportProperties', () => {
     });
 
     it('包含三个顶部位置', () => {
-      const topPositions = Object.values(WatermarkAnchor).filter((v) =>
-        v.toLowerCase().startsWith('top'),
-      );
+      const topPositions = Object.values(WatermarkAnchor).filter((v) => v.toLowerCase().startsWith('top'));
       expect(topPositions.length).toBe(3);
     });
 
     it('包含三个水平中间位置（CenterLeft, Center, CenterRight）', () => {
-      const centerPositions = [
-        WatermarkAnchor.CenterLeft,
-        WatermarkAnchor.Center,
-        WatermarkAnchor.CenterRight,
-      ];
+      const centerPositions = [WatermarkAnchor.CenterLeft, WatermarkAnchor.Center, WatermarkAnchor.CenterRight];
       expect(centerPositions.length).toBe(3);
       centerPositions.forEach((pos) => {
         expect(Object.values(WatermarkAnchor)).toContain(pos);
@@ -228,9 +222,7 @@ describe('ExportImportProperties', () => {
     });
 
     it('包含三个底部位置', () => {
-      const bottomPositions = Object.values(WatermarkAnchor).filter((v) =>
-        v.toLowerCase().startsWith('bottom'),
-      );
+      const bottomPositions = Object.values(WatermarkAnchor).filter((v) => v.toLowerCase().startsWith('bottom'));
       expect(bottomPositions.length).toBe(3);
     });
   });

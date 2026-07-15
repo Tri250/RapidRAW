@@ -23,6 +23,7 @@ module.exports = [
       'src-tauri/gen/**',
       'src-tauri/rawler/**',
       'data/**',
+      'tauri-src/**',
     ],
   },
   jsRecommendedForTs,

@@ -79,7 +79,14 @@ import { useLibraryStore } from '../../store/useLibraryStore';
 import { useEditorStore } from '../../store/useEditorStore';
 import { useProcessStore } from '../../store/useProcessStore';
 import { useAppInitialization } from '../useAppInitialization';
-import { Invokes, ThumbnailSize, ThumbnailAspectRatio, LibraryViewMode, RawStatus, EditedStatus } from '../../components/ui/AppProperties';
+import {
+  Invokes,
+  ThumbnailSize,
+  ThumbnailAspectRatio,
+  LibraryViewMode,
+  RawStatus,
+  EditedStatus,
+} from '../../components/ui/AppProperties';
 
 const createMockI18n = (options: any = {}) => ({
   language: 'en',
@@ -152,21 +159,13 @@ describe('useAppInitialization', () => {
 
     vi.mocked(platform).mockReturnValue('macos');
 
-    vi.mocked(useSettingsStore).mockImplementation((selector: any) =>
-      selector(mockSettingsStoreState()),
-    );
+    vi.mocked(useSettingsStore).mockImplementation((selector: any) => selector(mockSettingsStoreState()));
 
-    vi.mocked(useUIStore).mockImplementation((selector: any) =>
-      selector(mockUIStoreState()),
-    );
+    vi.mocked(useUIStore).mockImplementation((selector: any) => selector(mockUIStoreState()));
 
-    vi.mocked(useLibraryStore).mockImplementation((selector: any) =>
-      selector(mockLibraryStoreState()),
-    );
+    vi.mocked(useLibraryStore).mockImplementation((selector: any) => selector(mockLibraryStoreState()));
 
-    vi.mocked(useEditorStore).mockImplementation((selector: any) =>
-      selector(mockEditorStoreState()),
-    );
+    vi.mocked(useEditorStore).mockImplementation((selector: any) => selector(mockEditorStoreState()));
 
     vi.mocked(useProcessStore.getState).mockReturnValue({
       setProcess: vi.fn(),
@@ -250,10 +249,7 @@ describe('useAppInitialization', () => {
       renderHookWithProps();
 
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          'Failed to load supported file types:',
-          expect.any(Error),
-        );
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to load supported file types:', expect.any(Error));
       });
 
       consoleErrorSpy.mockRestore();
@@ -420,9 +416,7 @@ describe('useAppInitialization', () => {
   describe('主题初始化', () => {
     it('从设置中加载主题', async () => {
       const setTheme = vi.fn();
-      vi.mocked(useSettingsStore).mockImplementation((selector: any) =>
-        selector(mockSettingsStoreState({ setTheme })),
-      );
+      vi.mocked(useSettingsStore).mockImplementation((selector: any) => selector(mockSettingsStoreState({ setTheme })));
 
       renderHookWithProps();
 
@@ -558,9 +552,7 @@ describe('useAppInitialization', () => {
       });
 
       const setUI = vi.fn();
-      vi.mocked(useUIStore).mockImplementation((selector: any) =>
-        selector(mockUIStoreState({ setUI })),
-      );
+      vi.mocked(useUIStore).mockImplementation((selector: any) => selector(mockUIStoreState({ setUI })));
 
       renderHookWithProps();
 
@@ -592,9 +584,7 @@ describe('useAppInitialization', () => {
       });
 
       const setEditor = vi.fn();
-      vi.mocked(useEditorStore).mockImplementation((selector: any) =>
-        selector(mockEditorStoreState({ setEditor })),
-      );
+      vi.mocked(useEditorStore).mockImplementation((selector: any) => selector(mockEditorStoreState({ setEditor })));
 
       renderHookWithProps();
 
@@ -799,9 +789,7 @@ describe('useAppInitialization', () => {
       });
 
       const setLibrary = vi.fn();
-      vi.mocked(useLibraryStore).mockImplementation((selector: any) =>
-        selector(mockLibraryStoreState({ setLibrary })),
-      );
+      vi.mocked(useLibraryStore).mockImplementation((selector: any) => selector(mockLibraryStoreState({ setLibrary })));
 
       renderHookWithProps();
 
@@ -810,9 +798,7 @@ describe('useAppInitialization', () => {
       });
 
       await waitFor(() => {
-        expect(setLibrary).toHaveBeenCalledWith(
-          expect.objectContaining({ pinnedFolderTrees: expect.any(Array) }),
-        );
+        expect(setLibrary).toHaveBeenCalledWith(expect.objectContaining({ pinnedFolderTrees: expect.any(Array) }));
       });
     });
 
@@ -841,10 +827,7 @@ describe('useAppInitialization', () => {
       renderHookWithProps();
 
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          'Failed to load pinned folder trees:',
-          expect.any(Error),
-        );
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to load pinned folder trees:', expect.any(Error));
       });
 
       consoleErrorSpy.mockRestore();
@@ -1019,9 +1002,7 @@ describe('useAppInitialization', () => {
       });
 
       const setLibrary = vi.fn();
-      vi.mocked(useLibraryStore).mockImplementation((selector: any) =>
-        selector(mockLibraryStoreState({ setLibrary })),
-      );
+      vi.mocked(useLibraryStore).mockImplementation((selector: any) => selector(mockLibraryStoreState({ setLibrary })));
 
       renderHookWithProps();
 
@@ -1128,10 +1109,7 @@ describe('useAppInitialization', () => {
       renderHookWithProps();
 
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          'Failed to notify backend of readiness:',
-          expect.any(Error),
-        );
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to notify backend of readiness:', expect.any(Error));
       });
 
       consoleErrorSpy.mockRestore();
@@ -1159,10 +1137,7 @@ describe('useAppInitialization', () => {
       renderHookWithProps();
 
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          'Failed to load settings:',
-          expect.any(Error),
-        );
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to load settings:', expect.any(Error));
       });
 
       await waitFor(() => {
@@ -1240,10 +1215,7 @@ describe('useAppInitialization', () => {
       renderHookWithProps();
 
       await waitFor(() => {
-        expect(setPropertySpy).toHaveBeenCalledWith(
-          '--font-family',
-          "'Poppins', system-ui, sans-serif",
-        );
+        expect(setPropertySpy).toHaveBeenCalledWith('--font-family', "'Poppins', system-ui, sans-serif");
       });
 
       setPropertySpy.mockRestore();
@@ -1375,10 +1347,12 @@ describe('useAppInitialization', () => {
       });
 
       vi.mocked(useSettingsStore).mockImplementation((selector: any) =>
-        selector(mockSettingsStoreState({
-          appSettings: appSettingsAfterInit,
-          handleSettingsChange,
-        })),
+        selector(
+          mockSettingsStoreState({
+            appSettings: appSettingsAfterInit,
+            handleSettingsChange,
+          }),
+        ),
       );
 
       vi.mocked(useUIStore).mockImplementation((selector: any) =>
@@ -1439,10 +1413,12 @@ describe('useAppInitialization', () => {
       });
 
       vi.mocked(useSettingsStore).mockImplementation((selector: any) =>
-        selector(mockSettingsStoreState({
-          appSettings: appSettingsAfterInit,
-          handleSettingsChange,
-        })),
+        selector(
+          mockSettingsStoreState({
+            appSettings: appSettingsAfterInit,
+            handleSettingsChange,
+          }),
+        ),
       );
 
       const { rerender } = renderHookWithProps({
@@ -1498,10 +1474,12 @@ describe('useAppInitialization', () => {
       });
 
       vi.mocked(useSettingsStore).mockImplementation((selector: any) =>
-        selector(mockSettingsStoreState({
-          appSettings: appSettingsAfterInit,
-          handleSettingsChange,
-        })),
+        selector(
+          mockSettingsStoreState({
+            appSettings: appSettingsAfterInit,
+            handleSettingsChange,
+          }),
+        ),
       );
 
       const { rerender } = renderHookWithProps({

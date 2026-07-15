@@ -1,11 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useExportSettings } from '../useExportSettings';
-import {
-  WatermarkAnchor,
-  type ExportPreset,
-  FileFormats,
-} from '../../components/ui/ExportImportProperties';
+import { WatermarkAnchor, type ExportPreset, FileFormats } from '../../components/ui/ExportImportProperties';
 
 describe('useExportSettings', () => {
   describe('返回值结构', () => {
@@ -421,9 +417,7 @@ describe('useExportSettings', () => {
         result.current.setFilenameTemplate('{sequence}_{original_filename}');
       });
       expect(result.current.filenameTemplate).toBe('{sequence}_{original_filename}');
-      expect(result.current.currentSettingsObject.filenameTemplate).toBe(
-        '{sequence}_{original_filename}',
-      );
+      expect(result.current.currentSettingsObject.filenameTemplate).toBe('{sequence}_{original_filename}');
     });
 
     it('setFilenameTemplate 使用日期变量', () => {

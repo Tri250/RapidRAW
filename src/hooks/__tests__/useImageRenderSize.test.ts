@@ -324,12 +324,9 @@ describe('useImageRenderSize', () => {
       const { ref: containerRef, container } = createContainerRef(containerWidth, containerHeight);
       const imageDimensions: ImageDimensions = { width: 1000, height: 800 };
 
-      const { result, rerender } = renderHook(
-        ({ ref, dims }) => useImageRenderSize(ref, dims),
-        {
-          initialProps: { ref: containerRef, dims: imageDimensions },
-        },
-      );
+      const { result, rerender } = renderHook(({ ref, dims }) => useImageRenderSize(ref, dims), {
+        initialProps: { ref: containerRef, dims: imageDimensions },
+      });
 
       expect(result.current.width).toBeGreaterThan(0);
       expect(result.current.height).toBeGreaterThan(0);
@@ -354,12 +351,9 @@ describe('useImageRenderSize', () => {
       const { ref: containerRef } = createContainerRef(containerWidth, containerHeight);
       const imageDimensions: ImageDimensions = { width: 1000, height: 800 };
 
-      const { result, rerender } = renderHook(
-        ({ ref, dims }) => useImageRenderSize(ref, dims),
-        {
-          initialProps: { ref: containerRef, dims: imageDimensions },
-        },
-      );
+      const { result, rerender } = renderHook(({ ref, dims }) => useImageRenderSize(ref, dims), {
+        initialProps: { ref: containerRef, dims: imageDimensions },
+      });
 
       expect(result.current.width).toBeGreaterThan(0);
       expect(result.current.height).toBeGreaterThan(0);

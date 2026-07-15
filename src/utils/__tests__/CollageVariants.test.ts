@@ -21,7 +21,9 @@ const calculateTotalArea = (layout: Layout): number => {
 
 describe('LAYOUTS 常量', () => {
   it('包含 1-9 共 9 个图片数量的键', () => {
-    const keys = Object.keys(LAYOUTS).map(Number).sort((a, b) => a - b);
+    const keys = Object.keys(LAYOUTS)
+      .map(Number)
+      .sort((a, b) => a - b);
     expect(keys).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
 

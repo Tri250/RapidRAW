@@ -157,9 +157,7 @@ describe('useImageLoader', () => {
     vi.clearAllMocks();
     setupStoreMocks();
     vi.mocked(invoke).mockResolvedValue(undefined);
-    vi.mocked(normalizeLoadedAdjustments).mockImplementation(
-      (adjustments: any) => adjustments || INITIAL_ADJUSTMENTS,
-    );
+    vi.mocked(normalizeLoadedAdjustments).mockImplementation((adjustments: any) => adjustments || INITIAL_ADJUSTMENTS);
 
     vi.mocked(useEditorStore).getState = vi.fn(() => editorState);
     vi.mocked(useSettingsStore).getState = vi.fn(() => settingsState);
@@ -536,13 +534,19 @@ describe('useImageLoader', () => {
 
       const aspectRatioCalls = mockSetEditor.mock.calls.filter((call: any) => {
         if (typeof call[0] !== 'function') return false;
-        const testState = { ...editorState, adjustments: { ...INITIAL_ADJUSTMENTS, aspectRatio: existingRatio, crop: null } };
+        const testState = {
+          ...editorState,
+          adjustments: { ...INITIAL_ADJUSTMENTS, aspectRatio: existingRatio, crop: null },
+        };
         const result = call[0](testState);
         return result.adjustments?.aspectRatio !== undefined;
       });
 
       aspectRatioCalls.forEach((call: any) => {
-        const testState = { ...editorState, adjustments: { ...INITIAL_ADJUSTMENTS, aspectRatio: existingRatio, crop: null } };
+        const testState = {
+          ...editorState,
+          adjustments: { ...INITIAL_ADJUSTMENTS, aspectRatio: existingRatio, crop: null },
+        };
         const result = call[0](testState);
         expect(result.adjustments.aspectRatio).toBe(existingRatio);
       });
@@ -615,9 +619,7 @@ describe('useImageLoader', () => {
         expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to load image:', expect.any(Error));
       });
 
-      expect(toast.error).toHaveBeenCalledWith(
-        expect.stringContaining('Image loading returned no data'),
-      );
+      expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Image loading returned no data'));
     });
 
     it('width 为 undefined 时抛出错误', async () => {
@@ -634,9 +636,7 @@ describe('useImageLoader', () => {
         expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to load image:', expect.any(Error));
       });
 
-      expect(toast.error).toHaveBeenCalledWith(
-        expect.stringContaining('Invalid image dimensions'),
-      );
+      expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Invalid image dimensions'));
     });
 
     it('height 为 undefined 时抛出错误', async () => {
@@ -718,30 +718,21 @@ describe('useImageLoader', () => {
   describe('错误处理', () => {
     it('元数据加载失败时显示错误 toast', async () => {
       editorState.selectedImage = createMockSelectedImage();
-      vi.mocked(invoke)
-        .mockResolvedValueOnce(undefined)
-        .mockRejectedValueOnce(new Error('metadata load failed'));
+      vi.mocked(invoke).mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('metadata load failed'));
 
       const cachedEditStateRef = React.createRef<any>();
       renderHook(() => useImageLoader(cachedEditStateRef));
 
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          'Failed to load metadata early:',
-          expect.any(Error),
-        );
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to load metadata early:', expect.any(Error));
       });
 
-      expect(toast.error).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to load image metadata'),
-      );
+      expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Failed to load image metadata'));
     });
 
     it('元数据加载失败时重置 selectedImage 为 null', async () => {
       editorState.selectedImage = createMockSelectedImage();
-      vi.mocked(invoke)
-        .mockResolvedValueOnce(undefined)
-        .mockRejectedValueOnce(new Error('metadata load failed'));
+      vi.mocked(invoke).mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('metadata load failed'));
 
       const cachedEditStateRef = React.createRef<any>();
       renderHook(() => useImageLoader(cachedEditStateRef));
@@ -753,9 +744,7 @@ describe('useImageLoader', () => {
 
     it('元数据加载失败时设置 isViewLoading 为 false', async () => {
       editorState.selectedImage = createMockSelectedImage();
-      vi.mocked(invoke)
-        .mockResolvedValueOnce(undefined)
-        .mockRejectedValueOnce(new Error('metadata load failed'));
+      vi.mocked(invoke).mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('metadata load failed'));
 
       const cachedEditStateRef = React.createRef<any>();
       renderHook(() => useImageLoader(cachedEditStateRef));
@@ -779,9 +768,7 @@ describe('useImageLoader', () => {
         expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to load image:', expect.any(Error));
       });
 
-      expect(toast.error).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to load image'),
-      );
+      expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Failed to load image'));
     });
 
     it('图片加载失败时重置 selectedImage 为 null', async () => {
@@ -822,9 +809,7 @@ describe('useImageLoader', () => {
       const metadataPromise = new Promise((resolve) => {
         resolveMetadata = resolve;
       });
-      vi.mocked(invoke)
-        .mockResolvedValueOnce(undefined)
-        .mockReturnValueOnce(metadataPromise);
+      vi.mocked(invoke).mockResolvedValueOnce(undefined).mockReturnValueOnce(metadataPromise);
 
       const cachedEditStateRef = React.createRef<any>();
       const { unmount } = renderHook(() => useImageLoader(cachedEditStateRef));
@@ -885,9 +870,7 @@ describe('useImageLoader', () => {
       const metadataPromise = new Promise((_resolve, reject) => {
         rejectMetadata = reject;
       });
-      vi.mocked(invoke)
-        .mockResolvedValueOnce(undefined)
-        .mockReturnValueOnce(metadataPromise);
+      vi.mocked(invoke).mockResolvedValueOnce(undefined).mockReturnValueOnce(metadataPromise);
 
       const cachedEditStateRef = React.createRef<any>();
       const { unmount } = renderHook(() => useImageLoader(cachedEditStateRef));

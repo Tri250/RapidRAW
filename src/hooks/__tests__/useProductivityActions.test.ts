@@ -217,9 +217,7 @@ describe('useProductivityActions', () => {
       const { result } = renderHook(() => useProductivityActions(mockRefreshImageList));
 
       await act(async () => {
-        await expect(result.current.handleSavePanorama()).rejects.toThrow(
-          'Source paths for panorama not found.',
-        );
+        await expect(result.current.handleSavePanorama()).rejects.toThrow('Source paths for panorama not found.');
       });
 
       expect(uiState.panoramaModalState.error).toBe('Source paths for panorama not found.');
@@ -346,9 +344,7 @@ describe('useProductivityActions', () => {
       const { result } = renderHook(() => useProductivityActions(mockRefreshImageList));
 
       await act(async () => {
-        await expect(result.current.handleSaveHdr()).rejects.toThrow(
-          'Source paths for HDR not found.',
-        );
+        await expect(result.current.handleSaveHdr()).rejects.toThrow('Source paths for HDR not found.');
       });
 
       expect(uiState.hdrModalState.error).toBe('Source paths for HDR not found.');
@@ -468,10 +464,7 @@ describe('useProductivityActions', () => {
         await result.current.handleApplyDenoise(50, 'ai');
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith(
-        Invokes.ApplyDenoising,
-        expect.objectContaining({ path: '/first.jpg' }),
-      );
+      expect(mockInvoke).toHaveBeenCalledWith(Invokes.ApplyDenoising, expect.objectContaining({ path: '/first.jpg' }));
     });
 
     it('强度为 0 时仍然调用降噪', async () => {
@@ -484,10 +477,7 @@ describe('useProductivityActions', () => {
         await result.current.handleApplyDenoise(0, 'ai');
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith(
-        Invokes.ApplyDenoising,
-        expect.objectContaining({ intensity: 0 }),
-      );
+      expect(mockInvoke).toHaveBeenCalledWith(Invokes.ApplyDenoising, expect.objectContaining({ intensity: 0 }));
     });
 
     it('开始处理前清除之前的错误', async () => {
@@ -551,9 +541,7 @@ describe('useProductivityActions', () => {
       const { result } = renderHook(() => useProductivityActions(mockRefreshImageList));
 
       await act(async () => {
-        await expect(result.current.handleBatchDenoise(50, 'ai', ['/img1.jpg'])).rejects.toThrow(
-          testError,
-        );
+        await expect(result.current.handleBatchDenoise(50, 'ai', ['/img1.jpg'])).rejects.toThrow(testError);
       });
 
       expect(uiState.denoiseModalState.error).toBe(String(testError));
@@ -601,10 +589,7 @@ describe('useProductivityActions', () => {
         await result.current.handleBatchDenoise(0, 'ai', ['/img1.jpg']);
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith(
-        'batch_denoise_images',
-        expect.objectContaining({ intensity: 0 }),
-      );
+      expect(mockInvoke).toHaveBeenCalledWith('batch_denoise_images', expect.objectContaining({ intensity: 0 }));
     });
   });
 
@@ -703,9 +688,7 @@ describe('useProductivityActions', () => {
       const { result } = renderHook(() => useProductivityActions(mockRefreshImageList));
 
       await act(async () => {
-        await expect(result.current.handleSaveCollage('base64data', '/img1.jpg')).rejects.toThrow(
-          testError,
-        );
+        await expect(result.current.handleSaveCollage('base64data', '/img1.jpg')).rejects.toThrow(testError);
       });
 
       expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to save collage:', testError);
@@ -724,10 +707,7 @@ describe('useProductivityActions', () => {
         resultPath = await result.current.handleSaveCollage('', '/img1.jpg');
       });
 
-      expect(mockInvoke).toHaveBeenCalledWith(
-        Invokes.SaveCollage,
-        expect.objectContaining({ base64Data: '' }),
-      );
+      expect(mockInvoke).toHaveBeenCalledWith(Invokes.SaveCollage, expect.objectContaining({ base64Data: '' }));
       expect(resultPath!).toBe(savedPath);
     });
 
@@ -805,10 +785,7 @@ describe('useProductivityActions', () => {
       });
 
       expect(resultPaths!).toHaveLength(100);
-      expect(mockInvoke).toHaveBeenCalledWith(
-        'batch_denoise_images',
-        expect.objectContaining({ paths: manyPaths }),
-      );
+      expect(mockInvoke).toHaveBeenCalledWith('batch_denoise_images', expect.objectContaining({ paths: manyPaths }));
     });
 
     it('handleSaveCollage 处理长 base64 字符串', async () => {
@@ -824,10 +801,7 @@ describe('useProductivityActions', () => {
       });
 
       expect(resultPath!).toBe(savedPath);
-      expect(mockInvoke).toHaveBeenCalledWith(
-        Invokes.SaveCollage,
-        expect.objectContaining({ base64Data: longBase64 }),
-      );
+      expect(mockInvoke).toHaveBeenCalledWith(Invokes.SaveCollage, expect.objectContaining({ base64Data: longBase64 }));
     });
   });
 });

@@ -203,7 +203,7 @@ describe('useSettingsStore', () => {
       await useSettingsStore.getState().handleSettingsChange(null as any);
 
       expect(console.error).toHaveBeenCalledWith(
-        'handleSettingsChange was called with null settings. Aborting save operation.'
+        'handleSettingsChange was called with null settings. Aborting save operation.',
       );
       expect(invoke).not.toHaveBeenCalled();
       expect(useSettingsStore.getState().theme).toBe(initialTheme);
@@ -217,7 +217,7 @@ describe('useSettingsStore', () => {
       await useSettingsStore.getState().handleSettingsChange(undefined as any);
 
       expect(console.error).toHaveBeenCalledWith(
-        'handleSettingsChange was called with null settings. Aborting save operation.'
+        'handleSettingsChange was called with null settings. Aborting save operation.',
       );
       expect(invoke).not.toHaveBeenCalled();
       expect(useSettingsStore.getState().theme).toBe(initialTheme);

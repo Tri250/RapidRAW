@@ -303,7 +303,7 @@ describe('消息格式化', () => {
     const { installFrontendLogBridge } = await importFresh();
     installFrontendLogBridge();
 
-    let deep: Record<string, unknown> = { level: 0 };
+    const deep: Record<string, unknown> = { level: 0 };
     let current = deep;
     for (let i = 1; i <= 10; i++) {
       current.next = { level: i };

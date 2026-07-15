@@ -23,7 +23,11 @@ vi.mock('@uiw/react-color-wheel', () => ({
   default: vi.fn(({ color, onChange, pointer, width, height }) => {
     const MockPointer = pointer as React.ComponentType<any>;
     return (
-      <div data-testid="color-wheel" style={{ width, height }} onClick={() => onChange && onChange({ hsva: { h: 180, s: 50, v: 100, a: 1 } })}>
+      <div
+        data-testid="color-wheel"
+        style={{ width, height }}
+        onClick={() => onChange && onChange({ hsva: { h: 180, s: 50, v: 100, a: 1 } })}
+      >
         {MockPointer && <MockPointer style={{ left: '50%', top: '50%' }} />}
       </div>
     );
@@ -34,14 +38,20 @@ vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, ...props }: any) => {
       const { initial, animate, exit, transition, ...restProps } = props;
-      return <div data-testid="motion-div" {...restProps}>{children}</div>;
+      return (
+        <div data-testid="motion-div" {...restProps}>
+          {children}
+        </div>
+      );
     },
   },
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
 vi.mock('lucide-react', () => ({
-  Sun: ({ size, className }: any) => <div data-testid="sun-icon" className={className} style={{ width: size, height: size }} />,
+  Sun: ({ size, className }: any) => (
+    <div data-testid="sun-icon" className={className} style={{ width: size, height: size }} />
+  ),
 }));
 
 vi.mock('../Slider', () => ({
@@ -69,11 +79,7 @@ vi.mock('../Text', () => ({
     const Component = as || 'span';
     const variantStr = typeof variant === 'string' ? variant : 'default';
     return (
-      <Component
-        data-testid={`text-${variantStr}`}
-        className={className}
-        data-color={color || ''}
-      >
+      <Component data-testid={`text-${variantStr}`} className={className} data-color={color || ''}>
         {children}
       </Component>
     );
@@ -171,20 +177,20 @@ describe('ColorWheel', () => {
     it('点击色轮时调用 onChange', () => {
       const onChange = vi.fn();
       renderWithResize({ ...defaultProps, onChange });
-      
+
       const wheel = screen.getByTestId('color-wheel');
       fireEvent.click(wheel);
-      
+
       expect(onChange).toHaveBeenCalled();
     });
 
     it('点击色轮时返回正确的 hue 和 saturation', () => {
       const onChange = vi.fn();
       renderWithResize({ ...defaultProps, onChange });
-      
+
       const wheel = screen.getByTestId('color-wheel');
       fireEvent.click(wheel);
-      
+
       expect(onChange).toHaveBeenCalledWith(
         expect.objectContaining({
           hue: 180,
@@ -196,10 +202,10 @@ describe('ColorWheel', () => {
     it('点击色轮时保持 luminance 不变', () => {
       const onChange = vi.fn();
       renderWithResize({ ...defaultProps, value: { hue: 0, saturation: 0, luminance: 50 }, onChange });
-      
+
       const wheel = screen.getByTestId('color-wheel');
       fireEvent.click(wheel);
-      
+
       expect(onChange).toHaveBeenCalledWith(
         expect.objectContaining({
           luminance: 50,
@@ -212,10 +218,10 @@ describe('ColorWheel', () => {
     it('亮度滑块值变化时调用 onChange', () => {
       const onChange = vi.fn();
       renderWithResize({ ...defaultProps, onChange, isExpanded: true });
-      
+
       const lumInput = screen.getByTestId('slider-input-cg-lum-gradient');
       fireEvent.change(lumInput, { target: { value: '50' } });
-      
+
       expect(onChange).toHaveBeenCalledWith(
         expect.objectContaining({
           luminance: 50,
@@ -226,10 +232,10 @@ describe('ColorWheel', () => {
     it('饱和度滑块值变化时调用 onChange', () => {
       const onChange = vi.fn();
       renderWithResize({ ...defaultProps, onChange, isExpanded: true });
-      
+
       const satInput = screen.getByTestId('slider-input-cg-sat-gradient');
       fireEvent.change(satInput, { target: { value: '75' } });
-      
+
       expect(onChange).toHaveBeenCalledWith(
         expect.objectContaining({
           saturation: 75,
@@ -239,7 +245,7 @@ describe('ColorWheel', () => {
 
     it('亮度滑块范围为 -100 到 100', () => {
       renderWithResize({ ...defaultProps, isExpanded: true });
-      
+
       const lumInput = screen.getByTestId('slider-input-cg-lum-gradient');
       expect(lumInput).toHaveAttribute('min', '-100');
       expect(lumInput).toHaveAttribute('max', '100');
@@ -247,7 +253,7 @@ describe('ColorWheel', () => {
 
     it('饱和度滑块范围为 0 到 100', () => {
       renderWithResize({ ...defaultProps, isExpanded: true });
-      
+
       const satInput = screen.getByTestId('slider-input-cg-sat-gradient');
       expect(satInput).toHaveAttribute('min', '0');
       expect(satInput).toHaveAttribute('max', '100');
@@ -258,10 +264,10 @@ describe('ColorWheel', () => {
     it('色相滑块值变化时调用 onChange', () => {
       const onChange = vi.fn();
       renderWithResize({ ...defaultProps, onChange, isExpanded: true });
-      
+
       const hueInput = screen.getByTestId('slider-input-cg-hue-gradient');
       fireEvent.change(hueInput, { target: { value: '200' } });
-      
+
       expect(onChange).toHaveBeenCalledWith(
         expect.objectContaining({
           hue: 200,
@@ -271,7 +277,7 @@ describe('ColorWheel', () => {
 
     it('色相滑块范围为 0 到 360', () => {
       renderWithResize({ ...defaultProps, isExpanded: true });
-      
+
       const hueInput = screen.getByTestId('slider-input-cg-hue-gradient');
       expect(hueInput).toHaveAttribute('min', '0');
       expect(hueInput).toHaveAttribute('max', '360');
@@ -279,7 +285,7 @@ describe('ColorWheel', () => {
 
     it('色相滑块步长为 1', () => {
       renderWithResize({ ...defaultProps, isExpanded: true });
-      
+
       const hueInput = screen.getByTestId('slider-input-cg-hue-gradient');
       expect(hueInput).toHaveAttribute('step', '1');
     });
@@ -289,17 +295,17 @@ describe('ColorWheel', () => {
     it('初始渲染时不调用 onChange', () => {
       const onChange = vi.fn();
       renderWithResize({ ...defaultProps, onChange });
-      
+
       expect(onChange).not.toHaveBeenCalled();
     });
 
     it('色轮变化时调用 onChange 并传入 HueSatLum 对象', () => {
       const onChange = vi.fn();
       renderWithResize({ ...defaultProps, onChange });
-      
+
       const wheel = screen.getByTestId('color-wheel');
       fireEvent.click(wheel);
-      
+
       expect(onChange).toHaveBeenCalledTimes(1);
       const callArg = onChange.mock.calls[0][0];
       expect(callArg).toHaveProperty('hue');
@@ -318,10 +324,10 @@ describe('ColorWheel', () => {
         value: { hue: 200, saturation: 80, luminance: -30 },
         onChange,
       });
-      
+
       const labelContainer = screen.getByText('Test Color').closest('.relative');
       fireEvent.click(labelContainer!);
-      
+
       expect(onChange).toHaveBeenCalledWith(defaultValue);
     });
 
@@ -334,10 +340,10 @@ describe('ColorWheel', () => {
         value: { hue: 200, saturation: 80, luminance: -30 },
         onChange,
       });
-      
+
       const labelContainer = screen.getByText('Test Color').closest('.relative');
       fireEvent.doubleClick(labelContainer!);
-      
+
       expect(onChange).toHaveBeenCalledWith(defaultValue);
     });
   });
@@ -346,31 +352,31 @@ describe('ColorWheel', () => {
     it('色轮鼠标按下时 onDragStateChange 被调用为 true', () => {
       const onDragStateChange = vi.fn();
       renderWithResize({ ...defaultProps, onDragStateChange });
-      
+
       const wheelContainer = document.querySelector('.aspect-square')?.firstElementChild;
       fireEvent.mouseDown(wheelContainer!);
-      
+
       expect(onDragStateChange).toHaveBeenCalledWith(true);
     });
 
     it('色轮鼠标抬起时 onDragStateChange 被调用为 false', () => {
       const onDragStateChange = vi.fn();
       renderWithResize({ ...defaultProps, onDragStateChange });
-      
+
       const wheelContainer = document.querySelector('.aspect-square')?.firstElementChild;
       fireEvent.mouseDown(wheelContainer!);
       fireEvent.mouseUp(window);
-      
+
       expect(onDragStateChange).toHaveBeenLastCalledWith(false);
     });
 
     it('滑块拖拽时 onDragStateChange 被调用', () => {
       const onDragStateChange = vi.fn();
       renderWithResize({ ...defaultProps, onDragStateChange, isExpanded: true });
-      
+
       const hueInput = screen.getByTestId('slider-input-cg-hue-gradient');
       fireEvent.mouseDown(hueInput);
-      
+
       expect(onDragStateChange).toHaveBeenCalledWith(true);
     });
 
@@ -386,12 +392,12 @@ describe('ColorWheel', () => {
       const onChange = vi.fn();
       const initialValue = { hue: 0, saturation: 50, luminance: 0 };
       renderWithResize({ ...defaultProps, value: initialValue, onChange });
-      
+
       fireEvent.keyDown(window, { ctrlKey: true });
-      
+
       const wheel = screen.getByTestId('color-wheel');
       fireEvent.click(wheel);
-      
+
       expect(onChange).toHaveBeenCalledWith(
         expect.objectContaining({
           hue: 180,
@@ -404,12 +410,12 @@ describe('ColorWheel', () => {
       const onChange = vi.fn();
       const initialValue = { hue: 170, saturation: 0, luminance: 0 };
       renderWithResize({ ...defaultProps, value: initialValue, onChange });
-      
+
       fireEvent.keyDown(window, { shiftKey: true });
-      
+
       const wheel = screen.getByTestId('color-wheel');
       fireEvent.click(wheel);
-      
+
       expect(onChange).toHaveBeenCalledWith(
         expect.objectContaining({
           hue: 170,
@@ -422,12 +428,12 @@ describe('ColorWheel', () => {
       const onChange = vi.fn();
       const initialValue = { hue: 0, saturation: 0, luminance: 0 };
       renderWithResize({ ...defaultProps, value: initialValue, onChange });
-      
+
       fireEvent.keyDown(window, { ctrlKey: true, shiftKey: true });
-      
+
       const wheel = screen.getByTestId('color-wheel');
       fireEvent.click(wheel);
-      
+
       expect(onChange).toHaveBeenCalledWith(
         expect.objectContaining({
           hue: 180,
@@ -440,13 +446,13 @@ describe('ColorWheel', () => {
       const onChange = vi.fn();
       const initialValue = { hue: 0, saturation: 0, luminance: 0 };
       renderWithResize({ ...defaultProps, value: initialValue, onChange });
-      
+
       fireEvent.keyDown(window, { ctrlKey: true });
       fireEvent.keyUp(window, { ctrlKey: false });
-      
+
       const wheel = screen.getByTestId('color-wheel');
       fireEvent.click(wheel);
-      
+
       expect(onChange).toHaveBeenCalledWith(
         expect.objectContaining({
           hue: 180,
@@ -459,7 +465,7 @@ describe('ColorWheel', () => {
   describe('isExpanded 展开状态', () => {
     it('isExpanded=false 时只显示亮度滑块', () => {
       renderWithResize({ ...defaultProps, isExpanded: false });
-      
+
       expect(screen.getByTestId('slider-cg-lum-gradient')).toBeInTheDocument();
       expect(screen.queryByTestId('slider-cg-hue-gradient')).not.toBeInTheDocument();
       expect(screen.queryByTestId('slider-cg-sat-gradient')).not.toBeInTheDocument();
@@ -467,7 +473,7 @@ describe('ColorWheel', () => {
 
     it('isExpanded=true 时显示所有三个滑块', () => {
       renderWithResize({ ...defaultProps, isExpanded: true });
-      
+
       expect(screen.getByTestId('slider-cg-hue-gradient')).toBeInTheDocument();
       expect(screen.getByTestId('slider-cg-sat-gradient')).toBeInTheDocument();
       expect(screen.getByTestId('slider-cg-lum-gradient')).toBeInTheDocument();
@@ -484,7 +490,7 @@ describe('ColorWheel', () => {
         onChange,
         isExpanded: true,
       });
-      
+
       const hueInput = screen.getByTestId('slider-input-cg-hue-gradient');
       expect(hueInput).toHaveAttribute('value', '150');
     });
@@ -498,10 +504,10 @@ describe('ColorWheel', () => {
         value: { hue: 200, saturation: 80, luminance: -30 },
         onChange,
       });
-      
+
       const labelContainer = screen.getByText('Test Color').closest('.relative');
       fireEvent.click(labelContainer!);
-      
+
       expect(onChange).toHaveBeenCalledWith(defaultValue);
     });
   });
@@ -526,7 +532,7 @@ describe('ColorWheel', () => {
   describe('CSS 变量', () => {
     it('设置 hue 和 saturation CSS 变量', () => {
       renderWithResize({ ...defaultProps, value: { hue: 120, saturation: 75, luminance: 50 } });
-      
+
       const rootStyle = document.documentElement.style;
       const cssText = rootStyle.cssText;
       expect(cssText).toContain('--cg-hue-');
@@ -538,21 +544,21 @@ describe('ColorWheel', () => {
     it('触摸开始色轮时设置拖拽状态', () => {
       const onDragStateChange = vi.fn();
       renderWithResize({ ...defaultProps, onDragStateChange });
-      
+
       const wheelContainer = document.querySelector('.aspect-square')?.firstElementChild;
       fireEvent.touchStart(wheelContainer!);
-      
+
       expect(onDragStateChange).toHaveBeenCalledWith(true);
     });
 
     it('触摸结束时清除拖拽状态', () => {
       const onDragStateChange = vi.fn();
       renderWithResize({ ...defaultProps, onDragStateChange });
-      
+
       const wheelContainer = document.querySelector('.aspect-square')?.firstElementChild;
       fireEvent.touchStart(wheelContainer!);
       fireEvent.touchEnd(window);
-      
+
       expect(onDragStateChange).toHaveBeenLastCalledWith(false);
     });
   });

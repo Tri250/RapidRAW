@@ -207,9 +207,7 @@ describe('usePresets', () => {
     });
 
     it('refreshPresets 重新加载预设', async () => {
-      const mockPresets1: UserPreset[] = [
-        createMockUserPreset(createMockPreset({ id: 'p1', name: 'Preset 1' })),
-      ];
+      const mockPresets1: UserPreset[] = [createMockUserPreset(createMockPreset({ id: 'p1', name: 'Preset 1' }))];
       const mockPresets2: UserPreset[] = [
         createMockUserPreset(createMockPreset({ id: 'p2', name: 'Preset 2' })),
         createMockUserPreset(createMockPreset({ id: 'p3', name: 'Preset 3' })),
@@ -282,9 +280,7 @@ describe('usePresets', () => {
     });
 
     it('在文件夹中创建预设', async () => {
-      const initialPresets: UserPreset[] = [
-        createMockFolder('folder-1', 'My Folder'),
-      ];
+      const initialPresets: UserPreset[] = [createMockFolder('folder-1', 'My Folder')];
 
       mockInvoke.mockImplementation((cmd: string) => {
         if (cmd === Invokes.LoadPresets) {
@@ -426,9 +422,7 @@ describe('usePresets', () => {
     });
 
     it('文件夹插入在预设之前', async () => {
-      const initialPresets: UserPreset[] = [
-        createMockUserPreset(createMockPreset({ id: 'p1', name: 'Preset 1' })),
-      ];
+      const initialPresets: UserPreset[] = [createMockUserPreset(createMockPreset({ id: 'p1', name: 'Preset 1' }))];
 
       mockInvoke.mockImplementation((cmd: string) => {
         if (cmd === Invokes.LoadPresets) {
@@ -572,9 +566,7 @@ describe('usePresets', () => {
     });
 
     it('删除不存在的 id 不改变列表', async () => {
-      const initialPresets: UserPreset[] = [
-        createMockUserPreset(createMockPreset({ id: 'p1', name: 'Preset 1' })),
-      ];
+      const initialPresets: UserPreset[] = [createMockUserPreset(createMockPreset({ id: 'p1', name: 'Preset 1' }))];
 
       mockInvoke.mockImplementation((cmd: string) => {
         if (cmd === Invokes.LoadPresets) {
@@ -597,9 +589,7 @@ describe('usePresets', () => {
     });
 
     it('删除后保存到后端', async () => {
-      const initialPresets: UserPreset[] = [
-        createMockUserPreset(createMockPreset({ id: 'p1', name: 'Preset 1' })),
-      ];
+      const initialPresets: UserPreset[] = [createMockUserPreset(createMockPreset({ id: 'p1', name: 'Preset 1' }))];
 
       mockInvoke.mockImplementation((cmd: string) => {
         if (cmd === Invokes.LoadPresets) {
@@ -619,19 +609,14 @@ describe('usePresets', () => {
       });
 
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith(
-          Invokes.SavePresets,
-          expect.objectContaining({ presets: [] }),
-        );
+        expect(mockInvoke).toHaveBeenCalledWith(Invokes.SavePresets, expect.objectContaining({ presets: [] }));
       });
     });
   });
 
   describe('renameItem - 重命名项目', () => {
     it('重命名根级别预设', async () => {
-      const initialPresets: UserPreset[] = [
-        createMockUserPreset(createMockPreset({ id: 'p1', name: 'Old Name' })),
-      ];
+      const initialPresets: UserPreset[] = [createMockUserPreset(createMockPreset({ id: 'p1', name: 'Old Name' }))];
 
       mockInvoke.mockImplementation((cmd: string) => {
         if (cmd === Invokes.LoadPresets) {
@@ -654,9 +639,7 @@ describe('usePresets', () => {
     });
 
     it('重命名文件夹', async () => {
-      const initialPresets: UserPreset[] = [
-        createMockFolder('f1', 'Old Folder'),
-      ];
+      const initialPresets: UserPreset[] = [createMockFolder('f1', 'Old Folder')];
 
       mockInvoke.mockImplementation((cmd: string) => {
         if (cmd === Invokes.LoadPresets) {
@@ -680,9 +663,7 @@ describe('usePresets', () => {
 
     it('重命名文件夹中的预设', async () => {
       const initialPresets: UserPreset[] = [
-        createMockFolder('f1', 'Folder 1', [
-          createMockPreset({ id: 'p1', name: 'Old Name' }),
-        ]),
+        createMockFolder('f1', 'Folder 1', [createMockPreset({ id: 'p1', name: 'Old Name' })]),
       ];
 
       mockInvoke.mockImplementation((cmd: string) => {
@@ -706,9 +687,7 @@ describe('usePresets', () => {
     });
 
     it('重命名不存在的 id 不改变列表', async () => {
-      const initialPresets: UserPreset[] = [
-        createMockUserPreset(createMockPreset({ id: 'p1', name: 'Preset 1' })),
-      ];
+      const initialPresets: UserPreset[] = [createMockUserPreset(createMockPreset({ id: 'p1', name: 'Preset 1' }))];
 
       mockInvoke.mockImplementation((cmd: string) => {
         if (cmd === Invokes.LoadPresets) {
@@ -731,9 +710,7 @@ describe('usePresets', () => {
     });
 
     it('重命名后保存到后端', async () => {
-      const initialPresets: UserPreset[] = [
-        createMockUserPreset(createMockPreset({ id: 'p1', name: 'Old' })),
-      ];
+      const initialPresets: UserPreset[] = [createMockUserPreset(createMockPreset({ id: 'p1', name: 'Old' }))];
 
       mockInvoke.mockImplementation((cmd: string) => {
         if (cmd === Invokes.LoadPresets) {
@@ -763,9 +740,7 @@ describe('usePresets', () => {
 
   describe('configurePreset - 配置预设', () => {
     it('更新预设名称', async () => {
-      const initialPresets: UserPreset[] = [
-        createMockUserPreset(createMockPreset({ id: 'p1', name: 'Old Name' })),
-      ];
+      const initialPresets: UserPreset[] = [createMockUserPreset(createMockPreset({ id: 'p1', name: 'Old Name' }))];
 
       mockInvoke.mockImplementation((cmd: string) => {
         if (cmd === Invokes.LoadPresets) {
@@ -861,9 +836,7 @@ describe('usePresets', () => {
 
     it('配置文件夹中的预设', async () => {
       const initialPresets: UserPreset[] = [
-        createMockFolder('f1', 'Folder 1', [
-          createMockPreset({ id: 'p1', name: 'Old Name' }),
-        ]),
+        createMockFolder('f1', 'Folder 1', [createMockPreset({ id: 'p1', name: 'Old Name' })]),
       ];
 
       mockInvoke.mockImplementation((cmd: string) => {
@@ -902,9 +875,7 @@ describe('usePresets', () => {
     });
 
     it('配置后保存到后端', async () => {
-      const initialPresets: UserPreset[] = [
-        createMockUserPreset(createMockPreset({ id: 'p1', name: 'Old' })),
-      ];
+      const initialPresets: UserPreset[] = [createMockUserPreset(createMockPreset({ id: 'p1', name: 'Old' }))];
 
       mockInvoke.mockImplementation((cmd: string) => {
         if (cmd === Invokes.LoadPresets) {
@@ -1011,9 +982,7 @@ describe('usePresets', () => {
 
   describe('duplicatePreset - 复制预设', () => {
     it('复制根级别预设', async () => {
-      const initialPresets: UserPreset[] = [
-        createMockUserPreset(createMockPreset({ id: 'p1', name: 'Original' })),
-      ];
+      const initialPresets: UserPreset[] = [createMockUserPreset(createMockPreset({ id: 'p1', name: 'Original' }))];
 
       mockInvoke.mockImplementation((cmd: string) => {
         if (cmd === Invokes.LoadPresets) {
@@ -1040,9 +1009,7 @@ describe('usePresets', () => {
 
     it('复制文件夹中的预设', async () => {
       const initialPresets: UserPreset[] = [
-        createMockFolder('f1', 'Folder 1', [
-          createMockPreset({ id: 'p1', name: 'Original' }),
-        ]),
+        createMockFolder('f1', 'Folder 1', [createMockPreset({ id: 'p1', name: 'Original' })]),
       ];
 
       mockInvoke.mockImplementation((cmd: string) => {
@@ -1148,9 +1115,7 @@ describe('usePresets', () => {
 
     it('将预设从文件夹移动到根级别', async () => {
       const initialPresets: UserPreset[] = [
-        createMockFolder('f1', 'Folder 1', [
-          createMockPreset({ id: 'p1', name: 'Preset 1' }),
-        ]),
+        createMockFolder('f1', 'Folder 1', [createMockPreset({ id: 'p1', name: 'Preset 1' })]),
       ];
 
       mockInvoke.mockImplementation((cmd: string) => {
@@ -1176,9 +1141,7 @@ describe('usePresets', () => {
 
     it('在文件夹之间移动预设', async () => {
       const initialPresets: UserPreset[] = [
-        createMockFolder('f1', 'Folder 1', [
-          createMockPreset({ id: 'p1', name: 'Preset 1' }),
-        ]),
+        createMockFolder('f1', 'Folder 1', [createMockPreset({ id: 'p1', name: 'Preset 1' })]),
         createMockFolder('f2', 'Folder 2'),
       ];
 
@@ -1205,9 +1168,7 @@ describe('usePresets', () => {
     });
 
     it('预设不存在时不做任何操作', async () => {
-      const initialPresets: UserPreset[] = [
-        createMockFolder('f1', 'Folder 1'),
-      ];
+      const initialPresets: UserPreset[] = [createMockFolder('f1', 'Folder 1')];
 
       mockInvoke.mockImplementation((cmd: string) => {
         if (cmd === Invokes.LoadPresets) {
@@ -1496,9 +1457,7 @@ describe('usePresets', () => {
       });
 
       await act(async () => {
-        await expect(
-          result.current.importPresetsFromFile('/bad/path.json'),
-        ).rejects.toThrow('Import failed');
+        await expect(result.current.importPresetsFromFile('/bad/path.json')).rejects.toThrow('Import failed');
       });
 
       consoleErrorSpy.mockRestore();
@@ -1595,9 +1554,9 @@ describe('usePresets', () => {
       });
 
       await act(async () => {
-        await expect(
-          result.current.importLegacyPresetsFromFile('/bad/path.json'),
-        ).rejects.toThrow('Legacy import failed');
+        await expect(result.current.importLegacyPresetsFromFile('/bad/path.json')).rejects.toThrow(
+          'Legacy import failed',
+        );
       });
 
       consoleErrorSpy.mockRestore();
@@ -1662,9 +1621,7 @@ describe('usePresets', () => {
       });
 
       await act(async () => {
-        await expect(
-          result.current.exportPresetsToFile([], '/bad/path.json'),
-        ).rejects.toThrow('Export failed');
+        await expect(result.current.exportPresetsToFile([], '/bad/path.json')).rejects.toThrow('Export failed');
       });
 
       consoleErrorSpy.mockRestore();
@@ -1759,9 +1716,7 @@ describe('usePresets', () => {
     });
 
     it('复制预设然后重命名副本', async () => {
-      const initialPresets: UserPreset[] = [
-        createMockUserPreset(createMockPreset({ id: 'p1', name: 'Original' })),
-      ];
+      const initialPresets: UserPreset[] = [createMockUserPreset(createMockPreset({ id: 'p1', name: 'Original' }))];
 
       mockInvoke.mockImplementation((cmd: string) => {
         if (cmd === Invokes.LoadPresets) {

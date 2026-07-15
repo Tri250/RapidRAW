@@ -239,9 +239,11 @@ describe('useThumbnails', () => {
       vi.advanceTimersByTime(150);
 
       expect(invoke).toHaveBeenCalled();
-      const callArg = vi.mocked(invoke).mock.calls.find(
-        (call) => call[0] === 'update_thumbnail_queue' && (call[1] as { paths: string[] }).paths.length > 0,
-      );
+      const callArg = vi
+        .mocked(invoke)
+        .mock.calls.find(
+          (call) => call[0] === 'update_thumbnail_queue' && (call[1] as { paths: string[] }).paths.length > 0,
+        );
       expect(callArg).toBeDefined();
       expect((callArg![1] as { paths: string[] }).paths).toContain('/path1.jpg');
     });
@@ -259,9 +261,11 @@ describe('useThumbnails', () => {
 
       vi.advanceTimersByTime(300);
 
-      const nonEmptyCalls = vi.mocked(invoke).mock.calls.filter(
-        (call) => call[0] === 'update_thumbnail_queue' && (call[1] as { paths: string[] }).paths.length > 0,
-      );
+      const nonEmptyCalls = vi
+        .mocked(invoke)
+        .mock.calls.filter(
+          (call) => call[0] === 'update_thumbnail_queue' && (call[1] as { paths: string[] }).paths.length > 0,
+        );
       expect(nonEmptyCalls.length).toBe(0);
     });
 
@@ -278,9 +282,11 @@ describe('useThumbnails', () => {
 
       vi.advanceTimersByTime(300);
 
-      const nonEmptyCalls = vi.mocked(invoke).mock.calls.filter(
-        (call) => call[0] === 'update_thumbnail_queue' && (call[1] as { paths: string[] }).paths.length > 0,
-      );
+      const nonEmptyCalls = vi
+        .mocked(invoke)
+        .mock.calls.filter(
+          (call) => call[0] === 'update_thumbnail_queue' && (call[1] as { paths: string[] }).paths.length > 0,
+        );
       expect(nonEmptyCalls.length).toBe(0);
     });
 
@@ -394,7 +400,7 @@ describe('useThumbnails', () => {
       expect(invoke).toHaveBeenCalledTimes(1);
     });
 
-    it('调用 invoke(\'update_thumbnail_queue\', { paths })', () => {
+    it("调用 invoke('update_thumbnail_queue', { paths })", () => {
       const { result } = renderHook(() => useThumbnails());
 
       act(() => {
@@ -471,10 +477,7 @@ describe('useThumbnails', () => {
 
       await vi.runAllTimersAsync();
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Failed to update thumbnail queue:',
-        expect.any(Error),
-      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to update thumbnail queue:', expect.any(Error));
     });
 
     it('clearThumbnailQueue invoke 失败时不抛出错误', async () => {
@@ -492,9 +495,7 @@ describe('useThumbnails', () => {
     });
 
     it('多次 invoke 失败不影响后续调用', () => {
-      vi.mocked(invoke)
-        .mockRejectedValueOnce(new Error('error 1'))
-        .mockResolvedValueOnce(undefined);
+      vi.mocked(invoke).mockRejectedValueOnce(new Error('error 1')).mockResolvedValueOnce(undefined);
 
       const { result } = renderHook(() => useThumbnails());
 
@@ -524,9 +525,11 @@ describe('useThumbnails', () => {
 
       vi.advanceTimersByTime(300);
 
-      const nonEmptyCalls = vi.mocked(invoke).mock.calls.filter(
-        (call) => call[0] === 'update_thumbnail_queue' && (call[1] as { paths: string[] }).paths.length > 0,
-      );
+      const nonEmptyCalls = vi
+        .mocked(invoke)
+        .mock.calls.filter(
+          (call) => call[0] === 'update_thumbnail_queue' && (call[1] as { paths: string[] }).paths.length > 0,
+        );
       expect(nonEmptyCalls.length).toBe(0);
     });
 
@@ -564,9 +567,11 @@ describe('useThumbnails', () => {
 
       vi.advanceTimersByTime(150);
 
-      const nonEmptyCalls = vi.mocked(invoke).mock.calls.filter(
-        (call) => call[0] === 'update_thumbnail_queue' && (call[1] as { paths: string[] }).paths.length > 0,
-      );
+      const nonEmptyCalls = vi
+        .mocked(invoke)
+        .mock.calls.filter(
+          (call) => call[0] === 'update_thumbnail_queue' && (call[1] as { paths: string[] }).paths.length > 0,
+        );
       expect(nonEmptyCalls.length).toBe(0);
     });
 

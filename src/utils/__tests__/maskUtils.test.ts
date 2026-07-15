@@ -495,7 +495,7 @@ describe('maskUtils', () => {
         ];
 
         const allTypes = Object.values(Mask);
-        const defaultTypes = allTypes.filter(t => !handledTypes.includes(t));
+        const defaultTypes = allTypes.filter((t) => !handledTypes.includes(t));
 
         for (const type of handledTypes) {
           const result = createSubMask(type, defaultDimensions);

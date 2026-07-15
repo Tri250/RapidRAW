@@ -324,13 +324,13 @@ describe('applyTheme', () => {
     applyTheme(Theme.Light);
     const lightTheme = getThemeById(Theme.Light);
     expect(document.documentElement.style.getPropertyValue('--app-bg-primary')).toBe(
-      lightTheme.cssVariables['--app-bg-primary']
+      lightTheme.cssVariables['--app-bg-primary'],
     );
 
     applyTheme(Theme.Dark);
     const darkTheme = getThemeById(Theme.Dark);
     expect(document.documentElement.style.getPropertyValue('--app-bg-primary')).toBe(
-      darkTheme.cssVariables['--app-bg-primary']
+      darkTheme.cssVariables['--app-bg-primary'],
     );
   });
 
@@ -388,9 +388,7 @@ describe('isLightTheme', () => {
   });
 
   it('非亮色主题都返回 false', () => {
-    const nonLightThemes = Object.values(Theme).filter(
-      (t) => !LIGHT_THEME_IDS.includes(t as Theme)
-    );
+    const nonLightThemes = Object.values(Theme).filter((t) => !LIGHT_THEME_IDS.includes(t as Theme));
     nonLightThemes.forEach((themeId) => {
       expect(isLightTheme(themeId as Theme)).toBe(false);
     });

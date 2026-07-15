@@ -32,14 +32,70 @@ describe('Text', () => {
 
   describe('Variant 变体', () => {
     const variantTests = [
-      { variant: 'displayLarge', tag: 'H1', size: 'text-3xl sm:text-4xl lg:text-5xl', weight: 'bold', color: 'primary', extraClasses: 'text-shadow-shiny mb-4' },
-      { variant: 'display', tag: 'H1', size: 'text-2xl sm:text-3xl', weight: 'bold', color: 'primary', extraClasses: 'text-shadow-shiny' },
-      { variant: 'headline', tag: 'H1', size: 'text-xl sm:text-2xl', weight: 'bold', color: 'primary', extraClasses: 'text-shadow-shiny' },
-      { variant: 'title', tag: 'H2', size: 'text-lg sm:text-xl', weight: 'bold', color: 'primary', extraClasses: 'text-shadow-shiny' },
-      { variant: 'heading', tag: 'H3', size: 'text-sm sm:text-base', weight: 'semibold', color: 'primary', extraClasses: undefined },
-      { variant: 'body', tag: 'P', size: 'text-xs sm:text-sm', weight: 'normal', color: 'secondary', extraClasses: undefined },
-      { variant: 'label', tag: 'SPAN', size: 'text-xs sm:text-sm', weight: 'medium', color: 'secondary', extraClasses: undefined },
-      { variant: 'small', tag: 'P', size: 'text-[10px] sm:text-xs', weight: 'normal', color: 'secondary', extraClasses: undefined },
+      {
+        variant: 'displayLarge',
+        tag: 'H1',
+        size: 'text-3xl sm:text-4xl lg:text-5xl',
+        weight: 'bold',
+        color: 'primary',
+        extraClasses: 'text-shadow-shiny mb-4',
+      },
+      {
+        variant: 'display',
+        tag: 'H1',
+        size: 'text-2xl sm:text-3xl',
+        weight: 'bold',
+        color: 'primary',
+        extraClasses: 'text-shadow-shiny',
+      },
+      {
+        variant: 'headline',
+        tag: 'H1',
+        size: 'text-xl sm:text-2xl',
+        weight: 'bold',
+        color: 'primary',
+        extraClasses: 'text-shadow-shiny',
+      },
+      {
+        variant: 'title',
+        tag: 'H2',
+        size: 'text-lg sm:text-xl',
+        weight: 'bold',
+        color: 'primary',
+        extraClasses: 'text-shadow-shiny',
+      },
+      {
+        variant: 'heading',
+        tag: 'H3',
+        size: 'text-sm sm:text-base',
+        weight: 'semibold',
+        color: 'primary',
+        extraClasses: undefined,
+      },
+      {
+        variant: 'body',
+        tag: 'P',
+        size: 'text-xs sm:text-sm',
+        weight: 'normal',
+        color: 'secondary',
+        extraClasses: undefined,
+      },
+      {
+        variant: 'label',
+        tag: 'SPAN',
+        size: 'text-xs sm:text-sm',
+        weight: 'medium',
+        color: 'secondary',
+        extraClasses: undefined,
+      },
+      {
+        variant: 'small',
+        tag: 'P',
+        size: 'text-[10px] sm:text-xs',
+        weight: 'normal',
+        color: 'secondary',
+        extraClasses: undefined,
+      },
     ] as const;
 
     variantTests.forEach(({ variant, tag, size, weight, color, extraClasses }) => {
@@ -203,7 +259,7 @@ describe('Text', () => {
 
     it('as 可以使用不同的 HTML 元素', () => {
       const elements = ['div', 'span', 'section', 'article', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'blockquote'];
-      
+
       elements.forEach((tag) => {
         const { unmount } = render(<Text as={tag as any}>{tag} element</Text>);
         const element = screen.getByText(`${tag} element`);
@@ -338,7 +394,7 @@ describe('Text', () => {
   });
 
   describe('displayName', () => {
-    it('Text.displayName 为 \'Text\'', () => {
+    it("Text.displayName 为 'Text'", () => {
       expect(Text.displayName).toBe('Text');
     });
   });

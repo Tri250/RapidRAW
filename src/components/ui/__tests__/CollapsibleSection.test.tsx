@@ -442,7 +442,7 @@ describe('CollapsibleSection', () => {
           <div>Child 1</div>
           <div>Child 2</div>
           <span>Child 3</span>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
       expect(screen.getByText('Child 1')).toBeInTheDocument();
       expect(screen.getByText('Child 2')).toBeInTheDocument();
@@ -457,7 +457,7 @@ describe('CollapsibleSection', () => {
             <p>Paragraph text</p>
             <button>Action</button>
           </div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
       expect(screen.getByText('Subtitle')).toBeInTheDocument();
       expect(screen.getByText('Paragraph text')).toBeInTheDocument();

@@ -180,9 +180,7 @@ describe('Slider', () => {
     });
 
     it('非字符串 label 被渲染', () => {
-      render(
-        <Slider {...defaultProps} label={<span data-testid="custom-label">Custom Label</span>} />,
-      );
+      render(<Slider {...defaultProps} label={<span data-testid="custom-label">Custom Label</span>} />);
       expect(screen.getByTestId('custom-label')).toBeInTheDocument();
     });
 
@@ -441,14 +439,7 @@ describe('Slider', () => {
     it('mouseDown 时设置 isDragging 状态并调用 onChange', () => {
       const onChange = vi.fn();
       const onDragStateChange = vi.fn();
-      render(
-        <Slider
-          {...defaultProps}
-          value={50}
-          onChange={onChange}
-          onDragStateChange={onDragStateChange}
-        />,
-      );
+      render(<Slider {...defaultProps} value={50} onChange={onChange} onDragStateChange={onDragStateChange} />);
       const input = screen.getByRole('slider');
       fireEvent.mouseDown(input, { clientX: 100 });
       expect(onDragStateChange).toHaveBeenCalledWith(true);

@@ -69,34 +69,34 @@ describe('ImagePicker', () => {
     it('点击选择按钮时调用 open 对话框', async () => {
       vi.mocked(open).mockResolvedValue(null);
       render(<ImagePicker {...defaultProps} />);
-      
+
       const selectButton = screen.getByText('ui.imagePicker.select');
       fireEvent.click(selectButton);
-      
+
       expect(open).toHaveBeenCalledTimes(1);
     });
 
     it('open 对话框配置正确 - 单选', async () => {
       vi.mocked(open).mockResolvedValue(null);
       render(<ImagePicker {...defaultProps} />);
-      
+
       const selectButton = screen.getByText('ui.imagePicker.select');
       fireEvent.click(selectButton);
-      
+
       expect(open).toHaveBeenCalledWith(
         expect.objectContaining({
           multiple: false,
-        })
+        }),
       );
     });
 
     it('open 对话框配置正确 - 只支持 png 格式', async () => {
       vi.mocked(open).mockResolvedValue(null);
       render(<ImagePicker {...defaultProps} />);
-      
+
       const selectButton = screen.getByText('ui.imagePicker.select');
       fireEvent.click(selectButton);
-      
+
       const callArgs = vi.mocked(open).mock.calls[0][0];
       expect(callArgs.filters).toBeDefined();
       expect(callArgs.filters[0].extensions).toEqual(['png']);
@@ -105,12 +105,12 @@ describe('ImagePicker', () => {
     it('选择图片后调用 onImageSelect 回调', async () => {
       vi.mocked(open).mockResolvedValue('/path/to/image.png');
       render(<ImagePicker {...defaultProps} />);
-      
+
       const selectButton = screen.getByText('ui.imagePicker.select');
       fireEvent.click(selectButton);
-      
+
       await Promise.resolve();
-      
+
       expect(defaultProps.onImageSelect).toHaveBeenCalledTimes(1);
       expect(defaultProps.onImageSelect).toHaveBeenCalledWith('/path/to/image.png');
     });
@@ -118,24 +118,24 @@ describe('ImagePicker', () => {
     it('取消选择时不调用 onImageSelect', async () => {
       vi.mocked(open).mockResolvedValue(null);
       render(<ImagePicker {...defaultProps} />);
-      
+
       const selectButton = screen.getByText('ui.imagePicker.select');
       fireEvent.click(selectButton);
-      
+
       await Promise.resolve();
-      
+
       expect(defaultProps.onImageSelect).not.toHaveBeenCalled();
     });
 
     it('选择结果为数组时不调用 onImageSelect', async () => {
       vi.mocked(open).mockResolvedValue(['/path/to/image.png']);
       render(<ImagePicker {...defaultProps} />);
-      
+
       const selectButton = screen.getByText('ui.imagePicker.select');
       fireEvent.click(selectButton);
-      
+
       await Promise.resolve();
-      
+
       expect(defaultProps.onImageSelect).not.toHaveBeenCalled();
     });
   });
@@ -144,17 +144,17 @@ describe('ImagePicker', () => {
     it('打开对话框出错时不崩溃', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       vi.mocked(open).mockRejectedValue(new Error('Dialog error'));
-      
+
       render(<ImagePicker {...defaultProps} />);
-      
+
       const selectButton = screen.getByText('ui.imagePicker.select');
       fireEvent.click(selectButton);
-      
+
       await Promise.resolve();
-      
+
       expect(consoleErrorSpy).toHaveBeenCalled();
       expect(defaultProps.onImageSelect).not.toHaveBeenCalled();
-      
+
       consoleErrorSpy.mockRestore();
     });
   });
@@ -168,17 +168,17 @@ describe('ImagePicker', () => {
 
     it('点击清除按钮调用 onClear 回调', () => {
       render(<ImagePicker {...defaultProps} imageName="test.png" />);
-      
+
       const buttons = screen.getAllByRole('button');
       const clearButton = buttons[1];
       fireEvent.click(clearButton);
-      
+
       expect(defaultProps.onClear).toHaveBeenCalledTimes(1);
     });
 
     it('清除按钮有正确的 tooltip 属性', () => {
       render(<ImagePicker {...defaultProps} imageName="test.png" />);
-      
+
       const buttons = screen.getAllByRole('button');
       const clearButton = buttons[1];
       expect(clearButton).toHaveAttribute('data-tooltip', 'ui.imagePicker.clearImage');
@@ -190,14 +190,14 @@ describe('ImagePicker', () => {
       const testPath = '/Users/test/photos/photo.png';
       vi.mocked(open).mockResolvedValue(testPath);
       const onImageSelect = vi.fn();
-      
+
       render(<ImagePicker {...defaultProps} onImageSelect={onImageSelect} />);
-      
+
       const selectButton = screen.getByText('ui.imagePicker.select');
       fireEvent.click(selectButton);
-      
+
       await Promise.resolve();
-      
+
       expect(onImageSelect).toHaveBeenCalledWith(testPath);
     });
   });
@@ -206,10 +206,10 @@ describe('ImagePicker', () => {
     it('过滤器名称使用翻译键', async () => {
       vi.mocked(open).mockResolvedValue(null);
       render(<ImagePicker {...defaultProps} />);
-      
+
       const selectButton = screen.getByText('ui.imagePicker.select');
       fireEvent.click(selectButton);
-      
+
       const callArgs = vi.mocked(open).mock.calls[0][0];
       expect(callArgs.filters[0].name).toBe('ui.imagePicker.filterLabel');
     });
@@ -217,10 +217,10 @@ describe('ImagePicker', () => {
     it('只支持 png 扩展名', async () => {
       vi.mocked(open).mockResolvedValue(null);
       render(<ImagePicker {...defaultProps} />);
-      
+
       const selectButton = screen.getByText('ui.imagePicker.select');
       fireEvent.click(selectButton);
-      
+
       const callArgs = vi.mocked(open).mock.calls[0][0];
       expect(callArgs.filters[0].extensions).toHaveLength(1);
       expect(callArgs.filters[0].extensions[0]).toBe('png');
@@ -284,7 +284,7 @@ describe('ImagePicker', () => {
     it('不同 label 文本正确显示', () => {
       const { rerender } = render(<ImagePicker {...defaultProps} label="Label 1" />);
       expect(screen.getByText('Label 1')).toBeInTheDocument();
-      
+
       rerender(<ImagePicker {...defaultProps} label="Label 2" />);
       expect(screen.getByText('Label 2')).toBeInTheDocument();
     });

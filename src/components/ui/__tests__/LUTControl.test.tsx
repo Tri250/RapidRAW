@@ -121,9 +121,7 @@ describe('LUTControl', () => {
     it('未选择 LUT 时不显示清除按钮', () => {
       render(<LUTControl {...defaultProps} />);
       const buttons = screen.getAllByRole('button');
-      const hasClearButton = buttons.some(
-        (btn) => btn.getAttribute('data-tooltip') === 'ui.lut.clearLut',
-      );
+      const hasClearButton = buttons.some((btn) => btn.getAttribute('data-tooltip') === 'ui.lut.clearLut');
       expect(hasClearButton).toBe(false);
     });
 
@@ -264,14 +262,7 @@ describe('LUTControl', () => {
     it('点击已选中的 LUT 调用 onClear', async () => {
       (invoke as vi.Mock).mockResolvedValue(mockLutEntries);
       const onClear = vi.fn();
-      render(
-        <LUTControl
-          {...defaultProps}
-          lutPath="/luts/cool.cube"
-          lutName="Cool Tone"
-          onClear={onClear}
-        />,
-      );
+      render(<LUTControl {...defaultProps} lutPath="/luts/cool.cube" lutName="Cool Tone" onClear={onClear} />);
 
       const toggleButton = screen.getByText('Cool Tone').closest('button');
       fireEvent.click(toggleButton!);
@@ -289,9 +280,7 @@ describe('LUTControl', () => {
 
     it('选中的 LUT 有 border-accent 类', async () => {
       (invoke as vi.Mock).mockResolvedValue(mockLutEntries);
-      render(
-        <LUTControl {...defaultProps} lutPath="/luts/cool.cube" lutName="Cool Tone" />,
-      );
+      render(<LUTControl {...defaultProps} lutPath="/luts/cool.cube" lutName="Cool Tone" />);
 
       const toggleButton = screen.getByText('Cool Tone').closest('button');
       fireEvent.click(toggleButton!);
@@ -307,9 +296,7 @@ describe('LUTControl', () => {
 
   describe('LUT 强度调整', () => {
     it('选择 LUT 后显示强度滑块', () => {
-      render(
-        <LUTControl {...defaultProps} lutPath="/luts/cool.cube" lutName="Cool Tone" />,
-      );
+      render(<LUTControl {...defaultProps} lutPath="/luts/cool.cube" lutName="Cool Tone" />);
       expect(screen.getByText('ui.lut.intensity')).toBeInTheDocument();
     });
 
@@ -319,14 +306,7 @@ describe('LUTControl', () => {
     });
 
     it('滑块初始值为 lutIntensity', () => {
-      render(
-        <LUTControl
-          {...defaultProps}
-          lutPath="/luts/cool.cube"
-          lutName="Cool Tone"
-          lutIntensity={75}
-        />,
-      );
+      render(<LUTControl {...defaultProps} lutPath="/luts/cool.cube" lutName="Cool Tone" lutIntensity={75} />);
       const slider = screen.getByRole('slider');
       expect(slider).toHaveAttribute('value', '75');
     });
@@ -347,18 +327,14 @@ describe('LUTControl', () => {
     });
 
     it('滑块范围是 0-100', () => {
-      render(
-        <LUTControl {...defaultProps} lutPath="/luts/cool.cube" lutName="Cool Tone" />,
-      );
+      render(<LUTControl {...defaultProps} lutPath="/luts/cool.cube" lutName="Cool Tone" />);
       const slider = screen.getByRole('slider');
       expect(slider).toHaveAttribute('min', '0');
       expect(slider).toHaveAttribute('max', '100');
     });
 
     it('滑块步长为 1', () => {
-      render(
-        <LUTControl {...defaultProps} lutPath="/luts/cool.cube" lutName="Cool Tone" />,
-      );
+      render(<LUTControl {...defaultProps} lutPath="/luts/cool.cube" lutName="Cool Tone" />);
       const slider = screen.getByRole('slider');
       expect(slider).toHaveAttribute('step', '1');
     });
@@ -367,14 +343,7 @@ describe('LUTControl', () => {
   describe('启用/禁用 LUT', () => {
     it('点击清除按钮调用 onClear', () => {
       const onClear = vi.fn();
-      render(
-        <LUTControl
-          {...defaultProps}
-          lutPath="/luts/cool.cube"
-          lutName="Cool Tone"
-          onClear={onClear}
-        />,
-      );
+      render(<LUTControl {...defaultProps} lutPath="/luts/cool.cube" lutName="Cool Tone" onClear={onClear} />);
 
       const clearButton = screen.getByRole('button', { name: '' });
       fireEvent.click(clearButton);
@@ -383,9 +352,7 @@ describe('LUTControl', () => {
     });
 
     it('清除按钮有 data-tooltip 属性', () => {
-      render(
-        <LUTControl {...defaultProps} lutPath="/luts/cool.cube" lutName="Cool Tone" />,
-      );
+      render(<LUTControl {...defaultProps} lutPath="/luts/cool.cube" lutName="Cool Tone" />);
       const clearButton = screen.getByRole('button', { name: '' });
       expect(clearButton).toHaveAttribute('data-tooltip', 'ui.lut.clearLut');
     });
@@ -439,12 +406,8 @@ describe('LUTControl', () => {
     });
 
     it('导入 LUT 后更新列表', async () => {
-      const newEntries = [
-        { name: 'NewLUT.cube', path: '/luts/new.cube' },
-      ];
-      (invoke as vi.Mock)
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce(newEntries);
+      const newEntries = [{ name: 'NewLUT.cube', path: '/luts/new.cube' }];
+      (invoke as vi.Mock).mockResolvedValueOnce([]).mockResolvedValueOnce(newEntries);
       (open as vi.Mock).mockResolvedValue(['/downloads/new.cube']);
 
       render(<LUTControl {...defaultProps} />);
@@ -485,9 +448,7 @@ describe('LUTControl', () => {
     });
 
     it('导入失败时显示错误提示', async () => {
-      (invoke as vi.Mock)
-        .mockResolvedValueOnce([])
-        .mockRejectedValueOnce(new Error('Import failed'));
+      (invoke as vi.Mock).mockResolvedValueOnce([]).mockRejectedValueOnce(new Error('Import failed'));
       (open as vi.Mock).mockResolvedValue(['/downloads/new.cube']);
 
       render(<LUTControl {...defaultProps} />);
@@ -590,9 +551,7 @@ describe('LUTControl', () => {
         resolvePreviews = resolve;
       });
 
-      (invoke as vi.Mock)
-        .mockResolvedValueOnce(mockLutEntries)
-        .mockImplementationOnce(() => previewsPromise);
+      (invoke as vi.Mock).mockResolvedValueOnce(mockLutEntries).mockImplementationOnce(() => previewsPromise);
 
       render(<LUTControl {...defaultProps} />);
 
@@ -622,9 +581,7 @@ describe('LUTControl', () => {
 
   describe('预览图', () => {
     it('有预览图时显示 img 元素', async () => {
-      (invoke as vi.Mock)
-        .mockResolvedValueOnce(mockLutEntries)
-        .mockResolvedValueOnce(mockLutPreviews);
+      (invoke as vi.Mock).mockResolvedValueOnce(mockLutEntries).mockResolvedValueOnce(mockLutPreviews);
 
       render(<LUTControl {...defaultProps} />);
 
@@ -639,9 +596,7 @@ describe('LUTControl', () => {
     });
 
     it('无预览图时显示 ImageOff 图标', async () => {
-      (invoke as vi.Mock)
-        .mockResolvedValueOnce(mockLutEntries)
-        .mockResolvedValueOnce(mockLutPreviews);
+      (invoke as vi.Mock).mockResolvedValueOnce(mockLutEntries).mockResolvedValueOnce(mockLutPreviews);
 
       render(<LUTControl {...defaultProps} />);
 
@@ -685,9 +640,7 @@ describe('LUTControl', () => {
         }
       });
 
-      (invoke as vi.Mock)
-        .mockResolvedValueOnce(mockLutEntries)
-        .mockResolvedValueOnce(mockLutEntries.slice(1));
+      (invoke as vi.Mock).mockResolvedValueOnce(mockLutEntries).mockResolvedValueOnce(mockLutEntries.slice(1));
 
       render(<LUTControl {...defaultProps} />);
 
@@ -719,18 +672,9 @@ describe('LUTControl', () => {
         }
       });
 
-      (invoke as vi.Mock)
-        .mockResolvedValueOnce(mockLutEntries)
-        .mockResolvedValueOnce(mockLutEntries.slice(1));
+      (invoke as vi.Mock).mockResolvedValueOnce(mockLutEntries).mockResolvedValueOnce(mockLutEntries.slice(1));
 
-      render(
-        <LUTControl
-          {...defaultProps}
-          lutPath="/luts/cool.cube"
-          lutName="Cool Tone"
-          onClear={onClear}
-        />,
-      );
+      render(<LUTControl {...defaultProps} lutPath="/luts/cool.cube" lutName="Cool Tone" onClear={onClear} />);
 
       const toggleButton = screen.getByText('Cool Tone').closest('button');
       fireEvent.click(toggleButton!);
@@ -785,10 +729,7 @@ describe('LUTControl', () => {
         expect(screen.getByText('Cool Tone')).toBeInTheDocument();
       });
 
-      expect(invoke).not.toHaveBeenCalledWith(
-        'generate_lut_previews',
-        expect.any(Object),
-      );
+      expect(invoke).not.toHaveBeenCalledWith('generate_lut_previews', expect.any(Object));
     });
 
     it('图片未就绪时不调用 generate_lut_previews', async () => {
@@ -813,19 +754,14 @@ describe('LUTControl', () => {
         expect(screen.getByText('Cool Tone')).toBeInTheDocument();
       });
 
-      expect(invoke).not.toHaveBeenCalledWith(
-        'generate_lut_previews',
-        expect.any(Object),
-      );
+      expect(invoke).not.toHaveBeenCalledWith('generate_lut_previews', expect.any(Object));
     });
   });
 
   describe('LUT 名称显示', () => {
     it('名称过长时被截断', () => {
       const longName = 'VeryLongLUTNameThatShouldBeTruncated.cube';
-      render(
-        <LUTControl {...defaultProps} lutPath="/luts/long.cube" lutName={longName} />,
-      );
+      render(<LUTControl {...defaultProps} lutPath="/luts/long.cube" lutName={longName} />);
       const nameSpan = screen.getByText(longName);
       expect(nameSpan).toHaveClass('truncate');
       expect(nameSpan).toHaveClass('max-w-35');

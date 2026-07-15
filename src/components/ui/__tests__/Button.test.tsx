@@ -29,7 +29,7 @@ describe('Button', () => {
       render(
         <Button onClick={() => {}} className="custom-class">
           Test
-        </Button>
+        </Button>,
       );
       const button = screen.getByRole('button');
       expect(button.className).toContain('custom-class');
@@ -49,7 +49,7 @@ describe('Button', () => {
       render(
         <Button onClick={handleClick} disabled>
           Test
-        </Button>
+        </Button>,
       );
       fireEvent.click(screen.getByRole('button'));
       expect(handleClick).not.toHaveBeenCalled();
@@ -65,7 +65,7 @@ describe('Button', () => {
       render(
         <Button onClick={() => {}} disabled>
           Test
-        </Button>
+        </Button>,
       );
       fireEvent.click(screen.getByRole('button'));
       expect(hapticOnButtonPress).not.toHaveBeenCalled();
@@ -77,7 +77,7 @@ describe('Button', () => {
       render(
         <Button onClick={() => {}} disabled>
           Test
-        </Button>
+        </Button>,
       );
       const button = screen.getByRole('button');
       expect(button).toBeDisabled();
@@ -93,7 +93,7 @@ describe('Button', () => {
       render(
         <Button onClick={() => {}} disabled>
           Test
-        </Button>
+        </Button>,
       );
       const button = screen.getByRole('button');
       expect(button.className).toContain('disabled:opacity-50');
@@ -120,7 +120,7 @@ describe('Button', () => {
       render(
         <Button onClick={() => {}} className="bg-surface">
           Test
-        </Button>
+        </Button>,
       );
       const button = screen.getByRole('button');
       expect(button.className).toContain('bg-surface');
@@ -130,7 +130,7 @@ describe('Button', () => {
       render(
         <Button onClick={() => {}} className="bg-surface">
           Test
-        </Button>
+        </Button>,
       );
       const button = screen.getByRole('button');
       expect(button.className).not.toContain('bg-accent');
@@ -140,7 +140,7 @@ describe('Button', () => {
       render(
         <Button onClick={() => {}} className="bg-surface">
           Test
-        </Button>
+        </Button>,
       );
       const button = screen.getByRole('button');
       expect(button.className).not.toContain('shadow-shiny');
@@ -188,7 +188,11 @@ describe('Button', () => {
 
   describe('属性传递', () => {
     it('传递 autoFocus 属性', () => {
-      render(<Button onClick={() => {}} autoFocus>Test</Button>);
+      render(
+        <Button onClick={() => {}} autoFocus>
+          Test
+        </Button>,
+      );
       const button = screen.getByRole('button');
       expect(button).toHaveFocus();
     });
@@ -197,7 +201,7 @@ describe('Button', () => {
       render(
         <Button onClick={() => {}} title="Test Title">
           Test
-        </Button>
+        </Button>,
       );
       const button = screen.getByRole('button');
       expect(button).toHaveAttribute('title', 'Test Title');
@@ -207,7 +211,7 @@ describe('Button', () => {
       render(
         <Button onClick={() => {}} tabIndex={-1}>
           Test
-        </Button>
+        </Button>,
       );
       const button = screen.getByRole('button');
       expect(button).toHaveAttribute('tabindex', '-1');

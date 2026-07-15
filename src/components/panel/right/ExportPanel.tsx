@@ -506,13 +506,12 @@ export default function ExportPanel({
 
       if (isAndroid || outputFolderOrFile) {
         if (!isAndroid) {
-          const dir =
-            shouldChooseOutputFile
-              ? outputFolderOrFile.substring(
-                  0,
-                  Math.max(outputFolderOrFile.lastIndexOf('/'), outputFolderOrFile.lastIndexOf('\\')),
-                )
-              : outputFolderOrFile;
+          const dir = shouldChooseOutputFile
+            ? outputFolderOrFile.substring(
+                0,
+                Math.max(outputFolderOrFile.lastIndexOf('/'), outputFolderOrFile.lastIndexOf('\\')),
+              )
+            : outputFolderOrFile;
           if (dir) saveLastUsedPreset(dir);
         }
 

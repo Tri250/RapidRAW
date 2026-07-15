@@ -569,7 +569,11 @@ describe('useKeyboardShortcuts', () => {
         const redoSpy = vi.fn();
         useEditorStore.setState({
           selectedImage: { path: '/test/img1.jpg' } as any,
-          history: [{ masks: [], aiPatches: [] } as any, { masks: [], aiPatches: [] } as any, { masks: [], aiPatches: [] } as any],
+          history: [
+            { masks: [], aiPatches: [] } as any,
+            { masks: [], aiPatches: [] } as any,
+            { masks: [], aiPatches: [] } as any,
+          ],
           historyIndex: 0,
           redo: redoSpy,
         });
@@ -930,9 +934,7 @@ describe('useKeyboardShortcuts', () => {
       });
       renderHook(() => useKeyboardShortcuts(defaultProps));
       fireEvent.keyDown(window, { code: 'KeyT' });
-      expect(handleSettingsChangeSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ exifOverlay: ExifOverlay.Hover }),
-      );
+      expect(handleSettingsChangeSpy).toHaveBeenCalledWith(expect.objectContaining({ exifOverlay: ExifOverlay.Hover }));
     });
 
     it('在编辑模式下不应触发 toggle_library_exif', () => {
@@ -1006,19 +1008,37 @@ describe('useKeyboardShortcuts', () => {
 
   describe('macOS 平台差异', () => {
     it('macOS 上 Meta+Backspace 应映射为 Delete 键', () => {
-      const event = { code: 'Backspace', metaKey: true, ctrlKey: false, shiftKey: false, altKey: false } as KeyboardEvent;
+      const event = {
+        code: 'Backspace',
+        metaKey: true,
+        ctrlKey: false,
+        shiftKey: false,
+        altKey: false,
+      } as KeyboardEvent;
       const result = normalizeCombo(event, 'macos');
       expect(result).toContain('Delete');
     });
 
     it('macOS 上 Ctrl+Backspace 也应映射为 Delete 键', () => {
-      const event = { code: 'Backspace', ctrlKey: true, metaKey: false, shiftKey: false, altKey: false } as KeyboardEvent;
+      const event = {
+        code: 'Backspace',
+        ctrlKey: true,
+        metaKey: false,
+        shiftKey: false,
+        altKey: false,
+      } as KeyboardEvent;
       const result = normalizeCombo(event, 'macos');
       expect(result).toContain('Delete');
     });
 
     it('macOS 上普通 Backspace 不应映射为 Delete', () => {
-      const event = { code: 'Backspace', ctrlKey: false, metaKey: false, shiftKey: false, altKey: false } as KeyboardEvent;
+      const event = {
+        code: 'Backspace',
+        ctrlKey: false,
+        metaKey: false,
+        shiftKey: false,
+        altKey: false,
+      } as KeyboardEvent;
       const result = normalizeCombo(event, 'macos');
       expect(result).not.toContain('Delete');
     });

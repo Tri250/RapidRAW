@@ -105,9 +105,7 @@ describe('Input', () => {
 
       fireEvent.keyDown(input, { key: 'Enter' });
       expect(handleKeyDown).toHaveBeenCalledTimes(1);
-      expect(handleKeyDown).toHaveBeenCalledWith(
-        expect.objectContaining({ key: 'Enter' }),
-      );
+      expect(handleKeyDown).toHaveBeenCalledWith(expect.objectContaining({ key: 'Enter' }));
     });
 
     it('onKeyDown 支持不同按键', () => {
@@ -116,14 +114,10 @@ describe('Input', () => {
       const input = screen.getByRole('textbox');
 
       fireEvent.keyDown(input, { key: 'Escape' });
-      expect(handleKeyDown).toHaveBeenCalledWith(
-        expect.objectContaining({ key: 'Escape' }),
-      );
+      expect(handleKeyDown).toHaveBeenCalledWith(expect.objectContaining({ key: 'Escape' }));
 
       fireEvent.keyDown(input, { key: 'Tab' });
-      expect(handleKeyDown).toHaveBeenCalledWith(
-        expect.objectContaining({ key: 'Tab' }),
-      );
+      expect(handleKeyDown).toHaveBeenCalledWith(expect.objectContaining({ key: 'Tab' }));
     });
   });
 

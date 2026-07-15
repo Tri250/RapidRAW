@@ -158,7 +158,7 @@ describe('GlobalTooltip', () => {
         vi.advanceTimersByTime(499);
       });
 
-      let tooltip = document.querySelector('[class*="z-100"]');
+      const tooltip = document.querySelector('[class*="z-100"]');
       expect(tooltip).not.toBeInTheDocument();
 
       act(() => {

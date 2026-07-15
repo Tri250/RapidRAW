@@ -119,9 +119,7 @@ describe('useWaveformControls', () => {
       });
 
       expect(mockSetEditor).toHaveBeenCalledWith({ isWaveformVisible: true });
-      expect(mockHandleSettingsChange).toHaveBeenCalledWith(
-        expect.objectContaining({ isWaveformVisible: true }),
-      );
+      expect(mockHandleSettingsChange).toHaveBeenCalledWith(expect.objectContaining({ isWaveformVisible: true }));
     });
 
     it('切换波形可见性从 true 到 false', () => {
@@ -135,9 +133,7 @@ describe('useWaveformControls', () => {
       });
 
       expect(mockSetEditor).toHaveBeenCalledWith({ isWaveformVisible: false });
-      expect(mockHandleSettingsChange).toHaveBeenCalledWith(
-        expect.objectContaining({ isWaveformVisible: false }),
-      );
+      expect(mockHandleSettingsChange).toHaveBeenCalledWith(expect.objectContaining({ isWaveformVisible: false }));
     });
 
     it('多次切换波形可见性', () => {
@@ -189,9 +185,7 @@ describe('useWaveformControls', () => {
       });
 
       expect(mockSetEditor).toHaveBeenCalledWith({ activeWaveformChannel: 'red' });
-      expect(mockHandleSettingsChange).toHaveBeenCalledWith(
-        expect.objectContaining({ activeWaveformChannel: 'red' }),
-      );
+      expect(mockHandleSettingsChange).toHaveBeenCalledWith(expect.objectContaining({ activeWaveformChannel: 'red' }));
     });
 
     it('设置活动波形通道为 green', () => {
