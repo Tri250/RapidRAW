@@ -2383,11 +2383,13 @@ pub fn run() {
         file_management::save_albums,
         file_management::add_to_album,
         file_management::get_album_images,
-        tagging::start_background_indexing,
-        tagging::clear_ai_tags,
-        tagging::clear_all_tags,
-        tagging::add_tag_for_paths,
-        tagging::remove_tag_for_paths,
+        #[cfg(not(target_os = "android"))]
+            tagging::start_background_indexing,
+            #[cfg(not(target_os = "android"))]
+            tagging::clear_ai_tags,
+            tagging::clear_all_tags,
+            tagging::add_tag_for_paths,
+            tagging::remove_tag_for_paths,
         culling::cull_images,
         lens_correction::get_lensfun_makers,
         lens_correction::get_lensfun_lenses_for_maker,
