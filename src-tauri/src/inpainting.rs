@@ -372,6 +372,7 @@ pub async fn invoke_generative_replace_with_mask_def(
         apply_unwarp_geometry(Cow::Borrowed(&mask_dynamic), &current_adjustments).into_owned();
     let mask_bitmap = unwarped_dynamic.to_luma8();
 
+    #[cfg(not(target_os = "android"))]
     let patch_rgba = if use_fast_inpaint {
         let lama_model = ai_processing::get_or_init_lama_model(
             &app_handle,
@@ -442,6 +443,11 @@ pub async fn invoke_generative_replace_with_mask_def(
             "No generative backend configured or connection invalid. Please check your AI settings."
                 .to_string(),
         );
+    };
+
+    #[cfg(target_os = "android")]
+    let patch_rgba = {
+        return Err("Generative replace is not available on Android in this release.".to_string());
     };
 
     let (patch_w, patch_h) = patch_rgba.dimensions();

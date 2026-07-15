@@ -3,7 +3,7 @@ name = "RapidRAW"
 description = "A blazingly-fast, non-destructive, and GPU-accelerated RAW image editor built with performance in mind."
 authors = ["Timon Käch"]
 edition = "2024"
-rust-version = "1.96"
+rust-version = "1.92"
 
 [lib]
 name = "rapidraw_lib"
@@ -64,7 +64,7 @@ filetime = "0.2"
 libc = "0.2.186"
 rgb = "0.8.53"
 imgref = "1.12.2"
-sysinfo = "0.39.5"
+sysinfo = "0.31"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 ort = { version = "=2.0.0-rc.10", features = ["ndarray", "load-dynamic"] }

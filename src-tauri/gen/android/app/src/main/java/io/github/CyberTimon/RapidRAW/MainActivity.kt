@@ -7,5 +7,11 @@ class MainActivity : TauriActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
+    PermissionHelper.setCurrentActivity(this)
+  }
+
+  override fun onDestroy() {
+    PermissionHelper.setCurrentActivity(null)
+    super.onDestroy()
   }
 }

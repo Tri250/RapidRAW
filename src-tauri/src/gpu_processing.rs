@@ -450,31 +450,35 @@ pub fn get_or_init_gpu_context(
 
     #[cfg(target_os = "android")]
     let display_opt = if let Some(surface) = surface_opt {
-        let swapchain_caps = surface.get_capabilities(&adapter);
-        let swapchain_format = swapchain_caps
-            .formats
-            .iter()
-            .copied()
-            .find(|f| !f.is_srgb())
-            .unwrap_or(swapchain_caps.formats[0]);
-
-        let alpha_mode = if swapchain_caps
-            .alpha_modes
-            .contains(&wgpu::CompositeAlphaMode::PreMultiplied)
-        {
-            wgpu::CompositeAlphaMode::PreMultiplied
-        } else if swapchain_caps
-            .alpha_modes
-            .contains(&wgpu::CompositeAlphaMode::PostMultiplied)
-        {
-            wgpu::CompositeAlphaMode::PostMultiplied
-        } else {
-            swapchain_caps.alpha_modes[0]
-        };
-
         let (surface_w, surface_h) = crate::android_integration::get_native_surface_size();
-        let width = (surface_w.max(1) as u32).max(1);
-        let height = (surface_h.max(1) as u32).max(1);
+        if surface_w <= 0 || surface_h <= 0 {
+            log::warn!("Android native surface size is zero or negative ({}x{}), falling back to compute-only", surface_w, surface_h);
+            None
+        } else {
+            let swapchain_caps = surface.get_capabilities(&adapter);
+            let swapchain_format = swapchain_caps
+                .formats
+                .iter()
+                .copied()
+                .find(|f| !f.is_srgb())
+                .unwrap_or(swapchain_caps.formats[0]);
+
+            let alpha_mode = if swapchain_caps
+                .alpha_modes
+                .contains(&wgpu::CompositeAlphaMode::PreMultiplied)
+            {
+                wgpu::CompositeAlphaMode::PreMultiplied
+            } else if swapchain_caps
+                .alpha_modes
+                .contains(&wgpu::CompositeAlphaMode::PostMultiplied)
+            {
+                wgpu::CompositeAlphaMode::PostMultiplied
+            } else {
+                swapchain_caps.alpha_modes[0]
+            };
+
+            let width = surface_w.max(1) as u32;
+            let height = surface_h.max(1) as u32;
 
         let config = wgpu::SurfaceConfiguration {
             width,

@@ -215,11 +215,11 @@ pub fn request_permissions() -> bool {
         let _ = env.set_object_array_element(&perm_array, i as i32, &perm_str);
     }
 
-    // 调用 requestPermissions (需要 Activity 上下文)
+    // 调用 PermissionHelper.requestPermissions (传入 Context 和权限数组)
     let request_result = env.call_static_method(
         "io/github/CyberTimon/RapidRAW/PermissionHelper",
         "requestPermissions",
-        "(Landroid/app/Activity;[Ljava/lang/String;)V",
+        "(Landroid/content/Context;[Ljava/lang/String;)V",
         &[(&context).into(), (&perm_array).into()],
     );
 

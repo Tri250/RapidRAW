@@ -14,6 +14,8 @@ mod ai_connector;
 mod ai_enhancement;
 #[cfg(not(target_os = "android"))]
 mod ai_processing;
+#[cfg(target_os = "android")]
+mod android_ai_stubs;
 mod android_integration;
 mod android_permissions;
 mod app_settings;
@@ -2399,25 +2401,44 @@ pub fn run() {
             app_settings::save_settings,
             #[cfg(not(target_os = "android"))]
             ai_commands::generate_ai_subject_mask,
+            #[cfg(target_os = "android")]
+            android_ai_stubs::generate_ai_subject_mask,
             #[cfg(not(target_os = "android"))]
             ai_commands::precompute_ai_subject_mask,
+            #[cfg(target_os = "android")]
+            android_ai_stubs::precompute_ai_subject_mask,
             #[cfg(not(target_os = "android"))]
             ai_commands::generate_ai_foreground_mask,
+            #[cfg(target_os = "android")]
+            android_ai_stubs::generate_ai_foreground_mask,
             #[cfg(not(target_os = "android"))]
             ai_commands::generate_ai_sky_mask,
+            #[cfg(target_os = "android")]
+            android_ai_stubs::generate_ai_sky_mask,
             #[cfg(not(target_os = "android"))]
             ai_commands::generate_ai_depth_mask,
+            #[cfg(target_os = "android")]
+            android_ai_stubs::generate_ai_depth_mask,
             #[cfg(not(target_os = "android"))]
             ai_commands::check_ai_connector_status,
+            #[cfg(target_os = "android")]
+            android_ai_stubs::check_ai_connector_status,
             #[cfg(not(target_os = "android"))]
             ai_commands::test_ai_connector_connection,
+            #[cfg(target_os = "android")]
+            android_ai_stubs::test_ai_connector_connection,
             #[cfg(not(target_os = "android"))]
             ai_enhancement::apply_ai_enhance,
+            #[cfg(target_os = "android")]
+            android_ai_stubs::apply_ai_enhance,
             #[cfg(not(target_os = "android"))]
             ai_enhancement::apply_ai_denoise,
+            #[cfg(target_os = "android")]
+            android_ai_stubs::apply_ai_denoise,
             #[cfg(not(target_os = "android"))]
             ai_enhancement::apply_ai_upscale,
-            #[cfg(not(target_os = "android"))]
+            #[cfg(target_os = "android")]
+            android_ai_stubs::apply_ai_upscale,
             inpainting::invoke_generative_replace_with_mask_def,
             inpainting::generate_manual_cleanup_patch,
             denoising::apply_denoising,
@@ -2475,8 +2496,12 @@ pub fn run() {
             file_management::get_album_images,
             #[cfg(not(target_os = "android"))]
             tagging::start_background_indexing,
+            #[cfg(target_os = "android")]
+            android_ai_stubs::start_background_indexing,
             #[cfg(not(target_os = "android"))]
             tagging::clear_ai_tags,
+            #[cfg(target_os = "android")]
+            android_ai_stubs::clear_ai_tags,
             tagging::clear_all_tags,
             tagging::add_tag_for_paths,
             tagging::remove_tag_for_paths,
