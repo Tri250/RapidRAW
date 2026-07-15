@@ -987,6 +987,7 @@
       "downloading": "Downloading {{status}}...",
       "importing": "Importing images... ({{current}}/{{total}})",
       "indexing": "Indexing images... ({{current}}/{{total}})",
+      "loading": "Loading RapidRAW...",
       "moment": "This may take a moment.",
       "processing": "Processing images..."
     },

@@ -6,8 +6,11 @@ use mimalloc::MiMalloc;
 static GLOBAL: MiMalloc = MiMalloc;
 
 mod adjustment_utils;
+#[cfg(not(target_os = "android"))]
 mod ai_commands;
+#[cfg(not(target_os = "android"))]
 mod ai_connector;
+#[cfg(not(target_os = "android"))]
 mod ai_processing;
 mod android_integration;
 mod app_settings;
@@ -2316,12 +2319,19 @@ pub fn run() {
             cache_utils::clear_image_caches,
             app_settings::load_settings,
             app_settings::save_settings,
+            #[cfg(not(target_os = "android"))]
             ai_commands::generate_ai_subject_mask,
+            #[cfg(not(target_os = "android"))]
             ai_commands::precompute_ai_subject_mask,
+            #[cfg(not(target_os = "android"))]
             ai_commands::generate_ai_foreground_mask,
+            #[cfg(not(target_os = "android"))]
             ai_commands::generate_ai_sky_mask,
+            #[cfg(not(target_os = "android"))]
             ai_commands::generate_ai_depth_mask,
+            #[cfg(not(target_os = "android"))]
             ai_commands::check_ai_connector_status,
+            #[cfg(not(target_os = "android"))]
             ai_commands::test_ai_connector_connection,
             inpainting::invoke_generative_replace_with_mask_def,
             inpainting::generate_manual_cleanup_patch,

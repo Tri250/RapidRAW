@@ -29,5 +29,14 @@ export default defineConfig(async () => ({
   build: {
     minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
+    // Disable crossorigin attributes for Android WebViewAssetLoader compatibility
+    // WebViewAssetLoader does not send CORS headers, causing crossorigin="anonymous"
+    // scripts to be silently blocked by the browser
+    modulePreload: false,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
   },
 }));

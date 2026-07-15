@@ -11,6 +11,7 @@ import FolderTree from './components/panel/FolderTree';
 import ExportPanel from './components/panel/right/ExportPanel';
 import Resizer from './components/ui/Resizer';
 import GlobalTooltip from './components/ui/GlobalTooltip';
+import ErrorBoundary from './components/ui/ErrorBoundary';
 import AppModals from './components/modals/AppModals';
 
 import EditorView from './components/views/EditorView';
@@ -523,16 +524,23 @@ function App() {
   };
 
   useEffect(() => {
+    // Skip on Android - getCurrentWindow() behaves differently in mobile WebView
+    if (isAndroid) return;
+
     const appWindow = getCurrentWindow();
     const checkFullscreen = async () => {
-      setUI({ isWindowFullScreen: await appWindow.isFullscreen() });
+      try {
+        setUI({ isWindowFullScreen: await appWindow.isFullscreen() });
+      } catch {
+        // Ignore errors on platforms where this API is not available
+      }
     };
     checkFullscreen();
     const unlistenPromise = appWindow.onResized(checkFullscreen);
     return () => {
       unlistenPromise.then((unlisten: any) => unlisten());
     };
-  }, [setUI]);
+  }, [setUI, isAndroid]);
 
   const handleRightPanelSelect = useCallback(
     (panelId: Panel) => {
@@ -780,12 +788,14 @@ function App() {
 }
 
 const AppWrapper = () => (
-  <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} routerPush={(to) => {}} routerReplace={(to) => {}}>
-    <ContextMenuProvider>
-      <App />
-      <GlobalTooltip />
-    </ContextMenuProvider>
-  </ClerkProvider>
+  <ErrorBoundary>
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} routerPush={(to) => {}} routerReplace={(to) => {}}>
+      <ContextMenuProvider>
+        <App />
+        <GlobalTooltip />
+      </ContextMenuProvider>
+    </ClerkProvider>
+  </ErrorBoundary>
 );
 
 export default AppWrapper;

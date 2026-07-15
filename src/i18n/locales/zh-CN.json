@@ -987,6 +987,7 @@
       "downloading": "下载中 {{status}}...",
       "importing": "导入图像中...（{{current}}/{{total}}）",
       "indexing": "索引图像中...（{{current}}/{{total}}）",
+      "loading": "加载 RapidRAW 中...",
       "moment": "这可能需要一些时间。",
       "processing": "处理图像中..."
     },
