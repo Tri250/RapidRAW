@@ -103,7 +103,7 @@ jobs:
         run: npm install
 
       - name: Setup Android signing
-        if: inputs.mobile == 'android' && github.event_name != 'pull_request'
+        if: false  # TODO: temporarily skip signing for test build
         run: |
           cd src-tauri/gen/android
           echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
