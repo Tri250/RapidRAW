@@ -224,7 +224,14 @@ export default function MainLibrary(props: MainLibraryProps) {
 
   if (!props.rootPaths || props.rootPaths.length === 0) {
     if (!props.appSettings) {
-      return null;
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center h-full bg-bg-secondary rounded-lg overflow-hidden">
+          <Loader2 className="h-10 w-10 text-text-secondary animate-spin mb-4" />
+          <Text variant={TextVariants.heading} color={TextColors.secondary}>
+            {t('library.status.loading')}
+          </Text>
+        </div>
+      );
     }
     const hasLastPath = !!props.appSettings.lastRootPath || !!props.appSettings.rootFolders?.length;
     const currentThemeId = props.theme || DEFAULT_THEME_ID;
