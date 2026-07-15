@@ -96,15 +96,6 @@ sha2 = "0.11"
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "rustls"] }
 hex = "0.4"
 
-[patch.crates-io]
-tauri = { path = "/workspace/tauri-src/crates/tauri" }
-tauri-build = { path = "/workspace/tauri-src/crates/tauri-build" }
-tauri-codegen = { path = "/workspace/tauri-src/crates/tauri-codegen" }
-tauri-utils = { path = "/workspace/tauri-src/crates/tauri-utils" }
-tauri-macros = { path = "/workspace/tauri-src/crates/tauri-macros" }
-tauri-runtime = { path = "/workspace/tauri-src/crates/tauri-runtime" }
-tauri-runtime-wry = { path = "/workspace/tauri-src/crates/tauri-runtime-wry" }
-
 [profile.dev]
 opt-level = 2
 debug = 1
@@ -115,5 +106,5 @@ opt-level = 3
 
 [profile.release]
 codegen-units = 1
-lto = false
+lto = true
 strip = true
