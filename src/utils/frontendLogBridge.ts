@@ -35,11 +35,11 @@ function isViteLikeError(value: unknown): value is Record<string, unknown> {
 
   return Boolean(
     getRecordField<string>(value, 'message') ||
-    getRecordField<string>(value, 'stack') ||
-    getRecordField<string>(value, 'frame') ||
-    getRecordField<string>(value, 'plugin') ||
-    getRecordField<string>(value, 'id') ||
-    getRecordField<Record<string, unknown>>(value, 'loc'),
+      getRecordField<string>(value, 'stack') ||
+      getRecordField<string>(value, 'frame') ||
+      getRecordField<string>(value, 'plugin') ||
+      getRecordField<string>(value, 'id') ||
+      getRecordField<Record<string, unknown>>(value, 'loc'),
   );
 }
 
@@ -100,7 +100,10 @@ function extractViteDetails(args: unknown[]): string | null {
 
 function shouldIgnoreMessage(message: string): boolean {
   const normalized = message.toLowerCase();
-  if (normalized.includes('[vite] failed to reload') && normalized.includes('see errors above')) {
+  if (
+    normalized.includes('[vite] failed to reload') &&
+    normalized.includes('see errors above')
+  ) {
     return true;
   }
 
@@ -125,7 +128,11 @@ function shouldDropDuplicate(level: FrontendLogLevel, message: string): boolean 
   return false;
 }
 
-function serializeValue(value: unknown, depth: number, seen: WeakSet<object>): unknown {
+function serializeValue(
+  value: unknown,
+  depth: number,
+  seen: WeakSet<object>,
+): unknown {
   if (value === null || value === undefined) {
     return value;
   }
@@ -159,7 +166,11 @@ function serializeValue(value: unknown, depth: number, seen: WeakSet<object>): u
     };
 
     for (const key of Object.getOwnPropertyNames(value)) {
-      eventRecord[key] = serializeValue((value as unknown as Record<string, unknown>)[key], depth + 1, seen);
+      eventRecord[key] = serializeValue(
+        (value as unknown as Record<string, unknown>)[key],
+        depth + 1,
+        seen,
+      );
     }
 
     return eventRecord;
@@ -172,15 +183,22 @@ function serializeValue(value: unknown, depth: number, seen: WeakSet<object>): u
     seen.add(value);
 
     const output: Record<string, unknown> = {};
-    const keys = new Set<string>([...Object.keys(value), ...Object.getOwnPropertyNames(value)]);
+    const keys = new Set<string>([
+      ...Object.keys(value),
+      ...Object.getOwnPropertyNames(value),
+    ]);
     for (const key of keys) {
-      output[key] = serializeValue((value as Record<string, unknown>)[key], depth + 1, seen);
+      output[key] = serializeValue(
+        (value as Record<string, unknown>)[key],
+        depth + 1,
+        seen,
+      );
     }
     return output;
   }
 
   if (typeof value === 'function') {
-    return `[Function ${(value as { name?: string }).name || 'anonymous'}]`;
+    return `[Function ${(value as Function).name || 'anonymous'}]`;
   }
 
   if (typeof value === 'bigint') {
@@ -275,7 +293,7 @@ export function installFrontendLogBridge(): void {
     .hot;
   if (hot?.on) {
     hot.on('vite:error', (payload: unknown) => {
-      const err = isPlainRecord(payload) ? (getRecordField<unknown>(payload, 'err') ?? payload) : payload;
+      const err = isPlainRecord(payload) ? getRecordField<unknown>(payload, 'err') ?? payload : payload;
       sendToBackend('error', ['[vite:error:event]', err]);
     });
   }

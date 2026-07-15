@@ -14,7 +14,6 @@ import MasksPanel from '../panel/right/MasksPanel';
 import AIPanel from '../panel/right/AIPanel';
 import PresetsPanel from '../panel/right/PresetsPanel';
 import ExportPanel from '../panel/right/ExportPanel';
-import EditHistoryPanel from '../panel/right/EditHistoryPanel';
 
 import { useEditorStore } from '../../store/useEditorStore';
 import { useUIStore } from '../../store/useUIStore';
@@ -173,7 +172,7 @@ export default function EditorView({
       onRequestThumbnails={requestThumbnails}
       onZoomChange={handleZoomChange}
       rating={imageRatings[selectedImage?.path || ''] || 0}
-      selectedImage={selectedImage ?? undefined}
+      selectedImage={selectedImage}
       setIsFilmstripVisible={(value: boolean) =>
         setUI((state) => ({ uiVisibility: { ...state.uiVisibility, filmstrip: value } }))
       }
@@ -238,9 +237,6 @@ export default function EditorView({
             />
           )}
           {renderedRightPanel === Panel.Ai && <AIPanel />}
-          {renderedRightPanel === Panel.History && (
-            <EditHistoryPanel isOpen={true} onClose={() => handleRightPanelSelect(Panel.Adjustments)} />
-          )}
         </motion.div>
       )}
     </AnimatePresence>

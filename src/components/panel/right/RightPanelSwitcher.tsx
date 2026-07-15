@@ -7,7 +7,6 @@ import {
   Paintbrush,
   SwatchBook,
   FileInput,
-  History,
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -30,7 +29,6 @@ const panelGroups: Array<Array<PanelOptions>> = [
   [{ id: Panel.Metadata, icon: Info, title: 'editor.switcher.tooltips.info' }],
   [
     { id: Panel.Adjustments, icon: SlidersHorizontal, title: 'editor.switcher.tooltips.adjust' },
-    { id: Panel.History, icon: History, title: 'editor.switcher.tooltips.history' },
     { id: Panel.Crop, icon: Crop, title: 'editor.switcher.tooltips.crop' },
     { id: Panel.Masks, icon: Layers, title: 'editor.switcher.tooltips.masks' },
     { id: Panel.Ai, icon: Paintbrush, title: 'editor.switcher.tooltips.inpaint' },
@@ -68,7 +66,7 @@ export default function RightPanelSwitcher({
               }`}
               key={id}
               onClick={() => onPanelSelect(id)}
-              data-tooltip={t(title as any)}
+              data-tooltip={t(title)}
             >
               {activePanel === id && (
                 <motion.div

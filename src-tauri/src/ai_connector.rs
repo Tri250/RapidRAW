@@ -1,5 +1,3 @@
-#![cfg(not(target_os = "android"))]
-
 use anyhow::{Result, anyhow};
 use base64::{Engine as _, engine::general_purpose};
 use image::{

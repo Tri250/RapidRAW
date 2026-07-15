@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getVersion } from '@tauri-apps/api/app';
 import { open } from '@tauri-apps/plugin-shell';
 import {
@@ -17,7 +17,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
-const SettingsPanel = lazy(() => import('./SettingsPanel'));
+import SettingsPanel from './SettingsPanel';
 import { ThemeProps, THEMES, DEFAULT_THEME_ID } from '../../utils/themes';
 import {
   AppSettings,
@@ -264,21 +264,13 @@ export default function MainLibrary(props: MainLibraryProps) {
 
             <div className="w-full h-full flex flex-col p-8 lg:p-16 overflow-y-auto custom-scrollbar relative z-10">
               {showSettings ? (
-                <Suspense
-                  fallback={
-                    <div className="flex items-center justify-center h-full">
-                      <div className="animate-spin h-6 w-6 border-2 border-text-primary border-t-transparent rounded-full" />
-                    </div>
-                  }
-                >
-                  <SettingsPanel
-                    appSettings={props.appSettings}
-                    onBack={() => setShowSettings(false)}
-                    onLibraryRefresh={props.onLibraryRefresh}
-                    onSettingsChange={props.onSettingsChange}
-                    rootPaths={props.rootPaths}
-                  />
-                </Suspense>
+                <SettingsPanel
+                  appSettings={props.appSettings}
+                  onBack={() => setShowSettings(false)}
+                  onLibraryRefresh={props.onLibraryRefresh}
+                  onSettingsChange={props.onSettingsChange}
+                  rootPaths={props.rootPaths}
+                />
               ) : (
                 <>
                   <div className="my-auto text-left relative z-10">
@@ -344,7 +336,69 @@ export default function MainLibrary(props: MainLibraryProps) {
                     as="div"
                     className="absolute bottom-8 left-8 lg:left-16 space-y-1 z-10 drop-shadow-sm"
                   >
-                    {null}
+                    <p>
+                      {t('library.splash.imagesBy')}{' '}
+                      <a
+                        href="https://instagram.com/timonkaech.photography"
+                        className="hover:underline"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Timon Käch
+                      </a>
+                    </p>
+                    {appVersion && (
+                      <div className="flex items-center space-x-2">
+                        <p>
+                          <span
+                            className={`group transition-all duration-300 ease-in-out rounded-md py-1 ${
+                              isUpdateAvailable
+                                ? 'cursor-pointer border border-yellow-500 px-2 hover:bg-yellow-500/20'
+                                : ''
+                            }`}
+                            onClick={() => {
+                              if (isUpdateAvailable) {
+                                open('https://github.com/CyberTimon/RapidRAW/releases/latest');
+                              }
+                            }}
+                            data-tooltip={
+                              isUpdateAvailable
+                                ? t('library.splash.downloadVersion', { version: latestVersion })
+                                : t('library.splash.latestVersion')
+                            }
+                          >
+                            <span className={isUpdateAvailable ? 'group-hover:hidden' : ''}>
+                              {t('library.splash.version', { version: appVersion })}
+                            </span>
+                            {isUpdateAvailable && (
+                              <span className="hidden group-hover:inline text-yellow-400">
+                                {t('library.splash.newVersionAvailable')}
+                              </span>
+                            )}
+                          </span>
+                        </p>
+                        <span>-</span>
+                        <p>
+                          <a
+                            href="https://ko-fi.com/cybertimon"
+                            className="hover:underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {t('library.splash.donate')}
+                          </a>
+                          <span className="mx-1">{t('library.splash.or')}</span>
+                          <a
+                            href="https://github.com/CyberTimon/RapidRAW"
+                            className="hover:underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {t('library.splash.contribute')}
+                          </a>
+                        </p>
+                      </div>
+                    )}
                   </Text>
                 </>
               )}
@@ -499,7 +553,7 @@ export default function MainLibrary(props: MainLibraryProps) {
       {props.isAndroid && (
         <Button
           className="absolute bottom-18 right-8 h-12 w-12 bg-accent text-button-text shadow-lg p-0 flex items-center justify-center z-50 border border-border-color/50"
-          onClick={(e: React.MouseEvent) => {
+          onClick={(e) => {
             e.stopPropagation();
             props.onImportClick();
           }}

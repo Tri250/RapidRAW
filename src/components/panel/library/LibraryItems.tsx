@@ -728,9 +728,7 @@ const RowComponent = ({
       queueThumbnailRequest(img.path);
     });
 
-    const cloudPaths = row.images
-      .filter((img: ImageFile) => img.is_cloud_placeholder)
-      .map((img: ImageFile) => img.path);
+    const cloudPaths = row.images.filter((img: ImageFile) => img.is_cloud_placeholder).map((img: ImageFile) => img.path);
     if (cloudPaths.length === 0) return;
 
     const interval = setInterval(() => {

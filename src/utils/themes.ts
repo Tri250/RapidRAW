@@ -9,23 +9,6 @@ export interface ThemeProps {
 
 export const THEMES: Array<ThemeProps> = [
   {
-    id: Theme.DeepSpaceBlack,
-    name: 'settings.themes.deepSpaceBlack',
-    splashImage: '/splash-dark.jpg',
-    cssVariables: {
-      '--app-bg-primary': 'rgb(6, 8, 12)',
-      '--app-bg-secondary': 'rgb(12, 15, 22)',
-      '--app-surface': 'rgb(9, 12, 18)',
-      '--app-card-active': 'rgb(18, 22, 32)',
-      '--app-button-text': 'rgb(6, 8, 12)',
-      '--app-text-primary': 'rgb(222, 228, 240)',
-      '--app-text-secondary': 'rgb(130, 142, 162)',
-      '--app-accent': 'rgb(25, 145, 125)',
-      '--app-border-color': 'rgb(22, 26, 36)',
-      '--app-hover-color': 'rgb(25, 145, 125)',
-    },
-  },
-  {
     id: Theme.Dark,
     name: 'settings.themes.dark',
     splashImage: '/splash-dark.jpg',
@@ -53,10 +36,10 @@ export const THEMES: Array<ThemeProps> = [
       '--app-card-active': 'rgb(250, 250, 250)',
       '--app-button-text': 'rgb(255, 255, 255)',
       '--app-text-primary': 'rgb(20, 20, 20)',
-      '--app-text-secondary': 'rgb(90, 90, 90)',
-      '--app-accent': 'rgb(178, 122, 90)',
-      '--app-border-color': 'rgb(210, 210, 210)',
-      '--app-hover-color': 'rgb(178, 122, 90)',
+      '--app-text-secondary': 'rgb(108, 108, 108)',
+      '--app-accent': 'rgb(198, 142, 110)',
+      '--app-border-color': 'rgb(224, 224, 224)',
+      '--app-hover-color': 'rgb(198, 142, 110)',
     },
   },
   {
@@ -68,7 +51,7 @@ export const THEMES: Array<ThemeProps> = [
       '--app-bg-secondary': 'rgb(118, 118, 118)',
       '--app-surface': 'rgb(108, 108, 108)',
       '--app-card-active': 'rgb(133, 133, 133)',
-      '--app-button-text': 'rgb(255, 255, 255)',
+      '--app-button-text': 'rgb(45, 45, 45)',
       '--app-text-primary': 'rgb(240, 240, 240)',
       '--app-text-secondary': 'rgb(180, 180, 180)',
       '--app-accent': 'rgb(220, 220, 220)',
@@ -76,126 +59,6 @@ export const THEMES: Array<ThemeProps> = [
       '--app-hover-color': 'rgb(220, 220, 220)',
     },
   },
-  {
-    id: Theme.Snow,
-    name: 'settings.themes.snow',
-    splashImage: '/splash-light.jpg',
-    cssVariables: {
-      '--app-bg-primary': 'rgb(250, 250, 250)',
-      '--app-bg-secondary': 'rgb(255, 255, 255)',
-      '--app-surface': 'rgb(244, 244, 244)',
-      '--app-card-active': 'rgb(252, 252, 252)',
-      '--app-button-text': 'rgb(255, 255, 255)',
-      '--app-text-primary': 'rgb(30, 30, 30)',
-      '--app-text-secondary': 'rgb(100, 100, 100)',
-      '--app-accent': 'rgb(70, 130, 180)',
-      '--app-border-color': 'rgb(228, 228, 228)',
-      '--app-hover-color': 'rgb(70, 130, 180)',
-    },
-  },
-  {
-    id: Theme.Arctic,
-    name: 'settings.themes.arctic',
-    splashImage: '/splash-light.jpg',
-    cssVariables: {
-      '--app-bg-primary': 'rgb(240, 245, 250)',
-      '--app-bg-secondary': 'rgb(248, 251, 255)',
-      '--app-surface': 'rgb(235, 240, 248)',
-      '--app-card-active': 'rgb(245, 248, 252)',
-      '--app-button-text': 'rgb(255, 255, 255)',
-      '--app-text-primary': 'rgb(20, 30, 50)',
-      '--app-text-secondary': 'rgb(80, 100, 130)',
-      '--app-accent': 'rgb(60, 140, 200)',
-      '--app-border-color': 'rgb(210, 225, 240)',
-      '--app-hover-color': 'rgb(60, 140, 200)',
-    },
-  },
-  {
-    id: Theme.Blue,
-    name: 'settings.themes.blue',
-    splashImage: '/splash-dark.jpg',
-    cssVariables: {
-      '--app-bg-primary': 'rgb(18, 22, 36)',
-      '--app-bg-secondary': 'rgb(24, 30, 46)',
-      '--app-surface': 'rgb(22, 26, 40)',
-      '--app-card-active': 'rgb(32, 38, 56)',
-      '--app-button-text': 'rgb(255, 255, 255)',
-      '--app-text-primary': 'rgb(220, 230, 245)',
-      '--app-text-secondary': 'rgb(140, 155, 185)',
-      '--app-accent': 'rgb(80, 160, 240)',
-      '--app-border-color': 'rgb(35, 42, 60)',
-      '--app-hover-color': 'rgb(80, 160, 240)',
-    },
-  },
-  {
-    id: Theme.MutedGreen,
-    name: 'settings.themes.mutedGreen',
-    splashImage: '/splash-dark.jpg',
-    cssVariables: {
-      '--app-bg-primary': 'rgb(22, 28, 24)',
-      '--app-bg-secondary': 'rgb(28, 34, 30)',
-      '--app-surface': 'rgb(24, 30, 26)',
-      '--app-card-active': 'rgb(34, 42, 36)',
-      '--app-button-text': 'rgb(20, 28, 22)',
-      '--app-text-primary': 'rgb(215, 230, 220)',
-      '--app-text-secondary': 'rgb(140, 165, 150)',
-      '--app-accent': 'rgb(130, 200, 150)',
-      '--app-border-color': 'rgb(38, 48, 40)',
-      '--app-hover-color': 'rgb(130, 200, 150)',
-    },
-  },
-  {
-    id: Theme.Sepia,
-    name: 'settings.themes.sepia',
-    splashImage: '/splash-dark.jpg',
-    cssVariables: {
-      '--app-bg-primary': 'rgb(40, 35, 30)',
-      '--app-bg-secondary': 'rgb(48, 42, 36)',
-      '--app-surface': 'rgb(44, 38, 32)',
-      '--app-card-active': 'rgb(55, 48, 40)',
-      '--app-button-text': 'rgb(30, 25, 20)',
-      '--app-text-primary': 'rgb(235, 225, 210)',
-      '--app-text-secondary': 'rgb(175, 160, 140)',
-      '--app-accent': 'rgb(210, 170, 120)',
-      '--app-border-color': 'rgb(60, 50, 40)',
-      '--app-hover-color': 'rgb(210, 170, 120)',
-    },
-  },
 ];
 
-export const DEFAULT_THEME_ID = Theme.DeepSpaceBlack;
-
-export const LIGHT_THEME_IDS = [Theme.Light, Theme.Snow, Theme.Arctic];
-
-export function getThemeById(themeId: Theme): ThemeProps {
-  const theme = THEMES.find((t) => t.id === themeId);
-  return theme || THEMES.find((t) => t.id === DEFAULT_THEME_ID)!;
-}
-
-export function applyTheme(themeId: Theme): void {
-  const theme = getThemeById(themeId);
-  const root = document.documentElement;
-  Object.entries(theme.cssVariables).forEach(([key, value]) => {
-    root.style.setProperty(key, value as string);
-  });
-}
-
-export function isLightTheme(themeId: Theme): boolean {
-  return LIGHT_THEME_IDS.includes(themeId);
-}
-
-export function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16),
-      }
-    : null;
-}
-
-export function rgbToString(r: number, g: number, b: number): string {
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
+export const DEFAULT_THEME_ID = Theme.Dark;

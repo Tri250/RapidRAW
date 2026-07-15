@@ -103,7 +103,6 @@
       "dehaze": "去雾",
       "luminance": "亮度",
       "noiseReduction": "降噪",
-      "portrait": "人像",
       "presence": "质感",
       "redCyan": "红/青",
       "sharpening": "锐化",
@@ -289,9 +288,9 @@
       },
       "sections": {
         "basic": "基础",
-        "color": "色彩",
+        "color": "颜色",
         "curves": "曲线",
-        "details": "人像",
+        "details": "细节",
         "effects": "效果"
       },
       "title": "调整",
@@ -508,21 +507,6 @@
       "exporting": "正在导出…",
       "savesTo": "外部编辑 — 保存至"
     },
-    "history": {
-      "title": "编辑历史",
-      "undo": "撤销",
-      "redo": "重做",
-      "steps": "{{count}} 步操作",
-      "branches": "{{count}} 个分支点",
-      "createBranch": "新建分支",
-      "branchName": "分支名称",
-      "initialState": "初始状态",
-      "adjustmentChange": "调整",
-      "cropChange": "裁剪",
-      "presetApplied": "预设",
-      "noHistory": "暂无编辑记录",
-      "current": "当前"
-    },
     "masks": {
       "actions": {
         "addNewComponent": "添加新组件",
@@ -714,7 +698,6 @@
         "adjust": "调整",
         "crop": "裁剪",
         "export": "导出",
-        "history": "编辑历史",
         "info": "信息",
         "inpaint": "修复",
         "masks": "蒙版",
@@ -982,7 +965,7 @@
     },
     "splash": {
       "addFolder": "添加文件夹",
-      "brand": "光影工坊",
+      "brand": "RapidRAW",
       "continueSession": "继续会话",
       "contribute": "在 GitHub 上贡献",
       "descriptionAndroid": "一款极速、GPU 加速的 RAW 图像编辑器。打开图库以开始。",
@@ -1360,14 +1343,6 @@
       "noiseReduction": "降噪",
       "title": "调整可见性"
     },
-    "android": {
-      "title": "Android 设置",
-      "permissionsNote": "Android 需要存储权限以访问和保存照片",
-      "performanceMode": "性能模式",
-      "performanceModeDesc": "降低处理质量以提升低端设备的响应速度",
-      "autoSave": "自动保存",
-      "autoSaveDesc": "每次编辑后自动保存，防止系统回收进程导致数据丢失"
-    },
     "categories": {
       "general": "通用",
       "processing": "处理",
@@ -1670,29 +1645,6 @@
       "workerThreads": "缩略图工作线程数",
       "workerThreadsDesc": "用于生成缩略图的并行线程数。较高的值可加快图库加载速度，但会占用更多 CPU 和内存。"
     },
-    "colorScience": {
-      "title": "色彩科学",
-      "pipeline": "色彩管线",
-      "pipelineDesc": "选择用于图像处理的色彩渲染管线。",
-      "pipelineSimplifiedAces": "简化 ACES（默认）",
-      "pipelineAces20": "ACES 2.0",
-      "pipelineOpenDRT": "OpenDRT",
-      "displayColorSpace": "显示色彩空间",
-      "displayColorSpaceDesc": "输出图像的目标色彩空间。",
-      "colorSpaceSrgb": "sRGB / Rec.709",
-      "colorSpaceP3": "Display P3",
-      "colorSpaceRec2020": "Rec.2020",
-      "eotf": "传输函数 (EOTF)",
-      "eotfDesc": "用于显示编码的电光传输函数。",
-      "eotfSrgb": "sRGB",
-      "eotfGamma22": "Gamma 2.2",
-      "eotfGamma24": "Gamma 2.4 (BT.1886)",
-      "eotfPQ": "PQ (ST.2084)",
-      "hdrOutput": "HDR 输出",
-      "hdrOutputDesc": "为兼容显示器启用高动态范围输出。",
-      "peakLuminance": "峰值亮度",
-      "peakLuminanceDesc": "显示器的最大亮度（尼特）。较高的值可呈现 HDR 高光。"
-    },
     "tagging": {
       "addCustomPlaceholder": "添加自定义 AI 标签（逗号分隔）...",
       "addCustomTooltip": "添加 AI 标签",
@@ -1722,9 +1674,9 @@
       "title": "标签"
     },
     "thanks": {
-      "description": "热爱摄影的开发者，为摄影爱好者打造专业工具",
+      "description": "衷心感谢以下项目，它们在 RapidRAW 的开发过程中非常重要：",
       "list": {
-        "darktable": "我只是「带娃的小陈工」，一名热爱摄影的开发者。",
+        "darktable": "为部分参考实现提供了指导。",
         "depth": "为强大的单目深度估计模型提供支持，实现了 AI 深度蒙版功能。",
         "lama": "为强大且简单的图像修复模型提供支持，实现了内容感知填充和对象移除。",
         "lensfun": "为无价的开源库和全面的数据库提供支持，实现了自动镜头校正。",
@@ -1733,21 +1685,15 @@
         "rawler": "为优秀的 Rust 库提供支持，构成了本项目 RAW 文件处理的基础。",
         "sam2": "为提供基础模型，用于 AI 主体检测功能。",
         "u2net": "为提供稳健的架构，用于 AI 天空和前景检测功能。",
-        "you": "感谢您使用和支持。您的关注使本项目持续发展。",
+        "you": "感谢您使用和支持 RapidRAW。您的关注使本项目持续发展。",
         "youLabel": "您"
       },
       "title": "特别鸣谢"
     },
     "themes": {
       "dark": "深色",
-      "deepSpaceBlack": "深空黑",
       "grey": "灰色",
-      "light": "浅色",
-      "snow": "雪白",
-      "arctic": "极光蓝",
-      "blue": "深蓝",
-      "mutedGreen": "柔绿",
-      "sepia": "暖棕"
+      "light": "浅色"
     },
     "title": "设置",
     "tooltips": {
@@ -1836,20 +1782,5 @@
         "vectorscope": "矢量示波器"
       }
     }
-  },
-  "privacy": {
-    "title": "隐私政策",
-    "intro": "欢迎使用 RapidRAW。在使用本应用之前，请阅读并同意我们的隐私政策。我们致力于保护您的个人信息，并依法处理您的数据。",
-    "permissionsTitle": "设备权限",
-    "permissionsDesc": "RapidRAW 需要存储权限以读取和编辑您的照片，需要网络访问权限以下载 AI 模型和预设，以及可选的 EXIF 位置信息访问权限以显示照片元数据。所有处理均在您的设备本地完成。",
-    "noCollectionTitle": "我们不会收集的信息",
-    "noCollectionDesc": "我们不会收集个人身份信息、设备位置数据、使用行为数据，也不会进行用户画像。未集成任何第三方广告或行为追踪 SDK。",
-    "aiTitle": "AI 功能",
-    "aiDesc": "所有 AI 功能（降噪、超分辨率、修复、分割、语义搜索）完全在您的设备上运行。您的图像不会被上传到任何外部服务器。",
-    "storageTitle": "数据存储",
-    "storageDesc": "您的原始图像和编辑数据保存在设备本地。应用缓存存储在私有目录中，其他应用无法访问。所有网络通信均使用 HTTPS/TLS 加密。",
-    "fullPolicy": "以上为隐私政策摘要。继续使用即表示您同意应用设置中提供的完整隐私政策。",
-    "agree": "同意并继续",
-    "decline": "拒绝"
   }
 }

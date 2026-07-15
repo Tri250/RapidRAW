@@ -502,8 +502,6 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
   const [previews, setPreviews] = useState<Record<string, string | null>>({});
   const [isGeneratingPreviews, setIsGeneratingPreviews] = useState(false);
   const [configureModalState, setConfigureModalState] = useState<ModalState>({ isOpen: false, preset: null });
-  const isConfigurePresetModalOpen = useUIStore((s) => s.isConfigurePresetModalOpen);
-  const setUI = useUIStore((s) => s.setUI);
   const [isAddFolderModalOpen, setIsAddFolderModalOpen] = useState(false);
   const [renameFolderState, setRenameFolderState] = useState<FolderState>({ isOpen: false, folder: null });
   const [expandedFolders, setExpandedFolders] = useState(new Set<string>());
@@ -650,7 +648,7 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
           break;
         }
 
-        const blob = new Blob([imageData as unknown as BlobPart], { type: 'image/jpeg' });
+        const blob = new Blob([imageData], { type: 'image/jpeg' });
         const url = URL.createObjectURL(blob);
         setPreviews((prev: Record<string, string | null>) => {
           const oldUrl = prev[preset.id];
@@ -716,7 +714,7 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
 
         if (pathAtStart !== currentImagePathRef.current) return;
 
-        const blob = new Blob([imageData as unknown as BlobPart], { type: 'image/jpeg' });
+        const blob = new Blob([imageData], { type: 'image/jpeg' });
         const url = URL.createObjectURL(blob);
 
         setPreviews((prev: Record<string, string | null>) => {
@@ -869,7 +867,6 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
       }
     }
     setConfigureModalState({ isOpen: false, preset: null });
-    setUI({ isConfigurePresetModalOpen: false });
   };
 
   const handleAddFolder = (name: string) => {
@@ -1074,10 +1071,7 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
         {
           icon: Settings2,
           label: t('editor.presets.menu.configurePreset'),
-          onClick: () => {
-            setConfigureModalState({ isOpen: true, preset: data as Preset });
-            setUI({ isConfigurePresetModalOpen: true });
-          },
+          onClick: () => setConfigureModalState({ isOpen: true, preset: data as Preset }),
         },
         { type: OPTION_SEPARATOR },
         {
@@ -1117,10 +1111,7 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
       {
         icon: Plus,
         label: t('editor.presets.menu.newPreset'),
-        onClick: () => {
-          setConfigureModalState({ isOpen: true, preset: null });
-          setUI({ isConfigurePresetModalOpen: true });
-        },
+        onClick: () => setConfigureModalState({ isOpen: true, preset: null }),
       },
       {
         icon: FolderPlus,
@@ -1173,10 +1164,7 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
             <button
               className="p-2 rounded-full hover:bg-surface transition-colors"
               disabled={isLoading}
-              onClick={() => {
-                setConfigureModalState({ isOpen: true, preset: null });
-                setUI({ isConfigurePresetModalOpen: true });
-              }}
+              onClick={() => setConfigureModalState({ isOpen: true, preset: null })}
               data-tooltip={t('editor.presets.tooltips.saveNew')}
             >
               <Plus size={18} />
@@ -1289,12 +1277,9 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
         </div>
 
         <ConfigurePresetModal
-          isOpen={isConfigurePresetModalOpen}
+          isOpen={configureModalState.isOpen}
           initialPreset={configureModalState.preset}
-          onClose={() => {
-            setConfigureModalState({ isOpen: false, preset: null });
-            setUI({ isConfigurePresetModalOpen: false });
-          }}
+          onClose={() => setConfigureModalState({ isOpen: false, preset: null })}
           onSave={handleSaveConfiguredPreset}
         />
         <CreateFolderModal

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { hapticOnSliderChange } from '../../utils/hapticFeedback';
 import { GLOBAL_KEYS } from './AppProperties';
 
 type SliderChangeEvent =
@@ -23,7 +22,6 @@ interface SliderProps {
   trackClassName?: string;
   fillOrigin?: 'min' | 'default';
   suffix?: string;
-  disabled?: boolean;
 }
 
 const DOUBLE_CLICK_THRESHOLD_MS = 300;
@@ -296,7 +294,6 @@ const Slider = ({
 
     if (!isDragging) {
       setDisplayValue(Number(e.target.value));
-      hapticOnSliderChange();
       onChange(e);
     }
   };
@@ -398,7 +395,7 @@ const Slider = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const textVal = e.target.value;
-    if (!/^[0-9.,-]*$/.test(textVal)) {
+    if (!/^[0-9.,\-]*$/.test(textVal)) {
       return;
     }
     setInputValue(textVal);
@@ -480,7 +477,7 @@ const Slider = ({
         >
           <span
             aria-hidden={isLabelHovered && typeof label === 'string'}
-            className={`col-start-1 row-start-1 text-xs sm:text-sm font-medium text-text-secondary select-none transition-opacity duration-200 ease-in-out ${
+            className={`col-start-1 row-start-1 text-sm font-medium text-text-secondary select-none transition-opacity duration-200 ease-in-out ${
               isLabelHovered && typeof label === 'string' ? 'opacity-0' : 'opacity-100'
             }`}
           >
@@ -489,7 +486,7 @@ const Slider = ({
           {typeof label === 'string' && (
             <span
               aria-hidden={!isLabelHovered}
-              className={`col-start-1 row-start-1 text-xs sm:text-sm font-medium text-text-primary select-none transition-opacity duration-200 ease-in-out pointer-events-none ${
+              className={`col-start-1 row-start-1 text-sm font-medium text-text-primary select-none transition-opacity duration-200 ease-in-out pointer-events-none ${
                 isLabelHovered ? 'opacity-100' : 'opacity-0'
               }`}
             >
@@ -540,7 +537,7 @@ const Slider = ({
         />
         <input
           ref={rangeInputRef}
-          className={`absolute top-1/2 -translate-y-1/2 left-0 w-full min-h-[44px] appearance-none bg-transparent cursor-pointer m-0 p-0 slider-input z-10 ${
+          className={`absolute top-1/2 left-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer m-0 p-0 slider-input z-10 ${
             isDragging ? 'slider-thumb-active' : ''
           }`}
           style={{ margin: 0, touchAction: isDragging ? 'none' : 'pan-y' }}

@@ -12,9 +12,6 @@ import ExportPanel from './components/panel/right/ExportPanel';
 import Resizer from './components/ui/Resizer';
 import GlobalTooltip from './components/ui/GlobalTooltip';
 import AppModals from './components/modals/AppModals';
-import PrivacyConsentModal from './components/modals/PrivacyConsentModal';
-import ErrorBoundary from './components/ui/ErrorBoundary';
-import MobileAccessibilityHelper from './components/ui/MobileAccessibilityHelper';
 
 import EditorView from './components/views/EditorView';
 import LibraryView from './components/views/LibraryView';
@@ -188,14 +185,6 @@ function App() {
   const [isResizing, setIsResizing] = useState(false);
   const [thumbnailSize, setThumbnailSize] = useState(defaultThumbnailSize);
   const [thumbnailAspectRatio, setThumbnailAspectRatio] = useState(ThumbnailAspectRatio.Cover);
-
-  const [privacyConsented, setPrivacyConsented] = useState(() => {
-    try {
-      return localStorage.getItem('rapidraw-privacy-consent') === 'true';
-    } catch {
-      return false;
-    }
-  });
 
   const { requestThumbnails, clearThumbnailQueue, markGenerated } = useThumbnails();
 
@@ -459,7 +448,6 @@ function App() {
   }, [activeRightPanel, activeMaskContainerId, activeAiPatchContainerId, setEditor]);
 
   useEffect(() => {
-    if (isAndroid) return;
     const unlisten = listen('ai-connector-status-update', (event: any) => {
       setEditor({ isAIConnectorConnected: event.payload.connected });
     });
@@ -469,7 +457,7 @@ function App() {
       clearInterval(interval);
       unlisten.then((f) => f());
     };
-  }, [setEditor, isAndroid]);
+  }, [setEditor]);
 
   const createResizeHandler = (stateKey: string, startSize: number) => (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -587,6 +575,7 @@ function App() {
   );
 
   const hasRoots = rootPaths && rootPaths.length > 0;
+  const hasMainContent = hasRoots || !!selectedImage;
 
   const renderFolderTree = () => {
     if (!hasRoots) return null;
@@ -627,185 +616,166 @@ function App() {
   const useMacWindowShell = osPlatform === 'macos' && !appSettings?.decorations && !isWindowFullScreen && !isFullScreen;
 
   return (
-    <ErrorBoundary>
-      <>
-        <MobileAccessibilityHelper />
-        <ImageProcessingManager
-          transformWrapperRef={transformWrapperRef}
-          prevAdjustmentsRef={prevAdjustmentsRef}
-          previewJobIdRef={previewJobIdRef}
-          latestRenderedJobIdRef={latestRenderedJobIdRef}
-          currentResRef={currentResRef}
-        />
-        <ImageLoaderManager cachedEditStateRef={cachedEditStateRef} />
-        <PrivacyConsentModal
-          isOpen={!privacyConsented}
-          onAgree={() => {
-            try {
-              localStorage.setItem('rapidraw-privacy-consent', 'true');
-            } catch {
-              /* noop */
-            }
-            setPrivacyConsented(true);
-          }}
-          onDecline={() => {
-            if (typeof window !== 'undefined') {
-              window.close();
-            }
-          }}
-        />
+    <>
+      <ImageProcessingManager
+        transformWrapperRef={transformWrapperRef}
+        prevAdjustmentsRef={prevAdjustmentsRef}
+        previewJobIdRef={previewJobIdRef}
+        latestRenderedJobIdRef={latestRenderedJobIdRef}
+        currentResRef={currentResRef}
+      />
+      <ImageLoaderManager cachedEditStateRef={cachedEditStateRef} />
+      <div
+        className={clsx(
+          'flex flex-col h-screen font-sans text-text-primary overflow-hidden select-none',
+          useMacWindowShell && 'macos-window-shell',
+          isWgpuActive ? 'bg-transparent' : 'bg-bg-primary',
+        )}
+      >
         <div
           className={clsx(
-            'flex flex-col h-screen font-sans text-text-primary overflow-hidden select-none',
-            useMacWindowShell && 'macos-window-shell',
-            isWgpuActive ? 'bg-transparent' : 'bg-bg-primary',
+            'shrink-0 overflow-hidden z-50',
+            !isInstantTransition && 'transition-all duration-300 ease-in-out',
+            isFullScreen ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-[60px] opacity-100',
           )}
         >
-          <div
-            className={clsx(
-              'shrink-0 overflow-hidden z-50',
-              !isInstantTransition && 'transition-all duration-300 ease-in-out',
-              isFullScreen ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-[60px] opacity-100',
-            )}
-          >
-            {appSettings?.decorations || (!isWindowFullScreen && <TitleBar />)}
-          </div>
-          <div
-            className={clsx(
-              'flex-1 flex flex-col min-h-0',
-              isLayoutReady && hasRoots && !isInstantTransition && 'transition-all duration-300 ease-in-out',
-              [hasRoots && (isFullScreen ? 'p-0 gap-0' : 'p-2 gap-2')],
-            )}
-          >
-            <div className="flex flex-row grow h-full min-h-0">
-              {!shouldHideFolderTree && renderFolderTree()}
-              <div className="relative flex-1 flex flex-col min-w-0">
-                {selectedImage && externalEditSession && (
-                  <ExternalEditBar
-                    session={externalEditSession}
-                    isFinishing={isExternalEditFinishing}
-                    errorMessage={exportState.status === Status.Error ? exportState.errorMessage : ''}
-                    onDone={finishExternalEdit}
-                  />
-                )}
-                {selectedImage ? (
-                  <EditorView
-                    transformWrapperRef={transformWrapperRef}
-                    isResizing={isResizing}
-                    isCompactPortrait={isCompactPortrait}
-                    isAndroid={isAndroid}
-                    compactEditorPanelHeight={compactEditorPanelHeight}
-                    compactEditorPanelCollapsedHeight={compactEditorPanelCollapsedHeight}
-                    thumbnailAspectRatio={thumbnailAspectRatio}
-                    sortedImageList={sortedImageList}
-                    createResizeHandler={createResizeHandler}
-                    handleBackToLibrary={handleBackToLibrary}
-                    handleEditorContextMenu={handleEditorContextMenu}
-                    handleThumbnailContextMenu={handleThumbnailContextMenu}
-                    handleImageClick={handleImageClick}
-                    handleClearSelection={handleClearSelection}
-                    handleCopyAdjustments={handleCopyAdjustments}
-                    handlePasteAdjustments={handlePasteAdjustments}
-                    handleRate={handleRate}
-                    handleZoomChange={handleZoomChange}
-                    handleRightPanelSelect={handleRightPanelSelect}
-                    requestThumbnails={requestThumbnails}
-                  />
-                ) : (
-                  <LibraryView
-                    sortedImageList={sortedImageList}
-                    thumbnailSize={thumbnailSize}
-                    thumbnailAspectRatio={thumbnailAspectRatio}
-                    libraryViewMode={libraryViewMode}
-                    isAndroid={isAndroid}
-                    setThumbnailSize={setThumbnailSize}
-                    setThumbnailAspectRatio={setThumbnailAspectRatio}
-                    setLibraryViewMode={setLibraryViewMode}
-                    handleClearSelection={handleClearSelection}
-                    handleLibraryImageSingleClick={handleLibraryImageSingleClick}
-                    handleImageSelect={handleImageSelect}
-                    handleRate={handleRate}
-                    handleThumbnailContextMenu={handleThumbnailContextMenu}
-                    handleMainLibraryContextMenu={handleMainLibraryContextMenu}
-                    handleContinueSession={handleContinueSession}
-                    handleGoHome={handleGoHome}
-                    handleOpenFolder={handleOpenFolder}
-                    handleImportClick={handleImportClick}
-                    handleLibraryRefresh={handleLibraryRefresh}
-                    handleCopyAdjustments={handleCopyAdjustments}
-                    handlePasteAdjustments={handlePasteAdjustments}
-                    handleResetAdjustments={handleResetAdjustments}
-                    requestThumbnails={requestThumbnails}
-                  />
-                )}
-              </div>
-              {!selectedImage && isLibraryExportPanelVisible && (
-                <Resizer direction={Orientation.Vertical} onMouseDown={createResizeHandler('right', rightPanelWidth)} />
-              )}
-              <div
-                className={clsx(
-                  'shrink-0 overflow-hidden',
-                  !isResizing && !isInstantTransition && 'transition-all duration-300 ease-in-out',
-                )}
-                style={{ width: isLibraryExportPanelVisible && !isFullScreen ? `${rightPanelWidth}px` : '0px' }}
-              >
-                <ExportPanel
-                  exportState={exportState}
-                  multiSelectedPaths={multiSelectedPaths}
-                  selectedImage={null}
-                  setExportState={setExportState}
-                  appSettings={appSettings}
-                  onSettingsChange={handleSettingsChange}
-                  rootPaths={rootPaths}
-                  isVisible={isLibraryExportPanelVisible}
-                  onClose={() => setUI({ isLibraryExportPanelVisible: false })}
+          {appSettings?.decorations || (!isWindowFullScreen && <TitleBar />)}
+        </div>
+        <div
+          className={clsx(
+            'flex-1 flex flex-col min-h-0',
+            isLayoutReady && hasMainContent && !isInstantTransition && 'transition-all duration-300 ease-in-out',
+            [hasMainContent && (isFullScreen ? 'p-0 gap-0' : 'p-2 gap-2')],
+          )}
+        >
+          <div className="flex flex-row grow h-full min-h-0">
+            {!shouldHideFolderTree && renderFolderTree()}
+            <div className="relative flex-1 flex flex-col min-w-0">
+              {selectedImage && externalEditSession && (
+                <ExternalEditBar
+                  session={externalEditSession}
+                  isFinishing={isExternalEditFinishing}
+                  errorMessage={exportState.status === Status.Error ? exportState.errorMessage : ''}
+                  onDone={finishExternalEdit}
                 />
-              </div>
+              )}
+              {selectedImage ? (
+                <EditorView
+                  transformWrapperRef={transformWrapperRef}
+                  isResizing={isResizing}
+                  isCompactPortrait={isCompactPortrait}
+                  isAndroid={isAndroid}
+                  compactEditorPanelHeight={compactEditorPanelHeight}
+                  compactEditorPanelCollapsedHeight={compactEditorPanelCollapsedHeight}
+                  thumbnailAspectRatio={thumbnailAspectRatio}
+                  sortedImageList={sortedImageList}
+                  createResizeHandler={createResizeHandler}
+                  handleBackToLibrary={handleBackToLibrary}
+                  handleEditorContextMenu={handleEditorContextMenu}
+                  handleThumbnailContextMenu={handleThumbnailContextMenu}
+                  handleImageClick={handleImageClick}
+                  handleClearSelection={handleClearSelection}
+                  handleCopyAdjustments={handleCopyAdjustments}
+                  handlePasteAdjustments={handlePasteAdjustments}
+                  handleRate={handleRate}
+                  handleZoomChange={handleZoomChange}
+                  handleRightPanelSelect={handleRightPanelSelect}
+                  requestThumbnails={requestThumbnails}
+                />
+              ) : (
+                <LibraryView
+                  sortedImageList={sortedImageList}
+                  thumbnailSize={thumbnailSize}
+                  thumbnailAspectRatio={thumbnailAspectRatio}
+                  libraryViewMode={libraryViewMode}
+                  isAndroid={isAndroid}
+                  setThumbnailSize={setThumbnailSize}
+                  setThumbnailAspectRatio={setThumbnailAspectRatio}
+                  setLibraryViewMode={setLibraryViewMode}
+                  handleClearSelection={handleClearSelection}
+                  handleLibraryImageSingleClick={handleLibraryImageSingleClick}
+                  handleImageSelect={handleImageSelect}
+                  handleRate={handleRate}
+                  handleThumbnailContextMenu={handleThumbnailContextMenu}
+                  handleMainLibraryContextMenu={handleMainLibraryContextMenu}
+                  handleContinueSession={handleContinueSession}
+                  handleGoHome={handleGoHome}
+                  handleOpenFolder={handleOpenFolder}
+                  handleImportClick={handleImportClick}
+                  handleLibraryRefresh={handleLibraryRefresh}
+                  handleCopyAdjustments={handleCopyAdjustments}
+                  handlePasteAdjustments={handlePasteAdjustments}
+                  handleResetAdjustments={handleResetAdjustments}
+                  requestThumbnails={requestThumbnails}
+                />
+              )}
+            </div>
+            {!selectedImage && isLibraryExportPanelVisible && (
+              <Resizer direction={Orientation.Vertical} onMouseDown={createResizeHandler('right', rightPanelWidth)} />
+            )}
+            <div
+              className={clsx(
+                'shrink-0 overflow-hidden',
+                !isResizing && !isInstantTransition && 'transition-all duration-300 ease-in-out',
+              )}
+              style={{ width: isLibraryExportPanelVisible && !isFullScreen ? `${rightPanelWidth}px` : '0px' }}
+            >
+              <ExportPanel
+                exportState={exportState}
+                multiSelectedPaths={multiSelectedPaths}
+                selectedImage={null}
+                setExportState={setExportState}
+                appSettings={appSettings}
+                onSettingsChange={handleSettingsChange}
+                rootPaths={rootPaths}
+                isVisible={isLibraryExportPanelVisible}
+                onClose={() => setUI({ isLibraryExportPanelVisible: false })}
+              />
             </div>
           </div>
-          <AppModals
-            handleImageSelect={handleImageSelect}
-            handleSavePanorama={handleSavePanorama}
-            handleStartPanorama={handleStartPanorama}
-            handleSaveHdr={handleSaveHdr}
-            handleStartHdr={handleStartHdr}
-            refreshImageList={handleLibraryRefresh}
-            handleApplyDenoise={handleApplyDenoise}
-            handleBatchDenoise={handleBatchDenoise}
-            handleSaveDenoisedImage={handleSaveDenoisedImage}
-            handleCreateFolder={handleCreateFolder}
-            handleRenameFolder={handleRenameFolder}
-            handleSaveRename={handleSaveRename}
-            handleStartImport={handleStartImport}
-            handleSetColorLabel={handleSetColorLabel}
-            handleRate={handleRate}
-            executeDelete={executeDelete}
-            handleSaveCollage={handleSaveCollage}
-            handleCreateAlbumItem={handleCreateAlbumItem}
-            handleRenameAlbumItem={handleRenameAlbumItem}
-          />
-          <ToastContainer
-            position="bottom-right"
-            autoClose={5000}
-            hideProgressBar={false}
-            newestOnTop
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable={false}
-            pauseOnHover
-            theme={isLightTheme ? 'light' : 'dark'}
-            transition={Slide}
-            toastClassName={() =>
-              clsx(
-                'relative flex min-h-16 p-4 rounded-lg justify-between overflow-hidden cursor-pointer mb-4',
-                'bg-surface! text-text-primary! border! border-border-color! shadow-2xl! max-w-[420px]!',
-              )
-            }
-          />
         </div>
-      </>
-    </ErrorBoundary>
+        <AppModals
+          handleImageSelect={handleImageSelect}
+          handleSavePanorama={handleSavePanorama}
+          handleStartPanorama={handleStartPanorama}
+          handleSaveHdr={handleSaveHdr}
+          handleStartHdr={handleStartHdr}
+          refreshImageList={handleLibraryRefresh}
+          handleApplyDenoise={handleApplyDenoise}
+          handleBatchDenoise={handleBatchDenoise}
+          handleSaveDenoisedImage={handleSaveDenoisedImage}
+          handleCreateFolder={handleCreateFolder}
+          handleRenameFolder={handleRenameFolder}
+          handleSaveRename={handleSaveRename}
+          handleStartImport={handleStartImport}
+          handleSetColorLabel={handleSetColorLabel}
+          handleRate={handleRate}
+          executeDelete={executeDelete}
+          handleSaveCollage={handleSaveCollage}
+          handleCreateAlbumItem={handleCreateAlbumItem}
+          handleRenameAlbumItem={handleRenameAlbumItem}
+        />
+        <ToastContainer
+          position="bottom-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable={false}
+          pauseOnHover
+          theme={isLightTheme ? 'light' : 'dark'}
+          transition={Slide}
+          toastClassName={() =>
+            clsx(
+              'relative flex min-h-16 p-4 rounded-lg justify-between overflow-hidden cursor-pointer mb-4',
+              'bg-surface! text-text-primary! border! border-border-color! shadow-2xl! max-w-[420px]!',
+            )
+          }
+        />
+      </div>
+    </>
   );
 }
 

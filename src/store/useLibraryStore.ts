@@ -7,7 +7,6 @@ import {
   SortDirection,
   AlbumItem,
 } from '../components/ui/AppProperties';
-import { FolderTree } from '../components/panel/FolderTree';
 import { Adjustments, INITIAL_ADJUSTMENTS } from '../utils/adjustments';
 import { ColumnWidths } from '../components/panel/MainLibrary';
 
@@ -22,8 +21,8 @@ interface LibraryState {
   rootPaths: string[];
   currentFolderPath: string | null;
   expandedFolders: Set<string>;
-  folderTrees: FolderTree[];
-  pinnedFolderTrees: FolderTree[];
+  folderTrees: any[];
+  pinnedFolderTrees: any[];
 
   // Albums
   albumTree: AlbumItem[];
@@ -52,9 +51,9 @@ interface LibraryState {
   // Actions
   setLibrary: (updater: Partial<LibraryState> | ((state: LibraryState) => Partial<LibraryState>)) => void;
   clearSelection: () => void;
-  setFilterCriteria: (criteria: Partial<FilterCriteria> | ((prev: FilterCriteria) => Partial<FilterCriteria>)) => void;
-  setSearchCriteria: (criteria: Partial<SearchCriteria> | ((prev: SearchCriteria) => Partial<SearchCriteria>)) => void;
-  setSortCriteria: (criteria: Partial<SortCriteria> | ((prev: SortCriteria) => Partial<SortCriteria>)) => void;
+  setFilterCriteria: (criteria: Partial<FilterCriteria> | ((prev: FilterCriteria) => FilterCriteria)) => void;
+  setSearchCriteria: (criteria: Partial<SearchCriteria> | ((prev: SearchCriteria) => SearchCriteria)) => void;
+  setSortCriteria: (criteria: Partial<SortCriteria> | ((prev: SortCriteria) => SortCriteria)) => void;
 }
 
 export const useLibraryStore = create<LibraryState>((set) => ({
@@ -99,29 +98,20 @@ export const useLibraryStore = create<LibraryState>((set) => ({
   clearSelection: () => set({ multiSelectedPaths: [], libraryActivePath: null }),
 
   setFilterCriteria: (criteria) =>
-    set(
-      (state) =>
-        ({
-          filterCriteria:
-            typeof criteria === 'function' ? criteria(state.filterCriteria) : { ...state.filterCriteria, ...criteria },
-        }) as any,
-    ),
+    set((state) => ({
+      filterCriteria:
+        typeof criteria === 'function' ? criteria(state.filterCriteria) : { ...state.filterCriteria, ...criteria },
+    })),
 
   setSearchCriteria: (criteria) =>
-    set(
-      (state) =>
-        ({
-          searchCriteria:
-            typeof criteria === 'function' ? criteria(state.searchCriteria) : { ...state.searchCriteria, ...criteria },
-        }) as any,
-    ),
+    set((state) => ({
+      searchCriteria:
+        typeof criteria === 'function' ? criteria(state.searchCriteria) : { ...state.searchCriteria, ...criteria },
+    })),
 
   setSortCriteria: (criteria) =>
-    set(
-      (state) =>
-        ({
-          sortCriteria:
-            typeof criteria === 'function' ? criteria(state.sortCriteria) : { ...state.sortCriteria, ...criteria },
-        }) as any,
-    ),
+    set((state) => ({
+      sortCriteria:
+        typeof criteria === 'function' ? criteria(state.sortCriteria) : { ...state.sortCriteria, ...criteria },
+    })),
 }));

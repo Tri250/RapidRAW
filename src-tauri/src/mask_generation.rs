@@ -1,4 +1,3 @@
-#[cfg(not(target_os = "android"))]
 use crate::ai_processing::{
     AiDepthMaskParameters, AiForegroundMaskParameters, AiSkyMaskParameters, AiSubjectMaskParameters,
 };
@@ -784,7 +783,6 @@ struct TransformParams {
     crop_offset: (f32, f32),
 }
 
-#[cfg(not(target_os = "android"))]
 fn generate_ai_bitmap_from_full_mask(
     full_mask_image: &GrayImage,
     tf: &TransformParams,
@@ -857,7 +855,6 @@ fn generate_ai_bitmap_from_full_mask(
     final_mask
 }
 
-#[cfg(not(target_os = "android"))]
 fn generate_ai_bitmap_from_base64(data_url: &str, tf: &TransformParams) -> Option<GrayImage> {
     let b64_data = if let Some(idx) = data_url.find(',') {
         &data_url[idx + 1..]
@@ -871,7 +868,6 @@ fn generate_ai_bitmap_from_base64(data_url: &str, tf: &TransformParams) -> Optio
     Some(generate_ai_bitmap_from_full_mask(&full_mask_image, tf))
 }
 
-#[cfg(not(target_os = "android"))]
 fn generate_ai_sky_bitmap(
     params_value: &Value,
     width: u32,
@@ -907,7 +903,6 @@ fn generate_ai_sky_bitmap(
     Some(mask)
 }
 
-#[cfg(not(target_os = "android"))]
 fn generate_ai_depth_bitmap(
     params_value: &Value,
     width: u32,
@@ -972,7 +967,6 @@ fn generate_ai_depth_bitmap(
     Some(mask)
 }
 
-#[cfg(not(target_os = "android"))]
 fn generate_ai_foreground_bitmap(
     params_value: &Value,
     width: u32,
@@ -1008,7 +1002,6 @@ fn generate_ai_foreground_bitmap(
     Some(mask)
 }
 
-#[cfg(not(target_os = "android"))]
 fn generate_ai_subject_bitmap(
     params_value: &Value,
     width: u32,
@@ -1307,54 +1300,17 @@ fn generate_sub_mask_bitmap(
             warped_image,
         ),
         "ai-subject" => {
-            #[cfg(not(target_os = "android"))]
-            {
-                generate_ai_subject_bitmap(&sub_mask.parameters, width, height, scale, crop_offset)
-            }
-            #[cfg(target_os = "android")]
-            {
-                None
-            }
+            generate_ai_subject_bitmap(&sub_mask.parameters, width, height, scale, crop_offset)
         }
         "ai-foreground" => {
-            #[cfg(not(target_os = "android"))]
-            {
-                generate_ai_foreground_bitmap(&sub_mask.parameters, width, height, scale, crop_offset)
-            }
-            #[cfg(target_os = "android")]
-            {
-                None
-            }
+            generate_ai_foreground_bitmap(&sub_mask.parameters, width, height, scale, crop_offset)
         }
-        "ai-sky" => {
-            #[cfg(not(target_os = "android"))]
-            {
-                generate_ai_sky_bitmap(&sub_mask.parameters, width, height, scale, crop_offset)
-            }
-            #[cfg(target_os = "android")]
-            {
-                None
-            }
-        }
+        "ai-sky" => generate_ai_sky_bitmap(&sub_mask.parameters, width, height, scale, crop_offset),
         "ai-depth" => {
-            #[cfg(not(target_os = "android"))]
-            {
-                generate_ai_depth_bitmap(&sub_mask.parameters, width, height, scale, crop_offset)
-            }
-            #[cfg(target_os = "android")]
-            {
-                None
-            }
+            generate_ai_depth_bitmap(&sub_mask.parameters, width, height, scale, crop_offset)
         }
         "quick-eraser" => {
-            #[cfg(not(target_os = "android"))]
-            {
-                generate_ai_subject_bitmap(&sub_mask.parameters, width, height, scale, crop_offset)
-            }
-            #[cfg(target_os = "android")]
-            {
-                None
-            }
+            generate_ai_subject_bitmap(&sub_mask.parameters, width, height, scale, crop_offset)
         }
         "all" => Some(generate_all_bitmap(width, height)),
         _ => None,

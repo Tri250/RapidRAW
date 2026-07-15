@@ -1,50 +1,24 @@
-# Tauri WebView JavaScript interface
--keepclassmembers class * {
-    @android.webkit.JavascriptInterface <methods>;
-}
+# Add project specific ProGuard rules here.
+# You can control the set of applied configuration files using the
+# proguardFiles setting in build.gradle.
+#
+# For more details, see
+#   http://developer.android.com/guide/developing/tools/proguard.html
 
-# Preserve line numbers for debugging stack traces
--keepattributes SourceFile,LineNumberTable
--renamesourcefileattribute SourceFile
+# If your project uses WebView with JS, uncomment the following
+# and specify the fully qualified class name to the JavaScript interface
+# class:
+#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
+#   public *;
+#}
 
-# Tauri native bindings
--keep class app.tauri.** { *; }
--keep class io.github.CyberTimon.RapidRAW.** { *; }
+# Uncomment this to preserve the line number information for
+# debugging stack traces.
+#-keepattributes SourceFile,LineNumberTable
 
-# Rust JNI bindings
--keepclasseswithmembernames class * {
-    native <methods>;
-}
+# If you keep the line number information, uncomment this to
+# hide the original source file name.
+#-renamesourcefileattribute SourceFile
 
-# WebView related
--keep class android.webkit.** { *; }
--dontwarn android.webkit.**
-
-# AndroidX FileProvider
--keep class androidx.core.content.FileProvider { *; }
-
-# Activity and Application classes
--keep class * extends android.app.Activity { *; }
--keep class * extends android.app.Application { *; }
-
-# Keep all native methods in Rust-generated classes
--keepclasseswithmembernames class * {
-    native <methods>;
-}
-
-# Preserve annotations
--keepattributes *Annotation*
-
-# Preserve generic type information
--keepattributes Signature
-
-# Preserve exceptions
--keepattributes Exceptions
-
-# Kotlin coroutines
--keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
--keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
-
-# WebKit
--keep class androidx.webkit.** { *; }
--dontwarn androidx.webkit.**
+# Keep rustls-platform-verifier JNI classes
+-keep, includedescriptorclasses class org.rustls.platformverifier.** { *; }

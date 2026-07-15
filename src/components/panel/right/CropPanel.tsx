@@ -23,7 +23,6 @@ import Text from '../../ui/Text';
 import Slider from '../../ui/Slider';
 import { TEXT_COLOR_KEYS, TextColors, TextVariants, TextWeights } from '../../../types/typography';
 import { useEditorStore } from '../../../store/useEditorStore';
-import { useUIStore } from '../../../store/useUIStore';
 import { useEditorActions } from '../../../hooks/useEditorActions';
 
 const BASE_RATIO = 1.618;
@@ -52,11 +51,10 @@ export default function CropPanel() {
   const activeOverlay = useEditorStore((s) => s.overlayMode);
   const setEditor = useEditorStore((s) => s.setEditor);
   const { setAdjustments } = useEditorActions();
-  const isTransformModalOpen = useUIStore((s) => s.isTransformModalOpen);
-  const isLensCorrectionModalOpen = useUIStore((s) => s.isLensCorrectionModalOpen);
-  const setUI = useUIStore((s) => s.setUI);
   const [customW, setCustomW] = useState('');
   const [customH, setCustomH] = useState('');
+  const [isTransformModalOpen, setIsTransformModalOpen] = useState(false);
+  const [isLensModalOpen, setIsLensModalOpen] = useState(false);
   const [isRotationActive, setIsRotationActive] = useState(false);
   const [preferPortrait, setPreferPortrait] = useState(false);
   const [isEditingCustom, setIsEditingCustom] = useState(false);
@@ -697,7 +695,7 @@ export default function CropPanel() {
               <div className="grid grid-cols-2 gap-2">
                 <motion.div
                   className="flex flex-col items-center justify-center p-3 cursor-pointer rounded-lg transition-colors bg-surface text-text-secondary hover:bg-card-active hover:text-text-primary group"
-                  onClick={() => setUI({ isTransformModalOpen: true })}
+                  onClick={() => setIsTransformModalOpen(true)}
                   data-tooltip={t('editor.crop.tooltips.transform')}
                   whileTap={{ scale: 0.98 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 17 }}
@@ -707,7 +705,7 @@ export default function CropPanel() {
                 </motion.div>
                 <motion.div
                   className="flex flex-col items-center justify-center p-3  cursor-pointer rounded-lg transition-colors bg-surface text-text-secondary hover:bg-card-active hover:text-text-primary group"
-                  onClick={() => setUI({ isLensCorrectionModalOpen: true })}
+                  onClick={() => setIsLensModalOpen(true)}
                   data-tooltip={t('editor.crop.tooltips.lens')}
                   whileTap={{ scale: 0.98 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 17 }}
@@ -732,7 +730,7 @@ export default function CropPanel() {
 
       <TransformModal
         isOpen={isTransformModalOpen}
-        onClose={() => setUI({ isTransformModalOpen: false })}
+        onClose={() => setIsTransformModalOpen(false)}
         onApply={(newParams) => {
           setAdjustments((prev: Adjustments) => ({
             ...prev,
@@ -750,8 +748,8 @@ export default function CropPanel() {
       />
 
       <LensCorrectionModal
-        isOpen={isLensCorrectionModalOpen}
-        onClose={() => setUI({ isLensCorrectionModalOpen: false })}
+        isOpen={isLensModalOpen}
+        onClose={() => setIsLensModalOpen(false)}
         onApply={(newParams) => {
           setAdjustments((prev: Adjustments) => ({
             ...prev,

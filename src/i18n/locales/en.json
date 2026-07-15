@@ -103,7 +103,6 @@
       "dehaze": "Dehaze",
       "luminance": "Luminance",
       "noiseReduction": "Noise Reduction",
-      "portrait": "Portrait",
       "presence": "Presence",
       "redCyan": "Red/Cyan",
       "sharpening": "Sharpening",
@@ -508,21 +507,6 @@
       "exporting": "Exporting…",
       "savesTo": "External edit — saves to"
     },
-    "history": {
-      "title": "Edit History",
-      "undo": "Undo",
-      "redo": "Redo",
-      "steps": "{{count}} steps",
-      "branches": "{{count}} branch points",
-      "createBranch": "New Branch",
-      "branchName": "Branch name",
-      "initialState": "Initial State",
-      "adjustmentChange": "Adjustment",
-      "cropChange": "Crop",
-      "presetApplied": "Preset",
-      "noHistory": "No edits yet",
-      "current": "Current"
-    },
     "masks": {
       "actions": {
         "addNewComponent": "Add New Component",
@@ -714,7 +698,6 @@
         "adjust": "Adjust",
         "crop": "Crop",
         "export": "Export",
-        "history": "Edit History",
         "info": "Info",
         "inpaint": "Inpaint",
         "masks": "Masks",
@@ -982,7 +965,7 @@
     },
     "splash": {
       "addFolder": "Add Folder",
-      "brand": "LightCraft",
+      "brand": "RapidRAW",
       "continueSession": "Continue Session",
       "contribute": "Contribute on GitHub",
       "descriptionAndroid": "A blazingly fast, GPU-accelerated RAW image editor. Open the library to begin.",
@@ -1524,14 +1507,6 @@
       "saved": "Saved Lenses",
       "title": "My Lenses"
     },
-    "android": {
-      "title": "Android Settings",
-      "permissionsNote": "Android may require storage permissions to access and save photos. If images fail to load, please grant the necessary permissions in your device settings.",
-      "performanceMode": "Performance Mode",
-      "performanceModeDesc": "Reduce processing quality for smoother editing on low-end devices. This lowers preview resolution and disables live previews.",
-      "autoSave": "Auto-Save",
-      "autoSaveDesc": "Automatically save adjustments after each edit. Prevents data loss on devices where the app may be killed by the system."
-    },
     "processing": {
       "ai": {
         "cloud": {
@@ -1670,29 +1645,6 @@
       "workerThreads": "Thumbnail Worker Threads",
       "workerThreadsDesc": "Number of parallel threads used to generate thumbnails. Higher values speed up library loading but use more CPU & RAM."
     },
-    "colorScience": {
-      "title": "Color Science",
-      "pipeline": "Color Pipeline",
-      "pipelineDesc": "Select the color rendering pipeline for image processing.",
-      "pipelineSimplifiedAces": "Simplified ACES (Default)",
-      "pipelineAces20": "ACES 2.0",
-      "pipelineOpenDRT": "OpenDRT",
-      "displayColorSpace": "Display Color Space",
-      "displayColorSpaceDesc": "Target color space for the output image.",
-      "colorSpaceSrgb": "sRGB / Rec.709",
-      "colorSpaceP3": "Display P3",
-      "colorSpaceRec2020": "Rec.2020",
-      "eotf": "Transfer Function (EOTF)",
-      "eotfDesc": "Electro-optical transfer function for display encoding.",
-      "eotfSrgb": "sRGB",
-      "eotfGamma22": "Gamma 2.2",
-      "eotfGamma24": "Gamma 2.4 (BT.1886)",
-      "eotfPQ": "PQ (ST.2084)",
-      "hdrOutput": "HDR Output",
-      "hdrOutputDesc": "Enable High Dynamic Range output for compatible displays.",
-      "peakLuminance": "Peak Luminance",
-      "peakLuminanceDesc": "Maximum display brightness in nits. Higher values enable HDR highlights."
-    },
     "tagging": {
       "addCustomPlaceholder": "Add custom AI tags (comma separated)...",
       "addCustomTooltip": "Add AI tag",
@@ -1722,32 +1674,26 @@
       "title": "Tagging"
     },
     "thanks": {
-      "description": "A developer who loves photography, building professional tools for photography enthusiasts",
+      "description": "A huge thank you to the following projects that were very important in the development of RapidRAW:",
       "list": {
-        "darktable": "I am just \"带娃的小陈工\", a developer who loves photography.",
+        "darktable": "For some reference implementations that guided parts of this work.",
         "depth": "For the powerful monocular depth estimation model that enables the AI depth masking capabilities.",
         "lama": "For the powerful & simple image inpainting model, which enables content-aware fill and object removal.",
         "lensfun": "For its invaluable open-source library and comprehensive database for automatic lens correction.",
         "negpy": "For the inspiration behind the negative conversion logic.",
-        "nind": "For providing AI models that power the AI noise reduction capabilities.",
+        "nind": "For providing AI models that power the AI noise reduction capabilities in RapidRAW.",
         "rawler": "For the excellent Rust crate that provides the foundation for RAW file processing in this project.",
         "sam2": "For providing the foundation model used for the AI subject detection capabilities.",
         "u2net": "For providing the robust architecture used for the AI sky and foreground detection capabilities.",
-        "you": "For using and supporting this project. Your interest keeps it alive and evolving.",
+        "you": "For using and supporting RapidRAW. Your interest keeps this project alive and evolving.",
         "youLabel": "You"
       },
       "title": "Special Thanks"
     },
     "themes": {
       "dark": "Dark",
-      "deepSpaceBlack": "Deep Space Black",
       "grey": "Grey",
-      "light": "Light",
-      "snow": "Snow",
-      "arctic": "Arctic",
-      "blue": "Blue",
-      "mutedGreen": "Muted Green",
-      "sepia": "Sepia"
+      "light": "Light"
     },
     "title": "Settings",
     "tooltips": {
@@ -1836,20 +1782,5 @@
         "vectorscope": "Vectorscope"
       }
     }
-  },
-  "privacy": {
-    "title": "Privacy Policy",
-    "intro": "Welcome to RapidRAW. Before using this application, please read and agree to our privacy policy. We are committed to protecting your personal information and processing your data in accordance with the law.",
-    "permissionsTitle": "Device Permissions",
-    "permissionsDesc": "RapidRAW requires storage permissions to read and edit your photos, network access to download AI models and presets, and optional EXIF location access to display photo metadata. All processing is performed locally on your device.",
-    "noCollectionTitle": "What We Do NOT Collect",
-    "noCollectionDesc": "We do not collect personal identity information, device location data, usage behavior data, or build user profiles. No third-party advertising or tracking SDKs are integrated.",
-    "aiTitle": "AI Features",
-    "aiDesc": "All AI-powered features (denoising, super-resolution, inpainting, segmentation, semantic search) run entirely on your device. Your images are never uploaded to any external server.",
-    "storageTitle": "Data Storage",
-    "storageDesc": "Your original images and editing data are stored locally on your device. Application caches are stored in private directories inaccessible to other apps. All network communication uses HTTPS/TLS encryption.",
-    "fullPolicy": "This is a summary of our privacy policy. Continuing means you agree to the full privacy policy available in the application settings.",
-    "agree": "Agree and Continue",
-    "decline": "Decline"
   }
 }

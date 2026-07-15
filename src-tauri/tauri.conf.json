@@ -17,12 +17,12 @@
         "height": 720,
         "minWidth": 800,
         "minHeight": 600,
-        "transparent": false,
+        "transparent": true,
         "decorations": false
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: https://* data: blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cdn.jsdelivr.net https://huggingface.co https://getrapidraw.com; script-src 'self'; font-src 'self' data:",
+      "csp": null,
       "capabilities": ["default"],
       "assetProtocol": {
         "enable": true,

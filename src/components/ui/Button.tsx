@@ -1,5 +1,4 @@
 import clsx from 'clsx';
-import { hapticOnButtonPress } from '../../utils/hapticFeedback';
 
 interface ButtonProps {
   autoFocus?: boolean;
@@ -10,21 +9,14 @@ interface ButtonProps {
   size?: string;
   title?: string;
   variant?: string;
-  tabIndex?: number;
 }
 
 const Button = ({ children, onClick, disabled, className = '', ...props }: ButtonProps) => {
-  const handleClick = (e: React.MouseEvent) => {
-    hapticOnButtonPress();
-    onClick?.(e);
-  };
-
   const baseClasses = `
-    flex items-center justify-center gap-2 sm:gap-3
-    font-semibold py-2.5 px-4 sm:px-5 rounded-md
-    text-button-text text-sm sm:text-base
-    min-h-[40px] sm:min-h-[44px]
-    transition-transform duration-200
+    flex items-center justify-center gap-2 
+    font-semibold py-2 px-4 rounded-md 
+    text-button-text text-md
+    transition-transform duration-200 
     hover:scale-[1.01] active:scale-[.98]
     disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:scale-100
   `;
@@ -41,7 +33,7 @@ const Button = ({ children, onClick, disabled, className = '', ...props }: Butto
   );
 
   return (
-    <button onClick={handleClick} disabled={disabled} className={combinedClasses} {...props}>
+    <button onClick={onClick} disabled={disabled} className={combinedClasses} {...props}>
       {children}
     </button>
   );

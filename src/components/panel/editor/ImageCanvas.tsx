@@ -3,7 +3,7 @@ import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { Stage, Layer, Ellipse, Line, Transformer, Group, Circle, Rect } from 'react-konva';
 import { PercentCrop, Crop } from 'react-image-crop';
-import { Copy, Bandage } from 'lucide-react';
+import { Stamp, Bandage } from 'lucide-react';
 import { Adjustments, AiPatch, Coord, MaskContainer } from '../../../utils/adjustments';
 import { Mask, SubMask, SubMaskMode, ToolType } from '../right/Masks';
 import { AppSettings, BrushSettings, SelectedImage } from '../../ui/AppProperties';
@@ -1320,9 +1320,10 @@ const ImageCanvas = memo(
           setDisplayState((prev) => ({ base: prev.base, fade: newSrc }));
           setIsFadingIn(false);
 
+          let frame1: number;
           let frame2: number;
 
-          const frame1 = requestAnimationFrame(() => {
+          frame1 = requestAnimationFrame(() => {
             frame2 = requestAnimationFrame(() => {
               setIsFadingIn(true);
             });
@@ -1432,9 +1433,18 @@ const ImageCanvas = memo(
       return { width: w, height: h };
     }, [selectedImage.width, selectedImage.height, adjustments.orientationSteps]);
 
-    const isPercentCrop = crop?.unit === '%';
-    const cropX = crop ? (isPercentCrop ? (crop.x / 100) * effectiveImageDimensions.width : crop.x) : 0;
-    const cropY = crop ? (isPercentCrop ? (crop.y / 100) * effectiveImageDimensions.height : crop.y) : 0;
+    const activeCrop = adjustments.crop;
+    const isPercentCrop = activeCrop?.unit === '%';
+    const cropX = activeCrop
+      ? isPercentCrop
+        ? (activeCrop.x / 100) * effectiveImageDimensions.width
+        : activeCrop.x
+      : 0;
+    const cropY = activeCrop
+      ? isPercentCrop
+        ? (activeCrop.y / 100) * effectiveImageDimensions.height
+        : activeCrop.y
+      : 0;
 
     const effectiveZoomScale = transformState.scale > 0 ? transformState.scale : 1;
     const brushStageSize = (brushSettings?.size ?? 0) / effectiveZoomScale;
@@ -1745,7 +1755,7 @@ const ImageCanvas = memo(
           const x = pos.x / scale + cropX;
           const y = pos.y / scale + cropY;
 
-          const newParams = { ...activeSubMask.parameters };
+          let newParams = { ...activeSubMask.parameters };
           newParams.targetX = x;
           newParams.targetY = y;
           newParams.rotation = adjustments.rotation || 0;
@@ -1988,7 +1998,6 @@ const ImageCanvas = memo(
         }
 
         if (isAiSubjectActive && previewBoxRef.current) {
-          if (!pos) return;
           const updatedBox = { ...previewBoxRef.current, end: pos };
           previewBoxRef.current = updatedBox;
           setPreviewBox(updatedBox);
@@ -2014,7 +2023,7 @@ const ImageCanvas = memo(
             return;
           }
 
-          const updatedParams = { ...localInitialDrawParams };
+          let updatedParams = { ...localInitialDrawParams };
 
           if (activeSubMask.type === Mask.Radial) {
             updatedParams.radiusX = Math.max(1, Math.abs(x - dragStartPointer.current.x));
@@ -2234,7 +2243,7 @@ const ImageCanvas = memo(
         const { scale } = imageRenderSize;
         const activeId = isMasking ? activeMaskId : activeAiSubMaskId;
 
-        const startPoint = { x: box.start.x / scale + cropX, y: box.start.y / scale + cropY };
+        let startPoint = { x: box.start.x / scale + cropX, y: box.start.y / scale + cropY };
         let endPoint = { x: box.end.x / scale + cropX, y: box.end.y / scale + cropY };
 
         const dx = box.end.x - box.start.x;
@@ -2793,7 +2802,7 @@ const ImageCanvas = memo(
                       }}
                     >
                       <div className="p-1.5 rounded-full shadow-md transition-transform hover:scale-110 bg-surface/70 text-text-primary shadow-black/20">
-                        {m.type === Mask.Clone ? <Copy size={16} /> : <Bandage size={16} />}
+                        {m.type === Mask.Clone ? <Stamp size={16} /> : <Bandage size={16} />}
                       </div>
                     </div>
                   );

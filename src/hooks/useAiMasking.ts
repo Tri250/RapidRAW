@@ -7,7 +7,6 @@ import { Adjustments, AiPatch, MaskContainer, Coord } from '../utils/adjustments
 import { SubMask } from '../components/panel/right/Masks';
 import { Invokes } from '../components/ui/AppProperties';
 import { useAuth } from '@clerk/react';
-import { useSettingsStore } from '../store/useSettingsStore';
 
 const getTransformAdjustments = (adj: Adjustments) => ({
   transformDistortion: adj.transformDistortion,
@@ -97,10 +96,6 @@ export function useAiMasking() {
 
   const handleGenerativeReplace = useCallback(
     async (patchId: string, prompt: string, useFastInpaint: boolean) => {
-      if (useSettingsStore.getState().osPlatform === 'android') {
-        toast.error('AI features are not available on Android');
-        return;
-      }
       const { selectedImage, adjustments, isGeneratingAi, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path || isGeneratingAi) return;
 
@@ -158,10 +153,6 @@ export function useAiMasking() {
 
   const handleQuickErase = useCallback(
     async (subMaskId: string | null, startPoint: Coord, endPoint: Coord) => {
-      if (useSettingsStore.getState().osPlatform === 'android') {
-        toast.error('AI features are not available on Android');
-        return;
-      }
       const { selectedImage, adjustments, isGeneratingAi, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path || isGeneratingAi) return;
       const token = await getToken();
@@ -288,10 +279,6 @@ export function useAiMasking() {
   );
 
   const handleGenerateAiMask = async (subMaskId: string, startPoint: Coord, endPoint: Coord) => {
-    if (useSettingsStore.getState().osPlatform === 'android') {
-      toast.error('AI features are not available on Android');
-      return;
-    }
     const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
     if (!selectedImage?.path) return;
     setEditor({ isGeneratingAiMask: true });
@@ -312,7 +299,7 @@ export function useAiMasking() {
       const subMask = adjustments.aiPatches
         ?.flatMap((p: AiPatch) => p.subMasks)
         .find((sm: SubMask) => sm.id === subMaskId);
-      const mergedParameters = { ...(subMask?.parameters || {}), ...(newParameters as Record<string, any>) };
+      const mergedParameters = { ...(subMask?.parameters || {}), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
     } catch (error) {
@@ -323,10 +310,6 @@ export function useAiMasking() {
   };
 
   const handleGenerateAiDepthMask = async (subMaskId: string, parameters: any) => {
-    if (useSettingsStore.getState().osPlatform === 'android') {
-      toast.error('AI features are not available on Android');
-      return;
-    }
     const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
     if (!selectedImage?.path) return;
     setEditor({ isGeneratingAiMask: true });
@@ -350,7 +333,7 @@ export function useAiMasking() {
       const subMask = adjustments.aiPatches
         ?.flatMap((p: AiPatch) => p.subMasks)
         .find((sm: SubMask) => sm.id === subMaskId);
-      const mergedParameters = { ...(subMask?.parameters || {}), ...(newParameters as Record<string, any>) };
+      const mergedParameters = { ...(subMask?.parameters || {}), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
     } catch (error) {
@@ -361,10 +344,6 @@ export function useAiMasking() {
   };
 
   const handleGenerateAiForegroundMask = async (subMaskId: string) => {
-    if (useSettingsStore.getState().osPlatform === 'android') {
-      toast.error('AI features are not available on Android');
-      return;
-    }
     const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
     if (!selectedImage?.path) return;
     setEditor({ isGeneratingAiMask: true });
@@ -382,7 +361,7 @@ export function useAiMasking() {
       const subMask = adjustments.aiPatches
         ?.flatMap((p: AiPatch) => p.subMasks)
         .find((sm: SubMask) => sm.id === subMaskId);
-      const mergedParameters = { ...(subMask?.parameters || {}), ...(newParameters as Record<string, any>) };
+      const mergedParameters = { ...(subMask?.parameters || {}), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
     } catch (error) {
@@ -393,10 +372,6 @@ export function useAiMasking() {
   };
 
   const handleGenerateAiSkyMask = async (subMaskId: string) => {
-    if (useSettingsStore.getState().osPlatform === 'android') {
-      toast.error('AI features are not available on Android');
-      return;
-    }
     const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
     if (!selectedImage?.path) return;
     setEditor({ isGeneratingAiMask: true });
@@ -414,7 +389,7 @@ export function useAiMasking() {
       const subMask = adjustments.aiPatches
         ?.flatMap((p: AiPatch) => p.subMasks)
         .find((sm: SubMask) => sm.id === subMaskId);
-      const mergedParameters = { ...(subMask?.parameters || {}), ...(newParameters as Record<string, any>) };
+      const mergedParameters = { ...(subMask?.parameters || {}), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
     } catch (error) {
@@ -426,8 +401,6 @@ export function useAiMasking() {
 
   useEffect(() => {
     const { activeMaskId, activeAiSubMaskId, adjustments, selectedImage } = useEditorStore.getState();
-    // AI precompute is not available on Android
-    if (useSettingsStore.getState().osPlatform === 'android') return;
     const activeSubMask =
       adjustments?.masks?.flatMap((m: MaskContainer) => m.subMasks).find((sm: SubMask) => sm.id === activeMaskId) ||
       adjustments?.aiPatches?.flatMap((p: AiPatch) => p.subMasks).find((sm: SubMask) => sm.id === activeAiSubMaskId);

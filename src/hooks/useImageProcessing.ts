@@ -70,7 +70,7 @@ export function useImageProcessing(
     if (!baseRenderSize) return null;
 
     const { scale, positionX, positionY } = state;
-    const { width: baseW, height: baseH, offsetX, offsetY, containerWidth, containerHeight } = baseRenderSize as any;
+    const { width: baseW, height: baseH, offsetX, offsetY, containerWidth, containerHeight } = baseRenderSize;
 
     if (!baseW || !baseH || !containerWidth || !containerHeight) return null;
     if (scale <= 1.01) return null;
@@ -98,10 +98,10 @@ export function useImageProcessing(
       return null;
     }
 
-    const roiX = (intersectLeft - imgLeft) / baseW;
-    const roiY = (intersectTop - imgTop) / baseH;
-    const roiW = (intersectRight - intersectLeft) / baseW;
-    const roiH = (intersectBottom - intersectTop) / baseH;
+    let roiX = (intersectLeft - imgLeft) / baseW;
+    let roiY = (intersectTop - imgTop) / baseH;
+    let roiW = (intersectRight - intersectLeft) / baseW;
+    let roiH = (intersectBottom - intersectTop) / baseH;
 
     const newRoiX = roiX - paddingX;
     const newRoiY = roiY - paddingY;
@@ -214,10 +214,8 @@ export function useImageProcessing(
             const url = URL.createObjectURL(blob);
 
             setEditor((state) => {
-              if (state.interactivePatch && state.interactivePatch.url) {
-                const prevUrl = state.interactivePatch.url;
-                setTimeout(() => URL.revokeObjectURL(prevUrl), 100);
-              }
+              if (state.interactivePatch && state.interactivePatch.url)
+                setTimeout(() => URL.revokeObjectURL(state.interactivePatch.url), 100);
               return {
                 interactivePatch: {
                   url,
@@ -251,8 +249,7 @@ export function useImageProcessing(
 
             setEditor((state) => {
               if (state.interactivePatch && state.interactivePatch.url) {
-                const prevUrl = state.interactivePatch.url;
-                setTimeout(() => URL.revokeObjectURL(prevUrl), 500);
+                setTimeout(() => URL.revokeObjectURL(state.interactivePatch.url), 500);
               }
               return { interactivePatch: null };
             });
@@ -485,7 +482,7 @@ export function useImageProcessing(
 
   useEffect(() => {
     if (showOriginal && selectedImage?.isReady && displaySize.width > 0 && !isSliderDragging) {
-      const targetRes = calculateTargetRes();
+      let targetRes = calculateTargetRes();
       if (targetRes > currentOriginalResRef.current) {
         requestHiFiOriginalZoom(adjustments, targetRes);
       }

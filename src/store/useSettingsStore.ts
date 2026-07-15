@@ -12,7 +12,6 @@ interface SettingsState {
 
   // Actions
   initPlatform: () => void;
-  isAndroid: () => boolean;
   setAppSettings: (settings: AppSettings | null) => void;
   setTheme: (theme: string) => void;
   setSupportedTypes: (types: SupportedTypes | null) => void;
@@ -27,14 +26,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   initPlatform: () => {
     try {
-      const p = platform();
-      set({ osPlatform: p });
+      set({ osPlatform: platform() });
     } catch (_err) {
       set({ osPlatform: '' });
     }
   },
-
-  isAndroid: () => get().osPlatform === 'android',
 
   setAppSettings: (settings) => set({ appSettings: settings }),
 

@@ -9,7 +9,6 @@ import { useUIStore } from '../store/useUIStore';
 import { useProcessStore } from '../store/useProcessStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { Invokes, LibraryViewMode, ImageFile } from '../components/ui/AppProperties';
-import { FolderTree } from '../components/panel/FolderTree';
 import { INITIAL_ADJUSTMENTS, normalizeLoadedAdjustments } from '../utils/adjustments';
 import { globalImageCache } from '../utils/ImageLRUCache';
 import { debouncedSave, debouncedSetHistory } from './useEditorActions';
@@ -156,7 +155,6 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
       });
 
       if (isFrontendCached) {
-        if (!cached) return;
         setEditor({
           selectedImage: {
             ...cached.selectedImage,
@@ -472,7 +470,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
               showImageCounts:
                 appSettings?.enableFolderImageCounts || appSettings?.folderTreeSort?.key === 'imageCount',
             });
-            setLibrary({ folderTrees: [...folderTrees, newTree as FolderTree] });
+            setLibrary({ folderTrees: [...folderTrees, newTree] });
           } catch (e) {
             toast.error(`Failed to load folder tree: ${e}`);
           } finally {

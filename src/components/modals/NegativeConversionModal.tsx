@@ -60,14 +60,6 @@ export default function NegativeConversionModal({
   const selectedImagePath = targetPaths.length > 0 ? targetPaths[0] : null;
 
   useEffect(() => {
-    return () => {
-      if (originalUrl) {
-        URL.revokeObjectURL(originalUrl);
-      }
-    };
-  }, [originalUrl]);
-
-  useEffect(() => {
     const unlisten = listen('negative-batch-progress', (e: any) => {
       setProgress(e.payload);
     });

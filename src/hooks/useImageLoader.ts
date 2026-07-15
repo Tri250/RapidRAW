@@ -29,13 +29,13 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
     if (selectedImage && !selectedImage.isReady && selectedImage.path) {
       let isEffectActive = true;
 
-      const loadMetadataEarly = async (): Promise<boolean> => {
+      const loadMetadataEarly = async () => {
         try {
           useEditorStore.getState().patchesSentToBackend.clear();
           await invoke('clear_session_caches').catch((e) => console.warn('Cache clear failed:', e));
 
           const metadata: any = await invoke(Invokes.LoadMetadata, { path: selectedImage.path });
-          if (!isEffectActive) return false;
+          if (!isEffectActive) return;
 
           let initialAdjusts;
           if (metadata.adjustments && !metadata.adjustments.is_null) {
@@ -46,15 +46,8 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
 
           setEditor({ adjustments: initialAdjusts });
           resetHistory(initialAdjusts);
-          return true;
         } catch (err) {
           console.error('Failed to load metadata early:', err);
-          if (isEffectActive) {
-            toast.error(`Failed to load image metadata: ${err}`);
-            setEditor({ selectedImage: null });
-            setLibrary({ isViewLoading: false });
-          }
-          return false;
         }
       };
 
@@ -63,28 +56,11 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
           const loadImageResult: any = await invoke(Invokes.LoadImage, { path: selectedImage.path });
           if (!isEffectActive) return;
 
-          if (!loadImageResult) {
-            throw new Error('Image loading returned no data');
-          }
-
           const { width, height } = loadImageResult;
-          if (
-            !width ||
-            !height ||
-            typeof width !== 'number' ||
-            typeof height !== 'number' ||
-            width <= 0 ||
-            height <= 0
-          ) {
-            throw new Error(`Invalid image dimensions: ${width}x${height}`);
-          }
-
           setEditor({ originalSize: { width, height } });
 
-          const effectivePreviewResolution =
-            appSettings?.editorPreviewResolution || (useSettingsStore.getState().osPlatform === 'android' ? 1280 : 0);
-          if (effectivePreviewResolution > 0) {
-            const maxSize = effectivePreviewResolution;
+          if (appSettings?.editorPreviewResolution) {
+            const maxSize = appSettings.editorPreviewResolution;
             const aspectRatio = width / height;
 
             if (width > height) {
@@ -97,7 +73,7 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
               setEditor({ previewSize: { width: pWidth, height: pHeight } });
             }
           } else {
-            setEditor({ previewSize: { width, height } });
+            setEditor({ previewSize: { width: 0, height: 0 } });
           }
 
           setEditor((state) => {
@@ -140,8 +116,8 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
       };
 
       const loadAll = async () => {
-        const metadataSuccess = await loadMetadataEarly();
-        if (isEffectActive && metadataSuccess) {
+        await loadMetadataEarly();
+        if (isEffectActive) {
           await loadFullImageData();
         }
       };

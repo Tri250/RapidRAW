@@ -235,7 +235,7 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
               icon: LayoutTemplate,
               label: t('contextMenus.editor.frameImage'),
               onClick: () => {
-                setUI({ collageModalState: { isOpen: true, sourceImages: [selectedImage as unknown as any] } });
+                setUI({ collageModalState: { isOpen: true, sourceImages: [selectedImage] } });
               },
             },
             { label: t('contextMenus.editor.cullImage'), icon: Users, disabled: true },
@@ -259,7 +259,7 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
           submenu: [
             { label: t('contextMenus.editor.noLabel'), onClick: () => handleSetColorLabel(null) },
             ...COLOR_LABELS.map((label: Color) => ({
-              label: t(`contextMenus.colors.${label.name}` as any),
+              label: t(`contextMenus.colors.${label.name}`),
               color: label.color,
               onClick: () => handleSetColorLabel(label.name),
             })),
@@ -689,7 +689,7 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
           submenu: [
             { label: t('contextMenus.editor.noLabel'), onClick: () => handleSetColorLabel(null, finalSelection) },
             ...COLOR_LABELS.map((label: Color) => ({
-              label: t(`contextMenus.colors.${label.name}` as any),
+              label: t(`contextMenus.colors.${label.name}`),
               color: label.color,
               onClick: () => handleSetColorLabel(label.name, finalSelection),
             })),
@@ -1082,7 +1082,7 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
       };
 
       const buildMoveSubmenu = (nodes: AlbumItem[]): Option[] => {
-        const opts: Option[] = [];
+        let opts: Option[] = [];
         nodes.forEach((n) => {
           if (n.type === 'group' && n.id !== item?.id) {
             const isCurrentParent = n.id === currentParentId;

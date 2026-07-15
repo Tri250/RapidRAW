@@ -121,7 +121,6 @@ export enum Panel {
   Ai = 'ai',
   Crop = 'crop',
   Export = 'export',
-  History = 'history',
   Masks = 'masks',
   Metadata = 'metadata',
   Presets = 'presets',
@@ -150,7 +149,6 @@ export enum Theme {
   Arctic = 'arctic',
   Blue = 'blue',
   Dark = 'dark',
-  DeepSpaceBlack = 'deep-space-black',
   Grey = 'grey',
   Light = 'light',
   MutedGreen = 'muted-green',
@@ -212,10 +210,6 @@ export interface AppSettings {
   exifOverlay?: ExifOverlay;
   language?: string;
   folderTreeSort?: FolderTreeSort;
-  colorScienceConfig?: string;
-  rootFolders?: string[];
-  fontFamily?: string;
-  taggingShortcuts?: string[];
 }
 
 export interface BrushSettings {
@@ -293,7 +287,6 @@ export interface Progress {
   completed?: number;
   current?: number;
   total: number;
-  stage?: string;
 }
 
 export interface SelectedImage {

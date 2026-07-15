@@ -27,7 +27,7 @@ const Input = React.forwardRef(({ className, type = 'text', bgClassName, ...prop
   return (
     <input
       className={clsx(
-        'flex h-10 sm:h-10 w-full rounded-md border px-3 py-2.5 sm:py-2 text-sm sm:text-sm',
+        'flex h-10 w-full rounded-md border px-3 py-2 text-sm',
         'border-border-color text-text-primary placeholder:text-text-secondary',
         'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent',
         'disabled:cursor-not-allowed disabled:opacity-50',

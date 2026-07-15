@@ -114,11 +114,6 @@ interface UIState {
   isRenameAlbumModalOpen: boolean;
   albumActionTarget: string | null;
 
-  // Editor Modals
-  isConfigurePresetModalOpen: boolean;
-  isLensCorrectionModalOpen: boolean;
-  isTransformModalOpen: boolean;
-
   // Complex Modal States
   confirmModalState: ConfirmModalState;
   panoramaModalState: PanoramaModalState;
@@ -168,10 +163,6 @@ export const useUIStore = create<UIState>((set, get) => ({
   isCreateAlbumGroupModalOpen: false,
   isRenameAlbumModalOpen: false,
   albumActionTarget: null,
-
-  isConfigurePresetModalOpen: false,
-  isLensCorrectionModalOpen: false,
-  isTransformModalOpen: false,
 
   confirmModalState: { isOpen: false },
   panoramaModalState: {

@@ -11,25 +11,18 @@ mod ai_commands;
 #[cfg(not(target_os = "android"))]
 mod ai_connector;
 #[cfg(not(target_os = "android"))]
-mod ai_enhancement;
-#[cfg(not(target_os = "android"))]
 mod ai_processing;
 mod android_integration;
-mod android_permissions;
 mod app_settings;
 mod app_state;
 mod cache_utils;
-mod camera_profiles;
-mod color_science;
 mod culling;
 mod denoising;
-mod edit_history;
 mod exif_processing;
 mod export_processing;
 mod file_management;
 mod formats;
 mod gpu_processing;
-mod gpu_vendor;
 mod hdr_deghosting;
 mod image_loader;
 mod image_processing;
@@ -44,7 +37,6 @@ mod preset_converter;
 mod raw_processing;
 mod tagging;
 mod tagging_utils;
-mod watermark;
 mod window_customizer;
 
 use std::collections::{HashMap, hash_map::DefaultHasher};
@@ -119,27 +111,7 @@ pub fn register_exit_handler() {
     }
 }
 
-#[cfg(target_os = "android")]
-pub fn register_exit_handler() {
-    // Android has its own crash handling via logcat and tombstone.
-    // We register a panic hook to ensure error messages are properly logged.
-    let default_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(move |info| {
-        // Log the panic to Android logcat for debugging
-        let location = info.location().map(|l| format!("{}:{}", l.file(), l.line())).unwrap_or_else(|| "unknown".to_string());
-        let msg = if let Some(s) = info.payload().downcast_ref::<&str>() {
-            s.to_string()
-        } else if let Some(s) = info.payload().downcast_ref::<String>() {
-            s.clone()
-        } else {
-            "Unknown panic".to_string()
-        };
-        log::error!("[RapidRAW] Panic at {}: {}", location, msg);
-        default_hook(info);
-    }));
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "android")))]
+#[cfg(not(target_os = "macos"))]
 pub fn register_exit_handler() {}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -1206,7 +1178,7 @@ fn generate_preset_preview(
 #[tauri::command]
 async fn fetch_community_presets() -> Result<Vec<CommunityPreset>, String> {
     let client = reqwest::Client::new();
-    let url = "https://cdn.jsdelivr.net/gh/CyberTimon/RapidRAW-Presets@main/manifest.json";
+    let url = "https://raw.githubusercontent.com/CyberTimon/RapidRAW-Presets/main/manifest.json";
 
     let response = client
         .get(url)
@@ -1974,19 +1946,6 @@ fn frontend_ready(
     })
 }
 
-mod camera_profile_commands {
-    #[tauri::command]
-    pub fn get_camera_profiles() -> Result<Vec<crate::camera_profiles::CameraProfile>, String> {
-        Ok(crate::camera_profiles::CameraProfile::all_presets())
-    }
-
-    #[tauri::command]
-    pub fn detect_camera_profile(exif_make: String, exif_model: String) -> Result<crate::camera_profiles::CameraProfile, String> {
-        Ok(crate::camera_profiles::detect_camera_profile(&exif_make, &exif_model))
-    }
-}
-use camera_profile_commands::{get_camera_profiles, detect_camera_profile};
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let _ = rayon::ThreadPoolBuilder::new()
@@ -2025,21 +1984,16 @@ pub fn run() {
         .plugin(PinchZoomDisablePlugin)
         .on_window_event(|window, event| if let tauri::WindowEvent::Resized(size) = event {
             let state = window.state::<AppState>();
-            if let Ok(gpu_ctx_lock) = state.gpu_context.lock() {
-                if let Some(ctx) = gpu_ctx_lock.as_ref()
-                    && let Ok(mut display_lock) = ctx.display.try_lock()
-                        && let Some(display) = display_lock.as_mut() {
-                            display.config.width = size.width.max(1);
-                            display.config.height = size.height.max(1);
-                            display.surface.configure(&ctx.device, &display.config);
-                            display.render(&ctx.device, &ctx.queue);
-                        }
-            }
+            if let Some(ctx) = state.gpu_context.lock().unwrap().as_ref()
+                && let Ok(mut display_lock) = ctx.display.try_lock()
+                    && let Some(display) = display_lock.as_mut() {
+                        display.config.width = size.width.max(1);
+                        display.config.height = size.height.max(1);
+                        display.surface.configure(&ctx.device, &display.config);
+                        display.render(&ctx.device, &ctx.queue);
+                    }
         })
         .setup(|app| {
-            // Initialize logging FIRST so all subsequent errors are captured
-            setup_logging(&app.handle().clone());
-
             #[cfg(any(windows, target_os = "linux"))]
             {
                 let args: Vec<String> = std::env::args().skip(1).collect();
@@ -2058,15 +2012,12 @@ pub fn run() {
             }
 
             let app_handle = app.handle().clone();
-            let config_dir = app_handle.path().app_config_dir().unwrap_or_else(|e| {
-                log::error!("Failed to get config dir: {}. Using fallback.", e);
-                std::path::PathBuf::from("/data/local/tmp/rapidraw_fallback")
-            });
+            let config_dir = app_handle.path().app_config_dir().expect("Failed to get config dir");
             let crash_flag_path = config_dir.join(".gpu_init_crash_flag");
 
             {
                 let state = app.state::<AppState>();
-                *state.gpu_crash_flag_path.lock().unwrap_or_else(|e| e.into_inner()) = Some(crash_flag_path.clone());
+                *state.gpu_crash_flag_path.lock().unwrap() = Some(crash_flag_path.clone());
             }
 
             let mut settings: AppSettings = load_settings(app_handle.clone()).unwrap_or_default();
@@ -2074,7 +2025,7 @@ pub fn run() {
             {
                 let state = app.state::<AppState>();
                 let cache_size = settings.image_cache_size.unwrap_or(5) as usize;
-                state.decoded_image_cache.lock().unwrap_or_else(|e| e.into_inner()).set_capacity(cache_size);
+                state.decoded_image_cache.lock().unwrap().set_capacity(cache_size);
             }
 
             if crash_flag_path.exists() {
@@ -2084,79 +2035,49 @@ pub fn run() {
                 let _ = std::fs::remove_file(&crash_flag_path);
             }
 
-            #[cfg(target_os = "android")]
-            {
-                // Android: 崩溃恢复 - 检测上次是否异常退出
-                let android_crash_flag = config_dir.join(".android_crash_flag");
-                if android_crash_flag.exists() {
-                    log::warn!("Android: Previous session crashed. Resetting GPU state and reducing resource usage.");
-                    // 重置为保守设置
-                    settings.processing_backend = Some("gl".to_string());
-                    settings.editor_preview_resolution = Some(1024);
-                    settings.image_cache_size = Some(1);
-                    let _ = crate::save_settings(settings.clone(), app_handle.clone());
-                    let _ = std::fs::remove_file(&android_crash_flag);
-                }
-                // 写入崩溃标志，正常退出时清除
-                let _ = std::fs::write(&android_crash_flag, "1");
-            }
-
             let lens_db = lens_correction::load_lensfun_db(&app_handle);
             let state = app.state::<AppState>();
-            *state.lens_db.lock().unwrap_or_else(|e| e.into_inner()) = Some(Arc::new(lens_db));
+            *state.lens_db.lock().unwrap() = Some(Arc::new(lens_db));
 
-            // WGPU_BACKEND env var must be set before any GPU initialization
-            // On Android, this is safe because setup runs before workers start
-            #[cfg(not(target_os = "android"))]
-            {
+            unsafe {
                 if let Some(backend) = &settings.processing_backend
                     && backend != "auto" {
-                        unsafe { std::env::set_var("WGPU_BACKEND", backend); }
+                        std::env::set_var("WGPU_BACKEND", backend);
                     }
 
                 if settings.linux_gpu_optimization.unwrap_or(true) {
                     #[cfg(target_os = "linux")]
                     {
-                        unsafe {
-                            std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
-                            std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
-                            std::env::set_var("NODEVICE_SELECT", "1");
-                        }
+                        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+                        std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+                        std::env::set_var("NODEVICE_SELECT", "1");
                     }
+                }
+
+                #[cfg(not(target_os = "android"))]
+                {
+                    let resource_path = app_handle
+                        .path()
+                        .resolve("resources", tauri::path::BaseDirectory::Resource)
+                        .expect("failed to resolve resource directory");
+
+                    let ort_library_name = {
+                        #[cfg(target_os = "windows")]
+                        { "onnxruntime.dll" }
+                        #[cfg(target_os = "linux")]
+                        { "libonnxruntime.so" }
+                        #[cfg(target_os = "macos")]
+                        { "libonnxruntime.dylib" }
+                        #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
+                        { "libonnxruntime.so" }
+                    };
+                    let ort_library_path = resource_path.join(ort_library_name);
+                    std::env::set_var("ORT_DYLIB_PATH", &ort_library_path);
+                    println!("Set ORT_DYLIB_PATH to: {}", ort_library_path.display());
                 }
             }
 
-            // Android: Set WGPU backend
-            #[cfg(target_os = "android")]
-            {
-                if let Some(backend) = &settings.processing_backend
-                    && backend != "auto" {
-                        log::info!("Android: Using GPU backend: {}", backend);
-                        unsafe { std::env::set_var("WGPU_BACKEND", backend); }
-                    }
-            }
-
-            #[cfg(not(target_os = "android"))]
-            {
-                let resource_path = app_handle
-                    .path()
-                    .resolve("resources", tauri::path::BaseDirectory::Resource)
-                    .expect("failed to resolve resource directory");
-
-                let ort_library_name = {
-                    #[cfg(target_os = "windows")]
-                    { "onnxruntime.dll" }
-                    #[cfg(target_os = "linux")]
-                    { "libonnxruntime.so" }
-                    #[cfg(target_os = "macos")]
-                    { "libonnxruntime.dylib" }
-                    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
-                    { "libonnxruntime.so" }
-                };
-                let ort_library_path = resource_path.join(ort_library_name);
-                unsafe { std::env::set_var("ORT_DYLIB_PATH", &ort_library_path); }
-                println!("Set ORT_DYLIB_PATH to: {}", ort_library_path.display());
-            }
+            setup_logging(&app_handle);
 
             if let Some(backend) = &settings.processing_backend
                 && backend != "auto" {
@@ -2175,72 +2096,33 @@ pub fn run() {
             file_management::start_metadata_workers(app_handle.clone());
             jxl_oxide::integration::register_image_decoding_hook();
 
-            let window_cfg = match app.config().app.windows.first() {
-                Some(cfg) => cfg.clone(),
-                None => {
-                    log::error!("No window configurations found in app config");
-                    return Ok(());
-                }
-            };
+            let window_cfg = app.config().app.windows.first().unwrap().clone();
             let decorations = settings.decorations.unwrap_or(window_cfg.decorations);
             #[cfg(target_os = "android")]
             let _ = decorations;
 
-            let main_window_cfg = match app
+            let main_window_cfg = app
                 .config()
                 .app
                 .windows
                 .iter()
                 .find(|w| w.label == "main")
-            {
-                Some(cfg) => cfg.clone(),
-                None => {
-                    log::error!("Main window config not found in app config");
-                    return Ok(());
-                }
-            };
+                .expect("Main window config not found")
+                .clone();
 
             let mut window_builder =
                 tauri::WebviewWindowBuilder::from_config(app.handle(), &main_window_cfg)
-                    .unwrap_or_else(|e| {
-                        log::error!("Failed to create window builder from config: {}", e);
-                        panic!("Failed to create window builder: {}", e);
-                    });
+                    .unwrap();
 
             #[cfg(not(target_os = "android"))]
             {
                 window_builder = window_builder.decorations(decorations).visible(false);
             }
 
-            #[cfg(target_os = "android")]
-            {
-                window_builder = window_builder
-                    .transparent(false);
-            }
-
-            let window = window_builder.build().unwrap_or_else(|e| {
-                log::error!("Failed to build window: {}", e);
-                panic!("Failed to build window: {}", e);
-            });
+            let window = window_builder.build().expect("Failed to build window");
 
             #[cfg(target_os = "android")]
-            {
-                android_integration::initialize_android(&window);
-
-                // Android: 权限初始化检查
-                android_permissions::init_permissions(app.handle());
-
-                // Android: 配置 Rayon 全局线程池，限制线程数避免过度消耗资源
-                if let Err(e) = rayon::ThreadPoolBuilder::new()
-                    .num_threads(2)
-                    .stack_size(4 * 1024 * 1024)
-                    .build_global()
-                {
-                    log::warn!("Android: Failed to configure Rayon global thread pool: {}", e);
-                }
-
-                log::info!("Android: RapidRAW initialized with mobile-optimized settings.");
-            }
+            android_integration::initialize_android(&window);
 
             #[cfg(not(target_os = "android"))]
             {
@@ -2382,9 +2264,7 @@ pub fn run() {
             gpu_context: Mutex::new(None),
             gpu_image_cache: Mutex::new(None),
             gpu_processor: Mutex::new(None),
-            #[cfg(not(target_os = "android"))]
             ai_state: Mutex::new(None),
-            #[cfg(not(target_os = "android"))]
             ai_init_lock: TokioMutex::new(()),
             export_task_handle: Mutex::new(None),
             hdr_result: Arc::new(Mutex::new(None)),
@@ -2453,13 +2333,6 @@ pub fn run() {
             ai_commands::check_ai_connector_status,
             #[cfg(not(target_os = "android"))]
             ai_commands::test_ai_connector_connection,
-            #[cfg(not(target_os = "android"))]
-            ai_enhancement::apply_ai_enhance,
-            #[cfg(not(target_os = "android"))]
-            ai_enhancement::apply_ai_denoise,
-            #[cfg(not(target_os = "android"))]
-            ai_enhancement::apply_ai_upscale,
-            #[cfg(not(target_os = "android"))]
             inpainting::invoke_generative_replace_with_mask_def,
             inpainting::generate_manual_cleanup_patch,
             denoising::apply_denoising,
@@ -2522,8 +2395,6 @@ pub fn run() {
             tagging::clear_all_tags,
             tagging::add_tag_for_paths,
             tagging::remove_tag_for_paths,
-            watermark::apply_watermark,
-            watermark::preview_watermark,
             culling::cull_images,
             lens_correction::get_lensfun_makers,
             lens_correction::get_lensfun_lenses_for_maker,
@@ -2531,25 +2402,6 @@ pub fn run() {
             lens_correction::get_lens_distortion_params,
             negative_conversion::preview_negative_conversion,
             negative_conversion::convert_negatives,
-            android_permissions::android_check_permissions,
-            android_permissions::android_request_permissions,
-            android_permissions::android_has_manage_storage,
-            android_integration::edit_history_new,
-            android_integration::edit_history_push,
-            android_integration::edit_history_undo,
-            android_integration::edit_history_redo,
-            android_integration::edit_history_create_branch,
-            android_integration::edit_history_switch_to,
-            android_integration::edit_history_get_path,
-            android_integration::edit_history_get_summary,
-            android_integration::edit_history_get_branches,
-            android_integration::edit_history_collapse_branch,
-            android_integration::color_science_get_config,
-            android_integration::color_science_update_config,
-            android_integration::color_science_process,
-            get_camera_profiles,
-            detect_camera_profile,
-            gpu_vendor::get_gpu_info,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
@@ -2577,15 +2429,6 @@ pub fn run() {
                     std::process::exit(0);
                 }
                 tauri::RunEvent::Exit => {
-                    #[cfg(target_os = "android")]
-                    {
-                        // 正常退出时清除崩溃标志
-                        if let Ok(config_dir) = app_handle.path().app_config_dir() {
-                            let android_crash_flag = config_dir.join(".android_crash_flag");
-                            let _ = std::fs::remove_file(&android_crash_flag);
-                        }
-                    }
-
                     #[cfg(target_os = "macos")]
                     unsafe { libc::_exit(0); }
 

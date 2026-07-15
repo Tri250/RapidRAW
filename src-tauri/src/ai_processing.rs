@@ -1,5 +1,3 @@
-#![cfg(not(target_os = "android"))]
-
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -376,17 +374,7 @@ pub async fn get_or_init_ai_models(
     )
     .await?;
 
-    #[cfg(target_os = "android")]
-    {
-        let _ = ort::init()
-            .with_name("AI")
-            .with_execution_providers([ort::CPUExecutionProvider::default().build()])
-            .commit();
-    }
-    #[cfg(not(target_os = "android"))]
-    {
-        let _ = ort::init().with_name("AI").commit();
-    }
+    let _ = ort::init().with_name("AI").commit();
 
     let encoder_path = models_dir.join(ENCODER_FILENAME);
     let decoder_path = models_dir.join(DECODER_FILENAME);
@@ -400,7 +388,6 @@ pub async fn get_or_init_ai_models(
     let sky_seg = Session::builder()?.commit_from_file(sky_seg_path)?;
     let depth_anything = Session::builder()?.commit_from_file(depth_path)?;
 
-    #[cfg(not(target_os = "android"))]
     crate::register_exit_handler();
 
     let models = Arc::new(AiModels {
@@ -464,22 +451,11 @@ pub async fn get_or_init_denoise_model(
     )
     .await?;
 
-    #[cfg(target_os = "android")]
-    {
-        let _ = ort::init()
-            .with_name("AI-Denoise")
-            .with_execution_providers([ort::CPUExecutionProvider::default().build()])
-            .commit();
-    }
-    #[cfg(not(target_os = "android"))]
-    {
-        let _ = ort::init().with_name("AI-Denoise").commit();
-    }
+    let _ = ort::init().with_name("AI-Denoise").commit();
     let model_path = models_dir.join(DENOISE_FILENAME);
     let session = Session::builder()?.commit_from_file(model_path)?;
     let denoise_model = Arc::new(Mutex::new(session));
 
-    #[cfg(not(target_os = "android"))]
     crate::register_exit_handler();
 
     let mut ai_state_lock = ai_state_mutex.lock().unwrap();
@@ -544,23 +520,12 @@ pub async fn get_or_init_clip_models(
         download_result?;
     }
 
-    #[cfg(target_os = "android")]
-    {
-        let _ = ort::init()
-            .with_name("AI-Tagging")
-            .with_execution_providers([ort::CPUExecutionProvider::default().build()])
-            .commit();
-    }
-    #[cfg(not(target_os = "android"))]
-    {
-        let _ = ort::init().with_name("AI-Tagging").commit();
-    }
+    let _ = ort::init().with_name("AI-Tagging").commit();
     let clip_model_path = models_dir.join(CLIP_MODEL_FILENAME);
     let model = Mutex::new(Session::builder()?.commit_from_file(clip_model_path)?);
     let tokenizer =
         Tokenizer::from_file(clip_tokenizer_path).map_err(|e| anyhow::anyhow!(e.to_string()))?;
 
-    #[cfg(not(target_os = "android"))]
     crate::register_exit_handler();
 
     let clip_models = Arc::new(ClipModels { model, tokenizer });
@@ -618,22 +583,11 @@ pub async fn get_or_init_lama_model(
     )
     .await?;
 
-    #[cfg(target_os = "android")]
-    {
-        let _ = ort::init()
-            .with_name("AI-Inpainting")
-            .with_execution_providers([ort::CPUExecutionProvider::default().build()])
-            .commit();
-    }
-    #[cfg(not(target_os = "android"))]
-    {
-        let _ = ort::init().with_name("AI-Inpainting").commit();
-    }
+    let _ = ort::init().with_name("AI-Inpainting").commit();
     let model_path = models_dir.join(LAMA_FILENAME);
     let session = Session::builder()?.commit_from_file(model_path)?;
     let lama_model = Arc::new(Mutex::new(session));
 
-    #[cfg(not(target_os = "android"))]
     crate::register_exit_handler();
 
     let mut ai_state_lock = ai_state_mutex.lock().unwrap();

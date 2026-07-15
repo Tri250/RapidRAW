@@ -1493,7 +1493,7 @@ function ContainerRow({
         >
           {isStandalone ? (
             (() => {
-              const StandaloneIcon = MASK_ICON_MAP[firstSubMask.type as Mask] || Circle;
+              const StandaloneIcon = MASK_ICON_MAP[firstSubMask.type] || Circle;
               return <StandaloneIcon size={18} />;
             })()
           ) : isExpanded ? (
@@ -1662,7 +1662,7 @@ function SubMaskRow({
     setNodeRef(node);
     setDroppableRef(node);
   };
-  const MaskIcon = MASK_ICON_MAP[subMask.type as Mask] || Circle;
+  const MaskIcon = MASK_ICON_MAP[subMask.type] || Circle;
   const { showContextMenu } = useContextMenu();
   const [isHovered, setIsHovered] = useState(false);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -2066,7 +2066,7 @@ function SettingsPanel({
               {subMaskConfig.parameters?.map((param: any) => (
                 <Slider
                   key={param.key}
-                  label={t(('editor.ai.params.' + param.key) as any)}
+                  label={t('editor.ai.params.' + param.key)}
                   min={param.min}
                   max={param.max}
                   step={param.step}

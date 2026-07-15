@@ -20,7 +20,6 @@ tauri-plugin-fs = "2.5.1"
 rayon = "1.12.0"
 blake3 = "1.8.5"
 wgpu = "30.0"
-raw-window-handle = "0.6"
 pollster = "0.4"
 bytemuck = { version = "1.25", features = ["derive"] }
 anyhow = "1.0.103"

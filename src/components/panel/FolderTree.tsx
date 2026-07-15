@@ -78,7 +78,7 @@ interface VisibleProps {
   total: number;
 }
 
-const ALBUM_ICONS: Record<string, any> = {
+const ALBUM_ICONS: Record<string, React.ElementType> = {
   plane: Plane,
   mountain: Mountain,
   sun: Sun,
@@ -334,7 +334,7 @@ function AlbumTreeNode({
   const isSelected = item.id === selectedAlbumId;
   const imageCount = getAlbumImageCount(item);
 
-  let ItemIcon: any = isGroup ? (isExpanded ? FolderOpen : Folder) : AlbumIcon;
+  let ItemIcon = isGroup ? (isExpanded ? FolderOpen : Folder) : AlbumIcon;
   if (item.icon && ALBUM_ICONS[item.icon]) {
     ItemIcon = ALBUM_ICONS[item.icon];
   }
@@ -486,7 +486,7 @@ function TreeNode({
   };
 
   const currentFolderIconKey = folderIcons[node.path];
-  let ResolvedIcon: any = isExpanded ? FolderOpen : Folder;
+  let ResolvedIcon = isExpanded ? FolderOpen : Folder;
   if (currentFolderIconKey && ALBUM_ICONS[currentFolderIconKey]) {
     ResolvedIcon = ALBUM_ICONS[currentFolderIconKey];
   }
@@ -671,7 +671,7 @@ export default function FolderTree({
   const filteredTrees = useMemo(() => {
     let base = folderTrees;
     if (isSearching) {
-      base = base.map((tree) => filterTree(tree, trimmedQuery)).filter((t): t is FolderTree => t !== null);
+      base = base.map((tree: any) => filterTree(tree, trimmedQuery)).filter((t: any) => t !== null);
     }
     return sortFolderTree(base, folderTreeSort);
   }, [folderTrees, trimmedQuery, isSearching, folderTreeSort]);
@@ -699,7 +699,7 @@ export default function FolderTree({
   const filteredAlbumTree = useMemo(() => {
     let base = albumTree;
     if (isSearching) {
-      base = base.map((item) => filterAlbumTree(item, trimmedQuery)).filter((t): t is AlbumItem => t !== null);
+      base = base.map((item: any) => filterAlbumTree(item, trimmedQuery)).filter((t: any) => t !== null);
     }
     return base;
   }, [albumTree, trimmedQuery, isSearching]);
@@ -721,7 +721,7 @@ export default function FolderTree({
       const hasBaseResults = filteredTrees && filteredTrees.length > 0;
       const hasAlbumResults = filteredAlbumTree && filteredAlbumTree.length > 0;
 
-      const newSections = [...openSections];
+      let newSections = [...openSections];
       let changed = false;
 
       if (hasPinnedResults && !newSections.includes('pinned')) {

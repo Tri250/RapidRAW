@@ -111,7 +111,7 @@ function buildParametricPoints(settings: ParametricCurveSettings): Array<Coord> 
 
   const clamp = (v: number) => Math.max(0, Math.min(1, v));
 
-  const points = xs.map((x, i) => ({
+  let points = xs.map((x, i) => ({
     x: x * 255,
     y: clamp(ys[i]) * 255,
   }));
@@ -508,7 +508,7 @@ export default function CurveGraph({
     if (index > 0 && index < activePoints.length - 1) {
       e.preventDefault();
       e.stopPropagation();
-      const newPoints = activePoints.filter((_p: any, i: number) => i !== index);
+      const newPoints = activePoints.filter((_, i) => i !== index);
       setLocalPoints(newPoints);
       localPointsRef.current = newPoints;
       setAdjustments((prev: any) => ({
@@ -666,7 +666,7 @@ export default function CurveGraph({
     }
 
     const handleCopy = () => {
-      curveClipboard = activePoints.map((p: any) => ({ ...p }));
+      curveClipboard = activePoints.map((p) => ({ ...p }));
     };
 
     const handlePaste = () => {
@@ -807,7 +807,7 @@ export default function CurveGraph({
         <div className="flex items-center gap-1 shrink-0">
           {Object.keys(channelConfig).map((channel: any) => {
             const selected = activeChannel === channel;
-            const channelLabel = t(`adjustments.curves.channels.${channel}` as any) as string;
+            const channelLabel = t(`adjustments.curves.channels.${channel}`);
             return (
               <button
                 key={channel}

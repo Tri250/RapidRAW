@@ -9,7 +9,6 @@ use std::num::NonZero;
 use tauri::Manager;
 use wgpu::util::{DeviceExt, TextureDataOrder};
 
-use crate::gpu_vendor::{GpuVendor, ShaderOptimization};
 use crate::image_processing::{AllAdjustments, GpuContext, MAX_MASKS};
 use crate::lut_processing::Lut;
 use crate::{AppState, GpuImageCache};
@@ -65,10 +64,7 @@ impl WgpuDisplay {
                     match self.surface.get_current_texture() {
                         wgpu::CurrentSurfaceTexture::Success(tex)
                         | wgpu::CurrentSurfaceTexture::Suboptimal(tex) => tex,
-                        _ => {
-                            log::warn!("Failed to acquire surface texture after reconfigure, skipping render");
-                            return;
-                        }
+                        _ => panic!("Failed to acquire surface texture"),
                     }
                 }
                 _ => return,
@@ -197,40 +193,8 @@ pub fn get_or_init_gpu_context(
         }
     };
 
-    #[cfg(target_os = "linux")]
-    let surface_opt: Option<wgpu::Surface<'static>> = None;
-
-    #[cfg(target_os = "android")]
-    let surface_opt: Option<wgpu::Surface<'static>> = {
-        let native_window = crate::android_integration::get_android_native_window();
-        if let Some(window) = native_window {
-            use raw_window_handle::{AndroidNdkWindowHandle, AndroidDisplayHandle, RawWindowHandle, RawDisplayHandle};
-            let window_handle = AndroidNdkWindowHandle::new(
-                std::ptr::NonNull::new(window).unwrap(),
-            );
-            let display_handle = AndroidDisplayHandle::new();
-            let target = wgpu::SurfaceTargetUnsafe::RawHandle {
-                raw_display_handle: Some(RawDisplayHandle::Android(display_handle)),
-                raw_window_handle: RawWindowHandle::AndroidNdk(window_handle),
-            };
-            match unsafe { instance.create_surface_unsafe(target) } {
-                Ok(surface) => {
-                    log::info!("Successfully created WGPU surface from Android native window");
-                    Some(surface)
-                }
-                Err(e) => {
-                    log::warn!(
-                        "Failed to create Android WGPU surface, falling back to compute-only: {}",
-                        e
-                    );
-                    None
-                }
-            }
-        } else {
-            log::warn!("Android native window not available, falling back to compute-only");
-            None
-        }
-    };
+    #[cfg(any(target_os = "android", target_os = "linux"))]
+    let surface_opt: Option<wgpu::Surface> = None;
 
     let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
         power_preference: wgpu::PowerPreference::HighPerformance,
@@ -243,16 +207,6 @@ pub fn get_or_init_gpu_context(
         }
         format!("Failed to find a wgpu adapter: {}", e)
     })?;
-
-    let adapter_info = adapter.get_info();
-    let vendor = GpuVendor::from_adapter_info(&adapter_info);
-    let shader_optimization = vendor.get_shader_compile_options();
-    log::info!(
-        "GPU adapter: {} (vendor: {:?}, backend: {:?})",
-        adapter_info.name,
-        vendor,
-        adapter_info.backend
-    );
 
     let mut required_features = wgpu::Features::empty();
     if adapter
@@ -445,169 +399,14 @@ pub fn get_or_init_gpu_context(
         None
     };
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "android", target_os = "linux"))]
     let display_opt = None;
-
-    #[cfg(target_os = "android")]
-    let display_opt = if let Some(surface) = surface_opt {
-        let swapchain_caps = surface.get_capabilities(&adapter);
-        let swapchain_format = swapchain_caps
-            .formats
-            .iter()
-            .copied()
-            .find(|f| !f.is_srgb())
-            .unwrap_or(swapchain_caps.formats[0]);
-
-        let alpha_mode = if swapchain_caps
-            .alpha_modes
-            .contains(&wgpu::CompositeAlphaMode::PreMultiplied)
-        {
-            wgpu::CompositeAlphaMode::PreMultiplied
-        } else if swapchain_caps
-            .alpha_modes
-            .contains(&wgpu::CompositeAlphaMode::PostMultiplied)
-        {
-            wgpu::CompositeAlphaMode::PostMultiplied
-        } else {
-            swapchain_caps.alpha_modes[0]
-        };
-
-        let (surface_w, surface_h) = crate::android_integration::get_native_surface_size();
-        let width = (surface_w.max(1) as u32).max(1);
-        let height = (surface_h.max(1) as u32).max(1);
-
-        let config = wgpu::SurfaceConfiguration {
-            width,
-            height,
-            format: swapchain_format,
-            color_space: wgpu::SurfaceColorSpace::Auto,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            present_mode: wgpu::PresentMode::Fifo,
-            alpha_mode,
-            view_formats: vec![],
-            desired_maximum_frame_latency: 2,
-        };
-        surface.configure(&device, &config);
-
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Display Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("shaders/display.wgsl").into()),
-        });
-
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Display BGL"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-                    count: None,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    count: None,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    count: None,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                },
-            ],
-        });
-
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Display Pipeline Layout"),
-            bind_group_layouts: &[Some(&bind_group_layout)],
-            immediate_size: 0,
-        });
-
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Display Pipeline"),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: Some("vs_main"),
-                buffers: &[],
-                compilation_options: Default::default(),
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: Some("fs_main"),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: swapchain_format,
-                    blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-                compilation_options: Default::default(),
-            }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleStrip,
-                ..Default::default()
-            },
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            multiview_mask: NonZero::new(0),
-            cache: None,
-        });
-
-        let transform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Transform Buffer"),
-            size: std::mem::size_of::<DisplayTransform>() as u64,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("Display Sampler"),
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            ..Default::default()
-        });
-
-        Some(WgpuDisplay {
-            surface,
-            config,
-            pipeline,
-            bind_group_layout,
-            transform_buffer,
-            latest_transform: DisplayTransform {
-                rect: [0.0, 0.0, 100.0, 100.0],
-                clip: [0.0, 0.0, 10000.0, 10000.0],
-                window: [width as f32, height as f32],
-                image_size: [100.0, 100.0],
-                texture_size: [100.0, 100.0],
-                pixelated: 0.0,
-                _pad: 0.0,
-                bg_primary: [24.0 / 255.0, 24.0 / 255.0, 24.0 / 255.0, 1.0],
-                bg_secondary: [35.0 / 255.0, 35.0 / 255.0, 35.0 / 255.0, 1.0],
-            },
-            sampler,
-            current_bind_group: None,
-        })
-    } else {
-        None
-    };
 
     let new_context = GpuContext {
         device: Arc::new(device),
         queue: Arc::new(queue),
         limits,
         display: Arc::new(std::sync::Mutex::new(display_opt)),
-        vendor,
-        shader_optimization,
     };
     *context_lock = Some(new_context.clone());
     Ok(new_context)
@@ -1835,21 +1634,6 @@ fn process_and_get_dynamic_image_inner(
     analytics_config: Option<crate::AnalyticsConfig>,
 ) -> Result<DynamicImage, String> {
     let start_time = Instant::now();
-
-    // Check for pending Android GPU cache release requests
-    #[cfg(target_os = "android")]
-    {
-        let release_type = crate::android_integration::check_gpu_cache_release_request();
-        if release_type > 0 {
-            let fraction = if release_type == 2 {
-                Some(crate::android_integration::get_gpu_cache_release_fraction())
-            } else {
-                None
-            };
-            crate::android_integration::apply_gpu_cache_release(state, fraction);
-        }
-    }
-
     let (width, height) = base_image.dimensions();
     let device = &context.device;
     let queue = &context.queue;
@@ -1865,24 +1649,43 @@ fn process_and_get_dynamic_image_inner(
         return Ok(base_image.clone());
     }
 
-    let mut old_processor = None;
     let mut reallocated = false;
 
     let mut processor_lock = state.gpu_processor.lock().unwrap();
-    if processor_lock.is_none()
-        || processor_lock.as_ref().unwrap().width < width
-        || processor_lock.as_ref().unwrap().height < height
-    {
-        let new_width = (width + 255) & !255;
-        let new_height = (height + 255) & !255;
+    let mut needs_new_processor = false;
+    let new_width = (width + 255) & !255;
+    let new_height = (height + 255) & !255;
+
+    if let Some(p) = processor_lock.as_ref() {
+        if p.width < width || p.height < height {
+            needs_new_processor = true;
+        }
+    } else {
+        needs_new_processor = true;
+    }
+
+    if needs_new_processor {
         log::info!(
             "Creating new GPU Processor for dimensions up to {}x{}",
             new_width,
             new_height
         );
-        let new_processor = GpuProcessor::new(context.clone(), new_width, new_height)?;
 
-        old_processor = processor_lock.take();
+        if let Ok(mut display_lock) = context.display.lock()
+            && let Some(display) = display_lock.as_mut()
+        {
+            display.current_bind_group = None;
+        }
+
+        let old_processor = processor_lock.take();
+        drop(old_processor);
+
+        let _ = context.device.poll(wgpu::PollType::Wait {
+            submission_index: None,
+            timeout: Some(std::time::Duration::from_millis(500)),
+        });
+
+        let new_processor = GpuProcessor::new(context.clone(), new_width, new_height)?;
 
         *processor_lock = Some(crate::GpuProcessorState {
             processor: new_processor,
@@ -1891,80 +1694,64 @@ fn process_and_get_dynamic_image_inner(
         });
         reallocated = true;
     }
+
     let processor_state = processor_lock.as_ref().unwrap();
     let processor = &processor_state.processor;
 
-    if reallocated && let Some(old_state) = &old_processor {
-        let mut encoder = device.create_command_encoder(&Default::default());
-        let copy_w = old_state.width.min(processor_state.width);
-        let copy_h = old_state.height.min(processor_state.height);
-
-        encoder.copy_texture_to_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture: &old_state.processor.output_texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            wgpu::TexelCopyTextureInfo {
-                texture: &processor.output_texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            wgpu::Extent3d {
-                width: copy_w,
-                height: copy_h,
-                depth_or_array_layers: 1,
-            },
+    if reallocated
+        && let Ok(mut display_lock) = context.display.lock()
+        && let Some(display) = display_lock.as_mut()
+    {
+        display.latest_transform.texture_size =
+            [processor_state.width as f32, processor_state.height as f32];
+        queue.write_buffer(
+            &display.transform_buffer,
+            0,
+            bytemuck::bytes_of(&display.latest_transform),
         );
-        queue.submit(Some(encoder.finish()));
 
-        if let Ok(mut display_lock) = context.display.lock()
-            && let Some(display) = display_lock.as_mut()
-        {
-            display.latest_transform.texture_size =
-                [processor_state.width as f32, processor_state.height as f32];
-            queue.write_buffer(
-                &display.transform_buffer,
-                0,
-                bytemuck::bytes_of(&display.latest_transform),
-            );
-
-            let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                layout: &display.bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: display.transform_buffer.as_entire_binding(),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::TextureView(
-                            &processor.output_texture_view,
-                        ),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: wgpu::BindingResource::Sampler(&display.sampler),
-                    },
-                ],
-                label: Some("Migrated Display Bind Group"),
-            });
-            display.current_bind_group = Some(bind_group);
-        }
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &display.bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: display.transform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(&processor.output_texture_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Sampler(&display.sampler),
+                },
+            ],
+            label: Some("Migrated Display Bind Group"),
+        });
+        display.current_bind_group = Some(bind_group);
     }
 
     let mut cache_lock = state.gpu_image_cache.lock().unwrap();
-    if let Some(cache) = &*cache_lock
-        && (cache.transform_hash != transform_hash
-            || cache.width != width
-            || cache.height != height)
-    {
-        *cache_lock = None;
+    let mut needs_new_cache = false;
+
+    if let Some(cache) = &*cache_lock {
+        if cache.transform_hash != transform_hash || cache.width != width || cache.height != height
+        {
+            needs_new_cache = true;
+        }
+    } else {
+        needs_new_cache = true;
     }
 
-    if cache_lock.is_none() {
+    if needs_new_cache {
+        let old_cache = cache_lock.take();
+        drop(old_cache);
+
+        let _ = context.device.poll(wgpu::PollType::Wait {
+            submission_index: None,
+            timeout: Some(std::time::Duration::from_millis(500)),
+        });
+
         let img_rgba_f16 = to_rgba_f16(base_image);
         let texture_size = wgpu::Extent3d {
             width,
@@ -2209,8 +1996,6 @@ fn process_and_get_dynamic_image_inner(
         display.current_bind_group = Some(bind_group);
         display.render(device, queue);
     }
-
-    drop(old_processor);
 
     if skip_readback {
         let duration = start_time.elapsed();
