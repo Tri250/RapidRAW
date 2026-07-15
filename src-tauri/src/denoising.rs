@@ -59,9 +59,7 @@ pub async fn apply_denoising(
     let (source_path, _) = parse_virtual_path(&path);
     let path_str = source_path.to_string_lossy().to_string();
 
-    #[cfg(not(target_os = "android"))]
     let mut ai_session = None;
-    #[cfg(not(target_os = "android"))]
     if method == "ai" {
         let session = crate::ai_processing::get_or_init_denoise_model(
             &app_handle,
@@ -76,14 +74,7 @@ pub async fn apply_denoising(
     let denoise_result_handle = state.denoise_result.clone();
 
     tokio::task::spawn_blocking(move || {
-        match denoise_image(
-            path_str,
-            intensity,
-            method,
-            app_handle.clone(),
-            #[cfg(not(target_os = "android"))]
-            ai_session,
-        ) {
+        match denoise_image(path_str, intensity, method, app_handle.clone(), ai_session) {
             Ok((image, _)) => {
                 *denoise_result_handle.lock().unwrap() = Some(image);
             }
@@ -104,9 +95,7 @@ pub async fn batch_denoise_images(
     app_handle: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<String>, String> {
-    #[cfg(not(target_os = "android"))]
     let mut ai_session = None;
-    #[cfg(not(target_os = "android"))]
     if method == "ai" {
         let session = crate::ai_processing::get_or_init_denoise_model(
             &app_handle,
@@ -140,7 +129,6 @@ pub async fn batch_denoise_images(
                 intensity,
                 method.clone(),
                 app_handle.clone(),
-                #[cfg(not(target_os = "android"))]
                 ai_session.clone(),
             ) {
                 Ok((image, _)) => {
@@ -311,7 +299,7 @@ fn denoise_image(
     intensity: f32,
     method: String,
     app_handle: AppHandle,
-    #[cfg(not(target_os = "android"))] ai_session: Option<Arc<Mutex<ort::session::Session>>>,
+    ai_session: Option<Arc<Mutex<ort::session::Session>>>,
 ) -> Result<(DynamicImage, String), String> {
     let path = Path::new(&path_str);
     if !path.exists() {
@@ -336,21 +324,14 @@ fn denoise_image(
     let rgb_img_for_denoiser = dynamic_img.to_rgb32f();
 
     let out_dynamic = if method == "ai" {
-        #[cfg(not(target_os = "android"))]
-        {
-            let session_arc = ai_session.ok_or_else(|| "AI Session not provided".to_string())?;
-            crate::ai_processing::run_ai_denoise(
-                &rgb_img_for_denoiser,
-                intensity,
-                &session_arc,
-                &app_handle,
-            )
-            .map_err(|e| e.to_string())?
-        }
-        #[cfg(target_os = "android")]
-        {
-            return Err("AI denoising is not available on Android".to_string());
-        }
+        let session_arc = ai_session.ok_or_else(|| "AI Session not provided".to_string())?;
+        crate::ai_processing::run_ai_denoise(
+            &rgb_img_for_denoiser,
+            intensity,
+            &session_arc,
+            &app_handle,
+        )
+        .map_err(|e| e.to_string())?
     } else {
         run_bm3d(&rgb_img_for_denoiser, intensity, &app_handle)?
     };
