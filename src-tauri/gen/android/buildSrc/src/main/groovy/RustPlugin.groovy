@@ -12,7 +12,7 @@ class RustPlugin implements Plugin<Project> {
         config = project.extensions.create("rust", Config)
 
         def defaultAbiList = ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]
-        def abiList = project.findProperty("abiList")?.toString()?.split(',') ?: defaultAbiList
+        def abiList = project.findProperty("abiList")?.toString()?.split(',')?.toList() ?: defaultAbiList
 
         def defaultArchList = ["arm64", "arm", "x86", "x86_64"]
         def archList = project.findProperty("archList")?.toString()?.split(',') ?: defaultArchList
@@ -25,7 +25,8 @@ class RustPlugin implements Plugin<Project> {
                 create("universal") {
                     dimension = "abi"
                     ndk {
-                        abiFilters += abiList
+                        abiFilters.clear()
+                        abiList.each { abiFilters.add(it) }
                     }
                 }
                 defaultArchList.eachWithIndex { arch, index ->
