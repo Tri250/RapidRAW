@@ -372,8 +372,15 @@ pub fn load_image_with_orientation(
         Ok(())
     };
 
-    let cursor = Cursor::new(bytes);
-    let mut reader = ImageReader::new(cursor.clone())
+    // Clone bytes to an owned Vec so the decode thread can take ownership.
+    // The original `bytes: &[u8]` borrows from the caller and cannot be moved
+    // into a `'static` thread — cloning here is necessary for thread safety.
+    let bytes_owned = bytes.to_vec();
+    // Keep a separate clone for EXIF reading after decode (the decode thread
+    // consumes its own clone via Cursor).
+    let bytes_for_exif = bytes_owned.clone();
+    let cursor = Cursor::new(bytes_owned);
+    let mut reader = ImageReader::new(cursor)
         .with_guessed_format()
         .context("Failed to guess image format")?;
 
@@ -432,7 +439,10 @@ pub fn load_image_with_orientation(
 
     let oriented_image = {
         let exif_reader = ExifReader::new();
-        if let Ok(exif) = exif_reader.read_from_container(&mut cursor.clone()) {
+        // Create a new cursor from the owned bytes for EXIF reading
+        // (the original cursor was moved into the decode thread)
+        let exif_cursor = Cursor::new(bytes_for_exif);
+        if let Ok(exif) = exif_reader.read_from_container(&mut exif_cursor.clone()) {
             if let Some(orientation) = exif
                 .get_field(Tag::Orientation, exif::In::PRIMARY)
                 .and_then(|f| f.value.get_uint(0))
