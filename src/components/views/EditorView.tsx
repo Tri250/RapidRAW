@@ -16,6 +16,7 @@ import PresetsPanel from '../panel/right/PresetsPanel';
 import ExportPanel from '../panel/right/ExportPanel';
 import ColorPanelSwitcher from '../panel/right/ColorPanelSwitcher';
 import PortraitPanelSwitcher from '../panel/right/PortraitPanelSwitcher';
+import AndroidBottomNav from '../ui/AndroidBottomNav';
 
 import { useEditorStore } from '../../store/useEditorStore';
 import { useUIStore } from '../../store/useUIStore';
@@ -174,7 +175,7 @@ export default function EditorView({
       onRequestThumbnails={requestThumbnails}
       onZoomChange={handleZoomChange}
       rating={imageRatings[selectedImage?.path || ''] || 0}
-      selectedImage={selectedImage}
+      selectedImage={selectedImage ?? undefined}
       setIsFilmstripVisible={(value: boolean) =>
         setUI((state) => ({ uiVisibility: { ...state.uiVisibility, filmstrip: value } }))
       }
@@ -251,6 +252,7 @@ export default function EditorView({
       <div className={clsx('flex-1 flex flex-col min-w-0', isCompactPortrait && 'min-h-0')}>
         {editorNode}
         {!isCompactPortrait && editorBottomBarNode}
+        {isAndroid && <AndroidBottomNav isAndroid={isAndroid} />}
       </div>
       <div
         className={clsx(

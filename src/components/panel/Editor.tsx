@@ -154,6 +154,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
   const [isPanningState, setIsPanningState] = useState(false);
   const isClickAnimating = useRef(false);
   const clickAnimationTime = 250;
+  const lastTapTime = useRef<number>(0);
   const zoomDebounceTimeoutRef = useRef<number | null>(null);
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
   const savedZoomState = useRef<{ scale: number; positionX: number; positionY: number } | null>(null);
@@ -871,6 +872,17 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
         if (dx > 5 || dy > 5) return;
       }
 
+      // Android double-tap to compare before/after
+      if (isAndroid) {
+        const now = Date.now();
+        const timeSinceLastTap = now - lastTapTime.current;
+        lastTapTime.current = now;
+        if (timeSinceLastTap < 300) {
+          toggleShowOriginal();
+          return;
+        }
+      }
+
       const currentScale = transformStateRef.current.scale;
 
       if (isClickAnimating.current || currentScale > 1.01) {
@@ -910,7 +922,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
         animateTransform(newPositionX, newPositionY, zoomTarget, clickAnimationTime);
       }
     },
-    [isCropping, isMasking, isAiEditing, isWbPickerActive, animateTransform],
+    [isCropping, isMasking, isAiEditing, isWbPickerActive, animateTransform, isAndroid, toggleShowOriginal],
   );
 
   useEffect(() => {

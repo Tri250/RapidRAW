@@ -38,6 +38,23 @@
   <url type="homepage">https://github.com/Tri250/RapidRAW</url>
 
   <releases>
+    <release version="v1.7.0" date="2026-07-16">
+        <url type="details">https://github.com/Tri250/RapidRAW/releases/tag/v1.7.0</url>
+        <description translate="no">
+            <p>RAW工坊 v1.7.0 - Android端全面增强·AI智能评分·语义搜索·智能相册</p>
+            <ul>
+                <li>Android 双击对比原图/左右滑动切图/长按快捷菜单</li>
+                <li>Android 底部导航栏，快速切换基础/色彩/人像/导出面板</li>
+                <li>AI 智能评分与描述，一键评分写入EXIF</li>
+                <li>AI 批量评分，右键多图批量处理</li>
+                <li>搜索自动补全，80+摄影关键词即时建议</li>
+                <li>Android 高级筛选面板（日期/相机/焦距/AI标签）</li>
+                <li>智能相册，基于条件自动归集照片</li>
+                <li>收藏夹，跨文件夹快速收藏照片</li>
+                <li>Android 批量操作栏（评分/导出/删除/加入相册）</li>
+            </ul>
+        </description>
+    </release>
     <release version="v1.6.1" date="2026-07-16">
         <url type="details">https://github.com/Tri250/RapidRAW/releases/tag/v1.6.1</url>
         <description translate="no">

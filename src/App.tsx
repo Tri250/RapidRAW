@@ -707,6 +707,21 @@ function App() {
                   handlePasteAdjustments={handlePasteAdjustments}
                   handleResetAdjustments={handleResetAdjustments}
                   requestThumbnails={requestThumbnails}
+                  onBatchRate={(rating, paths) => handleRate(rating, paths)}
+                  onBatchExport={(paths) => {
+                    const firstPath = paths[0];
+                    if (firstPath) handleImageSelect(firstPath);
+                    setUI((state: any) => ({ isLibraryExportPanelVisible: !state.isLibraryExportPanelVisible }));
+                  }}
+                  onBatchDelete={(paths) => executeDelete(paths, { includeAssociated: false })}
+                  onBatchAddToAlbum={(paths) => {
+                    const { albumTree } = useLibraryStore.getState();
+                    if (albumTree.length === 0) {
+                      setUI({ isCreateAlbumModalOpen: true });
+                    } else {
+                      setUI({ isCreateAlbumModalOpen: true });
+                    }
+                  }}
                 />
               )}
             </div>

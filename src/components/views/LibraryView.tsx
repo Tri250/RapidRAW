@@ -36,6 +36,10 @@ interface LibraryViewProps {
   handlePasteAdjustments: () => void;
   handleResetAdjustments: () => void;
   requestThumbnails: any;
+  onBatchRate?: (rating: number, paths: string[]) => void;
+  onBatchExport?: (paths: string[]) => void;
+  onBatchDelete?: (paths: string[]) => void;
+  onBatchAddToAlbum?: (paths: string[]) => void;
 }
 
 export default function LibraryView({
@@ -62,6 +66,10 @@ export default function LibraryView({
   handlePasteAdjustments,
   handleResetAdjustments,
   requestThumbnails,
+  onBatchRate,
+  onBatchExport,
+  onBatchDelete,
+  onBatchAddToAlbum,
 }: LibraryViewProps) {
   const { activeView, setUI } = useUIStore(
     useShallow((state) => ({
@@ -161,6 +169,10 @@ export default function LibraryView({
             thumbnailProgress={thumbnailProgress}
             thumbnailSize={thumbnailSize}
             onNavigateToCommunity={() => setUI({ activeView: 'community' })}
+            onBatchRate={onBatchRate}
+            onBatchExport={onBatchExport}
+            onBatchDelete={onBatchDelete}
+            onBatchAddToAlbum={onBatchAddToAlbum}
           />
         )}
         {rootPaths && rootPaths.length > 0 && (

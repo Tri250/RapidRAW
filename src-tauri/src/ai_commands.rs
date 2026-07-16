@@ -9,12 +9,16 @@ use crate::ai_connector;
 use crate::ai_processing::{
     AiDepthMaskParameters, AiForegroundMaskParameters, AiSkyMaskParameters,
     AiSubjectMaskParameters, CachedDepthMap, generate_image_embeddings, get_or_init_ai_models,
-    run_depth_anything_model, run_sam_decoder, run_sky_seg_model, run_u2netp_model,
+    get_or_init_clip_models, run_depth_anything_model, run_sam_decoder, run_sky_seg_model,
+    run_u2netp_model,
 };
 use crate::app_settings::load_settings;
 use crate::app_state::AppState;
 use crate::cache_utils::GEOMETRY_KEYS;
+use crate::file_management::parse_virtual_path;
+use crate::formats::is_raw_file;
 use crate::get_cached_full_warped_image;
+use crate::tagging::{extract_color_tags, generate_tags_with_clip};
 
 fn encode_to_base64_png(image: &GrayImage) -> Result<String, String> {
     let mut buf = Cursor::new(Vec::new());
@@ -394,4 +398,274 @@ pub async fn test_ai_connector_connection(address: String) -> Result<(), String>
         Ok(false) => Err("Server reachable but returned bad health status".to_string()),
         Err(e) => Err(e.to_string()),
     }
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AiRatingResult {
+    pub rating: u8,
+    pub description: String,
+    pub tags: Vec<String>,
+}
+
+fn compute_rating_from_features(image: &image::DynamicImage) -> (u8, String) {
+    let (width, height) = image.dimensions();
+    let rgb_image = image.to_rgb8();
+
+    // Downsample for analysis speed
+    let analysis_size = 200u32;
+    let small = image::imageops::resize(&rgb_image, analysis_size, analysis_size, image::imageops::FilterType::Triangle);
+
+    let mut luminances: Vec<f32> = Vec::with_capacity((analysis_size * analysis_size) as usize);
+    let mut reds: Vec<f32> = Vec::new();
+    let mut greens: Vec<f32> = Vec::new();
+    let mut blues: Vec<f32> = Vec::new();
+
+    for pixel in small.pixels() {
+        let r = pixel[0] as f32 / 255.0;
+        let g = pixel[1] as f32 / 255.0;
+        let b = pixel[2] as f32 / 255.0;
+        let lum = 0.299 * r + 0.587 * g + 0.114 * b;
+        luminances.push(lum);
+        reds.push(r);
+        greens.push(g);
+        blues.push(b);
+    }
+
+    let n = luminances.len() as f32;
+
+    // Mean and variance of luminance
+    let mean_lum: f32 = luminances.iter().sum::<f32>() / n;
+    let var_lum: f32 = luminances.iter().map(|x| (x - mean_lum).powi(2)).sum::<f32>() / n;
+
+    // Dynamic range (contrast)
+    let min_lum = luminances.iter().cloned().fold(f32::INFINITY, f32::min);
+    let max_lum = luminances.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+    let dynamic_range = max_lum - min_lum;
+
+    // Color saturation (average across pixels)
+    let avg_sat: f32 = {
+        let mut sat_sum = 0.0f32;
+        for i in 0..luminances.len() {
+            let max_c = reds[i].max(greens[i]).max(blues[i]);
+            let min_c = reds[i].min(greens[i]).min(blues[i]);
+            sat_sum += if max_c > 0.0 { (max_c - min_c) / max_c } else { 0.0 };
+        }
+        sat_sum / n
+    };
+
+    // Rule of thirds - center weight analysis
+    let center_score: f32 = {
+        let third_w = analysis_size as usize / 3;
+        let third_h = analysis_size as usize / 3;
+        let mut center_lum_sum = 0.0f32;
+        let mut center_count = 0usize;
+        let mut edge_lum_sum = 0.0f32;
+        let mut edge_count = 0usize;
+        for y in 0..analysis_size as usize {
+            for x in 0..analysis_size as usize {
+                let lum = luminances[y * analysis_size as usize + x];
+                let is_center = x >= third_w && x < 2 * third_w && y >= third_h && y < 2 * third_h;
+                if is_center {
+                    center_lum_sum += lum;
+                    center_count += 1;
+                } else {
+                    edge_lum_sum += lum;
+                    edge_count += 1;
+                }
+            }
+        }
+        let center_mean = if center_count > 0 { center_lum_sum / center_count as f32 } else { 0.0 };
+        let edge_mean = if edge_count > 0 { edge_lum_sum / edge_count as f32 } else { 0.0 };
+        // Moderate center-edge contrast is good (subject separation), but too much is harsh
+        let contrast = (center_mean - edge_mean).abs();
+        if contrast > 0.3 { 0.7 } else if contrast > 0.1 { 1.0 } else { 0.6 }
+    };
+
+    // Exposure quality: penalize too dark or too bright (clipped)
+    let clipped_shadows = luminances.iter().filter(|&&l| l < 0.02).count() as f32 / n;
+    let clipped_highlights = luminances.iter().filter(|&&l| l > 0.98).count() as f32 / n;
+    let exposure_score: f32 = 1.0 - (clipped_shadows + clipped_highlights).min(1.0);
+
+    // Aspect ratio: standard ratios (3:2, 4:3, 16:9) get a slight bonus
+    let aspect = if height > 0 { width as f32 / height as f32 } else { 1.0 };
+    let aspect_score: f32 = {
+        let near_standard = (aspect - 1.5).abs() < 0.1 // ~3:2
+            || (aspect - 1.333).abs() < 0.1 // ~4:3
+            || (aspect - 1.778).abs() < 0.1; // ~16:9
+        if near_standard { 1.0 } else { 0.8 }
+    };
+
+    // Variance score: moderate variance indicates good tonal distribution
+    let variance_score: f32 = {
+        // Optimal variance around 0.06-0.10 for well-exposed photos
+        let optimal_var = 0.08;
+        let diff = (var_lum - optimal_var).abs();
+        if diff < 0.02 { 1.0 } else if diff < 0.05 { 0.8 } else { 0.5 }
+    };
+
+    // Combine scores (weighted)
+    let raw_score = variance_score * 0.25
+        + dynamic_range.min(1.0) * 0.2
+        + avg_sat * 0.15
+        + center_score * 0.15
+        + exposure_score * 0.15
+        + aspect_score * 0.1;
+
+    // Map to 1-5 rating
+    let rating = if raw_score > 0.75 {
+        5
+    } else if raw_score > 0.6 {
+        4
+    } else if raw_score > 0.45 {
+        3
+    } else if raw_score > 0.3 {
+        2
+    } else {
+        1
+    };
+
+    // Generate description
+    let desc = if rating >= 4 {
+        if avg_sat > 0.4 {
+            "色彩丰富，构图良好".to_string()
+        } else if dynamic_range > 0.7 {
+            "动态范围优秀，曝光平衡".to_string()
+        } else {
+            "整体质量良好".to_string()
+        }
+    } else if rating == 3 {
+        if clipped_shadows > 0.1 {
+            "暗部细节有损失".to_string()
+        } else if clipped_highlights > 0.1 {
+            "高光有溢出".to_string()
+        } else {
+            "质量一般".to_string()
+        }
+    } else {
+        if var_lum < 0.02 {
+            "画面缺乏对比度".to_string()
+        } else if avg_sat < 0.1 {
+            "画面色彩平淡".to_string()
+        } else {
+            "建议调整后使用".to_string()
+        }
+    };
+
+    (rating, desc)
+}
+
+#[tauri::command]
+pub async fn generate_ai_rating(
+    path: String,
+    state: tauri::State<'_, AppState>,
+    app_handle: tauri::AppHandle,
+) -> Result<AiRatingResult, String> {
+    let (source_path, _) = parse_virtual_path(&path);
+    let source_path_str = source_path.to_string_lossy().to_string();
+    let settings = load_settings(app_handle.clone()).unwrap_or_default();
+
+    // Load image
+    let image_bytes = std::fs::read(&source_path).map_err(|e| format!("Failed to read image: {}", e))?;
+    let image = crate::image_loader::load_base_image_from_bytes(
+        &image_bytes,
+        &source_path_str,
+        true,
+        &settings,
+        None,
+    )
+    .map_err(|e| format!("Failed to load image: {}", e))?;
+
+    // Compute heuristic rating
+    let (rating, description) = compute_rating_from_features(&image);
+
+    // Get tags using CLIP if available
+    let tags = match get_or_init_clip_models(&app_handle, &state.ai_state, &state.ai_init_lock).await {
+        Ok(clip_models) => {
+            generate_tags_with_clip(
+                &image,
+                &clip_models.model,
+                &clip_models.tokenizer,
+                None,
+                8,
+            )
+            .unwrap_or_else(|_| extract_color_tags(&image))
+        }
+        Err(_) => extract_color_tags(&image),
+    };
+
+    Ok(AiRatingResult {
+        rating,
+        description,
+        tags,
+    })
+}
+
+#[tauri::command]
+pub async fn generate_ai_ratings_batch(
+    paths: Vec<String>,
+    app_handle: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<AiRatingResult>, String> {
+    let settings = load_settings(app_handle.clone()).unwrap_or_default();
+
+    // Try to init CLIP models once for the batch
+    let clip_models = get_or_init_clip_models(&app_handle, &state.ai_state, &state.ai_init_lock)
+        .await
+        .ok();
+
+    let mut results = Vec::with_capacity(paths.len());
+
+    for path in &paths {
+        let (source_path, _) = parse_virtual_path(path);
+        let source_path_str = source_path.to_string_lossy().to_string();
+
+        let image_bytes = match std::fs::read(&source_path) {
+            Ok(b) => b,
+            Err(e) => {
+                log::warn!("Failed to read image {}: {}", source_path_str, e);
+                results.push(AiRatingResult {
+                    rating: 0,
+                    description: format!("读取失败: {}", e),
+                    tags: Vec::new(),
+                });
+                continue;
+            }
+        };
+
+        let image = match crate::image_loader::load_base_image_from_bytes(
+            &image_bytes,
+            &source_path_str,
+            true,
+            &settings,
+            None,
+        ) {
+            Ok(img) => img,
+            Err(e) => {
+                log::warn!("Failed to load image {}: {}", source_path_str, e);
+                results.push(AiRatingResult {
+                    rating: 0,
+                    description: format!("加载失败: {}", e),
+                    tags: Vec::new(),
+                });
+                continue;
+            }
+        };
+
+        let (rating, description) = compute_rating_from_features(&image);
+
+        let tags = match &clip_models {
+            Some(cm) => generate_tags_with_clip(&image, &cm.model, &cm.tokenizer, None, 8)
+                .unwrap_or_else(|_| extract_color_tags(&image)),
+            None => extract_color_tags(&image),
+        };
+
+        results.push(AiRatingResult {
+            rating,
+            description,
+            tags,
+        });
+    }
+
+    Ok(results)
 }

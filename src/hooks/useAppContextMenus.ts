@@ -17,6 +17,7 @@ import {
   Redo,
   RefreshCw,
   RotateCcw,
+  Sparkles,
   Star,
   SquaresUnite,
   Palette,
@@ -675,13 +676,59 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
         {
           icon: Star,
           label: t('contextMenus.editor.rating'),
-          submenu: [0, 1, 2, 3, 4, 5].map((rating: number) => ({
-            label:
-              rating === 0
-                ? t('contextMenus.editor.noRating')
-                : t('contextMenus.editor.ratingLabel', { count: rating }),
-            onClick: () => handleRate(rating, finalSelection),
-          })),
+          submenu: [
+            ...[0, 1, 2, 3, 4, 5].map((rating: number) => ({
+              label:
+                rating === 0
+                  ? t('contextMenus.editor.noRating')
+                  : t('contextMenus.editor.ratingLabel', { count: rating }),
+              onClick: () => handleRate(rating, finalSelection),
+            })),
+            { type: OPTION_SEPARATOR },
+            {
+              label: t('contextMenus.editor.aiBatchRating'),
+              icon: Sparkles,
+              onClick: async () => {
+                if (finalSelection.length === 0) return;
+                const toastId = toast.info(
+                  t('editor.aiRating.batchProgress', { current: 0, total: finalSelection.length }),
+                  { autoClose: false },
+                );
+                try {
+                  const results: Array<{ rating: number; description: string; tags: string[] }> =
+                    await invoke(Invokes.GenerateAiRatingsBatch, { paths: finalSelection });
+                  const validResults = results.filter((r) => r.rating > 0);
+                  // Apply ratings for all valid results
+                  for (let i = 0; i < finalSelection.length; i++) {
+                    if (i < results.length && results[i].rating > 0) {
+                      await invoke(Invokes.SetRatingForPaths, {
+                        paths: [finalSelection[i]],
+                        rating: results[i].rating,
+                      });
+                    }
+                  }
+                  // Update local ratings state
+                  const { setLibrary } = useLibraryStore.getState();
+                  setLibrary((state) => {
+                    const newRatings = { ...state.imageRatings };
+                    for (let i = 0; i < finalSelection.length; i++) {
+                      if (i < results.length && results[i].rating > 0) {
+                        newRatings[finalSelection[i]] = results[i].rating;
+                      }
+                    }
+                    return { imageRatings: newRatings };
+                  });
+                  toast.dismiss(toastId);
+                  toast.success(
+                    t('editor.aiRating.batchComplete', { count: validResults.length }),
+                  );
+                } catch (err) {
+                  toast.dismiss(toastId);
+                  toast.error(String(err));
+                }
+              },
+            },
+          ],
         },
         {
           label: t('contextMenus.editor.colorLabel'),

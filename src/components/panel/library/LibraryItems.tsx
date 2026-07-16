@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Image as ImageIcon, Folder, FolderOpen, Star as StarIcon, SlidersHorizontal, CloudOff } from 'lucide-react';
+import { Image as ImageIcon, Folder, FolderOpen, Star as StarIcon, SlidersHorizontal, CloudOff, Heart } from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { COLOR_LABELS, Color } from '../../../utils/adjustments';
@@ -9,6 +9,7 @@ import { TextColors, TextVariants, TextWeights, TEXT_COLOR_KEYS } from '../../..
 import { ColumnWidths } from '../MainLibrary';
 import { useProcessStore } from '../../../store/useProcessStore';
 import { useSettingsStore } from '../../../store/useSettingsStore';
+import { useLibraryStore } from '../../../store/useLibraryStore';
 import { IconAperture, IconFocalLength, IconIso, IconShutter } from '../editor/ExifIcons';
 
 interface ImageLayer {
@@ -37,6 +38,11 @@ const ThumbnailComponent = ({
   const exifOverlay = useSettingsStore((s) => s.appSettings?.exifOverlay || ExifOverlay.Off);
   const displayEditIcon = useSettingsStore((s) => s.appSettings?.displayEditIcon ?? true);
   const showEditIcon = isEdited && displayEditIcon;
+  const favorites = useLibraryStore((s) => s.favorites);
+  const toggleFavorite = useLibraryStore((s) => s.toggleFavorite);
+  const isFav = favorites.includes(path);
+  const osPlatform = useSettingsStore((s) => s.osPlatform);
+  const isAndroid = osPlatform === 'android';
 
   const [showPlaceholder, setShowPlaceholder] = useState(false);
   const [layers, setLayers] = useState<ImageLayer[]>([]);
@@ -204,6 +210,25 @@ const ThumbnailComponent = ({
             <CloudOff size={12} className="text-white" />
           </div>
         )}
+
+        <button
+          type="button"
+          className={clsx(
+            'absolute bottom-1.5 left-1.5 z-10 rounded-full h-6 w-6 flex items-center justify-center transition-all duration-200 cursor-pointer',
+            isFav
+              ? 'bg-accent/80 shadow-md'
+              : isAndroid
+                ? 'bg-black/30 opacity-80'
+                : 'bg-black/30 opacity-0 group-hover:opacity-100',
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleFavorite(path);
+          }}
+          data-tooltip={isFav ? t('library.favorites.removed') : t('library.favorites.added')}
+        >
+          <Heart size={12} className={clsx('text-white', isFav && 'fill-white')} />
+        </button>
       </div>
 
       <div

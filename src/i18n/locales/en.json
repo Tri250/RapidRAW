@@ -184,6 +184,7 @@
       "mergeHdr": "Merge to HDR",
       "noLabel": "No Label",
       "noRating": "No Rating",
+      "aiBatchRating": "AI Batch Rating",
       "pasteAdjustments": "Paste Adjustments",
       "productivity": "Productivity",
       "rating": "Rating",
@@ -279,6 +280,17 @@
     }
   },
   "editor": {
+    "android": {
+      "doubleTapCompare": "Double-tap to compare original",
+      "bottomNav": {
+        "library": "Library",
+        "basic": "Basic",
+        "color": "Color",
+        "portrait": "Portrait",
+        "export": "Export"
+      },
+      "swipeHint": "Swipe left/right to switch photos"
+    },
     "adjustments": {
       "actions": {
         "copySectionSettings": "Copy {{section}} Settings",
@@ -651,6 +663,16 @@
       },
       "title": "Metadata"
     },
+    "aiRating": {
+      "title": "AI Smart Rating",
+      "generate": "Generate Rating",
+      "applying": "Rating...",
+      "description": "AI Description",
+      "applyToExif": "Apply to EXIF",
+      "applied": "Written to EXIF",
+      "batchProgress": "Rating {{current}}/{{total}}...",
+      "batchComplete": "Completed rating for {{count}} images"
+    },
     "presets": {
       "amount": "Amount",
       "dialog": {
@@ -958,7 +980,15 @@
     "search": {
       "noResults": "No Results Found",
       "noResultsAiHint": " For a more comprehensive search, enable automatic tagging in Settings.",
-      "noResultsDesc": "Could not find an image based on filename or tags."
+      "noResultsDesc": "Could not find an image based on filename or tags.",
+      "advancedFilter": "Advanced Filter",
+      "dateRange": "Date Range",
+      "dateFrom": "From",
+      "dateTo": "To",
+      "cameraModel": "Camera Model",
+      "focalLength": "Focal Length",
+      "aiTagSuggestion": "AI Tag Suggestions",
+      "suggestions": "Search Suggestions"
     },
     "sort": {
       "aperture": "Aperture",
@@ -1013,6 +1043,42 @@
       "communityPresets": "Community Presets",
       "goHome": "Go to Home",
       "importImages": "Import Images"
+    },
+    "smartAlbum": {
+      "title": "Smart Albums",
+      "create": "Create Smart Album",
+      "name": "Album Name",
+      "conditions": "Conditions",
+      "addField": "Add Condition",
+      "preview": "{count} photos match",
+      "createButton": "Create",
+      "fieldRating": "Rating",
+      "fieldColorLabel": "Color Label",
+      "fieldTag": "Tag",
+      "fieldDateModified": "Date Modified",
+      "fieldDateTaken": "Date Taken",
+      "fieldCameraModel": "Camera Model",
+      "fieldIsEdited": "Edited Status",
+      "opEquals": "Equals",
+      "opGreaterThan": "Greater Than",
+      "opLessThan": "Less Than",
+      "opContains": "Contains",
+      "opBetween": "Between",
+      "valuePlaceholder": "Value",
+      "valueTrue": "Yes",
+      "valueFalse": "No"
+    },
+    "favorites": {
+      "title": "Favorites",
+      "added": "Added to Favorites",
+      "removed": "Removed from Favorites"
+    },
+    "batch": {
+      "rate": "Rate",
+      "export": "Export",
+      "delete": "Delete",
+      "addToAlbum": "Add to Album",
+      "selected": "{count} selected"
     }
   },
   "masks": {

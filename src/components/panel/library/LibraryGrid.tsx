@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { List, useListCallbackRef } from 'react-window';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, Star, Download, Trash2, FolderPlus } from 'lucide-react';
 import debounce from 'lodash.debounce';
 import { useTranslation } from 'react-i18next';
 import { Row } from './LibraryItems';
@@ -11,6 +11,9 @@ import { TextColors, TextVariants, TextWeights, TEXT_COLOR_KEYS } from '../../..
 import { useProcessStore } from '../../../store/useProcessStore';
 import { ExifOverlay } from '../../ui/AppProperties';
 import { useSettingsStore } from '../../../store/useSettingsStore';
+
+const LONG_PRESS_DURATION = 500;
+const LONG_PRESS_MOVE_THRESHOLD = 10;
 
 function ListHeader({ widths, setWidths, containerRef, sortCriteria, onSortChange }: any) {
   const { t } = useTranslation();
@@ -172,6 +175,7 @@ export default function LibraryGrid(props: any) {
     thumbnailSizeOptions,
     onThumbnailSizeChange,
   } = props;
+  const { t } = useTranslation();
   const { listColumnWidths, setLibrary, sortCriteria, setSortCriteria } = useLibraryStore();
   const [gridSize, setGridSize] = useState({ height: 0, width: 0 });
   const [listHandle, setListHandle] = useListCallbackRef();
@@ -181,6 +185,54 @@ export default function LibraryGrid(props: any) {
   const loadedThumbnailsRef = useRef(new Set<string>());
   const requestQueueRef = useRef<Set<string>>(new Set());
   const requestTimeoutRef = useRef<any>(null);
+
+  const osPlatform = useSettingsStore((s) => s.osPlatform);
+  const isAndroid = osPlatform === 'android';
+  const [showRatePopover, setShowRatePopover] = useState(false);
+
+  // Long-press context menu for Android
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const clearLongPress = useCallback(() => {
+    if (longPressTimerRef.current !== null) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    longPressStartRef.current = null;
+  }, []);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!isAndroid) return;
+    const touch = e.touches[0];
+    longPressStartRef.current = { x: touch.clientX, y: touch.clientY };
+    clearLongPress();
+    longPressTimerRef.current = window.setTimeout(() => {
+      if (!longPressStartRef.current) return;
+      const simulatedEvent = {
+        clientX: longPressStartRef.current.x,
+        clientY: longPressStartRef.current.y,
+        preventDefault: () => {},
+        stopPropagation: () => {},
+      } as any;
+      onContextMenu?.(simulatedEvent, '');
+      longPressStartRef.current = null;
+    }, LONG_PRESS_DURATION);
+  }, [isAndroid, onContextMenu, clearLongPress]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isAndroid || !longPressStartRef.current) return;
+    const touch = e.touches[0];
+    const dx = Math.abs(touch.clientX - longPressStartRef.current.x);
+    const dy = Math.abs(touch.clientY - longPressStartRef.current.y);
+    if (dx > LONG_PRESS_MOVE_THRESHOLD || dy > LONG_PRESS_MOVE_THRESHOLD) {
+      clearLongPress();
+    }
+  }, [isAndroid, clearLongPress]);
+
+  const handleTouchEnd = useCallback(() => {
+    clearLongPress();
+  }, [clearLongPress]);
 
   useEffect(() => {
     const el = libraryContainerRef.current;
@@ -392,7 +444,7 @@ export default function LibraryGrid(props: any) {
         targetTop += rowsInGroup * rowHeight;
       }
     } else {
-      const index = imageList.findIndex((img) => img.path === activePath);
+      const index = imageList.findIndex((img: any) => img.path === activePath);
       if (index !== -1) {
         const rowIndex = Math.floor(index / columnCount);
         targetTop = rowIndex * rowHeight;
@@ -466,6 +518,9 @@ export default function LibraryGrid(props: any) {
         className="flex-1 w-full h-full"
         onClick={props.onClearSelection}
         onContextMenu={props.onEmptyAreaContextMenu}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       />
     );
   }
@@ -492,9 +547,12 @@ export default function LibraryGrid(props: any) {
   return (
     <div
       ref={libraryContainerRef}
-      className="flex-1 w-full h-full"
+      className="flex-1 w-full h-full relative"
       onClick={props.onClearSelection}
       onContextMenu={props.onEmptyAreaContextMenu}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <div className="flex flex-col w-full h-full">
         {gridData.isListView && (
@@ -508,7 +566,12 @@ export default function LibraryGrid(props: any) {
         )}
         <div
           key={`${gridSize.width}-${thumbnailSize}-${libraryViewMode}-${sortCriteria.key}-${sortCriteria.order}-${thumbnailAspectRatio}`}
-          style={{ height: gridData.isListView ? gridSize.height - 36 : gridSize.height, width: gridSize.width }}
+          style={{
+            height: gridData.isListView
+              ? gridSize.height - 36 - (isAndroid && multiSelectedPaths.length > 1 ? 56 : 0)
+              : gridSize.height - (isAndroid && multiSelectedPaths.length > 1 ? 56 : 0),
+            width: gridSize.width,
+          }}
         >
           <List
             listRef={setListHandle}
@@ -521,6 +584,75 @@ export default function LibraryGrid(props: any) {
           />
         </div>
       </div>
+
+      {isAndroid && multiSelectedPaths.length > 1 && (
+        <div className="absolute bottom-0 left-0 right-0 bg-bg-secondary border-t border-border-color flex items-center justify-around px-2 h-14 z-40">
+          <div className="relative">
+            <button
+              type="button"
+              className="flex flex-col items-center gap-0.5 px-3 py-1 text-text-secondary hover:text-accent transition-colors"
+              onClick={() => setShowRatePopover(!showRatePopover)}
+            >
+              <Star size={18} />
+              <span className="text-[10px]">{t('library.batch.rate')}</span>
+            </button>
+            {showRatePopover && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-bg-secondary border border-border-color rounded-lg shadow-lg p-2 flex gap-1 z-50">
+                {[1, 2, 3, 4, 5].map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    className="p-1.5 hover:bg-surface rounded transition-colors"
+                    onClick={() => {
+                      if (props.onBatchRate) {
+                        props.onBatchRate(r, multiSelectedPaths);
+                      }
+                      setShowRatePopover(false);
+                    }}
+                  >
+                    <Star size={16} className="text-accent fill-accent" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            className="flex flex-col items-center gap-0.5 px-3 py-1 text-text-secondary hover:text-accent transition-colors"
+            onClick={() => {
+              if (props.onBatchExport) props.onBatchExport(multiSelectedPaths);
+            }}
+          >
+            <Download size={18} />
+            <span className="text-[10px]">{t('library.batch.export')}</span>
+          </button>
+          <button
+            type="button"
+            className="flex flex-col items-center gap-0.5 px-3 py-1 text-text-secondary hover:text-red-500 transition-colors"
+            onClick={() => {
+              if (props.onBatchDelete) props.onBatchDelete(multiSelectedPaths);
+            }}
+          >
+            <Trash2 size={18} />
+            <span className="text-[10px]">{t('library.batch.delete')}</span>
+          </button>
+          <button
+            type="button"
+            className="flex flex-col items-center gap-0.5 px-3 py-1 text-text-secondary hover:text-accent transition-colors"
+            onClick={() => {
+              if (props.onBatchAddToAlbum) props.onBatchAddToAlbum(multiSelectedPaths);
+            }}
+          >
+            <FolderPlus size={18} />
+            <span className="text-[10px]">{t('library.batch.addToAlbum')}</span>
+          </button>
+          <div className="flex items-center px-2">
+            <span className="text-[11px] text-text-secondary">
+              {t('library.batch.selected', { count: multiSelectedPaths.length })}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

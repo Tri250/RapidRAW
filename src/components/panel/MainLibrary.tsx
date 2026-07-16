@@ -13,6 +13,7 @@ import {
   Search,
   Users,
   SlidersHorizontal,
+  Filter,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -35,7 +36,7 @@ import { TextColors, TextVariants, TextWeights } from '../../types/typography';
 import { useLibraryStore } from '../../store/useLibraryStore';
 
 import LibraryGrid from './library/LibraryGrid';
-import { SearchInput, ViewOptionsDropdown } from './library/LibraryHeader';
+import { SearchInput, ViewOptionsDropdown, AdvancedFilterPanel } from './library/LibraryHeader';
 
 interface MainLibraryProps {
   activePath: string | null;
@@ -66,6 +67,10 @@ interface MainLibraryProps {
   onThumbnailAspectRatioChange(aspectRatio: ThumbnailAspectRatio): void;
   onThumbnailSizeChange(size: ThumbnailSize): void;
   onRequestThumbnails?(paths: string[]): void;
+  onBatchRate?(rating: number, paths: string[]): void;
+  onBatchExport?(paths: string[]): void;
+  onBatchDelete?(paths: string[]): void;
+  onBatchAddToAlbum?(paths: string[]): void;
   rootPaths: string[];
   setLibraryViewMode(mode: LibraryViewMode): void;
   theme: string;
@@ -90,6 +95,7 @@ export interface ColumnWidths {
 export default function MainLibrary(props: MainLibraryProps) {
   const { t } = useTranslation();
   const [showSettings, setShowSettings] = useState(false);
+  const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
   const [appVersion, setAppVersion] = useState('');
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
   const [latestVersion, setLatestVersion] = useState('');
@@ -408,7 +414,7 @@ export default function MainLibrary(props: MainLibraryProps) {
               <span>{t('library.import.failed')}</span>
             </Text>
           )}
-          <SearchInput indexingProgress={props.indexingProgress} isIndexing={props.isIndexing} />
+          <SearchInput indexingProgress={props.indexingProgress} isIndexing={props.isIndexing} isAndroid={props.isAndroid} />
           <ViewOptionsDropdown
             libraryViewMode={props.libraryViewMode}
             onSelectSize={props.onThumbnailSizeChange}
@@ -423,6 +429,16 @@ export default function MainLibrary(props: MainLibraryProps) {
             editedStatusOptions={translatedEditedStatusOptions}
             sortOptions={translatedSortOptions}
           />
+          {props.isAndroid && (
+            <Button
+              className={`h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center relative ${showAdvancedFilter ? 'bg-card-active' : ''}`}
+              onClick={() => setShowAdvancedFilter(!showAdvancedFilter)}
+              data-tooltip={t('library.search.advancedFilter')}
+            >
+              <Filter className="w-5 h-5" />
+              {showAdvancedFilter && <div className="absolute -top-1 -right-1 bg-accent rounded-full w-3 h-3" />}
+            </Button>
+          )}
           {!props.isAndroid && (
             <>
               <Button
@@ -443,6 +459,10 @@ export default function MainLibrary(props: MainLibraryProps) {
           </Button>
         </div>
       </header>
+
+      <AnimatePresence>
+        {showAdvancedFilter && props.isAndroid && <AdvancedFilterPanel isAndroid={props.isAndroid} />}
+      </AnimatePresence>
 
       {props.imageList.length > 0 ? (
         <LibraryGrid {...props} thumbnailSizeOptions={translatedThumbnailSizeOptions} />
@@ -491,7 +511,7 @@ export default function MainLibrary(props: MainLibraryProps) {
       {props.isAndroid && (
         <Button
           className="absolute bottom-18 right-8 h-12 w-12 bg-accent text-button-text shadow-lg p-0 flex items-center justify-center z-50 border border-border-color/50"
-          onClick={(e) => {
+          onClick={(e: any) => {
             e.stopPropagation();
             props.onImportClick();
           }}

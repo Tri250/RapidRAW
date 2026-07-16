@@ -184,6 +184,7 @@
       "mergeHdr": "合并为 HDR",
       "noLabel": "无标签",
       "noRating": "无评分",
+      "aiBatchRating": "AI 批量评分",
       "pasteAdjustments": "粘贴调整",
       "productivity": "效率",
       "rating": "评分",
@@ -279,6 +280,17 @@
     }
   },
   "editor": {
+    "android": {
+      "doubleTapCompare": "双击对比原图",
+      "bottomNav": {
+        "library": "图库",
+        "basic": "基础",
+        "color": "色彩",
+        "portrait": "人像",
+        "export": "导出"
+      },
+      "swipeHint": "左右滑动切换照片"
+    },
     "adjustments": {
       "actions": {
         "copySectionSettings": "复制 {{section}} 设置",
@@ -651,6 +663,16 @@
       },
       "title": "元数据"
     },
+    "aiRating": {
+      "title": "AI 智能评分",
+      "generate": "生成评分",
+      "applying": "正在评分...",
+      "description": "AI 描述",
+      "applyToExif": "应用到 EXIF",
+      "applied": "已写入 EXIF",
+      "batchProgress": "正在评分 {{current}}/{{total}}...",
+      "batchComplete": "完成 {{count}} 张图片评分"
+    },
     "presets": {
       "amount": "数量",
       "dialog": {
@@ -958,7 +980,15 @@
     "search": {
       "noResults": "未找到结果",
       "noResultsAiHint": " 如需更全面的搜索，请在设置中启用自动标签。",
-      "noResultsDesc": "无法根据文件名或标签找到图像。"
+      "noResultsDesc": "无法根据文件名或标签找到图像。",
+      "advancedFilter": "高级筛选",
+      "dateRange": "日期范围",
+      "dateFrom": "从",
+      "dateTo": "到",
+      "cameraModel": "相机型号",
+      "focalLength": "焦距",
+      "aiTagSuggestion": "AI 标签建议",
+      "suggestions": "搜索建议"
     },
     "sort": {
       "aperture": "光圈",
@@ -1013,6 +1043,42 @@
       "communityPresets": "社区预设",
       "goHome": "返回首页",
       "importImages": "导入图像"
+    },
+    "smartAlbum": {
+      "title": "智能相册",
+      "create": "创建智能相册",
+      "name": "相册名称",
+      "conditions": "条件",
+      "addField": "添加条件",
+      "preview": "匹配 {count} 张照片",
+      "createButton": "创建",
+      "fieldRating": "评分",
+      "fieldColorLabel": "颜色标签",
+      "fieldTag": "标签",
+      "fieldDateModified": "修改日期",
+      "fieldDateTaken": "拍摄日期",
+      "fieldCameraModel": "相机型号",
+      "fieldIsEdited": "编辑状态",
+      "opEquals": "等于",
+      "opGreaterThan": "大于",
+      "opLessThan": "小于",
+      "opContains": "包含",
+      "opBetween": "介于",
+      "valuePlaceholder": "值",
+      "valueTrue": "是",
+      "valueFalse": "否"
+    },
+    "favorites": {
+      "title": "收藏夹",
+      "added": "已添加到收藏",
+      "removed": "已从收藏移除"
+    },
+    "batch": {
+      "rate": "评分",
+      "export": "导出",
+      "delete": "删除",
+      "addToAlbum": "加入相册",
+      "selected": "已选 {count} 张"
     }
   },
   "masks": {

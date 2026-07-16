@@ -11,15 +11,19 @@ const iconProps = {
   strokeLinejoin: 'round' as const,
 };
 
-export const IconAperture = () => (
-  <svg {...iconProps}>
+interface ExifIconProps {
+  className?: string;
+}
+
+export const IconAperture = ({ className }: ExifIconProps = {}) => (
+  <svg {...iconProps} className={className}>
     <circle cx="12" cy="12" r="10" />
     <path d="M14.31 8l5.74 9.94M9.69 8h11.48M7.38 12l5.74-9.94M9.69 16L3.95 6.06M14.31 16H2.83M16.62 12l-5.74 9.94" />
   </svg>
 );
 
-export const IconShutter = () => (
-  <svg {...iconProps}>
+export const IconShutter = ({ className }: ExifIconProps = {}) => (
+  <svg {...iconProps} className={className}>
     <circle cx="12" cy="12" r="10" />
     <path d="M12 12V7" />
     <path d="M12 2v2" />
@@ -33,16 +37,16 @@ export const IconShutter = () => (
   </svg>
 );
 
-export const IconIso = () => (
-  <svg {...iconProps}>
+export const IconIso = ({ className }: ExifIconProps = {}) => (
+  <svg {...iconProps} className={className}>
     <rect x="2" y="4" width="20" height="16" rx="2" />
     <circle cx="12" cy="12" r="3" />
     <path d="M6 8h.01M6 16h.01M18 8h.01M18 16h.01" />
   </svg>
 );
 
-export const IconFocalLength = () => (
-  <svg {...iconProps}>
+export const IconFocalLength = ({ className }: ExifIconProps = {}) => (
+  <svg {...iconProps} className={className}>
     <path d="M2 12L22 12" />
     <path d="M17 12a5 5 0 0 0-5-5 5 5 0 0 0-5 5" />
     <path d="M2 12l6 8" />
@@ -50,8 +54,8 @@ export const IconFocalLength = () => (
   </svg>
 );
 
-export const IconCalendar = () => (
-  <svg {...iconProps}>
+export const IconCalendar = ({ className }: ExifIconProps = {}) => (
+  <svg {...iconProps} className={className}>
     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
     <line x1="16" y1="2" x2="16" y2="6" />
     <line x1="8" y1="2" x2="8" y2="6" />
@@ -59,15 +63,15 @@ export const IconCalendar = () => (
   </svg>
 );
 
-export const IconClock = () => (
-  <svg {...iconProps}>
+export const IconClock = ({ className }: ExifIconProps = {}) => (
+  <svg {...iconProps} className={className}>
     <circle cx="12" cy="12" r="10" />
     <polyline points="12 6 12 12 16 14" />
   </svg>
 );
 
-export const IconLens = () => (
-  <svg {...iconProps}>
+export const IconLens = ({ className }: ExifIconProps = {}) => (
+  <svg {...iconProps} className={className}>
     <circle cx="12" cy="12" r="10" />
     <circle cx="12" cy="12" r="5" />
     <path d="M12 7a5 5 0 0 1 5 5" strokeWidth="1.5" strokeOpacity="0.4" />

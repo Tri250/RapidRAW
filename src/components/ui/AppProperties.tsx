@@ -54,6 +54,8 @@ export enum Invokes {
   GenerateAiForegroundMask = 'generate_ai_foreground_mask',
   GenerateAiSkyMask = 'generate_ai_sky_mask',
   GenerateAiSubjectMask = 'generate_ai_subject_mask',
+  GenerateAiRating = 'generate_ai_rating',
+  GenerateAiRatingsBatch = 'generate_ai_ratings_batch',
   GenerateFullscreenPreview = 'generate_fullscreen_preview',
   GeneratePreviewForPath = 'generate_preview_for_path',
   GenerateMaskOverlay = 'generate_mask_overlay',
@@ -177,6 +179,8 @@ export interface AppSettings {
   filterCriteria?: FilterCriteria;
   lastFolderState?: any;
   pinnedFolders?: any;
+  rootFolders?: string[];
+  taggingShortcuts?: string[];
   lastRootPath: string | null;
   libraryViewMode?: LibraryViewMode;
   sortCriteria?: SortCriteria;

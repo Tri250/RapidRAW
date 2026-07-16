@@ -19,6 +19,7 @@ import ConfirmModal from './ConfirmModal';
 import ImportSettingsModal from './ImportSettingsModal';
 import CullingModal from './CullingModal';
 import CollageModal from './CollageModal';
+import SmartAlbumModal from './SmartAlbumModal';
 import { AppSettings, Invokes, AlbumItem, Album, AlbumGroup } from '../ui/AppProperties';
 import { CopyPasteSettings } from '../../utils/adjustments';
 
@@ -65,6 +66,7 @@ export default function AppModals(props: AppModalsProps) {
     isCreateAlbumModalOpen,
     isCreateAlbumGroupModalOpen,
     isRenameAlbumModalOpen,
+    isSmartAlbumModalOpen,
     albumActionTarget,
     confirmModalState,
     panoramaModalState,
@@ -87,6 +89,7 @@ export default function AppModals(props: AppModalsProps) {
       isCreateAlbumModalOpen: state.isCreateAlbumModalOpen,
       isCreateAlbumGroupModalOpen: state.isCreateAlbumGroupModalOpen,
       isRenameAlbumModalOpen: state.isRenameAlbumModalOpen,
+      isSmartAlbumModalOpen: state.isSmartAlbumModalOpen,
       albumActionTarget: state.albumActionTarget,
       confirmModalState: state.confirmModalState,
       panoramaModalState: state.panoramaModalState,
@@ -322,6 +325,11 @@ export default function AppModals(props: AppModalsProps) {
         onSave={props.handleSaveCollage}
         sourceImages={collageModalState.sourceImages}
         thumbnails={thumbnails}
+      />
+      <SmartAlbumModal
+        isOpen={isSmartAlbumModalOpen}
+        onClose={() => setUI({ isSmartAlbumModalOpen: false })}
+        images={useLibraryStore.getState().imageList}
       />
     </>
   );

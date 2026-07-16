@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Check, ChevronDown, ChevronRight, Plus, Star, Tag, X, User } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Loader2, Plus, Sparkles, Star, Tag, X, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
+import { toast } from 'react-toastify';
 import { Invokes } from '../../ui/AppProperties';
 import { COLOR_LABELS, Color } from '../../../utils/adjustments';
 import Text from '../../ui/Text';
@@ -235,6 +236,9 @@ export default function MetadataPanel() {
   const [isAuthorExpanded, setIsAuthorExpanded] = useState(false);
   const [tagInputValue, setTagInputValue] = useState('');
   const [isTagInputFocused, setIsTagInputFocused] = useState(false);
+  const [aiRatingLoading, setAiRatingLoading] = useState(false);
+  const [aiRatingResult, setAiRatingResult] = useState<{ rating: number; description: string; tags: string[] } | null>(null);
+  const [aiRatingApplied, setAiRatingApplied] = useState(false);
   const selectedImage = useEditorStore((s) => s.selectedImage);
   const multiSelectedPaths = useLibraryStore((s) => s.multiSelectedPaths);
   const imageList = useLibraryStore((s) => s.imageList);
@@ -378,6 +382,60 @@ export default function MetadataPanel() {
     e.stopPropagation();
   };
 
+  const handleGenerateAiRating = async () => {
+    if (!selectedImage || aiRatingLoading) return;
+    setAiRatingLoading(true);
+    setAiRatingResult(null);
+    setAiRatingApplied(false);
+    try {
+      const result = await invoke<{ rating: number; description: string; tags: string[] }>(
+        Invokes.GenerateAiRating,
+        { path: selectedImage.path },
+      );
+      setAiRatingResult(result);
+    } catch (err) {
+      console.error('AI rating failed:', err);
+      toast.error(t('editor.aiRating.generate') + ' ' + String(err));
+    } finally {
+      setAiRatingLoading(false);
+    }
+  };
+
+  const handleApplyAiRatingToExif = async () => {
+    if (!aiRatingResult || !selectedImage) return;
+    try {
+      // Apply rating
+      await invoke(Invokes.SetRatingForPaths, { paths: targetPaths, rating: aiRatingResult.rating });
+      // Update local state
+      const { setLibrary } = useLibraryStore.getState();
+      setLibrary((state) => {
+        const newRatings = { ...state.imageRatings };
+        targetPaths.forEach((p) => {
+          newRatings[p] = aiRatingResult.rating;
+        });
+        return { imageRatings: newRatings };
+      });
+      // Write description and tags to EXIF UserComment
+      const commentParts: string[] = [];
+      if (aiRatingResult.description) commentParts.push(aiRatingResult.description);
+      if (aiRatingResult.tags.length > 0) commentParts.push(`Tags: ${aiRatingResult.tags.join(', ')}`);
+      if (commentParts.length > 0) {
+        handleUpdateExif(targetPaths, { UserComment: commentParts.join(' | ') });
+      }
+      setAiRatingApplied(true);
+      toast.success(t('editor.aiRating.applied'));
+    } catch (err) {
+      console.error('Failed to apply AI rating to EXIF:', err);
+      toast.error(String(err));
+    }
+  };
+
+  // Reset AI rating result when selected image changes
+  useEffect(() => {
+    setAiRatingResult(null);
+    setAiRatingApplied(false);
+  }, [selectedImage?.path]);
+
   const LensIcon = CAMERA_ICONS['LensModel'];
 
   return (
@@ -388,6 +446,119 @@ export default function MetadataPanel() {
       <div className="grow overflow-y-auto p-4 custom-scrollbar">
         {selectedImage ? (
           <div className="flex flex-col gap-6">
+            <div>
+              <Text variant={TextVariants.heading} className="mb-3">
+                {t('editor.aiRating.title')}
+              </Text>
+              <div className="bg-surface border border-surface rounded-xl p-3.5 flex flex-col gap-3">
+                <button
+                  onClick={handleGenerateAiRating}
+                  disabled={aiRatingLoading}
+                  className={clsx(
+                    'flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg text-sm font-medium transition-all',
+                    aiRatingLoading
+                      ? 'bg-accent/20 text-accent cursor-wait'
+                      : 'bg-accent/10 text-accent hover:bg-accent/20 active:scale-[0.98]',
+                  )}
+                >
+                  {aiRatingLoading ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={16} />
+                  )}
+                  {aiRatingLoading ? t('editor.aiRating.applying') : t('editor.aiRating.generate')}
+                </button>
+
+                {aiRatingResult && (
+                  <div className="flex flex-col gap-3">
+                    <div>
+                      <Text
+                        variant={TextVariants.small}
+                        color={TextColors.primary}
+                        weight={TextWeights.semibold}
+                        className="uppercase tracking-wider mb-2 block"
+                      >
+                        {t('editor.metadata.organization.rating')}
+                      </Text>
+                      <div className="flex items-center gap-1.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={18}
+                            className={clsx(
+                              'transition-colors duration-200',
+                              star <= aiRatingResult.rating
+                                ? 'fill-accent text-accent'
+                                : 'fill-transparent text-text-secondary',
+                            )}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {aiRatingResult.description && (
+                      <div>
+                        <Text
+                          variant={TextVariants.small}
+                          color={TextColors.secondary}
+                          weight={TextWeights.semibold}
+                          className="uppercase tracking-wider mb-1 block"
+                        >
+                          {t('editor.aiRating.description')}
+                        </Text>
+                        <Text variant={TextVariants.small} color={TextColors.primary}>
+                          {aiRatingResult.description}
+                        </Text>
+                      </div>
+                    )}
+
+                    {aiRatingResult.tags.length > 0 && (
+                      <div>
+                        <Text
+                          variant={TextVariants.small}
+                          color={TextColors.secondary}
+                          weight={TextWeights.semibold}
+                          className="uppercase tracking-wider mb-1.5 block"
+                        >
+                          {t('editor.metadata.organization.tags')}
+                        </Text>
+                        <div className="flex flex-wrap gap-1">
+                          {aiRatingResult.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="bg-bg-primary px-2 py-0.5 rounded-md text-xs text-text-primary border border-surface"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={handleApplyAiRatingToExif}
+                      disabled={aiRatingApplied}
+                      className={clsx(
+                        'flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded-lg text-xs font-medium transition-all',
+                        aiRatingApplied
+                          ? 'bg-green-500/20 text-green-400'
+                          : 'bg-bg-primary text-text-secondary hover:text-text-primary hover:bg-bg-secondary border border-surface',
+                      )}
+                    >
+                      {aiRatingApplied ? (
+                        <>
+                          <Check size={12} />
+                          {t('editor.aiRating.applied')}
+                        </>
+                      ) : (
+                        t('editor.aiRating.applyToExif')
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div>
               <Text variant={TextVariants.heading} className="mb-3">
                 {t('editor.metadata.fileInfo.title')}
