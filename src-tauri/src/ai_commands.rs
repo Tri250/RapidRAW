@@ -409,7 +409,8 @@ pub struct AiRatingResult {
 }
 
 fn compute_rating_from_features(image: &image::DynamicImage) -> (u8, String) {
-    let (width, height) = image.dimensions();
+    let width = image.width();
+    let height = image.height();
     let rgb_image = image.to_rgb8();
 
     // Downsample for analysis speed
