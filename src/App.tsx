@@ -714,13 +714,8 @@ function App() {
                     setUI((state: any) => ({ isLibraryExportPanelVisible: !state.isLibraryExportPanelVisible }));
                   }}
                   onBatchDelete={(paths) => executeDelete(paths, { includeAssociated: false })}
-                  onBatchAddToAlbum={(paths) => {
-                    const { albumTree } = useLibraryStore.getState();
-                    if (albumTree.length === 0) {
-                      setUI({ isCreateAlbumModalOpen: true });
-                    } else {
-                      setUI({ isCreateAlbumModalOpen: true });
-                    }
+                  onBatchAddToAlbum={() => {
+                    setUI({ isCreateAlbumModalOpen: true });
                   }}
                 />
               )}

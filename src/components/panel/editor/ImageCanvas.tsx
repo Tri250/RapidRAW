@@ -2417,7 +2417,7 @@ const ImageCanvas = memo(
       isStraightening.current = false;
       if (
         !straightenLine ||
-        (straightenLine.start.x === straightenLine.end.x && straightenLine.start.y === straightenLine.start.y)
+        (straightenLine.start.x === straightenLine.end.x && straightenLine.start.y === straightenLine.end.y)
       ) {
         setStraightenLine(null);
         return;

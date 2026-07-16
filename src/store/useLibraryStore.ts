@@ -222,6 +222,17 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
               const [min, max] = condition.value;
               return fieldValue >= min && fieldValue <= max;
             }
+            if (typeof fieldValue === 'string' && condition.value && Array.isArray(condition.value)) {
+              const [startDate, endDate] = condition.value;
+              if (startDate && endDate) {
+                const fieldDate = new Date(fieldValue).getTime();
+                const minTime = new Date(startDate).getTime();
+                const maxTime = new Date(endDate).getTime();
+                if (!isNaN(fieldDate) && !isNaN(minTime) && !isNaN(maxTime)) {
+                  return fieldDate >= minTime && fieldDate <= maxTime;
+                }
+              }
+            }
             return false;
           default:
             return true;

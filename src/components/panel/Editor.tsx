@@ -922,7 +922,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
         animateTransform(newPositionX, newPositionY, zoomTarget, clickAnimationTime);
       }
     },
-    [isCropping, isMasking, isAiEditing, isWbPickerActive, animateTransform, isAndroid, toggleShowOriginal],
+    [isCropping, isMasking, isAiEditing, isWbPickerActive, animateTransform, isAndroid, toggleShowOriginal, isPanningDisabled],
   );
 
   useEffect(() => {

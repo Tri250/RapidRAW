@@ -49,12 +49,17 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
 
     const { searchCriteria: _searchCriteria, ...settingsToSave } = newSettings as any;
+    const previousSettings = get().appSettings;
     set({ appSettings: newSettings });
 
     try {
       await invoke(Invokes.SaveSettings, { settings: settingsToSave });
     } catch (err) {
       console.error('Failed to save settings:', err);
+      // Rollback to previous settings on save failure
+      if (previousSettings) {
+        set({ appSettings: previousSettings });
+      }
     }
   },
 }));

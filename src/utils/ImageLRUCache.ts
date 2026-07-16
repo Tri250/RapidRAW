@@ -27,8 +27,13 @@ export class ImageLRUCache {
     this.cache.delete(key);
     this.cache.set(key, entry);
 
-    if (entry.finalPreviewUrl) this.protectedBlobUrls.delete(entry.finalPreviewUrl);
-    if (entry.uncroppedPreviewUrl) this.protectedBlobUrls.delete(entry.uncroppedPreviewUrl);
+    // Re-add Blob URL protection on access since entry is still in active use
+    if (entry.finalPreviewUrl?.startsWith('blob:')) {
+      this.protectedBlobUrls.add(entry.finalPreviewUrl);
+    }
+    if (entry.uncroppedPreviewUrl?.startsWith('blob:')) {
+      this.protectedBlobUrls.add(entry.uncroppedPreviewUrl);
+    }
 
     return entry;
   }
