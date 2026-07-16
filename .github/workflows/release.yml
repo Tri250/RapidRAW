@@ -36,11 +36,13 @@ jobs:
           - platform: 'ubuntu-24.04-arm'
             target: ''
             asset-prefix: '03'
-          - platform: 'ubuntu-latest'
-            mobile: 'android'
-            target: 'aarch64-linux-android'
-            args: '--target aarch64'
-            asset-prefix: '04'
+          # Android build requires signing secrets (ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD, ANDROID_KEY_BASE64)
+          # Uncomment the following lines after configuring these secrets in repository settings:
+          # - platform: 'ubuntu-latest'
+          #   mobile: 'android'
+          #   target: 'aarch64-linux-android'
+          #   args: '--target aarch64'
+          #   asset-prefix: '04'
     uses: ./.github/workflows/build.yml
     with:
       release-id: ${{ github.event.release.id }}

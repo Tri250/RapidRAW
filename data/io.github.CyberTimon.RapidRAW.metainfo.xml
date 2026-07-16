@@ -2,10 +2,10 @@
 <component type="desktop-application">
   <id>io.github.CyberTimon.RapidRAW</id>
 
-  <name>RapidRAW</name>
-  <summary>A non-destructive, and GPU-accelerated RAW image editor built with performance in mind</summary>
-  <developer id="io.github.CyberTimon">
-    <name>Timon Käch</name>
+  <name>RAW工坊</name>
+  <summary>热爱摄影的开发者，为摄影爱好者打造专业的RAW图像处理工具</summary>
+  <developer id="io.github.Tri250">
+    <name>带娃的小陈工</name>
   </developer>
 
   <metadata_license>FSFAP</metadata_license>
@@ -35,9 +35,23 @@
   </screenshots>
 
   <content_rating type="oars-1.1"/>
-  <url type="homepage">https://github.com/CyberTimon/RapidRAW</url>
+  <url type="homepage">https://github.com/Tri250/RapidRAW</url>
 
   <releases>
+    <release version="v1.6.1" date="2026-07-16">
+        <url type="details">https://github.com/Tri250/RapidRAW/releases/tag/v1.6.1</url>
+        <description translate="no">
+            <p>RAW工坊 v1.6.1 - 深空黑主题·中文本地化·面板交互重构</p>
+            <ul>
+                <li>深空黑 + 青墨绿默认主题色，深邃专业</li>
+                <li>中文首页品牌标题改为"RAW工坊"</li>
+                <li>面板交互重构，更符合国内摄影师工作流：基础 → 色彩 → 人像 → 构图 → 蒙版 → AI → 预设 → 导出</li>
+                <li>新增独立"色彩"面板（曲线+颜色）和"人像"面板（细节+效果）</li>
+                <li>特别鸣谢更改为「带娃的小陈工」个人简介</li>
+                <li>首页去除图像来源、版本号、捐赠链接</li>
+            </ul>
+        </description>
+    </release>
     <release version="v1.5.9" date="2026-07-12">
         <url type="details">https://github.com/CyberTimon/RapidRAW/releases/tag/v1.5.9</url>
         <description translate="no">
