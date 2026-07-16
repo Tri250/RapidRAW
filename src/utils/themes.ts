@@ -23,6 +23,7 @@ export const THEMES: Array<ThemeProps> = [
       '--app-accent': 'rgb(62, 168, 138)',
       '--app-border-color': 'rgb(38, 42, 52)',
       '--app-hover-color': 'rgb(62, 168, 138)',
+      '--app-accent-hover': 'rgb(82, 188, 158)',
     },
   },
   {
@@ -40,6 +41,7 @@ export const THEMES: Array<ThemeProps> = [
       '--app-accent': 'rgb(198, 142, 110)',
       '--app-border-color': 'rgb(224, 224, 224)',
       '--app-hover-color': 'rgb(198, 142, 110)',
+      '--app-accent-hover': 'rgb(218, 162, 130)',
     },
   },
   {
@@ -57,6 +59,7 @@ export const THEMES: Array<ThemeProps> = [
       '--app-accent': 'rgb(220, 220, 220)',
       '--app-border-color': 'rgb(138, 138, 138)',
       '--app-hover-color': 'rgb(220, 220, 220)',
+      '--app-accent-hover': 'rgb(235, 235, 235)',
     },
   },
 ];
