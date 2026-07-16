@@ -106,10 +106,17 @@ jobs:
         if: inputs.mobile == 'android' && github.event_name != 'pull_request'
         run: |
           cd src-tauri/gen/android
-          echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
-          echo "password=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
-          echo "${{ secrets.ANDROID_KEY_BASE64 }}" | base64 -d > $RUNNER_TEMP/keystore.jks
-          echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
+          keytool -genkey -v \
+            -keystore "$RUNNER_TEMP/rapidraw-release.jks" \
+            -keyalg RSA -keysize 2048 -validity 36500 \
+            -alias rapidraw \
+            -storepass android123 \
+            -keypass android123 \
+            -dname "CN=RAW工坊, OU=Dev, O=RAW工坊, ST=China, C=CN" \
+            -noprompt
+          echo "keyAlias=rapidraw" > keystore.properties
+          echo "password=android123" >> keystore.properties
+          echo "storeFile=$RUNNER_TEMP/rapidraw-release.jks" >> keystore.properties
 
       - name: rustup install target
         if: ${{ inputs.target != '' }}
