@@ -1,4 +1,4 @@
-import { Home, SlidersHorizontal, Palette, UserCircle, FileInput } from 'lucide-react';
+import { Home, SlidersHorizontal, Palette, UserCircle, FileInput, Crop, Layers, Wand2, Sparkles } from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 
@@ -20,6 +20,10 @@ const navItems: NavItem[] = [
   { panel: Panel.Adjustments, icon: SlidersHorizontal, labelKey: 'editor.android.bottomNav.basic' },
   { panel: Panel.Color, icon: Palette, labelKey: 'editor.android.bottomNav.color' },
   { panel: Panel.Portrait, icon: UserCircle, labelKey: 'editor.android.bottomNav.portrait' },
+  { panel: Panel.Crop, icon: Crop, labelKey: 'editor.android.bottomNav.crop' },
+  { panel: Panel.Masks, icon: Layers, labelKey: 'editor.android.bottomNav.masks' },
+  { panel: Panel.Ai, icon: Wand2, labelKey: 'editor.android.bottomNav.ai' },
+  { panel: Panel.Presets, icon: Sparkles, labelKey: 'editor.android.bottomNav.presets' },
   { panel: Panel.Export, icon: FileInput, labelKey: 'editor.android.bottomNav.export' },
 ];
 
