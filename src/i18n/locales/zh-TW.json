@@ -1123,7 +1123,8 @@
       "cancel": "取消",
       "create": "建立",
       "placeholder": "輸入資料夾名稱...",
-      "title": "建立新資料夾"
+      "title": "建立新資料夾",
+      "invalidChars": "資料夾名稱不能包含：< > : \" / \\ | ? * 或控制字元"
     },
     "createGroup": {
       "placeholder": "輸入組名稱..."

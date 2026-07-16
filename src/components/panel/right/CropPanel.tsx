@@ -396,11 +396,20 @@ export default function CropPanel() {
   const handleStepRotate = (degrees: number) => {
     const increment = degrees > 0 ? 1 : 3;
     setAdjustments((prev: Adjustments) => {
-      const newAspectRatio = prev.aspectRatio && prev.aspectRatio !== 0 ? 1 / prev.aspectRatio : null;
+      const prevSteps = prev.orientationSteps || 0;
+      const newSteps = (prevSteps + increment) % 4;
+      const wasSwapped = prevSteps === 1 || prevSteps === 3;
+      const isSwapped = newSteps === 1 || newSteps === 3;
+      const newAspectRatio =
+        prev.aspectRatio && prev.aspectRatio !== 0
+          ? wasSwapped !== isSwapped
+            ? 1 / prev.aspectRatio
+            : prev.aspectRatio
+          : null;
       return {
         ...prev,
         aspectRatio: newAspectRatio,
-        orientationSteps: ((prev.orientationSteps || 0) + increment) % 4,
+        orientationSteps: newSteps,
         rotation: 0,
       };
     });

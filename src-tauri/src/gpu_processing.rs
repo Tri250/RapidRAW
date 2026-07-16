@@ -468,10 +468,13 @@ fn read_texture_data_roi(
         .map_err(|e| format!("Failed receiving GPU map result: {}", e))?;
     map_result.map_err(|e| e.to_string())?;
 
-    let padded_data = buffer_slice
-        .get_mapped_range()
-        .map_err(|e| format!("Failed to get mapped GPU buffer range: {}", e))?
-        .to_vec();
+    let padded_data = match buffer_slice.get_mapped_range() {
+        Ok(range) => range.to_vec(),
+        Err(e) => {
+            output_buffer.unmap();
+            return Err(format!("Failed to get mapped GPU buffer range: {}", e));
+        }
+    };
     output_buffer.unmap();
 
     if padded_bytes_per_row == unpadded_bytes_per_row {
@@ -1914,6 +1917,7 @@ fn process_and_get_dynamic_image_inner(
                         Ok(range) => range.to_vec(),
                         Err(e) => {
                             log::error!("Failed to get mapped GPU buffer range: {}", e);
+                            output_buffer.unmap();
                             return;
                         }
                     };

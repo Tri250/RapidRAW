@@ -631,12 +631,8 @@ export default function SettingsPanel({
   const taggingShortcuts = Array.from(new Set<string>(appSettings?.taggingShortcuts || []));
 
   useEffect(() => {
-    if (appSettings?.aiConnectorAddress !== aiConnectorAddress) {
-      setAiConnectorAddress(appSettings?.aiConnectorAddress || '');
-    }
-    if (appSettings?.aiProvider !== aiProvider) {
-      setAiProvider(appSettings?.aiProvider || 'cpu');
-    }
+    setAiConnectorAddress(appSettings?.aiConnectorAddress || '');
+    setAiProvider(appSettings?.aiProvider || 'cpu');
     setProcessingSettings({
       editorPreviewResolution: appSettings?.editorPreviewResolution || 1920,
       thumbnailResolution: appSettings?.thumbnailResolution || 720,
@@ -645,7 +641,8 @@ export default function SettingsPanel({
       linuxGpuOptimization: appSettings?.linuxGpuOptimization ?? false,
       highResZoomMultiplier: appSettings?.highResZoomMultiplier || 1.0,
       useFullDpiRendering: appSettings?.useFullDpiRendering ?? false,
-      useWgpuRenderer: appSettings?.useWgpuRenderer ?? true,
+      useWgpuRenderer:
+        appSettings?.useWgpuRenderer ?? (osPlatform === 'linux' || osPlatform === 'android' ? false : true),
       thumbnailWorkerThreads: appSettings?.thumbnailWorkerThreads ?? 4,
       imageCacheSize: appSettings?.imageCacheSize ?? 5,
       rawPreprocessingColorNr: appSettings?.rawPreprocessingColorNr ?? 0.5,
@@ -653,7 +650,7 @@ export default function SettingsPanel({
       applyPreprocessingToNonRaws: appSettings?.applyPreprocessingToNonRaws ?? false,
     });
     setRestartRequired(false);
-  }, [appSettings]);
+  }, [appSettings, osPlatform]);
 
   useEffect(() => {
     const fetchLogPath = async () => {
@@ -684,16 +681,17 @@ export default function SettingsPanel({
       key === 'thumbnailWorkerThreads'
     ) {
       setRestartRequired(true);
-    } else {
-      await onSettingsChange({ ...appSettings, [key]: value });
-      if (
-        key === 'rawHighlightCompression' ||
-        key === 'rawPreprocessingColorNr' ||
-        key === 'rawPreprocessingSharpening' ||
-        key === 'applyPreprocessingToNonRaws'
-      ) {
-        await invoke('clear_image_caches');
-      }
+    }
+
+    await onSettingsChange({ ...appSettings, [key]: value });
+
+    if (
+      key === 'rawHighlightCompression' ||
+      key === 'rawPreprocessingColorNr' ||
+      key === 'rawPreprocessingSharpening' ||
+      key === 'applyPreprocessingToNonRaws'
+    ) {
+      await invoke('clear_image_caches');
     }
   };
 
@@ -705,9 +703,13 @@ export default function SettingsPanel({
     await relaunch();
   };
 
-  const handleProviderChange = (provider: string) => {
+  const handleProviderChange = async (provider: string) => {
     setAiProvider(provider);
-    onSettingsChange({ ...appSettings, aiProvider: provider });
+    try {
+      await onSettingsChange({ ...appSettings, aiProvider: provider });
+    } catch {
+      setAiProvider(appSettings?.aiProvider || 'cpu');
+    }
   };
 
   const handlePreviewModeChange = (mode: 'static' | 'dynamic') => {

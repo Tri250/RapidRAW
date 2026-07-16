@@ -32,7 +32,11 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
       const loadMetadataEarly = async () => {
         try {
           useEditorStore.getState().patchesSentToBackend.clear();
-          await invoke('clear_session_caches').catch((e) => console.warn('Cache clear failed:', e));
+          try {
+            await invoke('clear_session_caches');
+          } catch (e) {
+            console.warn('Cache clear failed:', e);
+          }
 
           const metadata: any = await invoke(Invokes.LoadMetadata, { path: selectedImage.path });
           if (!isEffectActive) return;
@@ -96,8 +100,9 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
 
           setEditor((state) => {
             if (!state.adjustments.aspectRatio && !state.adjustments.crop) {
+              const safeHeight = loadImageResult.height || 1;
               return {
-                adjustments: { ...state.adjustments, aspectRatio: loadImageResult.width / loadImageResult.height },
+                adjustments: { ...state.adjustments, aspectRatio: loadImageResult.width / safeHeight },
               };
             }
             return state;
@@ -109,9 +114,7 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
             setEditor({ selectedImage: null });
           }
         } finally {
-          if (isEffectActive) {
-            setLibrary({ isViewLoading: false });
-          }
+          setLibrary({ isViewLoading: false });
         }
       };
 

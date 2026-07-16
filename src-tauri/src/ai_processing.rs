@@ -1041,6 +1041,22 @@ pub fn run_sam_decoder(
     end_point: (f64, f64),
 ) -> Result<GrayImage> {
     let (orig_width, orig_height) = embeddings.original_size;
+
+    // Guard: if point coordinates are invalid (NaN/inf) or result in empty
+    // point arrays, return an empty (all-black) mask instead of panicking
+    // when constructing zero-length ndarray shapes.
+    if start_point.0.is_nan()
+        || start_point.1.is_nan()
+        || end_point.0.is_nan()
+        || end_point.1.is_nan()
+        || start_point.0.is_infinite()
+        || start_point.1.is_infinite()
+        || end_point.0.is_infinite()
+        || end_point.1.is_infinite()
+    {
+        return Ok(GrayImage::new(orig_width, orig_height));
+    }
+
     let long_side = orig_width.max(orig_height) as f64;
     let scale = SAM_INPUT_SIZE as f64 / long_side;
 
@@ -1066,6 +1082,11 @@ pub fn run_sam_decoder(
         point_coords.push((x2, y2));
         point_labels.push(2.0f32);
         point_labels.push(3.0f32);
+    }
+
+    // Guard: if point arrays are somehow empty, return an empty mask.
+    if point_coords.is_empty() {
+        return Ok(GrayImage::new(orig_width, orig_height));
     }
 
     let mut mask_input = Array::zeros((1, 1, 256, 256)).into_dyn();

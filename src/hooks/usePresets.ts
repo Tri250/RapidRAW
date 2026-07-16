@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { dirname } from '@tauri-apps/api/path';
 import debounce from 'lodash.debounce';
 import { Adjustments, COPYABLE_ADJUSTMENT_KEYS, ADJUSTMENT_GROUPS, INITIAL_ADJUSTMENTS } from '../utils/adjustments';
 import { Folder, Invokes, Preset } from '../components/ui/AppProperties';
@@ -602,8 +603,25 @@ export function usePresets(currentAdjustments: Adjustments) {
   );
 
   const exportPresetsToFile = useCallback(async (presetsToExport: Array<any>, filePath: string) => {
+    // Validate the file path
+    if (!filePath || typeof filePath !== 'string' || filePath.trim() === '') {
+      throw new Error('File path is required for exporting presets');
+    }
+
+    // Ensure the file has the correct .rrpreset extension
+    let resolvedPath = filePath.trim();
+    if (!resolvedPath.endsWith('.rrpreset')) {
+      resolvedPath = resolvedPath + '.rrpreset';
+    }
+
+    // Verify the destination directory exists
+    const directoryPath = await dirname(resolvedPath);
+    if (!directoryPath) {
+      throw new Error('Invalid file path: unable to resolve destination directory');
+    }
+
     try {
-      await invoke(Invokes.HandleExportPresetsToFile, { presetsToExport, filePath });
+      await invoke(Invokes.HandleExportPresetsToFile, { presetsToExport, filePath: resolvedPath });
     } catch (error) {
       console.error('Failed to export presets to file:', error);
       throw error;

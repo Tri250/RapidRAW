@@ -12,6 +12,8 @@ interface FolderModalProps {
   buttonText?: string;
 }
 
+const INVALID_FOLDER_CHARS = /[<>:"/\\|?*\x00-\x1F]/;
+
 export default function CreateFolderModal({
   isOpen,
   onClose,
@@ -24,6 +26,7 @@ export default function CreateFolderModal({
   const [name, setName] = useState('');
   const [isMounted, setIsMounted] = useState(false);
   const [show, setShow] = useState(false);
+  const hasInvalidChars = INVALID_FOLDER_CHARS.test(name);
 
   useEffect(() => {
     if (isOpen) {
@@ -41,11 +44,12 @@ export default function CreateFolderModal({
   }, [isOpen]);
 
   const handleSave = useCallback(() => {
-    if (name.trim()) {
-      onSave(name.trim());
+    const trimmed = name.trim();
+    if (trimmed && !hasInvalidChars) {
+      onSave(trimmed);
     }
     onClose();
-  }, [name, onSave, onClose]);
+  }, [name, hasInvalidChars, onSave, onClose]);
 
   const handleKeyDown = useCallback(
     (e: any) => {
@@ -94,6 +98,11 @@ export default function CreateFolderModal({
           type="text"
           value={name}
         />
+        {hasInvalidChars && (
+          <Text variant={TextVariants.caption} className="mt-1 text-red-500">
+            {t('modals.createFolder.invalidChars')}
+          </Text>
+        )}
         <div className="flex justify-end gap-3 mt-5">
           <button
             className="px-4 py-2 rounded-md text-text-secondary hover:bg-surface transition-colors"
@@ -103,7 +112,7 @@ export default function CreateFolderModal({
           </button>
           <button
             className="px-4 py-2 rounded-md bg-accent text-button-text font-semibold hover:bg-accent-hover disabled:bg-gray-500 disabled:text-white disabled:cursor-not-allowed transition-colors"
-            disabled={!name.trim()}
+            disabled={!name.trim() || hasInvalidChars}
             onClick={handleSave}
           >
             {buttonText || t('modals.createFolder.create')}

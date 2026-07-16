@@ -969,6 +969,8 @@ export default function LensCorrectionModal({
           onClose();
         }
       }}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+      tabIndex={-1}
     >
       <AnimatePresence>
         {show && (

@@ -444,7 +444,6 @@ export default function ExportPanel({
       !filenameTemplate.includes('{original_filename}')
     ) {
       finalFilenameTemplate = `${filenameTemplate}_{sequence}`;
-      setFilenameTemplate(finalFilenameTemplate);
     }
 
     const exportSettings: ExportSettings = {
@@ -543,6 +542,15 @@ export default function ExportPanel({
     } catch (error) {
       console.error('Failed to cancel:', error);
     }
+    // Fallback: if the backend doesn't send export-cancelled event promptly, reset state after 3s
+    setTimeout(() => {
+      setExportState((prev: ExportState) => {
+        if (prev.status === Status.Exporting) {
+          return { status: Status.Cancelled, progress: prev.progress, errorMessage: '' };
+        }
+        return prev;
+      });
+    }, 3000);
   };
 
   const canExport = numImages > 0;
@@ -657,7 +665,10 @@ export default function ExportPanel({
                           className="w-24 bg-surface text-center rounded-md p-2 border border-surface focus:border-accent focus:ring-accent text-text-secondary focus:text-text-primary"
                           disabled={isExporting}
                           min="1"
-                          onChange={(e) => setResizeValue(parseInt(e?.target?.value))}
+                          onChange={(e) => {
+                            const val = parseInt(e?.target?.value);
+                            if (!isNaN(val)) setResizeValue(val);
+                          }}
                           type="number"
                           value={resizeValue}
                         />

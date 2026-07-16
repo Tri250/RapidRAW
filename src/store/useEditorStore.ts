@@ -136,7 +136,9 @@ export const useEditorStore = create<EditorState>((set) => ({
     set((state) => {
       const newHistory = state.history.slice(0, state.historyIndex + 1);
       newHistory.push(newAdj);
-      if (newHistory.length > 50) newHistory.shift();
+      // Cap at 30 entries (reduced from 50) to limit memory usage since
+      // Adjustments can contain large base64 mask data strings
+      if (newHistory.length > 30) newHistory.shift();
       return { history: newHistory, historyIndex: newHistory.length - 1 };
     }),
 

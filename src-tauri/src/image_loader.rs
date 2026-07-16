@@ -12,7 +12,7 @@ use crate::mask_generation::{MaskDefinition, SubMask, generate_mask_bitmap};
 use anyhow::{Context, Result, anyhow};
 use base64::{Engine as _, engine::general_purpose};
 use exif::{Reader as ExifReader, Tag};
-use image::{DynamicImage, GenericImageView, ImageReader, imageops};
+use image::{DynamicImage, GenericImageView, ImageReader, Limits, imageops};
 use rawler::Orientation;
 use rayon::prelude::*;
 use serde::Deserialize;
@@ -26,7 +26,8 @@ use std::sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
 };
-use std::time::Instant;
+use std::sync::mpsc;
+use std::time::{Duration, Instant};
 
 #[derive(serde::Serialize)]
 pub struct LoadImageResult {
@@ -113,6 +114,20 @@ pub fn load_base_image_from_bytes(
             )
         }) {
             Ok(Ok(mut image)) => {
+                // OOM protection: check dimensions before further processing
+                let (w, h) = image.dimensions();
+                let pixel_count = w as u64 * h as u64;
+                if pixel_count > MAX_PIXEL_COUNT {
+                    return Err(anyhow!(
+                        "RAW image dimensions {}x{} ({} megapixels) exceed the maximum allowed size of {} megapixels. \
+                         The image is too large to process safely.",
+                        w,
+                        h,
+                        pixel_count / 1_000_000,
+                        MAX_PIXEL_COUNT / 1_000_000
+                    ));
+                }
+
                 if !use_fast_raw_dev && (color_nr_amount > 0.0 || sharpening_amount > 0.0) {
                     let start = Instant::now();
                     remove_raw_artifacts_and_enhance(
@@ -336,6 +351,14 @@ fn embedded_preview_fallback(bytes: &[u8], path: &str) -> Option<DynamicImage> {
     })
 }
 
+/// Maximum number of pixels allowed for a decoded image to prevent OOM.
+/// 200 megapixels ≈ a 20000×10000 image, which at 4 bytes/channel × 3 channels (RGB32F)
+/// would consume ~2.4 GB. This is a reasonable upper bound for consumer hardware.
+const MAX_PIXEL_COUNT: u64 = 200_000_000;
+
+/// Timeout for individual image decode operations.
+const DECODE_TIMEOUT: Duration = Duration::from_secs(30);
+
 pub fn load_image_with_orientation(
     bytes: &[u8],
     cancel_token: Option<(Arc<AtomicUsize>, usize)>,
@@ -354,12 +377,58 @@ pub fn load_image_with_orientation(
         .with_guessed_format()
         .context("Failed to guess image format")?;
 
-    reader.no_limits();
+    // Set decoding limits for OOM protection instead of no_limits().
+    // This enforces a maximum pixel count at the decoder level.
+    let mut limits = Limits::default();
+    limits.max_image_width = Some((MAX_PIXEL_COUNT as f64).sqrt() as u32);
+    limits.max_image_height = Some((MAX_PIXEL_COUNT as f64).sqrt() as u32);
+    // Also set an explicit max allocation to guard against huge single buffers
+    limits.max_alloc = Some(MAX_PIXEL_COUNT * 4); // 4 bytes per pixel (RGBA8 worst case)
+    reader.limits(limits);
 
     check_cancel()?;
 
-    let image = reader.decode().context("Failed to decode image")?;
+    // Decode with timeout to prevent indefinite hangs on corrupted/slow files
+    let image = {
+        let (tx, rx) = mpsc::channel();
+        let decode_handle = std::thread::spawn(move || {
+            let result = reader.decode();
+            let _ = tx.send(());
+            result
+        });
+
+        if rx.recv_timeout(DECODE_TIMEOUT).is_err() {
+            // Timeout: the decode thread is still running but we can't cancel it.
+            // It will finish eventually and release its own resources.
+            // We return an error immediately so the caller doesn't hang.
+            return Err(anyhow!(
+                "Image decode timed out after {} seconds. The file may be corrupted or on a slow network drive.",
+                DECODE_TIMEOUT.as_secs()
+            ));
+        }
+
+        // The decode finished within the timeout
+        decode_handle
+            .join()
+            .map_err(|_| anyhow!("Image decode thread panicked"))?
+            .context("Failed to decode image")?
+    };
+
     check_cancel()?;
+
+    // Additional post-decode dimension check as a safety net
+    let (w, h) = image.dimensions();
+    let pixel_count = w as u64 * h as u64;
+    if pixel_count > MAX_PIXEL_COUNT {
+        return Err(anyhow!(
+            "Decoded image dimensions {}x{} ({} megapixels) exceed the maximum allowed size of {} megapixels. \
+             The image is too large to process safely.",
+            w,
+            h,
+            pixel_count / 1_000_000,
+            MAX_PIXEL_COUNT / 1_000_000
+        ));
+    }
 
     let oriented_image = {
         let exif_reader = ExifReader::new();

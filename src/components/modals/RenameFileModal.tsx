@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FILENAME_VARIABLES } from '../ui/ExportImportProperties';
 import Text from '../ui/Text';
 import { TextVariants } from '../../types/typography';
+import { useLibraryStore } from '../../store/useLibraryStore';
 
 interface RenameFileModalProps {
   filesToRename: Array<string>;
@@ -13,6 +14,7 @@ interface RenameFileModalProps {
 
 export default function RenameFileModal({ filesToRename, isOpen, onClose, onSave }: RenameFileModalProps) {
   const { t } = useTranslation();
+  const imageList = useLibraryStore((state) => state.imageList);
   const [nameTemplate, setNameTemplate] = useState('');
   const [isMounted, setIsMounted] = useState(false);
   const [show, setShow] = useState(false);
@@ -20,6 +22,29 @@ export default function RenameFileModal({ filesToRename, isOpen, onClose, onSave
 
   const fileCount = filesToRename.length;
   const isSingleFile = fileCount === 1;
+
+  const nameConflict = useMemo(() => {
+    const trimmed = nameTemplate.trim();
+    if (!trimmed || !isSingleFile || filesToRename.length === 0) return false;
+
+    const originalPath = filesToRename[0];
+    const originalFileName = originalPath.split(/[\\/]/).pop() || '';
+    const originalExt = originalFileName.includes('.')
+      ? originalFileName.substring(originalFileName.lastIndexOf('.'))
+      : '';
+    const newFileName = trimmed + originalExt;
+
+    if (newFileName === originalFileName) return false;
+
+    const separator = originalPath.includes('/') ? '/' : '\\';
+    const parentPath = originalPath.substring(0, originalPath.lastIndexOf(separator));
+
+    return imageList.some((img) => {
+      const imgFileName = img.path.split(/[\\/]/).pop() || '';
+      if (img.path === originalPath) return false;
+      return imgFileName === newFileName && img.path.startsWith(parentPath);
+    });
+  }, [nameTemplate, filesToRename, isSingleFile, imageList]);
 
   useEffect(() => {
     if (isOpen) {
@@ -124,6 +149,11 @@ export default function RenameFileModal({ filesToRename, isOpen, onClose, onSave
               type="text"
               value={nameTemplate}
             />
+            {nameConflict && (
+              <Text variant={TextVariants.caption} className="block mt-2 text-yellow-400">
+                {t('modals.renameFile.overwriteWarning')}
+              </Text>
+            )}
             {!isSingleFile && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {FILENAME_VARIABLES.map((variable: string) => (

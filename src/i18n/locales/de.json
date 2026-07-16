@@ -1123,7 +1123,8 @@
       "cancel": "Abbrechen",
       "create": "Erstellen",
       "placeholder": "Ordnernamen eingeben...",
-      "title": "Neuen Ordner erstellen"
+      "title": "Neuen Ordner erstellen",
+      "invalidChars": "Ordnername darf nicht enthalten: < > : \" / \\ | ? * oder Steuerzeichen"
     },
     "createGroup": {
       "placeholder": "Gruppennamen eingeben..."

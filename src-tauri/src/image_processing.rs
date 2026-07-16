@@ -20,6 +20,79 @@ pub use crate::gpu_processing::{
 use crate::{AppState, mask_generation::MaskDefinition};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 
+/// Maximum total pixels allowed for CPU-intensive image processing.
+/// 200 megapixels × 12 bytes/pixel (f32 RGB) ≈ 2.4 GB per buffer.
+/// This prevents OOM from processing extremely large images (e.g., stitched panoramas).
+const MAX_IMAGE_PIXELS: u64 = 200_000_000;
+
+/// Maximum concurrent heavy CPU processing operations to prevent OOM
+/// from parallel buffer allocations.
+const MAX_CONCURRENT_PROCESSING: usize = 2;
+
+static CONCURRENT_PROCESSING_COUNT: std::sync::atomic::AtomicUsize =
+    std::sync::atomic::AtomicUsize::new(0);
+
+/// Validates that image dimensions won't cause OOM or integer overflow.
+fn validate_image_dimensions(width: u32, height: u32) -> Result<(), String> {
+    let total_pixels = width as u64 * height as u64;
+    if total_pixels > MAX_IMAGE_PIXELS {
+        return Err(format!(
+            "Image is too large to process safely ({}x{} = {}MP). Maximum is {}MP.",
+            width,
+            height,
+            total_pixels / 1_000_000,
+            MAX_IMAGE_PIXELS / 1_000_000
+        ));
+    }
+    Ok(())
+}
+
+/// Computes the buffer size for an RGB32F image with overflow checking.
+/// Returns the number of f32 elements needed (width * height * 3).
+fn checked_rgb32f_buffer_size(width: u32, height: u32) -> Result<usize, String> {
+    let total_elements = width as u64 * height as u64 * 3;
+    if total_elements > usize::MAX as u64 {
+        return Err(format!(
+            "Buffer size overflow for {}x{} image",
+            width, height
+        ));
+    }
+    Ok(total_elements as usize)
+}
+
+/// RAII guard for the processing concurrency semaphore.
+/// Limits the number of concurrent heavy image processing operations
+/// to prevent OOM from parallel buffer allocations.
+struct ProcessingGuard;
+
+impl ProcessingGuard {
+    fn acquire() -> Result<Self, String> {
+        use std::sync::atomic::Ordering;
+        loop {
+            let current = CONCURRENT_PROCESSING_COUNT.load(Ordering::Acquire);
+            if current >= MAX_CONCURRENT_PROCESSING {
+                return Err(format!(
+                    "Too many concurrent image processing operations (limit: {})",
+                    MAX_CONCURRENT_PROCESSING
+                ));
+            }
+            if CONCURRENT_PROCESSING_COUNT
+                .compare_exchange_weak(current, current + 1, Ordering::AcqRel, Ordering::Acquire)
+                .is_ok()
+            {
+                return Ok(ProcessingGuard);
+            }
+        }
+    }
+}
+
+impl Drop for ProcessingGuard {
+    fn drop(&mut self) {
+        use std::sync::atomic::Ordering;
+        CONCURRENT_PROCESSING_COUNT.fetch_sub(1, Ordering::AcqRel);
+    }
+}
+
 pub trait IntoCowImage<'a> {
     fn into_cow(self) -> Cow<'a, DynamicImage>;
 }
@@ -299,7 +372,14 @@ pub fn downscale_f32_image(image: &DynamicImage, nwidth: u32, nheight: u32) -> D
         }
     }
 
-    let mut out_buf = vec![0.0f32; (new_w * new_h * 3) as usize];
+    let buf_size = match checked_rgb32f_buffer_size(new_w, new_h) {
+        Ok(s) => s,
+        Err(e) => {
+            log::warn!("Skipping downscale: {}", e);
+            return image.clone();
+        }
+    };
+    let mut out_buf = vec![0.0f32; buf_size];
 
     out_buf
         .par_chunks_exact_mut(new_w as usize * 3)
@@ -643,9 +723,29 @@ fn compute_lens_auto_crop_scale(params: &GeometryParams, width: f32, height: f32
 }
 
 pub fn warp_image_geometry(image: &DynamicImage, params: GeometryParams) -> DynamicImage {
+    let (width, height) = image.dimensions();
+    if let Err(e) = validate_image_dimensions(width, height) {
+        log::warn!("Skipping geometry warp: {}", e);
+        return image.clone();
+    }
+    let _guard = match ProcessingGuard::acquire() {
+        Ok(g) => g,
+        Err(e) => {
+            log::warn!("Skipping geometry warp: {}", e);
+            return image.clone();
+        }
+    };
+
     let src_img = image.to_rgb32f();
     let (width, height) = src_img.dimensions();
-    let mut out_buffer = vec![0.0f32; (width * height * 3) as usize];
+    let buf_size = match checked_rgb32f_buffer_size(width, height) {
+        Ok(s) => s,
+        Err(e) => {
+            log::warn!("Skipping geometry warp: {}", e);
+            return image.clone();
+        }
+    };
+    let mut out_buffer = vec![0.0f32; buf_size];
 
     let (forward_transform, cx, cy, half_diagonal) =
         build_transform_matrices(&params, width as f32, height as f32);
@@ -798,14 +898,35 @@ pub fn warp_image_geometry(image: &DynamicImage, params: GeometryParams) -> Dyna
             }
         });
 
-    let out_img = Rgb32FImage::from_vec(width, height, out_buffer).unwrap();
+    let out_img = Rgb32FImage::from_vec(width, height, out_buffer)
+        .expect("buffer size was validated before allocation");
     DynamicImage::ImageRgb32F(out_img)
 }
 
 pub fn unwarp_image_geometry(warped_image: &DynamicImage, params: GeometryParams) -> DynamicImage {
+    let (width, height) = warped_image.dimensions();
+    if let Err(e) = validate_image_dimensions(width, height) {
+        log::warn!("Skipping geometry unwarp: {}", e);
+        return warped_image.clone();
+    }
+    let _guard = match ProcessingGuard::acquire() {
+        Ok(g) => g,
+        Err(e) => {
+            log::warn!("Skipping geometry unwarp: {}", e);
+            return warped_image.clone();
+        }
+    };
+
     let src_img = warped_image.to_rgb32f();
     let (width, height) = src_img.dimensions();
-    let mut out_buffer = vec![0.0f32; (width * height * 3) as usize];
+    let buf_size = match checked_rgb32f_buffer_size(width, height) {
+        Ok(s) => s,
+        Err(e) => {
+            log::warn!("Skipping geometry unwarp: {}", e);
+            return warped_image.clone();
+        }
+    };
+    let mut out_buffer = vec![0.0f32; buf_size];
 
     let (forward_transform, cx, cy, half_diagonal) =
         build_transform_matrices(&params, width as f32, height as f32);
@@ -933,7 +1054,8 @@ pub fn unwarp_image_geometry(warped_image: &DynamicImage, params: GeometryParams
             }
         });
 
-    let out_img = Rgb32FImage::from_vec(width, height, out_buffer).unwrap();
+    let out_img = Rgb32FImage::from_vec(width, height, out_buffer)
+        .expect("buffer size was validated before allocation");
     DynamicImage::ImageRgb32F(out_img)
 }
 
@@ -1114,6 +1236,12 @@ pub fn inverse_transform_point(
 }
 
 pub fn apply_cpu_default_raw_processing(image: &mut DynamicImage) {
+    let (width, height) = image.dimensions();
+    if let Err(e) = validate_image_dimensions(width, height) {
+        log::warn!("Skipping CPU default raw processing: {}", e);
+        return;
+    }
+
     let mut f32_image = image.to_rgb32f();
 
     const GAMMA: f32 = 2.38;
@@ -1852,6 +1980,12 @@ pub fn resolve_tonemapper_override_from_handle(
 }
 
 pub fn apply_cpu_agx_tonemap(image: &mut DynamicImage) {
+    let (width, height) = image.dimensions();
+    if let Err(e) = validate_image_dimensions(width, height) {
+        log::warn!("Skipping CPU AgX tonemap: {}", e);
+        return;
+    }
+
     const AGX_EPSILON: f32 = 1.0e-6;
     const AGX_MIN_EV: f32 = -15.2;
     const AGX_MAX_EV: f32 = 5.0;
@@ -2517,6 +2651,19 @@ pub fn remove_raw_artifacts_and_enhance(
     color_nr_inv_sigma: f32,
     sharpening_amount: f32,
 ) {
+    let (width, height) = image.dimensions();
+    if let Err(e) = validate_image_dimensions(width, height) {
+        log::warn!("Skipping raw artifact removal: {}", e);
+        return;
+    }
+    let _guard = match ProcessingGuard::acquire() {
+        Ok(g) => g,
+        Err(e) => {
+            log::warn!("Skipping raw artifact removal: {}", e);
+            return;
+        }
+    };
+
     let mut buffer = image.to_rgb32f();
     let w = buffer.width() as usize;
     let h = buffer.height() as usize;

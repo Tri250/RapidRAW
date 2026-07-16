@@ -426,6 +426,8 @@ export default function NegativeConversionModal({
         show ? 'opacity-100' : 'opacity-0',
       )}
       onMouseDown={onClose}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+      tabIndex={-1}
     >
       <AnimatePresence>
         {show && (

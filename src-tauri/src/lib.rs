@@ -1390,6 +1390,8 @@ async fn merge_hdr(
         return Err("Please select at least two images to merge.".to_string());
     }
 
+    let _merge_guard = state.hdr_merge_lock.lock().await;
+
     let hdr_result_handle = state.hdr_result.clone();
     let settings = load_settings(app_handle.clone()).unwrap_or_default();
 
@@ -2265,8 +2267,10 @@ pub fn run() {
             ai_init_lock: TokioMutex::new(()),
             export_task_handle: Mutex::new(None),
             hdr_result: Arc::new(Mutex::new(None)),
+            hdr_merge_lock: TokioMutex::new(()),
             panorama_result: Arc::new(Mutex::new(None)),
             denoise_result: Arc::new(Mutex::new(None)),
+            denoise_lock: TokioMutex::new(()),
             indexing_task_handle: Mutex::new(None),
             lut_cache: Mutex::new(HashMap::new()),
             initial_file_path: Mutex::new(None),

@@ -28,10 +28,26 @@ interface ProcessState {
   setImportState: (updater: Partial<ImportState> | ((state: ImportState) => Partial<ImportState>)) => void;
 }
 
-let exportTimeout: ReturnType<typeof setTimeout>;
-let importTimeout: ReturnType<typeof setTimeout>;
-let copyTimeout: ReturnType<typeof setTimeout>;
-let pasteTimeout: ReturnType<typeof setTimeout>;
+let exportTimeout: ReturnType<typeof setTimeout> | undefined;
+let importTimeout: ReturnType<typeof setTimeout> | undefined;
+let copyTimeout: ReturnType<typeof setTimeout> | undefined;
+let pasteTimeout: ReturnType<typeof setTimeout> | undefined;
+
+let exportTimeoutValid = false;
+let importTimeoutValid = false;
+let copyTimeoutValid = false;
+let pasteTimeoutValid = false;
+
+export function destroyTimeouts() {
+  clearTimeout(exportTimeout);
+  clearTimeout(importTimeout);
+  clearTimeout(copyTimeout);
+  clearTimeout(pasteTimeout);
+  exportTimeoutValid = false;
+  importTimeoutValid = false;
+  copyTimeoutValid = false;
+  pasteTimeoutValid = false;
+}
 
 export const useProcessStore = create<ProcessState>((set, get) => ({
   exportState: { errorMessage: '', progress: { current: 0, total: 0 }, status: Status.Idle },
@@ -56,11 +72,19 @@ export const useProcessStore = create<ProcessState>((set, get) => ({
     const state = get();
     if (state.isCopied) {
       clearTimeout(copyTimeout);
-      copyTimeout = setTimeout(() => set({ isCopied: false }), 1000);
+      copyTimeoutValid = false;
+      copyTimeoutValid = true;
+      copyTimeout = setTimeout(() => {
+        if (copyTimeoutValid) set({ isCopied: false });
+      }, 1000);
     }
     if (state.isPasted) {
       clearTimeout(pasteTimeout);
-      pasteTimeout = setTimeout(() => set({ isPasted: false }), 1000);
+      pasteTimeoutValid = false;
+      pasteTimeoutValid = true;
+      pasteTimeout = setTimeout(() => {
+        if (pasteTimeoutValid) set({ isPasted: false });
+      }, 1000);
     }
   },
 
@@ -72,9 +96,12 @@ export const useProcessStore = create<ProcessState>((set, get) => ({
     const status = get().exportState.status;
 
     clearTimeout(exportTimeout);
+    exportTimeoutValid = false;
 
     if ([Status.Success, Status.Error, Status.Cancelled].includes(status)) {
+      exportTimeoutValid = true;
       exportTimeout = setTimeout(() => {
+        if (!exportTimeoutValid) return;
         set((prev) => ({
           exportState: {
             ...prev.exportState,
@@ -95,9 +122,12 @@ export const useProcessStore = create<ProcessState>((set, get) => ({
     const status = get().importState.status;
 
     clearTimeout(importTimeout);
+    importTimeoutValid = false;
 
     if ([Status.Success, Status.Error, Status.Cancelled].includes(status)) {
+      importTimeoutValid = true;
       importTimeout = setTimeout(() => {
+        if (!importTimeoutValid) return;
         set((prev) => ({
           importState: {
             ...prev.importState,

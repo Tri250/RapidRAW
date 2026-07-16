@@ -1123,7 +1123,8 @@
       "cancel": "Annulla",
       "create": "Crea",
       "placeholder": "Inserisci nome cartella...",
-      "title": "Crea Nuova Cartella"
+      "title": "Crea Nuova Cartella",
+      "invalidChars": "Il nome della cartella non può contenere: < > : \" / \\ | ? * o caratteri di controllo"
     },
     "createGroup": {
       "placeholder": "Inserisci nome gruppo..."

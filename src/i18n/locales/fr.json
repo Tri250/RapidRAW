@@ -1123,7 +1123,8 @@
       "cancel": "Annuler",
       "create": "Créer",
       "placeholder": "Saisir le nom du dossier...",
-      "title": "Créer un nouveau dossier"
+      "title": "Créer un nouveau dossier",
+      "invalidChars": "Le nom du dossier ne peut pas contenir : < > : \" / \\ | ? * ni des caractères de contrôle"
     },
     "createGroup": {
       "placeholder": "Saisir le nom du groupe..."

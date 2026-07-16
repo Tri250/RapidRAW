@@ -29,6 +29,8 @@ interface ItemData {
   onImageSelect?: (path: string, event: any) => void;
   itemHeight: number;
   setRatio: (index: number, ratio: number) => void;
+  focusedIndex: number;
+  onFocusedIndexChange?: (index: number) => void;
 }
 
 const FilmstripThumbnail = memo(
@@ -37,6 +39,7 @@ const FilmstripThumbnail = memo(
     imageRatings,
     isActive,
     isSelected,
+    isFocused,
     onContextMenu,
     onImageSelect,
     thumbnailAspectRatio,
@@ -48,6 +51,7 @@ const FilmstripThumbnail = memo(
     imageRatings: any;
     isActive: boolean;
     isSelected: boolean;
+    isFocused: boolean;
     onContextMenu?: (event: any, path: string) => void;
     onImageSelect?: (path: string, event: any) => void;
     thumbnailAspectRatio: ThumbnailAspectRatio;
@@ -155,14 +159,20 @@ const FilmstripThumbnail = memo(
       ? 'ring-2 ring-accent shadow-md'
       : isSelected
         ? 'ring-2 ring-gray-400'
-        : 'hover:ring-2 hover:ring-hover-color';
+        : isFocused
+          ? 'ring-2 ring-blue-400'
+          : 'hover:ring-2 hover:ring-hover-color';
 
     const imageClasses = `w-full h-full group-hover:scale-[1.02] transition-transform duration-300`;
 
     return (
       <div
+        role="option"
+        aria-selected={isActive}
+        aria-label={truncatedTitle}
+        tabIndex={isFocused ? 0 : -1}
         className={clsx(
-          'h-full w-full rounded-md overflow-hidden cursor-pointer shrink-0 group relative transition-all duration-150 bg-surface',
+          'h-full w-full rounded-md overflow-hidden cursor-pointer shrink-0 group relative transition-all duration-150 bg-surface outline-none',
           ringClass,
         )}
         onClick={(e: any) => {
@@ -170,6 +180,12 @@ const FilmstripThumbnail = memo(
           onImageSelect?.(path, e);
         }}
         onContextMenu={(e: any) => onContextMenu?.(e, path)}
+        onKeyDown={(e: React.KeyboardEvent) => {
+          if (e.key === 'Enter') {
+            e.stopPropagation();
+            onImageSelect?.(path, e as any);
+          }
+        }}
         style={{
           zIndex: isActive ? 2 : isSelected ? 1 : 'auto',
         }}
@@ -299,6 +315,8 @@ const FilmstripCell = ({
   onImageSelect,
   itemHeight,
   setRatio,
+  focusedIndex,
+  onFocusedIndexChange,
 }: any) => {
   const imageFile = imageList[columnIndex];
   const fullWidth = style.width as number;
@@ -321,6 +339,7 @@ const FilmstripCell = ({
           imageRatings={imageRatings}
           isActive={selectedPath === imageFile.path}
           isSelected={multiSelectedPaths.includes(imageFile.path)}
+          isFocused={focusedIndex === columnIndex}
           onContextMenu={onContextMenu}
           onImageSelect={onImageSelect}
           thumbnailAspectRatio={thumbnailAspectRatio}
@@ -578,7 +597,34 @@ const FilmstripList = ({
   );
 
   return (
-    <div style={{ height, width }}>
+    <div
+      role="listbox"
+      aria-label="Image filmstrip"
+      aria-orientation="horizontal"
+      style={{ height, width }}
+      onKeyDown={(e: React.KeyboardEvent) => {
+        const { imageList, selectedPath, onImageSelect: selectImage } = currentDataRef.current;
+        if (imageList.length === 0) return;
+
+        const currentIndex = selectedPath
+          ? imageList.findIndex((img: ImageFile) => img.path === selectedPath)
+          : -1;
+
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          const nextIndex = currentIndex < imageList.length - 1 ? currentIndex + 1 : currentIndex;
+          if (nextIndex !== currentIndex) {
+            selectImage?.(imageList[nextIndex].path, e as any);
+          }
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const prevIndex = currentIndex > 0 ? currentIndex - 1 : currentIndex;
+          if (prevIndex !== currentIndex) {
+            selectImage?.(imageList[prevIndex].path, e as any);
+          }
+        }
+      }}
+    >
       <Grid
         gridRef={setGridHandle}
         defaultWidth={width}
@@ -632,6 +678,7 @@ export default function Filmstrip({
   const clickTriggeredScroll = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ height: 0, width: 0 });
+  const [focusedIndex, setFocusedIndex] = useState(-1);
 
   const osPlatform = useSettingsStore((s) => s.osPlatform);
   const isAndroid = osPlatform === 'android';
@@ -686,11 +733,33 @@ export default function Filmstrip({
     if (path !== selectedImage?.path) {
       clickTriggeredScroll.current = true;
     }
+    const idx = imageList.findIndex((img) => img.path === path);
+    if (idx !== -1) {
+      setFocusedIndex(idx);
+    }
     onImageSelect?.(path, event);
   };
 
   return (
-    <div ref={containerRef} className="h-full w-full" onClick={onClearSelection} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+    <div
+      ref={containerRef}
+      className="h-full w-full"
+      tabIndex={0}
+      onClick={onClearSelection}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onFocus={() => {
+        if (focusedIndex === -1 && imageList.length > 0) {
+          const initialIndex = selectedImage
+            ? imageList.findIndex((img) => img.path === selectedImage.path)
+            : 0;
+          setFocusedIndex(initialIndex >= 0 ? initialIndex : 0);
+        }
+      }}
+      onBlur={() => {
+        setFocusedIndex(-1);
+      }}
+    >
       {size.height > 0 && size.width > 0 && (
         <FilmstripList
           height={size.height}
@@ -705,6 +774,8 @@ export default function Filmstrip({
             onRequestThumbnails,
             onImageSelect: handleImageSelect,
             clickTriggeredScroll,
+            focusedIndex,
+            onFocusedIndexChange: setFocusedIndex,
           }}
         />
       )}

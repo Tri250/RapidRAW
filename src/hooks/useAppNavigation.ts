@@ -99,21 +99,21 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
     useEditorStore.getState().patchesSentToBackend.clear();
 
     isBackendReadyRef.current = true;
-    setEditor((state) => {
-      if (state.interactivePatch?.url) URL.revokeObjectURL(state.interactivePatch.url);
-      return { interactivePatch: null };
-    });
+    const interactivePatchUrl = useEditorStore.getState().interactivePatch?.url;
+    if (interactivePatchUrl) URL.revokeObjectURL(interactivePatchUrl);
+    setEditor({ interactivePatch: null });
   }, [refs]);
 
   const handleImageSelect = useCallback(
     async (path: string) => {
-      const { selectedImage, isSliderDragging, resetHistory, setEditor } = useEditorStore.getState();
+      const editorState = useEditorStore.getState();
+      const { selectedImage, isSliderDragging, resetHistory, setEditor } = editorState;
       const { setLibrary } = useLibraryStore.getState();
       const { setUI } = useUIStore.getState();
 
       if (selectedImage?.path === path) return;
 
-      useEditorStore.getState().patchesSentToBackend.clear();
+      editorState.patchesSentToBackend.clear();
       debouncedSave.flush();
       debouncedSetHistory.cancel();
 
@@ -129,8 +129,8 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
 
       const hasDifferentResolution =
         cached &&
-        (useEditorStore.getState().originalSize.width !== cached.originalSize.width ||
-          useEditorStore.getState().originalSize.height !== cached.originalSize.height);
+        (editorState.originalSize.width !== cached.originalSize.width ||
+          editorState.originalSize.height !== cached.originalSize.height);
 
       if (!isCachedInBackend || hasDifferentResolution) {
         setEditor({ hasRenderedFirstFrame: false });
@@ -154,7 +154,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
         compactEditorPanelHeightOverride: null,
       });
 
-      if (isFrontendCached) {
+      if (isFrontendCached && cached) {
         setEditor({
           selectedImage: {
             ...cached.selectedImage,
