@@ -1122,7 +1122,8 @@
       "cancel": "キャンセル",
       "create": "作成",
       "placeholder": "フォルダ名を入力...",
-      "title": "新規フォルダの作成"
+      "title": "新規フォルダの作成",
+      "invalidChars": "フォルダ名に次の文字は使用できません：< > : \" / \\ | ? * および制御文字"
     },
     "createGroup": {
       "placeholder": "グループ名を入力..."

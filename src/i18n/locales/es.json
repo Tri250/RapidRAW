@@ -1123,7 +1123,8 @@
       "cancel": "Cancelar",
       "create": "Crear",
       "placeholder": "Introduce el nombre de la carpeta...",
-      "title": "Crear nueva carpeta"
+      "title": "Crear nueva carpeta",
+      "invalidChars": "El nombre de carpeta no puede contener: < > : \" / \\ | ? * ni caracteres de control"
     },
     "createGroup": {
       "placeholder": "Introduce el nombre del grupo..."

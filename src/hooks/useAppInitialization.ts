@@ -129,7 +129,10 @@ export const useAppInitialization = ({
   useEffect(() => {
     invoke(Invokes.GetSupportedFileTypes)
       .then((types: any) => setSupportedTypes(types))
-      .catch((err) => console.error('Failed to load supported file types:', err));
+      .catch((err) => {
+        console.error('Failed to load supported file types:', err);
+        setSupportedTypes({ extensions: [], mimeTypes: [] });
+      });
   }, [setSupportedTypes]);
 
   useEffect(() => {
@@ -222,15 +225,16 @@ export const useAppInitialization = ({
           });
         }
 
-        invoke('frontend_ready')
-          .then((launch: any) => {
-            if (launch?.editSession) {
-              useProcessStore.getState().setProcess({ externalEditSession: launch.editSession });
-            } else if (launch?.openWithFile) {
-              useProcessStore.getState().setProcess({ initialFileToOpen: launch.openWithFile });
-            }
-          })
-          .catch((e) => console.error('Failed to notify backend of readiness:', e));
+        try {
+          const launch: any = await invoke('frontend_ready');
+          if (launch?.editSession) {
+            useProcessStore.getState().setProcess({ externalEditSession: launch.editSession });
+          } else if (launch?.openWithFile) {
+            useProcessStore.getState().setProcess({ initialFileToOpen: launch.openWithFile });
+          }
+        } catch (e) {
+          console.error('Failed to notify backend of readiness:', e);
+        }
       })
       .catch((err) => {
         console.error('Failed to load settings:', err);

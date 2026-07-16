@@ -48,9 +48,16 @@ export function useEditorActions() {
     (degrees: number) => {
       const { selectedImage, adjustments } = useEditorStore.getState();
       const increment = degrees > 0 ? 1 : 3;
+      const prevSteps = adjustments.orientationSteps || 0;
+      const newOrientationSteps = (prevSteps + increment) % 4;
+      const wasSwapped = prevSteps === 1 || prevSteps === 3;
+      const isSwapped = newOrientationSteps === 1 || newOrientationSteps === 3;
       const newAspectRatio =
-        adjustments.aspectRatio && adjustments.aspectRatio !== 0 ? 1 / adjustments.aspectRatio : null;
-      const newOrientationSteps = ((adjustments.orientationSteps || 0) + increment) % 4;
+        adjustments.aspectRatio && adjustments.aspectRatio !== 0
+          ? wasSwapped !== isSwapped
+            ? 1 / adjustments.aspectRatio
+            : adjustments.aspectRatio
+          : null;
       const newCrop =
         selectedImage?.width && selectedImage?.height
           ? calculateCenteredCrop(selectedImage.width, selectedImage.height, newOrientationSteps, newAspectRatio)
@@ -203,6 +210,9 @@ export function useEditorActions() {
       for (const key of includedAdjustments) {
         if (Object.prototype.hasOwnProperty.call(copiedAdjustments, key)) {
           const value = copiedAdjustments[key as keyof Adjustments];
+          if (key === LensAdjustment.LensDistortionParams && value === null) {
+            continue;
+          }
           if (mode === PasteMode.Merge) {
             const defaultValue = INITIAL_ADJUSTMENTS[key as keyof Adjustments];
             if (JSON.stringify(value) !== JSON.stringify(defaultValue))
@@ -213,7 +223,7 @@ export function useEditorActions() {
         }
       }
 
-      if (includedAdjustments.includes(LensAdjustment.LensMaker)) {
+      if (includedAdjustments.includes(LensAdjustment.LensMaker) && !includedAdjustments.includes(LensAdjustment.LensDistortionParams)) {
         if (!adjustmentsToApply.lensMaker) {
           adjustmentsToApply.lensDistortionParams = null;
         }

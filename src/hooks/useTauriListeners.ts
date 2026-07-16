@@ -70,284 +70,292 @@ export function useTauriListeners({
       flushHandle.current = requestAnimationFrame(flushThumbnailBatch);
     };
 
-    const listeners = [
-      listen('preview-update-uncropped', (event: any) => {
-        if (isEffectActive) useEditorStore.getState().setEditor({ uncroppedAdjustedPreviewUrl: event.payload });
-      }),
-      listen('histogram-update', (event: any) => {
-        if (isEffectActive && event.payload.path === useEditorStore.getState().selectedImage?.path) {
-          useEditorStore.getState().setEditor({ histogram: event.payload.data });
-        }
-      }),
-      listen('open-with-file', (event: any) => {
-        if (isEffectActive) useProcessStore.getState().setProcess({ initialFileToOpen: event.payload as string });
-      }),
-      listen('external-edit-session', (event: any) => {
-        if (isEffectActive) useProcessStore.getState().setProcess({ externalEditSession: event.payload });
-      }),
-      listen('waveform-update', (event: any) => {
-        if (isEffectActive && event.payload.path === useEditorStore.getState().selectedImage?.path) {
-          useEditorStore.getState().setEditor({ waveform: event.payload.data });
-        }
-      }),
-      listen('thumbnail-progress', (event: any) => {
-        if (isEffectActive)
-          useProcessStore
-            .getState()
-            .setProcess({ thumbnailProgress: { current: event.payload.current, total: event.payload.total } });
-      }),
-      listen('thumbnail-generation-complete', () => {
-        if (isEffectActive) useProcessStore.getState().setProcess({ thumbnailProgress: { current: 0, total: 0 } });
-      }),
-      listen('thumbnail-generated', (event: any) => {
-        if (!isEffectActive) return;
-        const { path, thumbnailPath, rating, is_edited, data } = event.payload;
+    const unlistenFns: Array<() => void> = [];
+    const listenerPromises: Array<Promise<void>> = [];
 
-        if (thumbnailPath) {
-          thumbnailBuffer.current[path] = convertFileSrc(thumbnailPath);
-          refs.current.markGenerated(path);
-        } else if (data) {
-          thumbnailBuffer.current[path] = data;
-          refs.current.markGenerated(path);
-        }
-        if (rating !== undefined) {
-          ratingBuffer.current[path] = rating;
-        }
-        if (is_edited !== undefined) {
-          editStatusBuffer.current[path] = is_edited;
-        }
-        if (thumbnailPath || data || rating !== undefined || is_edited !== undefined) {
-          scheduleFlush();
-        }
-      }),
-      listen('image-metadata-loaded', (event: any) => {
-        if (!isEffectActive) return;
-        const { path, rating, is_edited, tags } = event.payload;
+    const registerListener = (promise: Promise<() => void>) => {
+      promise.then((unlisten) => {
+        unlistenFns.push(unlisten);
+      });
+      listenerPromises.push(promise.then(() => {}));
+    };
 
-        useLibraryStore.getState().setLibrary((state) => ({
-          imageRatings: { ...state.imageRatings, [path]: rating },
-          imageList: state.imageList.map((img) =>
-            img.path === path ? { ...img, is_edited, tags: tags ?? img.tags } : img,
-          ),
+    registerListener(listen('preview-update-uncropped', (event: any) => {
+      if (isEffectActive) useEditorStore.getState().setEditor({ uncroppedAdjustedPreviewUrl: event.payload });
+    }));
+    registerListener(listen('histogram-update', (event: any) => {
+      if (isEffectActive && event.payload.path === useEditorStore.getState().selectedImage?.path) {
+        useEditorStore.getState().setEditor({ histogram: event.payload.data });
+      }
+    }));
+    registerListener(listen('open-with-file', (event: any) => {
+      if (isEffectActive) useProcessStore.getState().setProcess({ initialFileToOpen: event.payload as string });
+    }));
+    registerListener(listen('external-edit-session', (event: any) => {
+      if (isEffectActive) useProcessStore.getState().setProcess({ externalEditSession: event.payload });
+    }));
+    registerListener(listen('waveform-update', (event: any) => {
+      if (isEffectActive && event.payload.path === useEditorStore.getState().selectedImage?.path) {
+        useEditorStore.getState().setEditor({ waveform: event.payload.data });
+      }
+    }));
+    registerListener(listen('thumbnail-progress', (event: any) => {
+      if (isEffectActive)
+        useProcessStore
+          .getState()
+          .setProcess({ thumbnailProgress: { current: event.payload.current, total: event.payload.total } });
+    }));
+    registerListener(listen('thumbnail-generation-complete', () => {
+      if (isEffectActive) useProcessStore.getState().setProcess({ thumbnailProgress: { current: 0, total: 0 } });
+    }));
+    registerListener(listen('thumbnail-generated', (event: any) => {
+      if (!isEffectActive) return;
+      const { path, thumbnailPath, rating, is_edited, data } = event.payload;
+
+      if (thumbnailPath) {
+        thumbnailBuffer.current[path] = convertFileSrc(thumbnailPath);
+        refs.current.markGenerated(path);
+      } else if (data) {
+        thumbnailBuffer.current[path] = data;
+        refs.current.markGenerated(path);
+      }
+      if (rating !== undefined) {
+        ratingBuffer.current[path] = rating;
+      }
+      if (is_edited !== undefined) {
+        editStatusBuffer.current[path] = is_edited;
+      }
+      if (thumbnailPath || data || rating !== undefined || is_edited !== undefined) {
+        scheduleFlush();
+      }
+    }));
+    registerListener(listen('image-metadata-loaded', (event: any) => {
+      if (!isEffectActive) return;
+      const { path, rating, is_edited, tags } = event.payload;
+
+      useLibraryStore.getState().setLibrary((state) => ({
+        imageRatings: { ...state.imageRatings, [path]: rating },
+        imageList: state.imageList.map((img) =>
+          img.path === path ? { ...img, is_edited, tags: tags ?? img.tags } : img,
+        ),
+      }));
+    }));
+    registerListener(listen('ai-model-download-start', (event: any) => {
+      if (isEffectActive) useProcessStore.getState().setProcess({ aiModelDownloadStatus: event.payload });
+    }));
+    registerListener(listen('ai-model-download-finish', () => {
+      if (isEffectActive) useProcessStore.getState().setProcess({ aiModelDownloadStatus: null });
+    }));
+    registerListener(listen('indexing-started', () => {
+      if (isEffectActive)
+        useProcessStore.getState().setProcess({ isIndexing: true, indexingProgress: { current: 0, total: 0 } });
+    }));
+    registerListener(listen('indexing-progress', (event: any) => {
+      if (isEffectActive) useProcessStore.getState().setProcess({ indexingProgress: event.payload });
+    }));
+    registerListener(listen('indexing-finished', () => {
+      if (isEffectActive) {
+        useProcessStore.getState().setProcess({ isIndexing: false, indexingProgress: { current: 0, total: 0 } });
+        const currentPath = useLibraryStore.getState().currentFolderPath;
+        if (currentPath) {
+          refs.current.refreshImageList();
+        }
+      }
+    }));
+    registerListener(listen('batch-export-progress', (event: any) => {
+      if (isEffectActive) useProcessStore.getState().setExportState({ progress: event.payload });
+    }));
+    registerListener(listen('export-complete', () => {
+      if (isEffectActive) useProcessStore.getState().setExportState({ status: Status.Success });
+    }));
+    registerListener(listen('export-error', (event: any) => {
+      if (isEffectActive)
+        useProcessStore.getState().setExportState({
+          status: Status.Error,
+          errorMessage: typeof event.payload === 'string' ? event.payload : 'Unknown error',
+        });
+    }));
+    registerListener(listen('export-cancelled', () => {
+      if (isEffectActive) useProcessStore.getState().setExportState({ status: Status.Cancelled });
+    }));
+    registerListener(listen('import-start', (event: any) => {
+      if (isEffectActive)
+        useProcessStore.getState().setImportState({
+          errorMessage: '',
+          path: '',
+          progress: { current: 0, total: event.payload.total },
+          status: Status.Importing,
+        });
+    }));
+    registerListener(listen('import-progress', (event: any) => {
+      if (isEffectActive)
+        useProcessStore.getState().setImportState({
+          path: event.payload.path,
+          progress: { current: event.payload.current, total: event.payload.total },
+        });
+    }));
+    registerListener(listen('import-complete', () => {
+      if (isEffectActive) {
+        useProcessStore.getState().setImportState({ status: Status.Success });
+        refs.current.refreshAllFolderTrees();
+        const currentPath = useLibraryStore.getState().currentFolderPath;
+        if (currentPath) {
+          refs.current.handleSelectSubfolder(currentPath, false);
+        }
+      }
+    }));
+    registerListener(listen('import-error', (event: any) => {
+      if (isEffectActive)
+        useProcessStore.getState().setImportState({
+          status: Status.Error,
+          errorMessage: typeof event.payload === 'string' ? event.payload : 'Unknown error',
+        });
+    }));
+    registerListener(listen('denoise-progress', (event: any) => {
+      if (isEffectActive)
+        useUIStore.getState().setUI((state) => ({
+          denoiseModalState: { ...state.denoiseModalState, progressMessage: event.payload as string },
         }));
-      }),
-      listen('ai-model-download-start', (event: any) => {
-        if (isEffectActive) useProcessStore.getState().setProcess({ aiModelDownloadStatus: event.payload });
-      }),
-      listen('ai-model-download-finish', () => {
-        if (isEffectActive) useProcessStore.getState().setProcess({ aiModelDownloadStatus: null });
-      }),
-      listen('indexing-started', () => {
-        if (isEffectActive)
-          useProcessStore.getState().setProcess({ isIndexing: true, indexingProgress: { current: 0, total: 0 } });
-      }),
-      listen('indexing-progress', (event: any) => {
-        if (isEffectActive) useProcessStore.getState().setProcess({ indexingProgress: event.payload });
-      }),
-      listen('indexing-finished', () => {
-        if (isEffectActive) {
-          useProcessStore.getState().setProcess({ isIndexing: false, indexingProgress: { current: 0, total: 0 } });
-          const currentPath = useLibraryStore.getState().currentFolderPath;
-          if (currentPath) {
-            refs.current.refreshImageList();
-          }
-        }
-      }),
-      listen('batch-export-progress', (event: any) => {
-        if (isEffectActive) useProcessStore.getState().setExportState({ progress: event.payload });
-      }),
-      listen('export-complete', () => {
-        if (isEffectActive) useProcessStore.getState().setExportState({ status: Status.Success });
-      }),
-      listen('export-error', (event: any) => {
-        if (isEffectActive)
-          useProcessStore.getState().setExportState({
-            status: Status.Error,
-            errorMessage: typeof event.payload === 'string' ? event.payload : 'Unknown error',
-          });
-      }),
-      listen('export-cancelled', () => {
-        if (isEffectActive) useProcessStore.getState().setExportState({ status: Status.Cancelled });
-      }),
-      listen('import-start', (event: any) => {
-        if (isEffectActive)
-          useProcessStore.getState().setImportState({
-            errorMessage: '',
-            path: '',
-            progress: { current: 0, total: event.payload.total },
-            status: Status.Importing,
-          });
-      }),
-      listen('import-progress', (event: any) => {
-        if (isEffectActive)
-          useProcessStore.getState().setImportState({
-            path: event.payload.path,
-            progress: { current: event.payload.current, total: event.payload.total },
-          });
-      }),
-      listen('import-complete', () => {
-        if (isEffectActive) {
-          useProcessStore.getState().setImportState({ status: Status.Success });
-          refs.current.refreshAllFolderTrees();
-          const currentPath = useLibraryStore.getState().currentFolderPath;
-          if (currentPath) {
-            refs.current.handleSelectSubfolder(currentPath, false);
-          }
-        }
-      }),
-      listen('import-error', (event: any) => {
-        if (isEffectActive)
-          useProcessStore.getState().setImportState({
-            status: Status.Error,
-            errorMessage: typeof event.payload === 'string' ? event.payload : 'Unknown error',
-          });
-      }),
-      listen('denoise-progress', (event: any) => {
-        if (isEffectActive)
-          useUIStore.getState().setUI((state) => ({
-            denoiseModalState: { ...state.denoiseModalState, progressMessage: event.payload as string },
-          }));
-      }),
-      listen('denoise-complete', (event: any) => {
-        if (isEffectActive) {
-          const payload = event.payload;
-          const isObject = typeof payload === 'object' && payload !== null;
-          useUIStore.getState().setUI((state) => ({
-            denoiseModalState: {
-              ...state.denoiseModalState,
-              isProcessing: false,
-              previewBase64: isObject ? payload.denoised : payload,
-              originalBase64: isObject ? payload.original : null,
-              progressMessage: null,
-            },
-          }));
-        }
-      }),
-      listen('denoise-error', (event: any) => {
-        if (isEffectActive) {
-          useUIStore.getState().setUI((state) => ({
-            denoiseModalState: {
-              ...state.denoiseModalState,
-              isProcessing: false,
-              error: String(event.payload),
-              progressMessage: null,
-            },
-          }));
-        }
-      }),
-      listen('wgpu-frame-ready', (event: any) => {
-        if (isEffectActive && event.payload?.path === useEditorStore.getState().selectedImage?.path) {
-          useEditorStore.getState().setEditor({ hasRenderedFirstFrame: true });
-        }
-      }),
-      listen('panorama-progress', (event: any) => {
-        if (isEffectActive) {
-          useUIStore.getState().setUI((state) => {
-            if (state.panoramaModalState.finalImageBase64 || state.panoramaModalState.error) return state;
-            return { panoramaModalState: { ...state.panoramaModalState, progressMessage: event.payload } };
-          });
-        }
-      }),
-      listen('panorama-complete', (event: any) => {
-        if (isEffectActive) {
-          useUIStore.getState().setUI((state) => ({
-            panoramaModalState: {
-              ...state.panoramaModalState,
-              error: null,
-              finalImageBase64: event.payload.base64,
-              isProcessing: false,
-              progressMessage: null,
-            },
-          }));
-        }
-      }),
-      listen('panorama-error', (event: any) => {
-        if (isEffectActive) {
-          useUIStore.getState().setUI((state) => ({
-            panoramaModalState: {
-              ...state.panoramaModalState,
-              error: String(event.payload),
-              finalImageBase64: null,
-              isProcessing: false,
-              progressMessage: null,
-            },
-          }));
-        }
-      }),
-      listen('hdr-progress', (event: any) => {
-        if (isEffectActive) {
-          useUIStore.getState().setUI((state) => ({
-            hdrModalState: {
-              ...state.hdrModalState,
-              error: null,
-              finalImageBase64: null,
-              isOpen: true,
-              progressMessage: event.payload,
-            },
-          }));
-        }
-      }),
-      listen('hdr-complete', (event: any) => {
-        if (isEffectActive) {
-          useUIStore.getState().setUI((state) => ({
-            hdrModalState: {
-              ...state.hdrModalState,
-              error: null,
-              finalImageBase64: event.payload.base64,
-              isProcessing: false,
-              progressMessage: 'Hdr Ready',
-            },
-          }));
-        }
-      }),
-      listen('hdr-error', (event: any) => {
-        if (isEffectActive) {
-          useUIStore.getState().setUI((state) => ({
-            hdrModalState: {
-              ...state.hdrModalState,
-              error: String(event.payload),
-              finalImageBase64: null,
-              isProcessing: false,
-              progressMessage: 'An error occurred.',
-            },
-          }));
-        }
-      }),
-      listen('culling-start', (event: any) => {
-        if (isEffectActive) {
-          useUIStore.getState().setUI((state) => ({
-            cullingModalState: {
-              ...state.cullingModalState,
-              isOpen: true,
-              progress: { current: 0, total: event.payload, stage: 'Initializing...' },
-              suggestions: null,
-              error: null,
-            },
-          }));
-        }
-      }),
-      listen('culling-progress', (event: any) => {
-        if (isEffectActive) {
-          useUIStore
-            .getState()
-            .setUI((state) => ({ cullingModalState: { ...state.cullingModalState, progress: event.payload } }));
-        }
-      }),
-      listen('culling-complete', (event: any) => {
-        if (isEffectActive) {
-          useUIStore.getState().setUI((state) => ({
-            cullingModalState: { ...state.cullingModalState, progress: null, suggestions: event.payload },
-          }));
-        }
-      }),
-      listen('culling-error', (event: any) => {
-        if (isEffectActive) {
-          useUIStore.getState().setUI((state) => ({
-            cullingModalState: { ...state.cullingModalState, progress: null, error: String(event.payload) },
-          }));
-        }
-      }),
-    ];
+    }));
+    registerListener(listen('denoise-complete', (event: any) => {
+      if (isEffectActive) {
+        const payload = event.payload;
+        const isObject = typeof payload === 'object' && payload !== null;
+        useUIStore.getState().setUI((state) => ({
+          denoiseModalState: {
+            ...state.denoiseModalState,
+            isProcessing: false,
+            previewBase64: isObject ? payload.denoised : payload,
+            originalBase64: isObject ? payload.original : null,
+            progressMessage: null,
+          },
+        }));
+      }
+    }));
+    registerListener(listen('denoise-error', (event: any) => {
+      if (isEffectActive) {
+        useUIStore.getState().setUI((state) => ({
+          denoiseModalState: {
+            ...state.denoiseModalState,
+            isProcessing: false,
+            error: String(event.payload),
+            progressMessage: null,
+          },
+        }));
+      }
+    }));
+    registerListener(listen('wgpu-frame-ready', (event: any) => {
+      if (isEffectActive && event.payload?.path === useEditorStore.getState().selectedImage?.path) {
+        useEditorStore.getState().setEditor({ hasRenderedFirstFrame: true });
+      }
+    }));
+    registerListener(listen('panorama-progress', (event: any) => {
+      if (isEffectActive) {
+        useUIStore.getState().setUI((state) => {
+          if (state.panoramaModalState.finalImageBase64 || state.panoramaModalState.error) return state;
+          return { panoramaModalState: { ...state.panoramaModalState, progressMessage: event.payload } };
+        });
+      }
+    }));
+    registerListener(listen('panorama-complete', (event: any) => {
+      if (isEffectActive) {
+        useUIStore.getState().setUI((state) => ({
+          panoramaModalState: {
+            ...state.panoramaModalState,
+            error: null,
+            finalImageBase64: event.payload.base64,
+            isProcessing: false,
+            progressMessage: null,
+          },
+        }));
+      }
+    }));
+    registerListener(listen('panorama-error', (event: any) => {
+      if (isEffectActive) {
+        useUIStore.getState().setUI((state) => ({
+          panoramaModalState: {
+            ...state.panoramaModalState,
+            error: String(event.payload),
+            finalImageBase64: null,
+            isProcessing: false,
+            progressMessage: null,
+          },
+        }));
+      }
+    }));
+    registerListener(listen('hdr-progress', (event: any) => {
+      if (isEffectActive) {
+        useUIStore.getState().setUI((state) => ({
+          hdrModalState: {
+            ...state.hdrModalState,
+            error: null,
+            finalImageBase64: null,
+            isOpen: true,
+            progressMessage: event.payload,
+          },
+        }));
+      }
+    }));
+    registerListener(listen('hdr-complete', (event: any) => {
+      if (isEffectActive) {
+        useUIStore.getState().setUI((state) => ({
+          hdrModalState: {
+            ...state.hdrModalState,
+            error: null,
+            finalImageBase64: event.payload.base64,
+            isProcessing: false,
+            progressMessage: 'Hdr Ready',
+          },
+        }));
+      }
+    }));
+    registerListener(listen('hdr-error', (event: any) => {
+      if (isEffectActive) {
+        useUIStore.getState().setUI((state) => ({
+          hdrModalState: {
+            ...state.hdrModalState,
+            error: String(event.payload),
+            finalImageBase64: null,
+            isProcessing: false,
+            progressMessage: 'An error occurred.',
+          },
+        }));
+      }
+    }));
+    registerListener(listen('culling-start', (event: any) => {
+      if (isEffectActive) {
+        useUIStore.getState().setUI((state) => ({
+          cullingModalState: {
+            ...state.cullingModalState,
+            isOpen: true,
+            progress: { current: 0, total: event.payload, stage: 'Initializing...' },
+            suggestions: null,
+            error: null,
+          },
+        }));
+      }
+    }));
+    registerListener(listen('culling-progress', (event: any) => {
+      if (isEffectActive) {
+        useUIStore
+          .getState()
+          .setUI((state) => ({ cullingModalState: { ...state.cullingModalState, progress: event.payload } }));
+      }
+    }));
+    registerListener(listen('culling-complete', (event: any) => {
+      if (isEffectActive) {
+        useUIStore.getState().setUI((state) => ({
+          cullingModalState: { ...state.cullingModalState, progress: null, suggestions: event.payload },
+        }));
+      }
+    }));
+    registerListener(listen('culling-error', (event: any) => {
+      if (isEffectActive) {
+        useUIStore.getState().setUI((state) => ({
+          cullingModalState: { ...state.cullingModalState, progress: null, error: String(event.payload) },
+        }));
+      }
+    }));
 
     return () => {
       isEffectActive = false;
@@ -357,7 +365,35 @@ export function useTauriListeners({
       }
       thumbnailBuffer.current = {};
       ratingBuffer.current = {};
-      listeners.forEach((p) => p.then((unlisten) => unlisten()));
+      // Track which unlisten functions have already been called to prevent double-invocation
+      const calledFns = new Set<() => void>();
+      const callUnlisten = (fn: () => void) => {
+        if (!calledFns.has(fn)) {
+          calledFns.add(fn);
+          fn();
+        }
+      };
+      // Call any unlisten functions that have already resolved
+      unlistenFns.forEach((unlisten) => callUnlisten(unlisten));
+      // For promises that haven't resolved yet, call unlisten once they do,
+      // with a timeout fallback to ensure cleanup even for slow resolves
+      const CLEANUP_TIMEOUT = 3000;
+      listenerPromises.forEach((p) => {
+        let settled = false;
+        const tryCleanup = () => {
+          if (settled) return;
+          settled = true;
+          // Call any unlisten functions that were stored since the initial sweep
+          unlistenFns.forEach((unlisten) => callUnlisten(unlisten));
+        };
+        const timeoutId = setTimeout(tryCleanup, CLEANUP_TIMEOUT);
+        p.then(() => {
+          clearTimeout(timeoutId);
+          tryCleanup();
+        }).catch(() => {
+          clearTimeout(timeoutId);
+        });
+      });
     };
   }, []);
 }

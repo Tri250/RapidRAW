@@ -379,6 +379,25 @@ export function useImageProcessing(
     [setEditor],
   );
 
+  // Cleanup debounced functions and pending timers on unmount to prevent
+  // state updates after the component using this hook has unmounted.
+  useEffect(() => {
+    return () => {
+      requestHiFiZoom.cancel();
+      requestHiFiOriginalZoom.cancel();
+      if (dragIdleTimer.current) {
+        clearTimeout(dragIdleTimer.current);
+        dragIdleTimer.current = null;
+      }
+    };
+  }, [requestHiFiZoom, requestHiFiOriginalZoom]);
+
+  // Reset in-flight count when the selected image changes so a stale
+  // count from the previous image doesn't block the new image's pipeline.
+  useEffect(() => {
+    inFlightCountRef.current = 0;
+  }, [selectedImage?.path]);
+
   useEffect(() => {
     if (activeRightPanel === Panel.Crop && selectedImage?.isReady) {
       generateUncroppedPreview(adjustments);

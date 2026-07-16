@@ -111,6 +111,11 @@ function SubMenu({ cancelCloseSubmenu, closeSubmenu, hideContextMenu, options, p
             fill="transparent"
             className="pointer-events-auto cursor-default"
             onMouseEnter={cancelCloseSubmenu}
+            onMouseLeave={() => {
+              if (!isInteractiveSubmenu) {
+                closeSubmenu(parentPath);
+              }
+            }}
           />
         </svg>
       )}
@@ -163,7 +168,9 @@ function MenuItem({ option, path, hideContextMenu }: MenuItemProps) {
     path.every((val, i) => val === activeSubmenu[i]);
 
   const handleMouseEnter = () => {
-    cancelCloseSubmenu();
+    if (activeSubmenu && path.every((val, i) => val === activeSubmenu[i])) {
+      cancelCloseSubmenu();
+    }
     hoverTimeoutRef.current = setTimeout(() => {
       if (option.disabled) {
         const parentPath = path.slice(0, -1);
@@ -309,7 +316,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
   const closeSubmenu = useCallback((path: number[]) => {
     submenuTimeoutRef.current = setTimeout(() => {
       setActiveSubmenu((currentActivePath) => {
-        if (currentActivePath && currentActivePath.join('-').startsWith(path.join('-'))) {
+        if (currentActivePath && path.every((val, i) => val === currentActivePath[i])) {
           const parentPath = path.slice(0, -1);
           return parentPath.length > 0 ? parentPath : null;
         }

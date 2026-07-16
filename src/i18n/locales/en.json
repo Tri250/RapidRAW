@@ -1189,7 +1189,8 @@
       "cancel": "Cancel",
       "create": "Create",
       "placeholder": "Enter folder name...",
-      "title": "Create New Folder"
+      "title": "Create New Folder",
+      "invalidChars": "Folder name cannot contain: < > : \" / \\ | ? * or control characters"
     },
     "createGroup": {
       "placeholder": "Enter group name..."
@@ -1372,7 +1373,8 @@
       "titleMultiple": "Rename {{count}} Images",
       "titleMultiple_one": "Rename {{count}} Image",
       "titleMultiple_other": "Rename {{count}} Images",
-      "titleSingle": "Rename Image"
+      "titleSingle": "Rename Image",
+      "overwriteWarning": "A file with this name already exists. Saving will overwrite the existing file."
     },
     "renameFolder": {
       "cancel": "Cancel",

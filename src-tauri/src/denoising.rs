@@ -56,6 +56,8 @@ pub async fn apply_denoising(
     app_handle: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
+    let _denoise_guard = state.denoise_lock.lock().await;
+
     let (source_path, _) = parse_virtual_path(&path);
     let path_str = source_path.to_string_lossy().to_string();
 
@@ -95,6 +97,8 @@ pub async fn batch_denoise_images(
     app_handle: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<String>, String> {
+    let _denoise_guard = state.denoise_lock.lock().await;
+
     let mut ai_session = None;
     if method == "ai" {
         let session = crate::ai_processing::get_or_init_denoise_model(

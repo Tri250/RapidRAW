@@ -1,4 +1,4 @@
-import { useState, useLayoutEffect } from 'react';
+import { useState, useLayoutEffect, useRef } from 'react';
 
 export interface ImageDimensions {
   height: number;
@@ -23,6 +23,11 @@ export const useImageRenderSize = (
   const imgWidth = imageDimensions?.width;
   const imgHeight = imageDimensions?.height;
 
+  // Keep latest image dimensions in a ref so the ResizeObserver callback
+  // never reads stale values between a prop change and the next effect run.
+  const imageDimsRef = useRef({ imgWidth, imgHeight });
+  imageDimsRef.current = { imgWidth, imgHeight };
+
   useLayoutEffect(() => {
     const container = containerRef.current;
 
@@ -33,7 +38,16 @@ export const useImageRenderSize = (
 
     const updateSize = () => {
       const { clientWidth: containerWidth, clientHeight: containerHeight } = container;
-      const imageAspectRatio = imgWidth / imgHeight;
+      const { imgWidth: currentImgWidth, imgHeight: currentImgHeight } = imageDimsRef.current;
+
+      // Guard against zero or missing dimensions to prevent division by zero
+      // and meaningless render sizes (e.g. scale of 0).
+      if (!containerWidth || !containerHeight || !currentImgWidth || !currentImgHeight) {
+        setRenderSize(DEFAULT_SIZE);
+        return;
+      }
+
+      const imageAspectRatio = currentImgWidth / currentImgHeight;
       const containerAspectRatio = containerWidth / containerHeight;
 
       let width, height;
@@ -47,8 +61,9 @@ export const useImageRenderSize = (
 
       const offsetX = (containerWidth - width) / 2;
       const offsetY = (containerHeight - height) / 2;
+      const scale = width / currentImgWidth;
 
-      setRenderSize({ width, height, scale: width / imgWidth, offsetX, offsetY });
+      setRenderSize({ width, height, scale, offsetX, offsetY });
     };
 
     updateSize();

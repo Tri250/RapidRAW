@@ -1167,7 +1167,8 @@
       "cancel": "Anuluj",
       "create": "Utwórz",
       "placeholder": "Wpisz nazwę folderu...",
-      "title": "Utwórz nowy folder"
+      "title": "Utwórz nowy folder",
+      "invalidChars": "Nazwa folderu nie może zawierać: < > : \" / \\ | ? * ani znaków kontrolnych"
     },
     "createGroup": {
       "placeholder": "Wpisz nazwę grupy..."

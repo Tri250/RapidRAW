@@ -11,6 +11,7 @@ use image::{DynamicImage, GenericImageView, Rgb32FImage};
 use nalgebra::{Matrix2, Matrix3, Point2};
 use std::fs;
 use std::path::Path;
+use std::sync::OnceLock;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
@@ -20,6 +21,12 @@ const DEGHOST_FAST_THRESHOLD: u8 = 8;
 const DEGHOST_NON_MAXIMA_SUPPRESSION_RADIUS: f32 = 8.0;
 const DEGHOST_MAX_PROCESSING_DIMENSION: u32 = 3200;
 const DEGHOST_IDENTITY_MAX_DISPLACEMENT: f64 = 1.0;
+
+static BRIEF_PAIRS: OnceLock<Vec<(Point2<i32>, Point2<i32>)>> = OnceLock::new();
+
+fn get_brief_pairs() -> &'static [(Point2<i32>, Point2<i32>)] {
+    BRIEF_PAIRS.get_or_init(processing::generate_brief_pairs)
+}
 
 enum AlignmentOutcome {
     Warped(Rgb32FImage),
@@ -106,7 +113,7 @@ pub fn assert_uniform_dimensions(frames: &[HdrFrame]) -> Result<(), String> {
 pub fn align_hdr_frames(frames: &mut [HdrFrame], app_handle: &AppHandle) {
     assert!(!frames.is_empty(), "alignment requires at least one frame");
     let _ = app_handle.emit("hdr-progress", "Deghosting...");
-    let brief_pairs = processing::generate_brief_pairs();
+    let brief_pairs = get_brief_pairs();
     let reference_index = frames.len() / 2;
     let detections: Vec<FrameDetection> = frames
         .iter()

@@ -299,22 +299,26 @@ export function useLibraryActions(handleImageSelect?: (path: string) => void) {
     let actualTarget = albumActionTarget;
 
     const findNode = (nodes: AlbumItem[], id: string): AlbumItem | undefined => {
-      for (const n of nodes) {
+      const stack = [...nodes];
+      while (stack.length) {
+        const n = stack.pop()!;
         if (n.id === id) return n;
         if (n.type === 'group') {
-          const found = findNode((n as AlbumGroup).children, id);
-          if (found) return found;
+          stack.push(...(n as AlbumGroup).children);
         }
       }
       return undefined;
     };
 
     const findParentId = (nodes: AlbumItem[], childId: string, parentId: string | null): string | null | undefined => {
-      for (const n of nodes) {
-        if (n.id === childId) return parentId;
-        if (n.type === 'group') {
-          const found = findParentId((n as AlbumGroup).children, childId, n.id);
-          if (found !== undefined) return found;
+      const stack: Array<{ nodes: AlbumItem[]; parentId: string | null }> = [{ nodes, parentId }];
+      while (stack.length) {
+        const { nodes: currentNodes, parentId: currentParentId } = stack.pop()!;
+        for (const n of currentNodes) {
+          if (n.id === childId) return currentParentId;
+          if (n.type === 'group') {
+            stack.push({ nodes: (n as AlbumGroup).children, parentId: n.id });
+          }
         }
       }
       return undefined;

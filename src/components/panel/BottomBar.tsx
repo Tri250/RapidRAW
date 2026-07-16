@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Star, Copy, ClipboardPaste, ChevronUp, ChevronDown, Check, FileInput, Settings, Filter } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -56,17 +56,72 @@ interface StarRatingProps {
 
 const StarRating = ({ rating, onRate, disabled }: StarRatingProps) => {
   const { t } = useTranslation();
+  const starRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const focusStar = useCallback((index: number) => {
+    const clamped = Math.max(0, Math.min(4, index));
+    starRefs.current[clamped]?.focus();
+  }, []);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (disabled) return;
+
+      const focusedIndex = starRefs.current.indexOf(document.activeElement as HTMLButtonElement);
+
+      switch (e.key) {
+        case 'ArrowRight':
+        case 'ArrowUp':
+          e.preventDefault();
+          focusStar(focusedIndex < 4 ? focusedIndex + 1 : 0);
+          break;
+        case 'ArrowLeft':
+        case 'ArrowDown':
+          e.preventDefault();
+          focusStar(focusedIndex > 0 ? focusedIndex - 1 : 4);
+          break;
+        case '0':
+          e.preventDefault();
+          onRate(0);
+          break;
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+          e.preventDefault();
+          onRate(Number(e.key) === rating ? 0 : Number(e.key));
+          focusStar(Number(e.key) - 1);
+          break;
+        default:
+          break;
+      }
+    },
+    [disabled, onRate, rating, focusStar],
+  );
 
   return (
-    <div className={clsx('flex items-center gap-1', disabled && 'cursor-not-allowed')}>
+    <div
+      className={clsx('flex items-center gap-1', disabled && 'cursor-not-allowed')}
+      role="radiogroup"
+      aria-label={t('ui.bottomBar.tooltips.rateStars', { count: 0 }).replace(/[\d零一二三四五０-９]/g, '').trim() || 'Star rating'}
+      onKeyDown={handleKeyDown}
+    >
       {[...Array(5)].map((_, index: number) => {
         const starValue = index + 1;
         return (
           <button
-            className="disabled:cursor-not-allowed"
+            ref={(el) => { starRefs.current[index] = el; }}
+            className={clsx(
+              'disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-secondary rounded-sm',
+            )}
             disabled={disabled}
             key={starValue}
             onClick={() => !disabled && onRate(starValue === rating ? 0 : starValue)}
+            role="radio"
+            aria-checked={starValue <= rating}
+            aria-label={`${starValue} star${starValue > 1 ? 's' : ''}`}
+            tabIndex={index === 0 ? 0 : -1}
             data-tooltip={
               disabled
                 ? t('ui.bottomBar.tooltips.selectToRate')

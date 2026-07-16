@@ -121,6 +121,25 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
 
   const debouncedSetHistory = useMemo(() => debounce((newAdj: Adjustments) => pushHistory(newAdj), 500), [pushHistory]);
 
+  // Unified cleanup for all timers, animation frames, and debounced functions on unmount
+  useEffect(() => {
+    return () => {
+      debouncedSetHistory.cancel();
+      if (zoomDebounceTimeoutRef.current !== null) {
+        clearTimeout(zoomDebounceTimeoutRef.current);
+      }
+      if (wheelSnapTimeout.current !== null) {
+        clearTimeout(wheelSnapTimeout.current);
+      }
+      if (animationFrameId.current !== null) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+      if (physicsFrameId.current !== null) {
+        cancelAnimationFrame(physicsFrameId.current);
+      }
+    };
+  }, [debouncedSetHistory]);
+
   const setAdjustments = useCallback(
     (value: Partial<Adjustments> | ((prev: Adjustments) => Adjustments)) => {
       setEditor((state) => {

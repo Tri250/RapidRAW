@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useId } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, ChevronDown } from 'lucide-react';
 import Input from './Input';
@@ -37,6 +37,8 @@ const Dropdown = <T extends React.Key>({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const listboxId = useId();
   const selectedOption = options.find((opt) => opt.value === value) || null;
 
   useEffect(() => {
@@ -55,6 +57,7 @@ const Dropdown = <T extends React.Key>({
     if (!isOpen) {
       setSearchTerm('');
       setShowSearch(false);
+      setFocusedIndex(-1);
     }
   }, [isOpen]);
 
@@ -80,8 +83,31 @@ const Dropdown = <T extends React.Key>({
       return;
     }
 
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+        setFocusedIndex(0);
+      } else if (filteredOptions.length > 0) {
+        setFocusedIndex((prev) => (prev + 1) % filteredOptions.length);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (isOpen && filteredOptions.length > 0) {
+        setFocusedIndex((prev) => (prev <= 0 ? filteredOptions.length - 1 : prev - 1));
+      }
+      return;
+    }
+
     if (e.key === 'Enter') {
-      if (isOpen && filteredOptions.length === 1) {
+      if (isOpen && focusedIndex >= 0 && focusedIndex < filteredOptions.length) {
+        e.stopPropagation();
+        e.preventDefault();
+        handleSelect(filteredOptions[focusedIndex]);
+      } else if (isOpen && filteredOptions.length === 1) {
         e.stopPropagation();
         e.preventDefault();
         handleSelect(filteredOptions[0]);
@@ -106,6 +132,7 @@ const Dropdown = <T extends React.Key>({
       <button
         aria-expanded={isOpen}
         aria-haspopup="listbox"
+        aria-controls={isOpen ? listboxId : undefined}
         disabled={disabled}
         className={clsx(
           'w-full border border-border-color rounded-md px-3 mr-4 py-2 flex justify-between items-center text-left disabled:opacity-50 disabled:cursor-not-allowed',
@@ -134,7 +161,9 @@ const Dropdown = <T extends React.Key>({
             transition={{ duration: 0.1, ease: 'easeOut' }}
           >
             <div
+              id={listboxId}
               aria-orientation="vertical"
+              aria-activedescendant={focusedIndex >= 0 ? `${listboxId}-option-${focusedIndex}` : undefined}
               className="bg-surface/95 backdrop-blur-md rounded-lg shadow-xl p-2 max-h-80 overflow-y-auto"
               role="listbox"
             >
@@ -149,17 +178,20 @@ const Dropdown = <T extends React.Key>({
                 />
               )}
 
-              {filteredOptions.map((option: OptionItem<T>) => {
+              {filteredOptions.map((option: OptionItem<T>, index: number) => {
                 const isSelected = value === option.value;
+                const isFocused = index === focusedIndex;
                 return (
                   <button
                     key={option.value}
+                    id={`${listboxId}-option-${index}`}
                     onClick={() => handleSelect(option)}
                     className={clsx(
                       'w-full text-left px-3 py-2 rounded-md flex items-center justify-between',
                       'transition-colors duration-150 hover:bg-bg-primary',
                       {
                         'bg-bg-primary': isSelected,
+                        'ring-1 ring-inset ring-accent': isFocused,
                       },
                     )}
                     role="option"

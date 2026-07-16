@@ -892,6 +892,8 @@ export default function CollageModal({ isOpen, onClose, onSave, sourceImages }: 
     <div
       className={`fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-xs transition-opacity duration-300 ${show ? 'opacity-100' : 'opacity-0'}`}
       onMouseDown={onClose}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+      tabIndex={-1}
     >
       <AnimatePresence>
         {show && (

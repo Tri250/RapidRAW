@@ -1189,7 +1189,8 @@
       "cancel": "取消",
       "create": "创建",
       "placeholder": "输入文件夹名称...",
-      "title": "创建新文件夹"
+      "title": "创建新文件夹",
+      "invalidChars": "文件夹名称不能包含：< > : \" / \\ | ? * 或控制字符"
     },
     "createGroup": {
       "placeholder": "输入组名称..."

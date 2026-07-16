@@ -120,17 +120,28 @@ export default function CompositionOverlays({
 
     const dx = mainEnd.x - mainStart.x;
     const dy = mainEnd.y - mainStart.y;
-    if (Math.abs(dx) < 0.01) return null;
+    if (Math.abs(dx) < 0.01 || Math.abs(dy) < 0.01) return null;
 
     const m1 = dy / dx;
+    if (Math.abs(m1) < 0.01) return null;
     const m2 = -1 / m1;
 
-    const x_int = (m1 * mainStart.x - mainStart.y - m2 * recipStart.x + recipStart.y) / (m1 - m2);
+    const m1m2 = m1 - m2;
+    if (Math.abs(m1m2) < 0.01) return null;
+
+    const x_int = (m1 * mainStart.x - mainStart.y - m2 * recipStart.x + recipStart.y) / m1m2;
     const y_int = m1 * (x_int - mainStart.x) + mainStart.y;
 
     const recipStart2 = { x: Math.abs(width - recipStart.x), y: Math.abs(height - recipStart.y) };
-    const x_int2 = (m1 * mainStart.x - mainStart.y - m2 * recipStart2.x + recipStart2.y) / (m1 - m2);
+    const x_int2 = (m1 * mainStart.x - mainStart.y - m2 * recipStart2.x + recipStart2.y) / m1m2;
     const y_int2 = m1 * (x_int2 - mainStart.x) + mainStart.y;
+
+    if (
+      !isFinite(x_int) || !isFinite(y_int) ||
+      !isFinite(x_int2) || !isFinite(y_int2)
+    ) {
+      return null;
+    }
 
     return (
       <g style={{ opacity: mode === 'goldenTriangle' ? opacity : 0, transition: 'opacity 300ms ease-in-out' }}>

@@ -112,7 +112,19 @@ const ColorGradingPanel = ({ adjustments, setAdjustments, onDragStateChange }: C
   const [isExpanded, setIsExpanded] = useState(false);
   const colorGrading = adjustments.colorGrading || INITIAL_ADJUSTMENTS.colorGrading;
 
+  const HUE_SAT_LUM_KEYS: ReadonlySet<ColorGrading> = new Set([
+    ColorGrading.Highlights,
+    ColorGrading.Midtones,
+    ColorGrading.Shadows,
+    ColorGrading.Global,
+  ]);
+  const NUMERIC_KEYS: ReadonlySet<ColorGrading> = new Set([ColorGrading.Blending, ColorGrading.Balance]);
+
   const handleChange = (grading: ColorGrading, newValue: HueSatLum) => {
+    if (!HUE_SAT_LUM_KEYS.has(grading)) {
+      console.error(`handleChange expects a HueSatLum key, but received "${grading}". Use handleColorGradingSliderChange for numeric keys.`);
+      return;
+    }
     setAdjustments((prev: Partial<Adjustments>) => ({
       ...prev,
       colorGrading: {
@@ -123,6 +135,10 @@ const ColorGradingPanel = ({ adjustments, setAdjustments, onDragStateChange }: C
   };
 
   const handleColorGradingSliderChange = (grading: ColorGrading, value: string) => {
+    if (!NUMERIC_KEYS.has(grading)) {
+      console.error(`handleColorGradingSliderChange expects a numeric key (blending/balance), but received "${grading}". Use handleChange for HueSatLum keys.`);
+      return;
+    }
     setAdjustments((prev: Partial<Adjustments>) => ({
       ...prev,
       colorGrading: {

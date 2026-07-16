@@ -1123,7 +1123,8 @@
       "cancel": "Cancelar",
       "create": "Criar",
       "placeholder": "Digite o nome da pasta...",
-      "title": "Criar Nova Pasta"
+      "title": "Criar Nova Pasta",
+      "invalidChars": "O nome da pasta não pode conter: < > : \" / \\ | ? * ou caracteres de controle"
     },
     "createGroup": {
       "placeholder": "Digite o nome do grupo..."

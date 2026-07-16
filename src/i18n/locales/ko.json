@@ -1123,7 +1123,8 @@
       "cancel": "취소",
       "create": "만들기",
       "placeholder": "폴더 이름 입력...",
-      "title": "새 폴더 만들기"
+      "title": "새 폴더 만들기",
+      "invalidChars": "폴더 이름에 다음 문자를 포함할 수 없습니다: < > : \" / \\ | ? * 및 제어 문자"
     },
     "createGroup": {
       "placeholder": "그룹 이름 입력..."

@@ -460,6 +460,20 @@ const Slider = ({
     }
     if (GLOBAL_KEYS.includes(e.key)) {
       e.currentTarget.blur();
+      return;
+    }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      const newValue = snapToStep(Math.min(max, value + step));
+      if (newValue !== value) {
+        onChange({ target: { value: newValue } });
+      }
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const newValue = snapToStep(Math.max(min, value - step));
+      if (newValue !== value) {
+        onChange({ target: { value: newValue } });
+      }
     }
   };
 
@@ -537,6 +551,10 @@ const Slider = ({
         />
         <input
           ref={rangeInputRef}
+          role="slider"
+          aria-valuemin={min}
+          aria-valuemax={max}
+          aria-valuenow={value}
           className={`absolute top-1/2 left-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer m-0 p-0 slider-input z-10 ${
             isDragging ? 'slider-thumb-active' : ''
           }`}

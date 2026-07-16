@@ -132,7 +132,16 @@ export function useFileOperations(
         confirmVariant: 'destructive',
         isOpen: true,
         message: modalMessage,
-        onConfirm: () => executeDelete(pathsToDelete, { includeAssociated: false }),
+        onConfirm: () => {
+          const currentImageList = useLibraryStore.getState().imageList;
+          const currentPaths = new Set(currentImageList.map((img: any) => img.path));
+          const stillValidPaths = pathsToDelete.filter((p: string) => currentPaths.has(p));
+          if (stillValidPaths.length === 0) {
+            toast.warning('The selected files no longer exist and cannot be deleted.');
+            return;
+          }
+          executeDelete(stillValidPaths, { includeAssociated: false });
+        },
         title: modalTitle,
       },
     });
@@ -213,7 +222,22 @@ export function useFileOperations(
       const { selectedImage } = useEditorStore.getState();
       const { libraryActivePath, setLibrary } = useLibraryStore.getState();
 
-      if (renameTargetPaths.length > 0 && nameTemplate) {
+      const trimmedTemplate = nameTemplate?.trim();
+
+      if (!trimmedTemplate) {
+        toast.error('Filename template cannot be empty.');
+        setUI({ renameTargetPaths: [] });
+        return;
+      }
+
+      const invalidFilenameChars = /[<>:"/\\|?*\x00-\x1f]/;
+      if (invalidFilenameChars.test(trimmedTemplate)) {
+        toast.error('Filename template contains invalid characters. Characters < > : " / \\ | ? * and control characters are not allowed.');
+        setUI({ renameTargetPaths: [] });
+        return;
+      }
+
+      if (renameTargetPaths.length > 0) {
         try {
           const newPaths: Array<string> = await invoke(Invokes.RenameFiles, {
             nameTemplate,
