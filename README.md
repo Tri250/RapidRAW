@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/editor.png" alt="RapidRAW Editor">
+  <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/editor.png" alt="RapidRAW 编辑器">
 </p>
 
 <div align="center">
@@ -19,611 +19,610 @@
 
 # RapidRAW
 
-> A beautiful, non-destructive, and GPU-accelerated RAW image editor built with performance in mind.
+> 一款美观、非破坏性、GPU 加速的 RAW 图像编辑器，专为高性能而生。
 
-RapidRAW is a modern, high-performance alternative to Adobe Lightroom®. It delivers a simple, beautiful editing experience in a lightweight package (under 20MB) for Windows, macOS, Linux, and Android.
+RapidRAW 是 Adobe Lightroom 的现代高性能替代品。它在不到 20MB 的轻量包中提供简洁、美观的编辑体验，支持 Windows、macOS、Linux 和 Android 平台。
 
-I started developing this project as a personal challenge when I was 18. My goal was to create a high-performance tool for my own photography workflow while deepening my understanding of React, WGSL and Rust.
+作者在 18 岁时开始开发这个项目，作为一个个人挑战——目标是打造一个高性能的摄影工作流工具，同时深入学习 React、WGSL 和 Rust。
 
 <table width="100%">
   <tr>
     <td width="50%" valign="top" align="center">
       <br>
       <a href="https://github.com/CyberTimon/RapidRAW/releases/latest">
-        <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/main/src-tauri/icons/full_res_original.png" alt="Download RapidRAW" height="96">
+        <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/main/src-tauri/icons/full_res_original.png" alt="下载 RapidRAW" height="96">
       </a>
-      <h3>Download RapidRAW</h3>
-      <p>Get the latest release for Windows, macOS, Linux, and Android. Packaged and ready to run.</p>
-      <strong><a href="https://github.com/CyberTimon/RapidRAW/releases/latest">Download Latest Version →</a></strong>
+      <h3>下载 RapidRAW</h3>
+      <p>获取 Windows、macOS、Linux 和 Android 的最新版本，开箱即用。</p>
+      <strong><a href="https://github.com/CyberTimon/RapidRAW/releases/latest">下载最新版本 →</a></strong>
       <br><br>
     </td>
     <td width="50%" valign="top" align="center">
       <br>
       <a href="https://www.getrapidraw.com/docs/">
-        <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/main/src-tauri/icons/docs.png" alt="Read the Docs" height="96">
+        <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/main/src-tauri/icons/docs.png" alt="阅读文档" height="96">
       </a>
-      <h3>Read the Docs</h3>
-      <p>Learn how RapidRAW works with step-by-step tutorials, from adjustments to masking.</p>
-      <strong><a href="https://www.getrapidraw.com/docs/">View Tutorials & Docs →</a></strong>
+      <h3>阅读文档</h3>
+      <p>通过分步教程学习 RapidRAW 的使用方法，从调整到蒙版全覆盖。</p>
+      <strong><a href="https://www.getrapidraw.com/docs/">查看教程和文档 →</a></strong>
       <br><br>
     </td>
   </tr>
 </table>
 
 <details>
-<summary><strong>For Who Is This?</strong></summary>
-RapidRAW is for photographers who love to edit their photos in a <strong>clean, fast, and simple workflow</strong>. It prioritizes speed, a beautiful user interface, and powerful tools that let you achieve your creative color vision quickly.
+<summary><strong>适用人群</strong></summary>
+RapidRAW 面向喜欢在<strong>干净、快速、简洁的工作流</strong>中编辑照片的摄影师。它优先考虑速度、美观的用户界面和强大的工具，让你快速实现创意色彩愿景。
 <br><br>
-RapidRAW is still in active development and isn't yet as polished as mature tools like Darktable, RawTherapee, or Adobe Lightroom®. Right now, the focus is on building a fast, enjoyable core editing experience. You may encounter bugs - if you do, please report them so I can fix them :) Your feedback really helps!
+RapidRAW 仍在积极开发中，尚未达到 Darktable、RawTherapee 或 Adobe Lightroom 等成熟工具的完善程度。目前，重点是构建快速、愉悦的核心编辑体验。你可能会遇到 bug——如果遇到，请报告它们，以便作者修复 :) 你的反馈非常有价值！
 <br><br>
 </details>
-<details>
-<summary><strong>Recent Changes</strong></summary>
-
-- **2026-07-11:** Added new local Clone and Heal cleanup tools with highly optimized, parallelized processing. Also fixed Android back-button navigation and resolved an issue causing freezes with iCloud
-- **2026-07-08:** Improved thumbnail loading speeds using native file transfers and updated core rendering engines for better overall performance and compatibility
-- **2026-07-06:** Fixed copying adjustments directly from the filmstrip, resolved AI model and LUT download issues on Android, and fixed several Windows-specific bugs (including offscreen windows and folder exports)
-- **2026-07-05:** Implemented advanced HDR deghosting with new grayscale image alignment and warping mechanics to prevent visual artifacts during HDR merges
-- **2026-07-03:** Added "Open With" external editor support and implemented a fallback to embedded previews for undecodable or unsupported RAW files
-- **2026-06-29:** Completely reworked the shadows and blacks adjustments, and introduced a new LUT preview panel with hover-to-test functionality, easy importing, and removal support
-- **2026-06-25:** Implemented folder sorting, reliable image/album counts, and fixed folder expansion race conditions
-- **2026-06-20:** Added quick filters to the bottom bar and integrated global hue shifts into the copy-paste system
-- **2026-06-18:** New preset intensity slider
-- **2026-06-14:** Added Korean translation support and integrated the global hue slider
 
 <details>
-<summary><strong>Expand further</strong></summary>
+<summary><strong>最近更新</strong></summary>
 
-- **2026-06-12:** Refined and standardized Traditional Chinese translations
-- **2026-06-10:** Completed i18next configuration and added Traditional Chinese locale support
-- **2026-06-08:** Resolved infinite indexing loops, brightness bugs, and general compiler warnings
-- **2026-06-07:** Fixed copy-pasting, improved library performance & eight new languages
-- **2026-06-01:** Improved thumbnail performance, polished metadata panel & non-blocking exif reading
-- **2026-05-30:** Implemented reliable edited status, sorting & filtering options
-- **2026-05-29:** Refactor exporting to be resource aware
-- **2026-05-27:** Added German language
-- **2026-05-26:** Converted all components to support full internalization (multilingual / i18n support)
-- **2026-05-25:** Implemented dynamic high-resolution rendering for the canvas UI and added copy/pasting of lens correction parameters
-- **2026-05-24:** Added advanced library filtering capabilities (queries)
-- **2026-05-20:** Introduced a dedicated EXIF data overlay display directly inside the library and list views
-- **2026-05-18:** Added global image preprocessing settings, numpad support for customizable keyboard shortcuts, and updated the "Grey" theme color variables
-- **2026-05-16:** Initial backend implementation of the cloud service functionality alongside a preview worker backpressure mechanism for better handling of high-quality live previews
-- **2026-05-15:** Added the ability to assign custom icons to individual folders in the library tree
-- **2026-05-14:** Expanded the library architecture to support multi-root folders and introduced a custom album system
-- **2026-05-11:** Improved brush tool
-- **2026-05-05:** Major refactor to zustand...
-- **2026-05-04:** Added EXIF editing to the metadata panel, accumulating shader execution order, and improved UI responsiveness with triple buffering
-- **2026-05-03:** Introduced a "focus mode" for distraction-free editing and enhanced filmic exposure. Batch editing now correctly respects copy/paste settings
-- **2026-05-01:** Implemented manual noise reduction with separate controls for luma and color. Optimized the thumbnail generation and request system for better performance
-- **2026-04-30:** Major backend refactoring for improved stability and performance. Fixed key issues with cropping, including preserving position when changing aspect ratios
-- **2026-04-29:** Added a tonemapper override option and significantly improved the UI on vertical/mobile screens
-- **2026-04-27:** Implemented parametric curves tool and introduced thumbnail workers to speed up library browsing
-- **2026-04-24:** Overhauled the controls system, adding a dedicated settings section for fully customizable keyboard shortcuts
-- **2026-04-22:** Improved auto-adjustment logic, fixed lens correction on Android, and added an import button for mobile devices
-- **2026-04-21:** Signed Android APKs, added canvas shortcuts to keybinds, added reset adjustments confirm submenu, and fixed WGPU renderer bugs
-- **2026-04-20:** Added style/tool preset mode, improved auto-adjustments via thumbnail caching, and optimized WGPU renderer with custom transform wrapper
-- **2026-04-19:** Added brightness to auto-adjust and replicated pixelated rendering logic in WGPU display
-- **2026-04-18:** Implemented direct WGPU renderer and fixed macOS GPU context initialization
-- **2026-04-17:** Added comprehensive touch support for masks, curves, sliders, and scrolling
-- **2026-04-16:** Presets and copy/paste settings now support masks and crops; added mask intersect mode
-- **2026-04-15:** Native rotation slider, mask duplication improvements, and Android AI mask fixes
-- **2026-04-14:** Implemented `.rrexif` format to keep EXIF when denoising/stitching and added batch denoising
-- **2026-04-13:** Added option to preserve folder structure when batch exporting and removed mask limit
-- **2026-04-12:** Implemented option to keep export file timestamps from EXIF capture date
-- **2026-04-11:** Added flow mask controls/rasterization and dynamic gradient sliders for color grading wheels
-- **2026-04-10:** Improved downscaling algorithm, optimized zoom handling, and implemented global UI text layout upgrades
-- **2026-04-09:** Fixed Linux touchpad pinch zoom scaling and optimized Masks/AI panel space efficiency
-- **2026-04-08:** Redesigned color grading wheels for a minimalistic, consistent look
-- **2026-04-07:** Added AVIF export support and fixed adjustment race conditions on fast image switching
-- **2026-04-04:** Fixed filmstrip additive multi-range selection
-- **2026-04-02:** Added Android URI support and Android file management integration
-- **2026-04-01:** Added depth masking with depth anything v2 & improved ROI rendering performance
-- **2026-03-30:** LaMa inpainting for lightweight local content-aware fill and object removal
-- **2026-03-26:** Performance improvements & new flat list mode for library
-- **2026-03-25:** Optimize folder loading & tree fetching
-- **2026-03-23:** Generate thumbnails only for visible viewport items
-- **2026-03-22:** Dependency migrations and other bug fixes
-- **2026-03-21:** Colored sliders for temperature and tint
-- **2026-03-18:** Implemented AI NIND denoising
-- **2026-03-16:** LRU cache for instant image loading
-- **2026-03-15:** Improved high quality subject mask models, various UI improvements and shader improvements
-- **2026-03-14:** New image analytics panel which can display vectorscopes, waveforms, parades & histograms
-- **2026-03-13:** JPEG XL, WebP, and additional format support, including the ability to export LUTs
-- **2026-03-12:** Added parametric color & luminance masks
-- **2026-03-10:** Implement region of interest rendering to improve performance when zooming in
-- **2026-03-07:** Batch negative conversion & various shader improvements
-- **2026-03-06:** Performance optimizations and UI cleanup
-- **2026-03-05:** Initial draw support for linear & radial masks
-- **2026-03-04:** Real-time mask overlay rendering & pixel perfect zooming
-- **2026-03-03:** Instant image rendering & real-time histogram update
-- **2026-03-02:** Remember last export settings & lens correction auto cropping
-- **2026-03-01:** Optimized pixelated interpolation at maximum zoom level
-- **2026-02-27:** Refactored fullscreen handling, smooth and integrated fullscreen viewer
-- **2026-02-24:** Improved tonal adjustments using detail masks, remember zoom level & faster fullscreen preview
-- **2026-02-23:** Custom AI tag lists, clear button for tag settings & improved window state restoration
-- **2026-02-23:** Improved RAW processing, incorrect thumbnail crop scaling & improved mask handles
-- **2026-02-21:** XMP metadata read/sync
-- **2026-02-20:** Main window size/position persistence, right-click history dropdown & new library organization panel
-- **2026-02-19:** Exponential zoom scaling, right-click to delete curve points & selected image count display
-- **2026-02-18:** Added a setting for Linear RAW mode for advanced processing & improved right panel switcher
-- **2026-02-17:** Display RAW image counts in the folder tree & improved folder reading performance
-- **2026-02-16:** New composition guide overlays for cropping
-- **2026-02-16:** Added the ability to export masks as separate images
-- **2026-02-13:** Optimized live previews, instant metadata loading and new jpeg encoder
-- **2026-02-13:** Added ability to merge multiple bracketed images to a HDR
-- **2026-02-12:** Straight brush mask lines using shift click and enhanced Lensfun DB parsing
-- **2026-02-10:** Improved image loading performance
-- **2026-02-06:** Refactored negative conversion logic using characteristic curves.
-- **2026-02-04:** Global tooltips & major UI polish
-- **2026-02-03:** New creative effects: Glow, Halation & Lens Flares
-- **2026-01-31:** Accurate color noise reduction for RAW images & improved image loading
-- **2026-01-30:** Enhanced Lensfun DB parsing and improved lens matching logic
-- **2026-01-29:** Add cross-channel copy/paste & flat-line clipping logic for curves
-- **2026-01-26:** Favorite lens saving, improved rotation controls (finer grid), better local contrast adjustments
-- **2026-01-25:** Filmstrip performance boost, improved sorting, lens distortion fixes for AI masks & crop
-- **2026-01-24:** Added automatic lens, TCA & vignette correction using lensfun
-- **2026-01-22:** Improved and centralized EXIF data handling for greater accuracy and support
-- **2026-01-21:** Inpainting now works correctly on images with geometry transformations
-- **2026-01-20:** Export preset management for saving export settings
-- **2026-01-19:** Preload library for faster startup & automatic geometry transformation helper lines
-- **2026-01-18:** Implement image geometry transformation utils
-- **2026-01-17:** Refactor AI panel to correctly work with the new masking system
-- **2026-01-16:** Major masking system overhaul with drag & drop, per-mask opacity/invert & UI improvements
-- **2026-01-13:** New python middleware client for external generative AI integration (ComfyUI)
-- **2026-01-12:** Created a RapidRAW community discord server
-- **2026-01-11:** Separate preview worker, optional high-quality live previews & mask/ai patch caching
-- **2026-01-10:** Enhanced EXIF UI, optimized color wheels/curves & rawler update
-- **2026-01-09:** Live previews for all adjustments & masks with optimized GPU processing
-- **2026-01-05:** Collage maker upgrade (drag & drop, zoom, ratio options)
-- **2026-01-05:** 'Prefer RAW' filter option added to library
-- **2026-01-05:** Support for uppercase file extensions
-- **2026-01-05:** Flush thumbnail cache on folder switch
-- **2025-12-27:** Fix LUT banding issues with improved sampling
-- **2025-12-26:** AI masking stability improvements under load
-- **2025-12-23:** Metadata card in toolbar & context menu export
-- **2025-12-23:** Monochromatic grain & white balance picker improvements
-- **2025-12-22:** BM3D Denoising with comparison slider
-- **2025-12-20:** Batch export stability improvements & RAM optimization
-- **2025-12-14:** Exposure slider added to masking tools
-- **2025-12-14:** Improved delete workflow
-- **2025-12-08:** Improved mask eraser tool behavior & ORT v2 migration
-- **2025-12-07:** Write EXIF metadata to file
-- **2025-12-07:** Color picker for white balance
-- **2025-11-30:** HSL luminance artifacts fix
-- **2025-11-29:** Improved mask stacking & many bug fixes
-- **2025-11-28:** QOI support
-- **2025-11-25:** Update rawler
-- **2025-11-23:** Recursive library view to display images from all subfolders
-- **2025-11-22:** DNG loader improvements
-- **2025-11-18:** Improved vibrancy adjustment
-- **2025-11-15:** Virtual copies & library improvements
-- **2025-11-14:** Open-with-file cross plattform compatibilty & single instance lock
-- **2025-11-13:** Rewritten tagging system to support pill-like image tagging
-- **2025-11-10:** Improved folder tree with search functionality
-- **2025-11-08:** Added EXR file format support
-- **2025-11-XX:** Improving AgX
-- **2025-11-02:** Optimize image loading & add processing engine settings
-- **2025-10-31:** Expose highlights compression point to user & improve keybinds detection
-- **2025-10-28:** Copy paste settings & brightness adjustment
-- **2025-10-XX:** Working on tonemapping - ongoing...
-- **2025-10-24:** Getting AgX right isn't as easy as it seems :=)
-- **2025-10-22:** AgX tone mapping
-- **2025-10-19:** Whole image mask component & organize mask components better
-- **2025-10-19:** You can now apply presets to masks & improved auto adjustments
-- **2025-10-17:** New centré adjustment, rawler now as a submodule & improved logger
-- **2025-10-15:** Ability to pin folders, improved session handling & smooth library thumbnail updating
-- **2025-10-11:** Realistic, complex & non-dulling exposure & highlights slider
-- **2025-10-11:** Smooth filmstrip thumbnail updates
-- **2025-10-07:** New watermarking support
-- **2025-10-06:** Improve crop quality by transforming before scaling
-- **2025-10-XX:** Many small improvements - ongoing...
-- **2025-09-27:** Sort library by exif metadata & release cleanup / bug fixes
-- **2025-09-26:** Collage maker to create unique collages with many different layouts, spacing & border radius
-- **2025-09-23:** Color calibration tool to adjust RGB primaries & adjustments visibility settings
-- **2025-09-22:** Issue template & CI/CD improvements
-- **2025-09-20:** Universal presets importer, prioritize dGPU & improved local contrast tools (sharpness, clarity etc.)
-- **2025-09-17:** Automatic image culling (duplicate & blur detection)
-- **2025-09-14:** Grid previews in community panel & improved ComfyUi workflow
-- **2025-09-12:** New community presets panel to share & showcase presets
-- **2025-09-10:** Extended generative AI roadmap & started building RapidRAW website
-- **2025-09-09:** Many shader improvements & bug fixes, invert tint slider
-- **2025-09-06:** New update notifier that alerts users when a new version becomes available
-- **2025-09-04:** Added toggleable clipping warnings (blue = shadows, red = highlights)
-- **2025-09-02:** Transition to Rust 2024 & Cache image on GPU
-- **2025-08-31:** Cancel thumbnail generation on folder change & optimized ai patch saving
-- **2025-08-30:** Optimize ComfyUI image transfer & speed
-- **2025-08-28:** Chromatic aberration correction & Shader improvements
-- **2025-08-26:** User customisable ComfyUI workflow selection
-- **2025-08-25:** Make LUTs parser more robust (support more advanced formats)
-- **2025-08-24:** Improved keyboard shortcuts
-- **2025-08-23:** Estimate file size before exporting
-- **2025-08-21:** Added LUTs (.cube, .3dl, .png, .jpg, .jpeg, .tiff) support
-- **2025-08-16:** Fast AI sky masks
-- **2025-08-15:** Show full resolution image when zooming in
-- **2025-08-15:** Implement Tauri's IPC as a replacement for the slow Base64 image transfer
-- **2025-08-12:** Relative zoom indicator
-- **2025-08-11:** TypeScript cleanup & many bug fixes
-- **2025-08-09:** Local inpainting without the need for ComfyUI, ability to change thumbnail aspect ratio
-- **2025-08-09:** Frontend refactored to TypeScript thanks to @varjolintu
-- **2025-08-08:** New onnxruntime download strategy & the base for local inpainting
-- **2025-08-05:** Improved HSL cascading, UI & animation improvements, ability to grow & shrink / feather AI masks
-- **2025-08-03:** New high performance, seamless image panorama stitcher (without any dependencies on OpenCV)
-- **2025-08-02:** Added an image straightening tool and improved crop & rotation functionality (especially on portrait images)
-- **2025-08-02:** A new dedicated image importer, ability to rename and batch rename files, improved dark theme, and other fixes
-- **2025-07-31:** Ability to tag & filter images by color labels, refactored image right clicking
-- **2025-07-31:** Reimplemented the functionality of GPU processing (GPU cropping, etc.) -> No longer dependent on TEXTURE_BINDING_ARRAY
-- **2025-07-29:** Refactored generative AI foundation, many small fixes
-- **2025-07-27:** Automatic AI image tagging, overall mask transparency setting per mask
-- **2025-07-25:** Fuji RAF X-Trans sensor support (new x-trans demosaicing algo)
-- **2025-07-24:** Auto crop when cropping an image (to prevent black borders), added drag & drop sort abilty to presets panel
-- **2025-07-22:** Significant improvements to the shader: More accurate exposure slider, better tone mapper (simplified ACES)
-- **2025-07-21:** Remember scroll position when going into the editing section
-- **2025-07-20:** Ability to add presets to folders, export preset folders etc, preset _animations_
-- **2025-07-20:** Tutorials on how to use RapidRAW
-- **2025-07-19:** Initial color negative conversion implementation, shader improvements
-- **2025-07-19:** New color wheels, persistent collapsed / expanded state for UI elements
-- **2025-07-19:** Fixed banding & purple artefacts on RAW images, better color noise reduction, show exposure in stops
-- **2025-07-18:** Smooth zoom slider, new adaptive editor theme setting
-- **2025-07-18:** New export functionality: Export with metadata, GPS metadata remover, batch export file naming scheme using tags
-- **2025-07-18:** Ability to delete the associated RAW/JPEG in right click delete operations
-- **2025-07-17:** Small bug fixes
-- **2025-07-13:** Native looking titlebar and ability to input precise number into sliders
-- **2025-07-13:** Huge update to masks: You can now add multiple masks to a mask containers, subtract / add / combine masks etc.
-- **2025-07-12:** Improved curves tool, more shader improvements, improved handling of very large files
-- **2025-07-11:** More accurate shader, reorganized main library preferences dropdown, smoother histogram, more realistic film grain
-- **2025-07-11:** Added a HUD-like waveform overlay toggle to display specific channel waveforms (w-key)
-- **2025-07-10:** Rewritten batch export system and async thumbnail generation (makes the loading of large folders a lot more fluid)
-- **2025-07-10:** Window transparency can now be toggled in the settings, thanks to @andrewazores
-- **2025-07-08:** Ability to toggle the visibility of individual adjustments sections
-- **2025-07-08:** Fixed top-left zoom bug, corrected scale behavior in crop panel, keep default original aspect ratio
-- **2025-07-08:** Added image rating filter and redesigned the metadata panel with improved layout, clearer sections, and an embedded GPS map
-- **2025-07-07:** Improved generative AI features and updated [AI Roadmap](#ai-roadmap)
-- **2025-07-06:** Initial generative AI integration with [ComfyUI](https://github.com/comfyanonymous/ComfyUI) - for more details, checkout the [AI Roadmap](#ai-roadmap)
-- **2025-07-05:** Ability to overwrite preset with current settings
-- **2025-07-04:** High speed and precise cache to significantly accelerate large image editing
-- **2025-07-04:** Greatly improved shader with better dehaze, more accurate curves etc
-- **2025-07-04:** Predefined 90° clockwise rotation and ability to flip images
-- **2025-07-03:** Switched from [rawloader](https://github.com/pedrocr/rawloader) to [rawler](https://github.com/dnglab/dnglab/tree/main/rawler) to support a wider range of RAW formats
-- **2025-07-02:** AI-powered foreground / background masking
-- **2025-06-30:** AI-powered subject masking
-- **2025-06-30:** Precompiled Linux builds
-- **2025-06-29:** New 5:4 aspect ratio, new low contrast grey theme and more cameras support (DJI Mavic lineup)
-- **2025-06-28:** Release cleanup, CI/CD improvements and minor fixes
-- **2025-06-27:** Initial release. For more information about the earlier progress, look at the [Initial Development Log](#initial-development-log)
+- **2026-07-11:** 新增本地「克隆」和「修复」清理工具，采用高度优化的并行处理。修复了 Android 返回按钮导航问题，以及 iCloud 导致的卡顿问题。
+- **2026-07-08:** 使用原生文件传输提升缩略图加载速度，更新核心渲染引擎以提升整体性能和兼容性。
+- **2026-07-06:** 支持从胶片栏直接复制调整参数，修复 Android 上 AI 模型和 LUT 下载问题，修复多个 Windows 专属 bug（包括离屏窗口和文件夹导出）。
+- **2026-07-05:** 实现高级 HDR 去鬼影功能，新增灰度图像对齐和变形机制，防止 HDR 合并时出现视觉伪影。
+- **2026-07-03:** 新增「使用其他应用打开」外部编辑器支持，为无法解码或不支持的 RAW 文件实现嵌入式预览回退。
+- **2026-06-29:** 完全重做阴影和黑色色阶调整，新增 LUT 预览面板，支持悬停测试、轻松导入和移除。
+- **2026-06-25:** 实现文件夹排序、可靠的图像/相册计数，修复文件夹展开的竞态条件。
+- **2026-06-20:** 添加快速筛选器到底栏，将全局色相偏移集成到复制粘贴系统中。
+- **2026-06-18:** 新增预设强度滑块。
+- **2026-06-14:** 新增韩语翻译支持，集成全局色相滑块。
+
+<details>
+<summary><strong>展开更多</strong></summary>
+
+- **2026-06-10:** 完成 i18next 配置，新增繁体中文语言支持。
+- **2026-06-08:** 修复无限索引循环、亮度 bug 和编译器警告。
+- **2026-06-07:** 修复复制粘贴功能，提升图库性能，新增八种语言。
+- **2026-06-01:** 缩略图性能提升，元数据面板优化，非阻塞式 EXIF 读取。
+- **2026-05-30:** 实现可靠的编辑状态、排序和筛选选项。
+- **2026-05-29:** 重构导出功能，使其资源感知。
+- **2026-05-27:** 新增德语语言。
+- **2026-05-26:** 所有组件支持完整国际化（多语言 / i18n）。
+- **2026-05-25:** 画布 UI 实现动态高分辨率渲染，支持镜头校正参数的复制粘贴。
+- **2026-05-24:** 新增高级图库筛选功能（查询）。
+- **2026-05-20:** 在图库和列表视图中引入专用 EXIF 数据叠加显示。
+- **2026-05-18:** 新增全局图像预处理设置，支持小键盘自定义快捷键，更新「Grey」主题颜色变量。
+- **2026-05-16:** 云端服务功能后端初步实现，以及预览工作线程背压机制，更好地处理高质量实时预览。
+- **2026-05-15:** 支持为图库树中的文件夹分配自定义图标。
+- **2026-05-14:** 扩展图库架构以支持多根文件夹，引入自定义相册系统。
+- **2026-05-11:** 画笔工具改进。
+- **2026-05-05:** 重大重构，迁移到 zustand 状态管理。
+- **2026-05-04:** 元数据面板新增 EXIF 编辑功能，累积着色器执行顺序，三重缓冲提升 UI 响应性。
+- **2026-05-03:** 新增「专注模式」实现无干扰编辑，增强胶片曝光。批量编辑现在正确遵循复制粘贴设置。
+- **2026-05-01:** 实现手动降噪，亮度和颜色分离控制。优化缩略图生成和请求系统以提升性能。
+- **2026-04-30:** 重大后端重构，提升稳定性和性能。修复裁剪关键问题，包括更改宽高比时保持位置。
+- **2026-04-29:** 新增色调映射器覆盖选项，显著改善竖屏/移动端屏幕 UI。
+- **2026-04-27:** 实现参数化曲线工具，引入缩略图工作线程加速图库浏览。
+- **2026-04-24:** 重做控制系统，新增专用设置区域用于完全自定义键盘快捷键。
+- **2026-04-22:** 改进自动调整逻辑，修复 Android 上镜头校正，新增移动端导入按钮。
+- **2026-04-21:** Android APK 签名，画布快捷键加入键位绑定，新增重置调整确认子菜单，修复 WGPU 渲染器 bug。
+- **2026-04-20:** 新增风格/工具预设模式，通过缩略图缓存改进自动调整，自定义变换包装器优化 WGPU 渲染器。
+- **2026-04-19:** 自动调整新增亮度，在 WGPU 显示中复现像素化渲染逻辑。
+- **2026-04-18:** 实现直接 WGPU 渲染器，修复 macOS GPU 上下文初始化。
+- **2026-04-17:** 蒙版、曲线、滑块和滚动全面支持触摸操作。
+- **2026-04-16:** 预设和复制粘贴设置现在支持蒙版和裁剪；新增蒙版交集模式。
+- **2026-04-15:** 原生旋转滑块，蒙版复制改进，Android AI 蒙版修复。
+- **2026-04-14:** 实现 `.rrexif` 格式以在降噪/拼接时保留 EXIF，新增批量降噪。
+- **2026-04-13:** 批量导出时保留文件夹结构选项，移除蒙版数量限制。
+- **2026-04-12:** 实现导出文件保持 EXIF 拍摄日期时间戳的选项。
+- **2026-04-11:** 新增流动蒙版控制/光栅化，色彩分级色轮的动态渐变滑块。
+- **2026-04-10:** 改进降采样算法，优化缩放处理，全局 UI 文本布局升级。
+- **2026-04-09:** 修复 Linux 触控板双指缩放比例，优化蒙版/AI 面板空间效率。
+- **2026-04-08:** 重新设计色彩分级色轮，简洁一致的风格。
+- **2026-04-07:** 新增 AVIF 导出支持，修复快速切换图像时的调整竞态条件。
+- **2026-04-04:** 修复胶片栏加性多范围选择。
+- **2026-04-02:** 新增 Android URI 支持和 Android 文件管理集成。
+- **2026-04-01:** 新增深度蒙版（基于 Depth Anything V2），改进 ROI 渲染性能。
+- **2026-03-30:** LaMa 图像修复，轻量级本地内容感知填充和物体移除。
+- **2026-03-26:** 性能改进，图库新增扁平列表模式。
+- **2026-03-25:** 优化文件夹加载和树结构获取。
+- **2026-03-23:** 仅为可见视口项生成缩略图。
+- **2026-03-22:** 依赖迁移和其他 bug 修复。
+- **2026-03-21:** 色温和色调滑块着色。
+- **2026-03-18:** 实现 AI NIND 降噪。
+- **2026-03-16:** LRU 缓存实现即时图像加载。
+- **2026-03-15:** 改进高质量主体蒙版模型，各种 UI 和着色器改进。
+- **2026-03-14:** 新增图像分析面板，可显示矢量示波器、波形图、分量图和直方图。
+- **2026-03-13:** JPEG XL、WebP 等格式支持，包括导出 LUT 的能力。
+- **2026-03-12:** 新增参数化颜色和亮度蒙版。
+- **2026-03-10:** 实现感兴趣区域渲染，提升缩放时的性能。
+- **2026-03-07:** 批量负片转换，各种着色器改进。
+- **2026-03-06:** 性能优化和 UI 清理。
+- **2026-03-05:** 初步支持线性蒙版和径向蒙版绘制。
+- **2026-03-04:** 实时蒙版叠加渲染，像素级完美缩放。
+- **2026-03-03:** 即时图像渲染，实时直方图更新。
+- **2026-03-02:** 记住上次导出设置，镜头校正自动裁剪。
+- **2026-03-01:** 优化最大缩放级别下的像素化插值。
+- **2026-02-27:** 重构全屏处理，流畅集成的全屏查看器。
+- **2026-02-24:** 使用细节蒙版改进色调调整，记住缩放级别，更快的全屏预览。
+- **2026-02-23:** 自定义 AI 标签列表，标签设置清除按钮，窗口状态恢复改进。
+- **2026-02-22:** 改进 RAW 处理，缩略图裁剪缩放修正，蒙版手柄改进。
+- **2026-02-21:** XMP 元数据读取/同步。
+- **2026-02-20:** 主窗口大小/位置持久化，右键历史下拉菜单，新图库组织面板。
+- **2026-02-19:** 指数缩放，右键删除曲线点，显示已选图像数量。
+- **2026-02-18:** 新增线性 RAW 模式设置用于高级处理，改进右侧面板切换器。
+- **2026-02-17:** 文件夹树中显示 RAW 图像数量，改善文件夹读取性能。
+- **2026-02-16:** 裁剪新增构图辅助线叠加。
+- **2026-02-16:** 支持将蒙版导出为单独图像。
+- **2026-02-13:** 优化实时预览，即时元数据加载，新 JPEG 编码器。
+- **2026-02-13:** 支持将多个包围曝光图像合并为 HDR。
+- **2026-02-12:** Shift 点击绘制直线笔刷蒙版线，增强 Lensfun 数据库解析。
+- **2026-02-10:** 改善图像加载性能。
+- **2026-02-06:** 使用特征曲线重构负片转换逻辑。
+- **2026-02-04:** 全局工具提示，大量 UI 优化。
+- **2026-02-03:** 新增创意效果：发光、光晕和镜头耀斑。
+- **2026-01-31:** RAW 图像精确彩色噪点降低，改进图像加载。
+- **2026-01-30:** 增强 Lensfun 数据库解析，改进镜头匹配逻辑。
+- **2026-01-29:** 新增跨通道复制粘贴，曲线平线裁剪逻辑。
+- **2026-01-26:** 收藏镜头保存，改进旋转控制（更细的网格），更好的局部对比度调整。
+- **2026-01-25:** 胶片栏性能提升，排序改进，AI 蒙版和裁剪的镜头畸变修复。
+- **2026-01-24:** 使用 Lensfun 实现自动镜头、色差和暗角校正。
+- **2026-01-22:** 改进并集中化 EXIF 数据处理，提升准确性和支持范围。
+- **2026-01-21:** 图像修复现在正确应用于几何变换后的图像。
+- **2026-01-20:** 导出预设管理，保存导出设置。
+- **2026-01-19:** 预加载图库加速启动，自动几何变换辅助线。
+- **2026-01-18:** 实现图像几何变换工具。
+- **2026-01-17:** 重构 AI 面板以正确配合新蒙版系统。
+- **2026-01-16:** 重大蒙版系统重构，支持拖放、逐蒙版不透明度/反转和 UI 改进。
+- **2026-01-13:** 新增 Python 中间件客户端，用于外部生成式 AI 集成（ComfyUI）。
+- **2026-01-12:** 创建 RapidRAW 社区 Discord 服务器。
+- **2026-01-11:** 独立预览工作线程，可选高质量实时预览，蒙版/AI 补丁缓存。
+- **2026-01-10:** 增强 EXIF UI，优化色轮/曲线，rawler 更新。
+- **2026-01-09:** 所有调整和蒙版实时预览，GPU 处理优化。
+- **2026-01-05:** 拼贴画制作器升级（拖放、缩放、比例选项）。
+- **2026-01-05:** 图库新增「首选 RAW」筛选选项。
+- **2026-01-05:** 支持大写文件扩展名。
+- **2026-01-05:** 切换文件夹时刷新缩略图缓存。
+- **2025-12-27:** 改进采样修复 LUT 条带问题。
+- **2025-12-26:** 高负载下 AI 蒙版稳定性改进。
+- **2025-12-23:** 工具栏元数据卡片，右键菜单导出。
+- **2025-12-23:** 单色颗粒，白平衡取色器改进。
+- **2025-12-22:** BM3D 降噪，对比滑块。
+- **2025-12-20:** 批量导出稳定性改进，RAM 优化。
+- **2025-12-14:** 蒙版工具新增曝光滑块。
+- **2025-12-14:** 删除工作流改进。
+- **2025-12-08:** 蒙版橡皮擦工具行为改进，ORT v2 迁移。
+- **2025-12-07:** 将 EXIF 元数据写入文件。
+- **2025-12-07:** 白平衡取色器。
+- **2025-11-30:** HSL 亮度伪影修复。
+- **2025-11-29:** 蒙版堆叠改进，大量 bug 修复。
+- **2025-11-28:** QOI 格式支持。
+- **2025-11-25:** rawler 更新。
+- **2025-11-23:** 递归图库视图，显示所有子文件夹中的图像。
+- **2025-11-22:** DNG 加载器改进。
+- **2025-11-18:** 自然饱和度调整改进。
+- **2025-11-15:** 虚拟副本，图库改进。
+- **2025-11-14:** 跨平台「使用其他应用打开」兼容性，单实例锁。
+- **2025-11-13:** 重写标签系统，支持药丸式图像标签。
+- **2025-11-10:** 改善文件夹树，支持搜索功能。
+- **2025-11-08:** 新增 EXR 文件格式支持。
+- **2025-11-XX:** 改进 AgX 色调映射。
+- **2025-11-02:** 优化图像加载，新增处理引擎设置。
+- **2025-10-31:** 向用户暴露高光压缩点，改进键位检测。
+- **2025-10-28:** 复制粘贴设置，亮度调整。
+- **2025-10-XX:** 色调映射持续改进中。
+- **2025-10-24:** 搞定 AgX 并不像看起来那么简单 :)
+- **2025-10-22:** AgX 色调映射。
+- **2025-10-19:** 全图蒙版组件，蒙版组件组织优化。
+- **2025-10-19:** 现在可以将预设应用到蒙版，改进自动调整。
+- **2025-10-17:** 新增居中调整，rawler 作为子模块，改进日志记录器。
+- **2025-10-15:** 固定文件夹功能，改进会话处理，流畅的图库缩略图更新。
+- **2025-10-11:** 逼真、复杂且不沉闷的曝光和高光滑块。
+- **2025-10-11:** 流畅的胶片栏缩略图更新。
+- **2025-10-07:** 新增水印支持。
+- **2025-10-06:** 通过缩放前变换提高裁剪质量。
+- **2025-10-XX:** 许多小改进持续进行中。
+- **2025-09-27:** 按 EXIF 元数据排序图库，发布清理和 bug 修复。
+- **2025-09-26:** 拼贴画制作器，多种布局、间距和圆角。
+- **2025-09-23:** 颜色校准工具，调整 RGB 原色，调整可见性设置。
+- **2025-09-22:** 问题模板和 CI/CD 改进。
+- **2025-09-20:** 通用预设导入器，优先使用独立 GPU，改进局部对比度工具（锐化、清晰度等）。
+- **2025-09-17:** 自动图像筛选（重复和模糊检测）。
+- **2025-09-14:** 社区面板网格预览，改进 ComfyUI 工作流。
+- **2025-09-12:** 新增社区预设面板，分享和展示预设。
+- **2025-09-10:** 扩展生成式 AI 路线图，开始构建 RapidRAW 网站。
+- **2025-09-09:** 大量着色器改进和 bug 修复，反转色调滑块。
+- **2025-09-06:** 新增更新通知，有新版本可用时提醒用户。
+- **2025-09-04:** 新增可切换的裁剪警告（蓝色 = 阴影，红色 = 高光）。
+- **2025-09-02:** 迁移到 Rust 2024，GPU 缓存图像。
+- **2025-08-31:** 文件夹切换时取消缩略图生成，优化 AI 补丁保存。
+- **2025-08-30:** 优化 ComfyUI 图像传输和速度。
+- **2025-08-28:** 色差校正，着色器改进。
+- **2025-08-26:** 用户可自定义 ComfyUI 工作流选择。
+- **2025-08-25:** 使 LUT 解析器更健壮（支持更多高级格式）。
+- **2025-08-24:** 键盘快捷键改进。
+- **2025-08-23:** 导出前估算文件大小。
+- **2025-08-21:** 新增 LUT 支持（.cube、.3dl、.png、.jpg、.jpeg、.tiff）。
+- **2025-08-16:** 快速 AI 天空蒙版。
+- **2025-08-15:** 放大时显示全分辨率图像。
+- **2025-08-15:** 使用 Tauri IPC 替代缓慢的 Base64 图像传输。
+- **2025-08-12:** 相对缩放指示器。
+- **2025-08-11:** TypeScript 清理，大量 bug 修复。
+- **2025-08-09:** 本地图像修复（无需 ComfyUI），可更改缩略图宽高比。
+- **2025-08-09:** 前端重构为 TypeScript，感谢 @varjolintu。
+- **2025-08-08:** 新 onnxruntime 下载策略，本地图像修复基础。
+- **2025-08-05:** 改进 HSL 级联，UI 和动画改进，AI 蒙版增长/收缩/羽化。
+- **2025-08-03:** 新高性能无缝图像全景拼接器（不依赖 OpenCV）。
+- **2025-08-02:** 新增图像拉直工具，改进裁剪和旋转功能（特别是竖屏图像）。
+- **2025-08-02:** 新专用图像导入器，支持重命名和批量重命名文件，改进暗色主题等修复。
+- **2025-07-31:** 按颜色标签标记和筛选图像，重构图像右键菜单。
+- **2025-07-31:** 重新实现 GPU 处理功能（GPU 裁剪等），不再依赖 TEXTURE_BINDING_ARRAY。
+- **2025-07-29:** 重构生成式 AI 基础，大量小修复。
+- **2025-07-27:** 自动 AI 图像标记，每个蒙版整体透明度设置。
+- **2025-07-25:** 富士 RAF X-Trans 传感器支持（新 X-Trans 去马赛克算法）。
+- **2025-07-24:** 裁剪图像时自动裁剪（防止黑边），预设面板支持拖放排序。
+- **2025-07-22:** 着色器重大改进：更准确的曝光滑块，更好的色调映射器（简化 ACES）。
+- **2025-07-21:** 进入编辑部分时记住滚动位置。
+- **2025-07-20:** 支持将预设添加到文件夹，导出预设文件夹等，预设动画。
+- **2025-07-20:** RapidRAW 使用教程。
+- **2025-07-19:** 初步彩色负片转换实现，着色器改进。
+- **2025-07-19:** 新色轮，UI 元素折叠/展开状态持久化。
+- **2025-07-19:** 修复 RAW 图像条带和紫色伪影，更好的彩色降噪，以档位显示曝光。
+- **2025-07-18:** 平滑缩放滑块，新自适应编辑器主题设置。
+- **2025-07-18:** 新导出功能：带元数据导出，GPS 元数据移除器，使用标签的批量导出文件命名方案。
+- **2025-07-18:** 右键删除操作中可删除关联的 RAW/JPEG。
+- **2025-07-17:** 小 bug 修复。
+- **2025-07-13:** 原生外观标题栏，支持在滑块中输入精确数值。
+- **2025-07-13:** 蒙版重大更新：现在可以在蒙版容器中添加多个蒙版，进行减法/加法/组合等操作。
+- **2025-07-12:** 改进曲线工具，更多着色器改进，改进超大文件处理。
+- **2025-07-11:** 更精确的着色器，重新组织主图库偏好下拉菜单，更平滑的直方图，更逼真的胶片颗粒。
+- **2025-07-11:** 新增 HUD 式波形叠加切换，可显示特定通道波形（W 键）。
+- **2025-07-10:** 重写批量导出系统，异步缩略图生成（使大文件夹加载更流畅）。
+- **2025-07-10:** 窗口透明度现在可在设置中切换，感谢 @andrewazores。
+- **2025-07-08:** 可切换各调整部分的可见性。
+- **2025-07-08:** 修复左上角缩放 bug，修正裁剪面板缩放行为，保持默认原始宽高比。
+- **2025-07-08:** 新增图像评分筛选器，重新设计元数据面板，改进布局、更清晰的分区和嵌入式 GPS 地图。
+- **2025-07-07:** 改进生成式 AI 功能，更新 AI 路线图。
+- **2025-07-06:** 初步集成 ComfyUI 生成式 AI，详见 AI 路线图。
+- **2025-07-05:** 可用当前设置覆盖预设。
+- **2025-07-04:** 高速精确缓存，显著加速大图像编辑。
+- **2025-07-04:** 大幅改进着色器——更好的去雾、更精确的曲线等。
+- **2025-07-04:** 预定义 90° 顺时针旋转，翻转图像。
+- **2025-07-03:** 从 rawloader 切换到 rawler，支持更广泛的 RAW 格式。
+- **2025-07-02:** AI 前景/背景蒙版。
+- **2025-06-30:** AI 主体蒙版。
+- **2025-06-30:** 预编译 Linux 构建。
+- **2025-06-29:** 新 5:4 宽高比，新低对比度灰色主题，更多相机支持（DJI Mavic 系列）。
+- **2025-06-28:** 发布清理，CI/CD 改进和小修复。
+- **2025-06-27:** 初始发布。更早的进展详见初始开发日志。
 
 </details>
 </details>
 <br>
 
-**Table of Contents**
+**目录**
 
-- [Key Features](#key-features)
-- [Demo & Screenshots](#demo--screenshots)
-- [The Idea](#the-idea)
-- [Current Priorities](#current-priorities)
-- [AI Roadmap](#ai-roadmap)
-- [Initial Development Log](#initial-development-log)
-- [Getting Started](#getting-started)
-- [System Requirements](#system-requirements)
-- [Contributing](#contributing)
-- [Special Thanks](#special-thanks)
-- [Support the Project](#support-the-project)
-- [License & Philosophy](#license--philosophy)
+- [核心功能](#核心功能)
+- [演示与截图](#演示与截图)
+- [设计理念](#设计理念)
+- [当前优先事项](#当前优先事项)
+- [AI 路线图](#ai-路线图)
+- [初始开发日志](#初始开发日志)
+- [快速开始](#快速开始)
+- [系统要求](#系统要求)
+- [参与贡献](#参与贡献)
+- [特别鸣谢](#特别鸣谢)
+- [支持项目](#支持项目)
+- [许可证与理念](#许可证与理念)
 
 ---
 
-## Key Features
+## 核心功能
 
 <table width="100%">
   <tr>
     <td valign="top" width="50%">
-      <h4>Core Editing Engine</h4>
+      <h4>核心编辑引擎</h4>
       <ul>
-        <li><strong>GPU-Accelerated:</strong> Full 32-bit image processing pipeline written in WGSL for instant feedback.</li>
-        <li><strong>Masking:</strong> Layer-based masking with AI subject, depth, sky, and foreground detection. Combine with traditional masks for great control.</li>
-        <li><strong>Generative Edits:</strong> Remove or add elements using text prompts, powered by an optional AI backend.</li>
-        <li><strong>Full RAW Support:</strong> Supports a wide range of RAW camera formats through rawler, with JPEG support included.</li>
-        <li><strong>Non-Destructive Workflow:</strong> All edits are stored in a <code>.rrdata</code> sidecar file, leaving your original images untouched.</li>
-        <li><strong>Lens Correction:</strong> Automatic distortion, TCA, and vignette correction powered by Lensfun.</li>
+        <li><strong>GPU 加速：</strong>完整的 32 位图像处理管线，使用 WGSL 编写，实现即时反馈。</li>
+        <li><strong>蒙版系统：</strong>基于图层的蒙版，支持 AI 主体、深度、天空和前景检测。可结合传统蒙版实现精确控制。</li>
+        <li><strong>生成式编辑：</strong>通过文本提示移除或添加元素，由可选的 AI 后端驱动。</li>
+        <li><strong>完整的 RAW 支持：</strong>通过 rawler 支持广泛的 RAW 相机格式，同时兼容 JPEG。</li>
+        <li><strong>非破坏性工作流：</strong>所有编辑存储在 <code>.rrdata</code> 附属文件中，原始图像保持不变。</li>
+        <li><strong>镜头校正：</strong>基于 Lensfun 的自动畸变、色差和暗角校正。</li>
       </ul>
-      <h4>Professional Grade Adjustments</h4>
+      <h4>专业级调整</h4>
       <ul>
-        <li><strong>Tonal Controls:</strong> Exposure, Tone Mapping (including AgX!), Contrast, Highlights, Shadows, Whites, and Blacks.</li>
-        <li><strong>Tone Curves:</strong> Full control over Luma/RGB channels.</li>
-        <li><strong>Color Grading:</strong> Temperature, Tint, Vibrance, Saturation, color wheels and a full HSL color mixer.</li>
-        <li><strong>Detail Enhancement:</strong> Sharpening, Clarity, Structure, and Noise Reduction.</li>
-        <li><strong>Effects:</strong> LUTs, Dehaze, Vignette, Glow, Halation, Flares and Film Grain.</li>
-        <li><strong>Transform Tools:</strong> Perspective correction, rotation, straightening, crop, and warping tools.</li>
+        <li><strong>色调控制：</strong>曝光、色调映射（含 AgX！）、对比度、高光、阴影、白色和黑色色阶。</li>
+        <li><strong>色调曲线：</strong>完全控制 Luma/RGB 通道。</li>
+        <li><strong>色彩分级：</strong>色温、色调、自然饱和度、饱和度、色轮和完整的 HSL 色彩混合器。</li>
+        <li><strong>细节增强：</strong>锐化、清晰度、结构和降噪。</li>
+        <li><strong>特效：</strong>LUT、去雾、暗角、发光、光晕、镜头耀斑和胶片颗粒。</li>
+        <li><strong>变换工具：</strong>透视校正、旋转、拉直、裁剪和变形工具。</li>
       </ul>
     </td>
     <td valign="top" width="50%">
-      <h4>Library & Workflow</h4>
+      <h4>图库与工作流</h4>
       <ul>
-        <li><strong>Image Library:</strong> Effortlessly manage and cull your entire photo collection for a streamlined and efficient workflow.</li>
-        <li><strong>Organization:</strong> Recursive folder view, virtual copies, color labels, star ratings, tags and more.</li>
-        <li><strong>File Operations:</strong> Import, copy, move, rename, and duplicate images/folders.</li>
-        <li><strong>Filmstrip View:</strong> Quickly navigate between all the images in your current folder while editing.</li>
-        <li><strong>Batch Operations:</strong> Save significant time by applying a consistent set of adjustments or exporting entire batches of images simultaneously.</li>
-        <li><strong>EXIF Data Viewer:</strong> Gain insights by inspecting the complete metadata from your camera.</li>
+        <li><strong>图像图库：</strong>轻松管理和筛选整个照片集，实现高效的工作流。</li>
+        <li><strong>组织管理：</strong>递归文件夹视图、虚拟副本、颜色标签、星级评分、标签等。</li>
+        <li><strong>文件操作：</strong>导入、复制、移动、重命名和复制图像/文件夹。</li>
+        <li><strong>胶片栏视图：</strong>编辑时快速浏览当前文件夹中的所有图像。</li>
+        <li><strong>批量操作：</strong>通过批量应用一致的调整或导出大量图像，大幅节省时间。</li>
+        <li><strong>EXIF 数据查看器：</strong>查看相机中的完整元数据。</li>
       </ul>
-      <h4>Productivity & UI</h4>
+      <h4>生产力与 UI</h4>
       <ul>
-        <li><strong>Preset System:</strong> Create, save, import, and share your favorite looks.</li>
-        <li><strong>Copy & Paste Settings:</strong> Quickly transfer adjustments between images.</li>
-        <li><strong>Undo/Redo History:</strong> A robust history system for every edit.</li>
-        <li><strong>Customizable UI:</strong> Modern, multilingual UI with resizable panels and smooth animations.</li>
-        <li><strong>Compositions:</strong> Built-in seamless Panorama Stitcher, flexible Collage Maker, and Film Negative Converter.</li>
-        <li><strong>Exporting:</strong> Control file format, watermarking, naming scheme, metadata, resizing options on export.</li>
+        <li><strong>预设系统：</strong>创建、保存、导入和分享你喜欢的风格。</li>
+        <li><strong>复制粘贴设置：</strong>快速在图像间传递调整参数。</li>
+        <li><strong>撤销/重做历史：</strong>每个编辑都有强大的历史记录系统。</li>
+        <li><strong>可定制 UI：</strong>现代、多语言界面，可调整面板大小，流畅动画。</li>
+        <li><strong>合成功能：</strong>内置无缝全景拼接器、灵活的拼贴画制作器和胶片负片转换器。</li>
+        <li><strong>导出：</strong>导出时控制文件格式、水印、命名方案、元数据和尺寸调整选项。</li>
       </ul>
     </td>
   </tr>
 </table>
 
-## Demo & Screenshots
+## 演示与截图
 
-Here's RapidRAW in action.
+RapidRAW 实际运行效果。
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/editor.gif" alt="The main editor interface in action"></img><br>
-  <em>The main editor interface in action.</em>
+  <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/editor.gif" alt="主编编辑器界面运行效果"></img><br>
+  <em>主编编辑器界面运行效果。</em>
 </p>
 <br>
 <table width="100%">
   <tr>
     <td width="50%" align="center">
-      <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/batch.gif" alt="Powerful batch operations and export" style="max-width: 100%;">
+      <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/batch.gif" alt="强大的批量操作和导出" style="max-width: 100%;">
       <br>
-      <em>Powerful batch operations and export.</em>
+      <em>强大的批量操作和导出。</em>
     </td>
     <td width="50%" align="center">
-      <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/customization.gif" alt="Customizable editor layout and panels" style="max-width: 100%;">
+      <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/customization.gif" alt="可定制的编辑器布局和面板" style="max-width: 100%;">
       <br>
-      <em>Customizable editor layout and panels.</em>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center">
-      <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/masks.gif" alt="Advanced masking to speedup workflow" style="max-width: 100%;">
-      <br>
-      <em>Advanced masking to speedup workflow.</em>
-    </td>
-    <td width="50%" align="center">
-      <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/ai.gif" alt="Experimental generative AI features" style="max-width: 100%;">
-      <br>
-      <em>Experimental generative AI features.</em>
+      <em>可定制的编辑器布局和面板。</em>
     </td>
   </tr>
   <tr>
     <td width="50%" align="center">
-      <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/library.gif" alt="Library navigation and folder management" style="max-width: 100%;">
+      <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/masks.gif" alt="高级蒙版加速工作流" style="max-width: 100%;">
       <br>
-      <em>Library navigation and folder management.</em>
+      <em>高级蒙版加速工作流。</em>
     </td>
     <td width="50%" align="center">
-      <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/themes.gif" alt="Beautiful themes and UI customization" style="max-width: 100%;">
+      <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/ai.gif" alt="实验性生成式 AI 功能" style="max-width: 100%;">
       <br>
-      <em>Beautiful themes and UI customization.</em>
+      <em>实验性生成式 AI 功能。</em>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/library.gif" alt="图库导航和文件夹管理" style="max-width: 100%;">
+      <br>
+      <em>图库导航和文件夹管理。</em>
+    </td>
+    <td width="50%" align="center">
+      <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/themes.gif" alt="精美的主题和 UI 定制" style="max-width: 100%;">
+      <br>
+      <em>精美的主题和 UI 定制。</em>
     </td>
   </tr>
 </table>
 
-> If you like the theme images and want to see more of my own images, checkout my Instagram: [**@timonkaech.photography**](https://www.instagram.com/timonkaech.photography/)
+> 如果你喜欢这些主题图片，想看更多作者的作品，请关注 Instagram：[@timonkaech.photography](https://www.instagram.com/timonkaech.photography/)
 
-## The Idea
+## 设计理念
 
-As a photography enthusiast, I often found existing software to be sluggish and resource-heavy on my machine. Born from the desire for a more responsive and streamlined photo editing experience, I set out to build my own. The goal was to create a tool that was not only fast but **also helped me learn the details of digital image processing and camera technology**.
+作为一名摄影爱好者，作者经常发现现有软件在自己的机器上运行缓慢且资源占用高。出于对更流畅、更高效的编辑体验的渴望，作者决定自己动手打造。目标不仅是创建一个快速的工具，**同时也要深入学习数字图像处理和相机技术的细节**。
 
-I set an ambitious goal to rapidly build a functional, feature-rich application from an empty folder. This personal challenge pushed me to learn quickly and focus intensely on the core architecture and user experience.
+作者设定了一个雄心勃勃的目标：从空文件夹开始，快速构建一个功能齐全的应用程序。这个个人挑战迫使他快速学习，并高度专注于核心架构和用户体验。
 
-The foundation is built on Rust for its safety and performance, and Tauri for its ability to create lightweight, cross-platform desktop apps with a web frontend. The entire image processing pipeline is offloaded to the GPU via WGPU and a custom WGSL shader, ensuring that even on complex edits with multiple masks, the UI remains fluid.
+项目的底层基于 Rust 构建（安全和性能），使用 Tauri 创建轻量级、跨平台的桌面应用（配合 Web 前端）。整个图像处理管线通过 WGPU 和自定义 WGSL 着色器卸载到 GPU，确保即使在多个蒙版的复杂编辑下，UI 也能保持流畅。
 
-I am immensely grateful for Google's Gemini suite of AI models. As a young developer without a formal background in advanced mathematics or image science, Google's AI Studio was an invaluable assistant, helping me research and implement complex concepts in record time.
+作者对 Google 的 Gemini AI 模型套件深表感激。作为一个没有高等数学或图像科学背景的年轻开发者，Google AI Studio 提供了宝贵的帮助，使作者能够研究并以极快的速度实现复杂概念。
 
-## Current Priorities
+## 当前优先事项
 
-While the core functionality is in place, I'm actively working on improving several key areas. Here's a transparent look at the current focus:
+虽然核心功能已经就位，但作者正在积极改进几个关键领域。以下是当前关注点的透明展示：
 
-| Task                                                                                                       | Priority | Difficulty | Status |
-| ---------------------------------------------------------------------------------------------------------- | -------- | ---------- | ------ |
-| Find a better X-Trans demosaicing algorithm                                                                | Medium   | High       | [ ]    |
-| Refactoring the frontend (reduce prop drilling in React components)                                        | Low      | Medium     | [X]    |
-| Write a tutorial on how to connect ComfyUI with RapidRAW                                                   | Medium   | Medium     | [ ]    |
-| Centralize Coordinate Transformation Logic - See [#245](https://github.com/CyberTimon/RapidRAW/issues/245) | Medium   | High       | [X]    |
-| Improve speed on older systems (e.g. Pascal GPUs)                                                          | Medium   | High       | [X]    |
-| Implement warping tools                                                                                    | Low      | High       | [X]    |
+| 任务                                                                                                     | 优先级 | 难度 | 状态 |
+| -------------------------------------------------------------------------------------------------------- | ------ | ---- | ---- |
+| 寻找更好的 X-Trans 去马赛克算法                                                                          | 中     | 高   | [ ]  |
+| 重构前端（减少 React 组件中的 prop 层层传递）                                                              | 低     | 中   | [X]  |
+| 编写 ComfyUI 与 RapidRAW 连接教程                                                                         | 中     | 中   | [ ]  |
+| 集中化坐标变换逻辑 - 参见 [#245](https://github.com/CyberTimon/RapidRAW/issues/245)                        | 中     | 高   | [X]  |
+| 改善旧系统（如 Pascal GPU）上的速度                                                                        | 中     | 高   | [X]  |
+| 实现变形工具                                                                                              | 低     | 高   | [X]  |
 
-## AI Roadmap
+## AI 路线图
 
-I've designed RapidRAW's AI features with flexibility in mind. You have three ways to use them, giving you the choice between fast local tools, powerful self-hosting, and simple cloud convenience.
+RapidRAW 的 AI 功能设计灵活，提供三种使用方式，让你在快速的本地工具、强大的自托管和简单的云端便利之间自由选择。
 
-### 1. Built-in AI Tools (Local & Free)
+### 1. 内置 AI 工具（本地免费）
 
-These features are integrated directly into RapidRAW and run entirely on your computer. They are fast, free, and require no setup from you.
+这些功能直接集成在 RapidRAW 中，完全在本地计算机上运行。快速、免费、无需额外设置。
 
-- **AI Masking:** Instantly detect and mask subjects, skies, and foregrounds.
-- **Automatic Tagging:** The image library is automatically tagged with keywords using a local CLIP model, making your photos easy to search.
-- **Simple Generative Replace:** A basic, CPU-based inpainting tool for removing small distractions.
+- **AI 蒙版：** 即时检测并蒙版主体、天空和前景。
+- **自动标记：** 使用本地 CLIP 模型自动为图库中的图像添加关键词标签，使照片易于搜索。
+- **简单生成式替换：** 基于 CPU 的基本图像修复工具，用于移除小干扰物。
 
-### 2. Self-Hosted Integration with ComfyUI (Local & Free)
+### 2. 自托管 ComfyUI 集成（本地免费）
 
-For users with a capable GPU who want maximum control, RapidRAW can connect to your own local [ComfyUI](https://github.com/comfyanonymous/ComfyUI) server. This is managed by the [**RapidRAW-AI-Connector**](https://github.com/CyberTimon/RapidRAW-AI-Connector), a lightweight middleware that bridges RapidRAW and ComfyUI. Its purpose is to manage image caching, workflow injection, and AI coordination.
+对于拥有强大 GPU 并希望获得最大控制的用户，RapidRAW 可以连接到本地 [ComfyUI](https://github.com/comfyanonymous/ComfyUI) 服务器。这由 [**RapidRAW-AI-Connector**](https://github.com/CyberTimon/RapidRAW-AI-Connector) 管理，它是一个轻量级中间件，连接 RapidRAW 和 ComfyUI，负责图像缓存、工作流注入和 AI 协调。
 
-**Why this approach?** This new architecture makes generative edits much more efficient. Instead of sending the entire high-resolution image for every single change, the AI Connector intelligently caches it. The full image is sent only once; for every subsequent edit, only the tiny mask and text are transferred. This makes the process significantly faster and more responsive.
+**为什么采用这种架构？** 这种新架构使生成式编辑更加高效。AI 连接器会智能缓存图像，而不是每次更改都发送整个高分辨率图像。完整图像只发送一次；后续每次编辑只需传输微小的蒙版和文本。这使过程显著更快、响应更灵敏。
 
-This setup gives you the best of both worlds: a highly efficient workflow while retaining full control to use your own hardware and any custom Diffusion models or workflows you choose.
+此设置让你两全其美：高效的工作流，同时保留完全控制权，使用自己的硬件和任何自定义 Diffusion 模型或工作流。
 
-- **Full Control:** Use your own hardware and any custom Diffusion model or workflow you choose.
-- **Cost-Free Power:** Utilise your existing hardware for advanced generative edits at no extra cost.
-- **Custom Workflow Selection:** Import your own ComfyUI workflows and use your custom nodes.
+- **完全控制：** 使用自己的硬件和任何自定义 Diffusion 模型或工作流。
+- **零成本强大功能：** 利用现有硬件进行高级生成式编辑，无额外费用。
+- **自定义工作流选择：** 导入自己的 ComfyUI 工作流，使用自定义节点。
 
-### 3. Optional Cloud Service (Subscription)
+### 3. 可选云服务（订阅）
 
-To be clear, **I won't lock features behind a paywall.** All of RapidRAW's functionality is available for free if you use the built-in tools or self-host.
+需要明确的是，**功能不会被付费墙锁定。** 如果你使用内置工具或自托管，RapidRAW 的所有功能都免费可用。
 
-However, I realize that not everyone has the powerful hardware or technical desire to set up and maintain their own ComfyUI server. For those who want a simpler solution, I will be offering an optional **$TBD/month subscription**.
+然而，作者意识到并非每个人都有强大的硬件，或有技术意愿去设置和维护自己的 ComfyUI 服务器。对于那些想要更简单解决方案的人，将提供可选的 **$TBD/月订阅**。
 
-This is purely a **convenience service**. It provides the **same high-quality results** as a self-hosted setup without any of the hassle - just log in, and it works. Subscribing is also the best way to support the project and help me dedicate more time to its development.
+这纯粹是一个**便利服务**。它提供与自托管设置**相同的高质量结果**，无需任何麻烦——只需登录即可使用。订阅也是支持项目和帮助作者投入更多时间开发的最佳方式。
 
-| Feature      | Built-in AI (Free)             | Self-Hosted (ComfyUI)               | Optional Cloud Service |
-| ------------ | ------------------------------ | ----------------------------------- | ---------------------- |
-| **Cost**     | Free, included                 | Free (requires your own hardware)   | $TBD / month           |
-| **Setup**    | None                           | Manual ComfyUI / AI Connector setup | None (Just log in)     |
-| **Use Case** | Everyday workflow acceleration | Full control for technical users    | Maximum convenience    |
-| **Status**   | **Available**                  | **Available**                       | Coming Soon            |
+| 功能       | 内置 AI（免费）         | 自托管（ComfyUI）           | 可选云服务        |
+| ---------- | ----------------------- | --------------------------- | ----------------- |
+| **费用**   | 免费，内置              | 免费（需要自有硬件）        | $TBD/月           |
+| **设置**   | 无需设置                | 手动设置 ComfyUI/AI 连接器  | 无需设置（仅登录）|
+| **用例**   | 日常加速工作流          | 技术用户完全控制            | 极致便利          |
+| **状态**   | **可用**                | **可用**                    | 即将推出          |
 
 <details>
-<summary><strong>Click to see the Generative AI features in action</strong></summary>
+<summary><strong>点击查看生成式 AI 功能实际效果</strong></summary>
 <br>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/ai.gif" alt="Experimental generative AI features" style="max-width: 100%;">
+  <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/ai.gif" alt="实验性生成式 AI 功能" style="max-width: 100%;">
   <br>
-  <em>Generative Replace, which can be powered by either a local ComfyUI backend or the upcoming optional cloud service.</em>
+  <em>生成式替换，可由本地 ComfyUI 后端或即将推出的可选云服务驱动。</em>
 </p>
 </details>
 
-## Initial Development Log
+## 初始开发日志
 
-This project began as an intensive sprint to build the core functionality. Here's a summary of the initial progress and key milestones:
+这个项目最初是构建核心功能的密集冲刺。以下是初始进展和关键里程碑的摘要：
 
 <details>
-<summary><strong>Click to expand the day-by-day development log</strong></summary>
+<summary><strong>点击展开逐日开发日志</strong></summary>
 
-- **Day 1: June 13th, 2025** - Project inception, basic Tauri setup, and initial brightness/contrast shader implementation.
-- **Day 2: June 14th** - Core architecture refactor, full library support (folder tree, image list), and optimized image loading. Implemented histogram and curve editor support. Added UI themes.
-- **Day 3: June 15th** - Implemented a working crop tool, preset system, and context menus. Enabled auto-saving of edits to sidecar files and auto-thumbnail generation. Refined color adjustments.
-- **Day 4: June 16th** - Initial prototype for local adjustments with masking. Added mask support to presets. Bug-free image preview switching.
-- **Day 5: June 17th** - Major UI overhaul. Created the filmstrip and resizable panel layout. Fixed mask scaling issues and improved the library/welcome screen.
-- **Day 6: June 18th** - Performance tuning. Reduced GPU calls for adjustments, leading to a much smoother cropping and editing experience. Implemented saving of panel UI state.
-- **Day 7: June 19th** - Enhanced library functionality. Added multi-selection and the ability to copy/paste adjustments across multiple images.
-- **Day 8: June 20th** - Implemented initial RAW file support and an EXIF metadata viewer.
-- **Day 9: June 21st** - Added advanced detail adjustments (Clarity, Sharpening, Dehaze, etc.) and film grain. Developed a linear RAW processing pipeline.
-- **Day 10: June 22nd** - Implemented layer stacking for smooth preview transitions. Built a robust export panel with batch export capabilities. Added import/export for presets.
-- **Day 11: June 23rd** - Added full undo/redo functionality integrated with a custom history hook. Improved context menus and completed the settings panel.
-- **Day 12: June 24th** - Implemented image rotation and fixed all mask scaling/alignment issues related to cropping and rotation.
-- **Day 13: June 25th** - Rewrote the mask system to be bitmap-based. Implemented brush and linear gradient tools, with semi-transparent visualization.
-- **Day 14: June 26th-27th** - Final polish. Added universal keyboard shortcuts, full adjustment support for masks, theme management, and final UI/UX improvements. This ReadMe.
+- **第 1 天：2025 年 6 月 13 日** - 项目启动，基本 Tauri 设置，初步亮度/对比度着色器实现。
+- **第 2 天：6 月 14 日** - 核心架构重构，完整图库支持（文件夹树、图像列表），优化图像加载。实现直方图和曲线编辑器支持。添加 UI 主题。
+- **第 3 天：6 月 15 日** - 实现可用的裁剪工具、预设系统和右键菜单。启用编辑自动保存到附属文件和自动缩略图生成。精炼色彩调整。
+- **第 4 天：6 月 16 日** - 蒙版局部调整初步原型。预设支持蒙版。无 bug 的图像预览切换。
+- **第 5 天：6 月 17 日** - 重大 UI 重构。创建胶片栏和可调整面板布局。修复蒙版缩放问题，改进图库/欢迎界面。
+- **第 6 天：6 月 18 日** - 性能调优。减少调整的 GPU 调用，裁剪和编辑体验大幅提升。实现面板 UI 状态保存。
+- **第 7 天：6 月 19 日** - 增强图库功能。添加多选功能，支持跨多图像复制粘贴调整。
+- **第 8 天：6 月 20 日** - 实现初步 RAW 文件支持和 EXIF 元数据查看器。
+- **第 9 天：6 月 21 日** - 添加高级细节调整（清晰度、锐化、去雾等）和胶片颗粒。开发线性 RAW 处理管线。
+- **第 10 天：6 月 22 日** - 实现图层堆叠以平滑预览过渡。构建强大的导出面板，支持批量导出。添加预设导入/导出。
+- **第 11 天：6 月 23 日** - 添加完整撤销/重做功能，集成自定义历史钩子。改进右键菜单，完成设置面板。
+- **第 12 天：6 月 24 日** - 实现图像旋转，修复所有与裁剪和旋转相关的蒙版缩放/对齐问题。
+- **第 13 天：6 月 25 日** - 重写蒙版系统为位图基础。实现笔刷和线性渐变工具，半透明可视化。
+- **第 14 天：6 月 26-27 日** - 最终润色。添加通用键盘快捷键，蒙版完整调整支持，主题管理，UI/UX 最终改进。完成本 README。
 
 </details>
 
-## Getting Started
+## 快速开始
 
-You have two options to run RapidRAW:
+有两种方式运行 RapidRAW：
 
-**1. Download the Latest Release (Recommended)**
+**1. 下载最新版本（推荐）**
 
-**Windows & macOS:**
+**Windows 和 macOS：**
 
-- Grab the pre-built installer or application bundle for your operating system from the [**Releases**](https://github.com/CyberTimon/RapidRAW/releases) page.
+- 从 [Releases](https://github.com/CyberTimon/RapidRAW/releases) 页面获取相应操作系统的预构建安装程序或应用程序包。
 
-**Linux:**
+**Linux：**
 
-- The official Flatpak package supports all Linux distributions and is available on [**Flathub**](https://flathub.org/apps/io.github.CyberTimon.RapidRAW).
-- On Debian-based distributions, install the `.deb` package from the [**Releases**](https://github.com/CyberTimon/RapidRAW/releases) page.
-- On Arch-based distributions, use the [`rapidraw-bin`](https://aur.archlinux.org/packages/rapidraw-bin) package from the AUR.
+- 官方 Flatpak 包支持所有 Linux 发行版，可在 [Flathub](https://flathub.org/apps/io.github.CyberTimon.RapidRAW) 获取。
+- 基于 Debian 的发行版，从 [Releases](https://github.com/CyberTimon/RapidRAW/releases) 页面安装 `.deb` 包。
+- 基于 Arch 的发行版，使用 AUR 中的 [`rapidraw-bin`](https://aur.archlinux.org/packages/rapidraw-bin) 包。
 
-**2. Build from Source**
+**2. 从源码构建**
 
-If you want to build the project yourself, you'll need to have [Rust](https://www.rust-lang.org/tools/install) and [Node.js](https://nodejs.org/) installed.
+如果你想自己构建项目，需要安装 [Rust](https://www.rust-lang.org/tools/install) 和 [Node.js](https://nodejs.org/)。
 
 ```bash
-# 1. Clone the repository
+# 1. 克隆仓库
 git clone https://github.com/CyberTimon/RapidRAW.git
 cd RapidRAW
 
-# 2. Install frontend dependencies
+# 2. 安装前端依赖
 npm install
 
-# 3. Build and run the application
+# 3. 构建并运行应用
 npm start
 ```
 
-## System Requirements
+## 系统要求
 
-RapidRAW is built to be lightweight and cross-platform. The minimum (tested) requirements are:
+RapidRAW 设计为轻量级跨平台应用。最低（已测试）要求如下：
 
-**Operating System:**
+**操作系统：**
 
-- **Windows:** Windows 10 or newer
-- **macOS:** macOS 13 (Ventura) or newer
-- **Linux:** Ubuntu 22.04+ or a compatible modern distribution
+- **Windows：** Windows 10 或更高版本
+- **macOS：** macOS 13 (Ventura) 或更高版本
+- **Linux：** Ubuntu 22.04+ 或兼容的现代发行版
 
-**Hardware Recommendations:**
+**硬件建议：**
 
-- **RAM:** **16GB or more is highly recommended.** While the application may run on systems with less memory, performance is best with 16GB+ to handle high-resolution RAW files, undo history, and complex layer masking without slowdowns.
-- **GPU:** A dedicated GPU is recommended. RapidRAW relies heavily on GPU acceleration for its processing pipeline. Very old GPU architectures (generally pre-2015) or older integrated graphics may struggle, leading to instability or graphical artifacts.
+- **内存：** **强烈建议 16GB 或以上。** 虽然应用在较少内存的系统上可能也能运行，但 16GB+ 才能在高分辨率 RAW 文件、撤销历史和复杂图层蒙版下获得最佳性能。
+- **GPU：** 建议使用独立 GPU。RapidRAW 严重依赖 GPU 加速来处理图像管线。非常旧的 GPU 架构（通常 2015 年之前）或较旧的集成显卡可能会卡顿，导致不稳定或图形伪影。
 
-### Common Problems
+### 常见问题
 
 <details>
-<summary>App crashes when opening an image / entering edit mode</summary>
+<summary>打开图像 / 进入编辑模式时应用崩溃</summary>
 
-If the application crashes immediately when you try to start editing a picture, it is often due to the automatic selection of the GPU backend.
+如果应用在尝试开始编辑图片时立即崩溃，通常是由于 GPU 后端的自动选择问题。
 
-1.  Open **Settings** on the **Home Screen** (Gear icon).
-2.  Navigate to the **Processing** tab.
-3.  Locate the **Processing Backend** setting.
-4.  Change it from **Auto** to a specific backend supported by your OS (e.g., **Vulkan**, **DirectX12**, **OpenGL**, or **Metal**).
-5.  Restart the application and try opening the image again. Experiment with different backends if the first one doesn't work.
+1.  在**主界面**打开**设置**（齿轮图标）。
+2.  导航到**处理**选项卡。
+3.  找到**处理后端**设置。
+4.  将其从**自动**更改为操作系统支持的特定后端（例如 **Vulkan**、**DirectX12**、**OpenGL** 或 **Metal**）。
+5.  重启应用并再次尝试打开图像。如果第一个不起作用，可尝试其他后端。
 </details>
 
 <details>
-<summary>Linux Wayland/WebKit Crash</summary>
+<summary>Linux Wayland/WebKit 崩溃</summary>
 
-If RapidRAW crashes on Wayland (e.g. GNOME + NVIDIA), try launching it with:
+如果 RapidRAW 在 Wayland 上崩溃（例如 GNOME + NVIDIA），尝试使用以下命令启动：
 
 ```bash
 WEBKIT_DISABLE_DMABUF_RENDERER=1 RapidRAW
 ```
 
-or
+或
 
 ```bash
 WEBKIT_DISABLE_COMPOSITING_MODE=1 RapidRAW
 ```
 
-This issue is related to **WebKit** and **NVIDIA drivers**, not RapidRAW directly. Switching to **X11** or using **AMD / Intel GPUs** may also help.
+此问题与 **WebKit** 和 **NVIDIA 驱动**相关，并非 RapidRAW 直接导致。切换到 **X11** 或使用 **AMD / Intel GPU** 也可能有所帮助。
 
-See [#306](https://github.com/CyberTimon/RapidRAW/issues/306) for more information.
-
+详见 [#306](https://github.com/CyberTimon/RapidRAW/issues/306)。
 </details>
 
-## Contributing
+## 参与贡献
 
-I’m really grateful for any contributions you make to RapidRAW! Whether you’re reporting a bug, suggesting a new feature, or submitting a pull request - your input helps shape the project and makes it better for everyone. Don’t hesitate to open an issue or share your ideas.
+作者对所有为 RapidRAW 做出的贡献深表感激！无论是报告 bug、建议新功能，还是提交 pull request——你的投入都有助于塑造项目，让每个人受益。请随时提出 issue 或分享你的想法。
 
-### Image format issues
+### 图像格式问题
 
-If your camera’s RAW files aren’t supported, please open a issue here first: [rawler issues](https://github.com/dnglab/dnglab/issues). Once support is added in rawler, create a issue for RapidRAW so I can update the packages and keep everything in sync.
+如果你的相机 RAW 文件不受支持，请先在 rawler 仓库提交 issue：[rawler issues](https://github.com/dnglab/dnglab/issues)。一旦 rawler 中添加了支持，再为 RapidRAW 创建 issue，以便作者可以更新包并保持同步。
 
-## Special Thanks
+## 特别鸣谢
 
-A huge thank you to the following projects and tools that were very important in the development of RapidRAW:
+衷心感谢以下在 RapidRAW 开发中起到重要作用的项目和工具：
 
-- **[Google AI Studio](https://aistudio.google.com):** For providing amazing assistance in researching, implementing image processing algorithms and giving an overall speed boost.
-- **[rawler](https://github.com/dnglab/dnglab/tree/main/rawler):** For the excellent Rust crate that provides the foundation for RAW file processing in this project.
-- **[lensfun](https://lensfun.github.io/):** For its invaluable open-source library and comprehensive database for automatic lens correction.
-- **[LaMa](https://github.com/advimman/lama):** For the powerful & simple image inpainting model, which enables content-aware fill and object removal.
-- **[SAM 2](https://github.com/facebookresearch/sam2):** For providing the foundation model used for the AI subject detection capabilities.
-- **[U-2-Net](https://github.com/xuebinqin/U-2-Net):** For providing the robust architecture used for the AI sky and foreground detection capabilities.
-- **[Depth Anything V2](https://github.com/DepthAnything/Depth-Anything-V2):** For the powerful monocular depth estimation model that enables the AI depth masking capabilities.
-- **[nind-denoise](https://github.com/trougnouf/nind-denoise):** For providing AI models that power the AI noise reduction capabilities in RapidRAW.
-- **[NegPy](https://github.com/marcinz606/NegPy):** For the inspiration behind the negative conversion logic, particularly the mathematical approach to film inversion using characteristic curves.
-- **[pixls.us](https://discuss.pixls.us/):** For being an incredible community full of knowledgeable people who offered inspiration, advice, and ideas.
-- **[darktable & co.](https://github.com/darktable-org/darktable):** For some reference implementations that guided parts of this work.
-- **You:** For using and supporting RapidRAW. Your interest keeps this project alive and evolving.
+- **[Google AI Studio](https://aistudio.google.com)：** 提供宝贵的研究协助，实现图像处理算法，并整体提升开发速度。
+- **[rawler](https://github.com/dnglab/dnglab/tree/main/rawler)：** 为项目提供 RAW 文件处理基础的优秀 Rust 库。
+- **[lensfun](https://lensfun.github.io/)：** 无价的开源库和全面的数据库，用于自动镜头校正。
+- **[LaMa](https://github.com/advimman/lama)：** 强大简洁的图像修复模型，实现内容感知填充和物体移除。
+- **[SAM 2](https://github.com/facebookresearch/sam2)：** 提供 AI 主体检测能力的基础模型。
+- **[U-2-Net](https://github.com/xuebinqin/U-2-Net)：** 提供 AI 天空和前景检测能力的强大架构。
+- **[Depth Anything V2](https://github.com/DepthAnything/Depth-Anything-V2)：** 强大的单目深度估计模型，实现 AI 深度蒙版能力。
+- **[nind-denoise](https://github.com/trougnouf/nind-denoise)：** 提供驱动 RapidRAW AI 降噪能力的 AI 模型。
+- **[NegPy](https://github.com/marcinz606/NegPy)：** 负片转换逻辑的灵感来源，特别是使用特征曲线进行胶片反转的数学方法。
+- **[pixls.us](https://discuss.pixls.us/)：** 充满知识渊博人士的精彩社区，提供灵感、建议和想法。
+- **[darktable 等](https://github.com/darktable-org/darktable)：** 指导部分工作的参考实现。
+- **你：** 感谢使用和支持 RapidRAW。你的关注让这个项目保持活力并持续发展。
 
-## Support the Project
+## 支持项目
 
-As a young developer balancing this project with an apprenticeship, your support means the world. If you find RapidRAW useful or exciting, please consider donating to help me dedicate more time to its development and cover any associated costs.
+作为一名平衡项目与学徒工作的年轻开发者，你的支持意义重大。如果你觉得 RapidRAW 有用或令人兴奋，请考虑捐赠，帮助作者投入更多时间开发并覆盖相关费用。
 
-- **Ko-fi:** [Donate on Ko-fi](https://ko-fi.com/cybertimon)
-- **Crypto:**
-  - BTC: `36yHjo2dkBwQ63p3YwtqoYAohoZhhUTkCJ` (min. 0.0001)
-  - ETH: `0x597e6bdb97f3d0f1602b5efc8f3b7beb21eaf74a` (min. 0.005)
-  - SOL: `CkXM3C777S8iJX9h3MGSfwGxb85Yx7GHmynQUFSbZXUL` (min. 0.01)
+- **Ko-fi：** [在 Ko-fi 上捐赠](https://ko-fi.com/cybertimon)
+- **加密货币：**
+  - BTC：`36yHjo2dkBwQ63p3YwtqoYAohoZhhUTkCJ`（最低 0.0001）
+  - ETH：`0x597e6bdb97f3d0f1602b5efc8f3b7beb21eaf74a`（最低 0.005）
+  - SOL：`CkXM3C777S8iJX9h3MGSfwGxb85Yx7GHmynQUFSbZXUL`（最低 0.01）
 
-## License & Philosophy
+## 许可证与理念
 
-This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. I chose this license to ensure that RapidRAW and any of its derivatives will always remain open-source and free for the community. It protects the project from being used in closed-source commercial software, ensuring that improvements benefit everyone.
+本项目采用 **GNU Affero 通用公共许可证 v3.0（AGPL-3.0）**。选择此许可证是为了确保 RapidRAW 及其任何衍生作品始终对社区保持开源和免费。它保护项目不被用于闭源商业软件，确保改进惠及所有人。
 
-See the [LICENSE](LICENSE) file for more details.
+详见 [LICENSE](LICENSE) 文件。
