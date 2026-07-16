@@ -300,6 +300,12 @@
         "toggleAnalytics": "Analyseanzeige umschalten"
       }
     },
+    "colorPanel": {
+      "title": "Farbe"
+    },
+    "portraitPanel": {
+      "title": "Porträt"
+    },
     "ai": {
       "actions": {
         "addNewComponent": "Neue Komponente hinzufügen",
@@ -695,12 +701,14 @@
     },
     "switcher": {
       "tooltips": {
-        "adjust": "Anpassen",
-        "crop": "Zuschnitt",
+        "basic": "Grundeinstellungen",
+        "color": "Farbe",
+        "composition": "Komposition",
         "export": "Exportieren",
         "info": "Info",
-        "inpaint": "Reparieren",
+        "inpaint": "AI",
         "masks": "Masken",
+        "portrait": "Porträt",
         "presets": "Vorgaben"
       }
     },

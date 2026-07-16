@@ -300,6 +300,12 @@
         "toggleAnalytics": "Toggle Analytics Display"
       }
     },
+    "colorPanel": {
+      "title": "Color"
+    },
+    "portraitPanel": {
+      "title": "Portrait"
+    },
     "ai": {
       "actions": {
         "addNewComponent": "Add New Component",
@@ -695,12 +701,14 @@
     },
     "switcher": {
       "tooltips": {
-        "adjust": "Adjust",
-        "crop": "Crop",
+        "basic": "Basic",
+        "color": "Color",
+        "composition": "Composition",
         "export": "Export",
         "info": "Info",
-        "inpaint": "Inpaint",
+        "inpaint": "AI",
         "masks": "Masks",
+        "portrait": "Portrait",
         "presets": "Presets"
       }
     },
@@ -981,6 +989,7 @@
       "or": "or",
       "version": "Version {{version}}",
       "welcomeBack": "Welcome back!",
+      "creditLine": "Crafted by '带娃的小陈工' for Chinese photographers",
       "welcomeBackDesc": "Continue where you left off or start a new session."
     },
     "status": {
@@ -1674,7 +1683,7 @@
       "title": "Tagging"
     },
     "thanks": {
-      "description": "A huge thank you to the following projects that were very important in the development of RapidRAW:",
+      "description": "A developer who loves photography, building professional tools for photography enthusiasts. I'm just '带娃的小陈工', a developer who loves photography.",
       "list": {
         "darktable": "For some reference implementations that guided parts of this work.",
         "depth": "For the powerful monocular depth estimation model that enables the AI depth masking capabilities.",

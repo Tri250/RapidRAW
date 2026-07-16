@@ -7,6 +7,8 @@ import {
   Paintbrush,
   SwatchBook,
   FileInput,
+  Palette,
+  UserCircle,
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -26,14 +28,18 @@ interface RightPanelSwitcherProps {
 }
 
 const panelGroups: Array<Array<PanelOptions>> = [
-  [{ id: Panel.Metadata, icon: Info, title: 'editor.switcher.tooltips.info' }],
   [
-    { id: Panel.Adjustments, icon: SlidersHorizontal, title: 'editor.switcher.tooltips.adjust' },
-    { id: Panel.Crop, icon: Crop, title: 'editor.switcher.tooltips.crop' },
+    { id: Panel.Adjustments, icon: SlidersHorizontal, title: 'editor.switcher.tooltips.basic' },
+    { id: Panel.Color, icon: Palette, title: 'editor.switcher.tooltips.color' },
+    { id: Panel.Portrait, icon: UserCircle, title: 'editor.switcher.tooltips.portrait' },
+    { id: Panel.Crop, icon: Crop, title: 'editor.switcher.tooltips.composition' },
+  ],
+  [
     { id: Panel.Masks, icon: Layers, title: 'editor.switcher.tooltips.masks' },
     { id: Panel.Ai, icon: Paintbrush, title: 'editor.switcher.tooltips.inpaint' },
   ],
   [
+    { id: Panel.Metadata, icon: Info, title: 'editor.switcher.tooltips.info' },
     { id: Panel.Presets, icon: SwatchBook, title: 'editor.switcher.tooltips.presets' },
     { id: Panel.Export, icon: FileInput, title: 'editor.switcher.tooltips.export' },
   ],

@@ -300,6 +300,12 @@
         "toggleAnalytics": "분석 표시 전환"
       }
     },
+    "colorPanel": {
+      "title": "색상"
+    },
+    "portraitPanel": {
+      "title": "인물"
+    },
     "ai": {
       "actions": {
         "addNewComponent": "새 구성 요소 추가",
@@ -695,12 +701,14 @@
     },
     "switcher": {
       "tooltips": {
-        "adjust": "조정",
-        "crop": "자르기",
+        "basic": "기본",
+        "color": "색상",
+        "composition": "구도",
         "export": "내보내기",
         "info": "정보",
-        "inpaint": "인페인팅",
+        "inpaint": "AI",
         "masks": "마스크",
+        "portrait": "인물",
         "presets": "프리셋"
       }
     },

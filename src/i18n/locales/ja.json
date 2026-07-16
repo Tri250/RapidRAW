@@ -300,6 +300,12 @@
         "toggleAnalytics": "アナリティクス表示の切り替え"
       }
     },
+    "colorPanel": {
+      "title": "カラー"
+    },
+    "portraitPanel": {
+      "title": "ポートレート"
+    },
     "ai": {
       "actions": {
         "addNewComponent": "新しいコンポーネントを追加",
@@ -695,12 +701,14 @@
     },
     "switcher": {
       "tooltips": {
-        "adjust": "補正",
-        "crop": "切り抜き",
+        "basic": "基本",
+        "color": "カラー",
+        "composition": "構図",
         "export": "書き出し",
         "info": "情報",
-        "inpaint": "インペイント",
+        "inpaint": "AI",
         "masks": "マスク",
+        "portrait": "ポートレート",
         "presets": "プリセット"
       }
     },

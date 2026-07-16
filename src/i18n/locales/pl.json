@@ -332,6 +332,12 @@
         "toggleAnalytics": "Przełącz widok analityki"
       }
     },
+    "colorPanel": {
+      "title": "Kolor"
+    },
+    "portraitPanel": {
+      "title": "Portret"
+    },
     "ai": {
       "actions": {
         "addNewComponent": "Dodaj nowy komponent",
@@ -733,12 +739,14 @@
     },
     "switcher": {
       "tooltips": {
-        "adjust": "Dopasuj",
-        "crop": "Kadruj",
+        "basic": "Podstawowe",
+        "color": "Kolor",
+        "composition": "Kompozycja",
         "export": "Eksportuj",
         "info": "Informacje",
-        "inpaint": "Inpaint",
+        "inpaint": "AI",
         "masks": "Maski",
+        "portrait": "Portret",
         "presets": "Presety"
       }
     },

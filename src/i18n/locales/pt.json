@@ -300,6 +300,12 @@
         "toggleAnalytics": "Alternar Exibição de Análises"
       }
     },
+    "colorPanel": {
+      "title": "Cor"
+    },
+    "portraitPanel": {
+      "title": "Retrato"
+    },
     "ai": {
       "actions": {
         "addNewComponent": "Adicionar Novo Componente",
@@ -695,12 +701,14 @@
     },
     "switcher": {
       "tooltips": {
-        "adjust": "Ajustar",
-        "crop": "Cortar",
+        "basic": "Básico",
+        "color": "Cor",
+        "composition": "Composição",
         "export": "Exportar",
         "info": "Informações",
-        "inpaint": "Preencher",
+        "inpaint": "AI",
         "masks": "Máscaras",
+        "portrait": "Retrato",
         "presets": "Predefinições"
       }
     },

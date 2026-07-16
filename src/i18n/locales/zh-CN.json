@@ -300,6 +300,12 @@
         "toggleAnalytics": "切换分析显示"
       }
     },
+    "colorPanel": {
+      "title": "色彩"
+    },
+    "portraitPanel": {
+      "title": "人像"
+    },
     "ai": {
       "actions": {
         "addNewComponent": "添加新组件",
@@ -695,12 +701,14 @@
     },
     "switcher": {
       "tooltips": {
-        "adjust": "调整",
-        "crop": "裁剪",
+        "basic": "基础",
+        "color": "色彩",
+        "composition": "构图",
         "export": "导出",
         "info": "信息",
-        "inpaint": "修复",
+        "inpaint": "AI",
         "masks": "蒙版",
+        "portrait": "人像",
         "presets": "预设"
       }
     },
@@ -965,7 +973,7 @@
     },
     "splash": {
       "addFolder": "添加文件夹",
-      "brand": "RapidRAW",
+      "brand": "RAW工坊",
       "continueSession": "继续会话",
       "contribute": "在 GitHub 上贡献",
       "descriptionAndroid": "一款极速、GPU 加速的 RAW 图像编辑器。打开图库以开始。",
@@ -981,6 +989,7 @@
       "or": "或",
       "version": "版本 {{version}}",
       "welcomeBack": "欢迎回来！",
+      "creditLine": "由「带娃的小陈工」为中国摄影者精心打造",
       "welcomeBackDesc": "继续上次的进度或开始新会话。"
     },
     "status": {
@@ -1674,7 +1683,7 @@
       "title": "标签"
     },
     "thanks": {
-      "description": "衷心感谢以下项目，它们在 RapidRAW 的开发过程中非常重要：",
+      "description": "热爱摄影的开发者，为摄影爱好者打造专业工具。我只是「带娃的小陈工」，一名热爱摄影的开发者。",
       "list": {
         "darktable": "为部分参考实现提供了指导。",
         "depth": "为强大的单目深度估计模型提供支持，实现了 AI 深度蒙版功能。",

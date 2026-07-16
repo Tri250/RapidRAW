@@ -300,6 +300,12 @@
         "toggleAnalytics": "Показать/скрыть панель гистограммы"
       }
     },
+    "colorPanel": {
+      "title": "Цвет"
+    },
+    "portraitPanel": {
+      "title": "Портрет"
+    },
     "ai": {
       "actions": {
         "addNewComponent": "Добавить новый компонент",
@@ -695,12 +701,14 @@
     },
     "switcher": {
       "tooltips": {
-        "adjust": "Коррекция",
-        "crop": "Обрезка",
+        "basic": "Базовые",
+        "color": "Цвет",
+        "composition": "Композиция",
         "export": "Экспорт",
         "info": "Инфо",
-        "inpaint": "Восстановление",
+        "inpaint": "AI",
         "masks": "Маски",
+        "portrait": "Портрет",
         "presets": "Пресеты"
       }
     },

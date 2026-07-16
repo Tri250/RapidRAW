@@ -4,6 +4,8 @@ import { ImageFile, LibraryViewMode, Panel, UiVisibility, CullingSuggestions } f
 const RIGHT_PANEL_ORDER = [
   Panel.Metadata,
   Panel.Adjustments,
+  Panel.Color,
+  Panel.Portrait,
   Panel.Crop,
   Panel.Masks,
   Panel.Ai,

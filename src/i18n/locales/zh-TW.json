@@ -300,6 +300,12 @@
         "toggleAnalytics": "切換分析顯示"
       }
     },
+    "colorPanel": {
+      "title": "色彩"
+    },
+    "portraitPanel": {
+      "title": "人像"
+    },
     "ai": {
       "actions": {
         "addNewComponent": "新增新元件",
@@ -695,12 +701,14 @@
     },
     "switcher": {
       "tooltips": {
-        "adjust": "調整",
-        "crop": "裁剪",
+        "basic": "基礎",
+        "color": "色彩",
+        "composition": "構圖",
         "export": "匯出",
         "info": "資訊",
-        "inpaint": "修復",
+        "inpaint": "AI",
         "masks": "遮色片",
+        "portrait": "人像",
         "presets": "預設"
       }
     },
