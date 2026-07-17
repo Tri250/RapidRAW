@@ -1332,6 +1332,25 @@ export default function SettingsPanel({
 
                 <div className="p-6 bg-surface rounded-xl shadow-md">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
+                    {t('settings.contact.title', { defaultValue: '联系我' })}
+                  </Text>
+                  <div className="flex items-center gap-3 p-4 bg-bg-primary rounded-lg border border-border-color">
+                    <div className="p-2 bg-accent/10 rounded-md text-accent">
+                      <Info size={20} />
+                    </div>
+                    <div>
+                      <Text variant={TextVariants.heading} className="mb-1">
+                        {t('settings.contact.heading', { defaultValue: '有任何问题或建议？' })}
+                      </Text>
+                      <Text variant={TextVariants.small} color={TextColors.secondary}>
+                        {t('settings.contact.description', { defaultValue: '抖音、小红书搜索「带娃的小陈工」' })}
+                      </Text>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 bg-surface rounded-xl shadow-md">
+                  <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
                     {t('settings.tagging.title')}
                   </Text>
                   <div className="space-y-8">
