@@ -12,6 +12,7 @@ import {
 } from '@dnd-kit/core';
 import { useTranslation } from 'react-i18next';
 import { PresetListType, usePresets, UserPreset } from '../../../hooks/usePresets';
+import { BUILT_IN_PRESETS, BuiltInPreset } from '../../../data/builtInPresets';
 import { useContextMenu } from '../../../context/ContextMenuContext';
 import {
   CopyPlus,
@@ -501,7 +502,7 @@ function DroppableFolderItem({ folder, onContextMenu, children, onToggle, isExpa
 }
 
 export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const selectedImage = useEditorStore((s) => s.selectedImage);
   const adjustments = useEditorStore((s) => s.adjustments);
   const activePanel = useUIStore((s) => s.activeRightPanel);
@@ -1169,6 +1170,26 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
     });
   }, [presets, activeFilter]);
 
+  const builtInPresetsFiltered = useMemo(() => {
+    if (activeGroup !== 'recommended') return [];
+    if (activeFilter === 'all') return BUILT_IN_PRESETS;
+    return BUILT_IN_PRESETS.filter((p) => p.type === activeFilter);
+  }, [activeGroup, activeFilter]);
+
+  const handleApplyBuiltInPreset = useCallback(
+    (builtIn: BuiltInPreset) => {
+      setAdjustments((prev: Adjustments) => ({
+        ...prev,
+        ...builtIn.adjustments,
+        portrait: {
+          ...(prev.portrait || {}),
+          ...(builtIn.adjustments.portrait || {}),
+        },
+      }));
+    },
+    [setAdjustments],
+  );
+
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex flex-col h-full">
@@ -1262,7 +1283,7 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
               <Loader2 size={14} className="animate-spin inline-block mr-2" /> {t('editor.presets.status.loading')}
             </Text>
           )}
-          {!isLoading && presets.length === 0 ? (
+          {!isLoading && presets.length === 0 && activeGroup === 'my' ? (
             <div className="text-center text-text-secondary flex flex-col items-center gap-4 pt-4">
               <Text className="max-w-xs">{t('editor.presets.status.empty')}</Text>
               <Button variant="secondary" onClick={onNavigateToCommunity}>
@@ -1272,7 +1293,66 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
             </div>
           ) : (
             <>
-              <AnimatePresence>
+              {activeGroup === 'recommended' && builtInPresetsFiltered.length > 0 && (
+                <AnimatePresence>
+                  {builtInPresetsFiltered.map((builtIn: BuiltInPreset, index: number) => {
+                    const presetTypeColors: Record<string, string> = {
+                      portrait: 'bg-rose-500/90',
+                      color: 'bg-amber-500/90',
+                      'ai-color': 'bg-violet-500/90',
+                      combined: 'bg-emerald-500/90',
+                    };
+                    const presetTypeLabels: Record<string, string> = {
+                      portrait: t('editor.presets.types.portrait' as any),
+                      color: t('editor.presets.types.color' as any),
+                      'ai-color': t('editor.presets.types.ai-color' as any),
+                      combined: t('editor.presets.types.combined' as any),
+                    };
+                    const typeColor = presetTypeColors[builtIn.type] || 'bg-slate-500/90';
+                    const typeLabel = presetTypeLabels[builtIn.type] || '';
+                    return (
+                      <motion.div
+                        animate="visible"
+                        custom={index}
+                        exit="exit"
+                        initial="hidden"
+                        key={builtIn.id}
+                        layout="position"
+                        variants={itemVariants}
+                      >
+                        <div
+                          onClick={() => handleApplyBuiltInPreset(builtIn)}
+                          className="flex flex-col p-2 rounded-lg bg-surface cursor-pointer hover:bg-card-active transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-20 h-14 bg-bg-tertiary rounded-md flex items-center justify-center shrink-0">
+                              <Palette size={20} className="text-text-secondary" />
+                            </div>
+                            <div className="grow min-w-0 flex flex-col justify-center">
+                              <div className="flex items-center gap-1.5">
+                                <Text weight={TextWeights.medium} className="truncate">
+                                  {i18n.language === 'zh-CN' || i18n.language === 'zh' ? builtIn.nameZh : builtIn.name}
+                                </Text>
+                                {typeLabel && (
+                                  <span className={`shrink-0 px-1.5 py-0.5 text-[9px] font-bold text-white rounded-sm ${typeColor}`}>
+                                    {typeLabel}
+                                  </span>
+                                )}
+                              </div>
+                              <Text variant={TextVariants.small} color={TextColors.secondary} className="text-[10px]">
+                                {builtIn.category}
+                              </Text>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              )}
+              {activeGroup === 'my' && (
+              <>
+                <AnimatePresence>
                 {folders
                   .filter((item: UserPreset) => item.folder?.id !== deletingItemId)
                   .map((item: UserPreset, index: number) => (
@@ -1344,6 +1424,8 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
                     </motion.div>
                   ))}
               </AnimatePresence>
+              </>
+              )}
             </>
           )}
         </div>

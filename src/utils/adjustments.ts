@@ -146,6 +146,54 @@ export interface ParametricCurve {
   red: ParametricCurveSettings;
 }
 
+export interface PortraitAdjustments {
+  skinSmoothingStrength: number;
+  skinSmoothingDetailPreserve: number;
+  faceSlimAmount: number;
+  jawAmount: number;
+  foreheadAmount: number;
+  eyeEnlargeAmount: number;
+  eyeBrightenAmount: number;
+  teethWhitenBrightness: number;
+  teethWhitenDesaturate: number;
+  lipstickColor: string;
+  lipstickOpacity: number;
+  blushColor: string;
+  blushOpacity: number;
+  eyebrowColor: string;
+  eyebrowOpacity: number;
+  hairHueShift: number;
+  hairBrightness: number;
+  bodySlimAmount: number;
+  bodyHeightAmount: number;
+  legLengthAmount: number;
+  blemishSpots: Array<{ x: number; y: number; radius: number }>;
+}
+
+export const INITIAL_PORTRAIT_ADJUSTMENTS: PortraitAdjustments = {
+  skinSmoothingStrength: 0,
+  skinSmoothingDetailPreserve: 0,
+  faceSlimAmount: 0,
+  jawAmount: 0,
+  foreheadAmount: 0,
+  eyeEnlargeAmount: 0,
+  eyeBrightenAmount: 0,
+  teethWhitenBrightness: 0,
+  teethWhitenDesaturate: 0,
+  lipstickColor: '#cc2244',
+  lipstickOpacity: 0,
+  blushColor: '#dd6688',
+  blushOpacity: 0,
+  eyebrowColor: '#443322',
+  eyebrowOpacity: 0,
+  hairHueShift: 0,
+  hairBrightness: 0,
+  bodySlimAmount: 0,
+  bodyHeightAmount: 0,
+  legLengthAmount: 0,
+  blemishSpots: [],
+};
+
 export interface Adjustments {
   [index: string]: any;
   aiPatches: Array<AiPatch>;
@@ -206,6 +254,7 @@ export interface Adjustments {
   lutSize?: number;
   masks: Array<MaskContainer>;
   orientationSteps: number;
+  portrait: PortraitAdjustments;
   rotation: number;
   saturation: number;
   sectionVisibility: SectionVisibility;
@@ -533,6 +582,7 @@ export const INITIAL_ADJUSTMENTS: Adjustments = {
   lutSize: 0,
   masks: [],
   orientationSteps: 0,
+  portrait: { ...INITIAL_PORTRAIT_ADJUSTMENTS },
   rotation: 0,
   saturation: 0,
   sectionVisibility: {
@@ -685,6 +735,11 @@ export const normalizeLoadedAdjustments = (loadedAdjustments: Adjustments): any 
     curveMode: loadedAdjustments.curveMode || INITIAL_ADJUSTMENTS.curveMode,
     masks: normalizedMasks,
     aiPatches: normalizedAiPatches,
+    portrait: {
+      ...INITIAL_PORTRAIT_ADJUSTMENTS,
+      ...(loadedAdjustments.portrait || {}),
+      blemishSpots: loadedAdjustments.portrait?.blemishSpots || [],
+    },
     sectionVisibility: {
       ...INITIAL_ADJUSTMENTS.sectionVisibility,
       ...(loadedAdjustments.sectionVisibility || {}),

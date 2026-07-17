@@ -625,3 +625,150 @@ pub fn get_android_internal_library_root() -> Result<PathBuf, String> {
     }
     Ok(library_dir)
 }
+
+#[tauri::command]
+pub fn save_to_android_gallery(file_path: String, mime_type: String) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        let bytes = fs::read(&file_path).map_err(|e| format!("Failed to read file: {}", e))?;
+        let file_name = PathBuf::from(&file_path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("image.jpg")
+            .to_string();
+        save_image_bytes_to_android_gallery(&file_name, &mime_type, &bytes)
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (file_path, mime_type);
+        Err("save_to_android_gallery is only available on Android".to_string())
+    }
+}
+
+#[tauri::command]
+pub fn share_image(file_path: String, mime_type: String, title: String) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        let vm = unsafe { JavaVM::from_raw(android_context().vm().cast()) }
+            .map_err(|e| format!("Failed to access Android JVM: {}", e))?;
+        let mut env = vm
+            .attach_current_thread()
+            .map_err(|e| format!("Failed to attach current thread: {}", e))?;
+
+        let context = env
+            .new_local_ref(unsafe { JObject::from_raw(android_context().context().cast()) })
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+        // Create Intent with ACTION_SEND
+        let intent_class = env
+            .find_class("android/content/Intent")
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+        let action_send = env
+            .new_string("android.intent.action.SEND")
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+        let intent = env
+            .new_object(
+                intent_class,
+                "(Ljava/lang/String;)V",
+                &[(&action_send).into()],
+            )
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+        // Set type
+        let mime_jstring = env
+            .new_string(&mime_type)
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+        env.call_method(
+            &intent,
+            "setType",
+            "(Ljava/lang/String;)Landroid/content/Intent;",
+            &[(&mime_jstring).into()],
+        )
+        .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+        // Parse file URI and set as EXTRA_STREAM
+        let file_obj = env
+            .new_string(&file_path)
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+        let file_class = env
+            .find_class("java/io/File")
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+        let file_instance = env
+            .new_object(file_class, "(Ljava/lang/String;)V", &[(&file_obj).into()])
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+        let authority = env
+            .new_string("com.rapidraw.fileprovider")
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+        let file_provider_class = env
+            .find_class("androidx/core/content/FileProvider")
+            .map_err(|e| {
+                clear_pending_android_exception(&mut env);
+                map_android_jni_error(&mut env, e)
+            })?;
+
+        let uri = env
+            .call_static_method(
+                file_provider_class,
+                "getUriForFile",
+                "(Landroid/content/Context;Ljava/lang/String;Ljava/io/File;)Landroid/net/Uri;",
+                &[(&context).into(), (&authority).into(), (&file_instance).into()],
+            )
+            .and_then(|v| v.l())
+            .map_err(|e| {
+                clear_pending_android_exception(&mut env);
+                map_android_jni_error(&mut env, e)
+            })?;
+
+        let stream_key = env
+            .new_string("android.intent.extra.STREAM")
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+        env.call_method(
+            &intent,
+            "putExtra",
+            "(Ljava/lang/String;Landroid/os/Parcelable;)Landroid/content/Intent;",
+            &[(&stream_key).into(), (&uri).into()],
+        )
+        .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+        // Add FLAG_GRANT_READ_URI_PERMISSION
+        let flag_value: i32 = 1; // FLAG_GRANT_READ_URI_PERMISSION
+        env.call_method(
+            &intent,
+            "addFlags",
+            "(I)Landroid/content/Intent;",
+            &[JValue::from(flag_value)],
+        )
+        .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+        // Create chooser intent
+        let title_jstring = env
+            .new_string(&title)
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+        let chooser = env
+            .call_static_method(
+                intent_class,
+                "createChooser",
+                "(Landroid/content/Intent;Ljava/lang/CharSequence;)Landroid/content/Intent;",
+                &[(&intent).into(), (&title_jstring).into()],
+            )
+            .and_then(|v| v.l())
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+        // Start activity
+        env.call_method(
+            &context,
+            "startActivity",
+            "(Landroid/content/Intent;)V",
+            &[(&chooser).into()],
+        )
+        .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+        Ok(())
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (file_path, mime_type, title);
+        Err("share_image is only available on Android".to_string())
+    }
+}

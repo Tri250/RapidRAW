@@ -1509,3 +1509,237 @@ pub fn get_cached_or_generate_mask(
 
     generated
 }
+
+// ---------------------------------------------------------------------------
+// Color Range Mask – HSL-based
+// ---------------------------------------------------------------------------
+
+/// Generate a mask based on HSL color range selection.
+/// Parameters are in HSL space: center_hue (0..360), center_sat (0..1), center_lum (0..1)
+/// and their respective ranges. `feather` controls edge smoothness.
+#[tauri::command]
+pub fn generate_color_range_mask(
+    state: tauri::State<AppState>,
+    center_hue: f32,
+    center_sat: f32,
+    center_lum: f32,
+    hue_range: f32,
+    sat_range: f32,
+    lum_range: f32,
+    feather: f32,
+) -> Result<Vec<u8>, String> {
+    let loaded_image = state
+        .original_image
+        .lock()
+        .unwrap()
+        .clone()
+        .ok_or("No original image loaded")?;
+
+    let (w, h) = loaded_image.image.dimensions();
+    if w == 0 || h == 0 {
+        return Err("Image has zero dimensions".to_string());
+    }
+
+    let rgba = loaded_image.image.to_rgba8();
+
+    // Compute raw mask based on HSL distance
+    let mut mask_data = vec![0u8; (w * h) as usize];
+
+    for y in 0..h {
+        for x in 0..w {
+            let pixel = rgba.get_pixel(x, y);
+            let (rf, gf, bf) = (
+                pixel[0] as f32 / 255.0,
+                pixel[1] as f32 / 255.0,
+                pixel[2] as f32 / 255.0,
+            );
+
+            let (hue, sat, lum) = rgb_to_hsl_internal(rf, gf, bf);
+
+            // Hue distance (circular)
+            let hue_diff = (hue - center_hue).abs();
+            let hue_diff = hue_diff.min(360.0 - hue_diff);
+            let hue_weight = if hue_range > 0.0 {
+                (1.0 - hue_diff / hue_range).clamp(0.0, 1.0)
+            } else if hue_diff < 1.0 {
+                1.0
+            } else {
+                0.0
+            };
+
+            // Saturation distance
+            let sat_diff = (sat - center_sat).abs();
+            let sat_weight = if sat_range > 0.0 {
+                (1.0 - sat_diff / sat_range).clamp(0.0, 1.0)
+            } else if sat_diff < 0.01 {
+                1.0
+            } else {
+                0.0
+            };
+
+            // Lightness distance
+            let lum_diff = (lum - center_lum).abs();
+            let lum_weight = if lum_range > 0.0 {
+                (1.0 - lum_diff / lum_range).clamp(0.0, 1.0)
+            } else if lum_diff < 0.01 {
+                1.0
+            } else {
+                0.0
+            };
+
+            let combined = hue_weight * sat_weight * lum_weight;
+            let idx = (y * w + x) as usize;
+            mask_data[idx] = (combined * 255.0).round().clamp(0.0, 255.0) as u8;
+        }
+    }
+
+    // Apply feathering (Gaussian blur)
+    if feather > 0.0 {
+        let gray_mask = GrayImage::from_raw(w, h, mask_data.clone())
+            .ok_or("Failed to create gray image for feathering")?;
+        let sigma = feather * w.min(h) as f32 * 0.005;
+        let blurred = imageproc::filter::gaussian_blur_f32(&gray_mask, sigma.max(0.01));
+        mask_data = blurred.into_raw();
+    }
+
+    Ok(mask_data)
+}
+
+// ---------------------------------------------------------------------------
+// Luminance Range Mask
+// ---------------------------------------------------------------------------
+
+/// Generate a mask based on luminance range.
+/// Pixels with luminance between min_lum and max_lum get full selection,
+/// with Gaussian falloff at the boundaries controlled by `feather`.
+#[tauri::command]
+pub fn generate_luminance_range_mask(
+    state: tauri::State<AppState>,
+    min_lum: f32,
+    max_lum: f32,
+    feather: f32,
+) -> Result<Vec<u8>, String> {
+    let loaded_image = state
+        .original_image
+        .lock()
+        .unwrap()
+        .clone()
+        .ok_or("No original image loaded")?;
+
+    let (w, h) = loaded_image.image.dimensions();
+    if w == 0 || h == 0 {
+        return Err("Image has zero dimensions".to_string());
+    }
+
+    let rgba = loaded_image.image.to_rgba8();
+
+    let min_l = min_lum.clamp(0.0, 1.0);
+    let max_l = max_lum.clamp(0.0, 1.0);
+    let feather_sigma = feather.clamp(0.0, 1.0) * 0.1; // Gaussian sigma for transition
+
+    let mut mask_data = vec![0u8; (w * h) as usize];
+
+    for y in 0..h {
+        for x in 0..w {
+            let pixel = rgba.get_pixel(x, y);
+            let lum = 0.299 * pixel[0] as f32 / 255.0
+                + 0.587 * pixel[1] as f32 / 255.0
+                + 0.114 * pixel[2] as f32 / 255.0;
+
+            // Gaussian-shaped selection: peak in [min_l, max_l], falloff outside
+            let intensity = if lum >= min_l && lum <= max_l {
+                1.0
+            } else if feather_sigma > 1e-6 {
+                let dist = if lum < min_l { min_l - lum } else { lum - max_l };
+                (-dist * dist / (2.0 * feather_sigma * feather_sigma)).exp()
+            } else {
+                0.0
+            };
+
+            let idx = (y * w + x) as usize;
+            mask_data[idx] = (intensity * 255.0).round().clamp(0.0, 255.0) as u8;
+        }
+    }
+
+    // Apply additional feathering blur if requested
+    if feather > 0.0 {
+        let gray_mask = GrayImage::from_raw(w, h, mask_data.clone())
+            .ok_or("Failed to create gray image for feathering")?;
+        let sigma = feather * w.min(h) as f32 * 0.005;
+        let blurred = imageproc::filter::gaussian_blur_f32(&gray_mask, sigma.max(0.01));
+        mask_data = blurred.into_raw();
+    }
+
+    Ok(mask_data)
+}
+
+// ---------------------------------------------------------------------------
+// Mask Feather
+// ---------------------------------------------------------------------------
+
+/// Apply Gaussian feathering to an existing mask.
+/// `mask_data` is raw grayscale bytes (w*h), `feather_radius` controls blur strength.
+#[tauri::command]
+pub fn apply_mask_feather(
+    mask_data: Vec<u8>,
+    width: u32,
+    height: u32,
+    feather_radius: f32,
+) -> Result<Vec<u8>, String> {
+    if width == 0 || height == 0 {
+        return Err("Invalid mask dimensions".to_string());
+    }
+
+    if mask_data.len() != (width * height) as usize {
+        return Err(format!(
+            "Mask data size {} does not match dimensions {}x{}",
+            mask_data.len(),
+            width,
+            height
+        ));
+    }
+
+    if feather_radius <= 0.0 {
+        return Ok(mask_data);
+    }
+
+    let gray_mask = GrayImage::from_raw(width, height, mask_data)
+        .ok_or("Failed to create gray image from mask data")?;
+
+    // Gaussian blur with the specified feather radius
+    let sigma = feather_radius.clamp(0.01, 100.0);
+    let blurred = imageproc::filter::gaussian_blur_f32(&gray_mask, sigma);
+
+    Ok(blurred.into_raw())
+}
+
+// ---------------------------------------------------------------------------
+// Internal HSL conversion (for mask_generation module)
+// ---------------------------------------------------------------------------
+
+fn rgb_to_hsl_internal(r: f32, g: f32, b: f32) -> (f32, f32, f32) {
+    let max_c = r.max(g).max(b);
+    let min_c = r.min(g).min(b);
+    let l = (max_c + min_c) / 2.0;
+
+    if (max_c - min_c).abs() < 1e-6 {
+        return (0.0, 0.0, l);
+    }
+
+    let d = max_c - min_c;
+    let s = if l > 0.5 {
+        d / (2.0 - max_c - min_c)
+    } else {
+        d / (max_c + min_c)
+    };
+
+    let h = if (max_c - r).abs() < 1e-6 {
+        (g - b) / d + if g < b { 6.0 } else { 0.0 }
+    } else if (max_c - g).abs() < 1e-6 {
+        (b - r) / d + 2.0
+    } else {
+        (r - g) / d + 4.0
+    };
+
+    (h * 60.0, s, l)
+}

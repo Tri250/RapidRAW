@@ -291,6 +291,15 @@
       },
       "swipeHint": "左右滑动切换照片"
     },
+    "androidShare": {
+      "title": "分享到{{target}}",
+      "titleDefault": "分享图片",
+      "wechat": "微信",
+      "qq": "QQ",
+      "weibo": "微博",
+      "more": "更多",
+      "cancel": "取消"
+    },
     "adjustments": {
       "actions": {
         "copySectionSettings": "复制 {{section}} 设置",
@@ -316,7 +325,46 @@
       "title": "色彩"
     },
     "portraitPanel": {
-      "title": "人像"
+      "title": "人像",
+      "attributes": {
+        "single": "单人",
+        "male": "男",
+        "female": "女",
+        "child": "儿童",
+        "elderMale": "长辈男",
+        "elderFemale": "长辈女",
+        "all": "所有人"
+      },
+      "blemishRemoval": "祛除瑕疵",
+      "blemishActive": "标记中",
+      "blemishStart": "开始标记",
+      "blemishUndo": "撤销上一个",
+      "blemishCount": "已标记 {{count}} 个瑕疵点",
+      "blemishHint": "点击图片标记瑕疵点",
+      "skinSmoothing": "美肤磨皮",
+      "skinSmoothingStrength": "强度",
+      "skinSmoothingDetailPreserve": "细节保留",
+      "faceReshape": "面部重塑",
+      "faceSlimAmount": "瘦脸",
+      "jawAmount": "下巴",
+      "foreheadAmount": "额头",
+      "eyeEnhance": "眼睛增强",
+      "eyeEnlargeAmount": "大眼",
+      "eyeBrightenAmount": "亮眼",
+      "teethWhiten": "牙齿美白",
+      "teethWhitenBrightness": "亮度",
+      "teethWhitenDesaturate": "饱和度降低",
+      "makeup": "美妆",
+      "lipstick": "唇彩",
+      "blush": "腮红",
+      "eyebrow": "眉毛",
+      "hairAdjust": "头发调整",
+      "hairHueShift": "发色偏移",
+      "hairBrightness": "亮度",
+      "bodyReshape": "全身美型",
+      "bodySlimAmount": "瘦身",
+      "bodyHeightAmount": "增高",
+      "legLengthAmount": "长腿"
     },
     "ai": {
       "actions": {
@@ -835,6 +883,14 @@
       "noImageSelected": "未选择要导出的图像。",
       "noImagesSelected": "未选择图像。",
       "success": "导出成功！"
+    },
+    "share": {
+      "title": "分享到{{target}}",
+      "button": "分享图片"
+    },
+    "gallery": {
+      "saved": "已保存到系统相册",
+      "saveFailed": "保存到相册失败"
     },
     "title": "导出",
     "watermark": {

@@ -3575,3 +3575,309 @@ pub fn calculate_auto_adjustments(
 
     Ok(auto_results_to_json(&results))
 }
+
+// ---------------------------------------------------------------------------
+// Composition Enhancement – Horizon Detection & Auto-Straighten
+// ---------------------------------------------------------------------------
+
+/// A detected horizon line represented in Hesse normal form (rho, theta).
+/// rho = distance from origin to the line (pixels).
+/// theta = angle of the line's normal from x-axis (radians).
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct HorizonLine {
+    pub rho: f32,
+    pub theta: f32,
+    pub confidence: f32,
+}
+
+/// Detect horizon lines using Canny edge detection + Hough transform.
+#[tauri::command]
+pub fn detect_horizon_lines(
+    state: tauri::State<AppState>,
+) -> Result<Vec<HorizonLine>, String> {
+    let loaded_image = state
+        .original_image
+        .lock()
+        .unwrap()
+        .clone()
+        .ok_or("No original image loaded")?;
+
+    let (w, h) = loaded_image.image.dimensions();
+    if w == 0 || h == 0 {
+        return Err("Image has zero dimensions".to_string());
+    }
+
+    // Convert to grayscale
+    let gray = loaded_image.image.to_luma8();
+
+    // Step 1: Gaussian blur to reduce noise before edge detection
+    let blurred = imageproc::filter::gaussian_blur_f32(&gray, 1.4);
+
+    // Step 2: Canny edge detection
+    // We implement a simplified Canny: Sobel gradient magnitude + non-maximum suppression + thresholding
+    let (grad_mag, grad_dir) = compute_sobel_gradients(&blurred);
+
+    // Non-maximum suppression
+    let nms = non_maximum_suppression(&grad_mag, &grad_dir, w, h);
+
+    // Double threshold + hysteresis
+    let edges = double_threshold_hysteresis(&nms, w, h, 30.0, 80.0);
+
+    // Step 3: Hough transform for lines
+    // Focus on near-horizontal lines (theta near PI/2) since we're looking for horizons
+    let diagonal = ((w as f32).powi(2) + (h as f32).powi(2)).sqrt();
+    let rho_max = diagonal.ceil() as i32;
+    let rho_steps = (2 * rho_max + 1) as usize;
+
+    // Scan angles near horizontal: 60° to 120° (PI/3 to 2*PI/3)
+    let theta_min = PI / 3.0;
+    let theta_max = 2.0 * PI / 3.0;
+    let theta_steps = 120;
+    let theta_step = (theta_max - theta_min) / theta_steps as f32;
+
+    let mut accumulator = vec![0u32; rho_steps * theta_steps];
+
+    for y in 1..(h - 1) {
+        for x in 1..(w - 1) {
+            if edges[(y * w + x) as usize] {
+                for ti in 0..theta_steps {
+                    let theta = theta_min + ti as f32 * theta_step;
+                    let rho = x as f32 * theta.cos() + y as f32 * theta.sin();
+                    let rho_idx = ((rho + diagonal).round() as i32).clamp(0, rho_steps as i32 - 1);
+                    accumulator[rho_idx as usize * theta_steps + ti] += 1;
+                }
+            }
+        }
+    }
+
+    // Find peaks in accumulator
+    let threshold = (w.min(h) as f32 * 0.15).ceil() as u32;
+    let mut peaks: Vec<(usize, usize, u32)> = Vec::new();
+
+    for ri in 2..(rho_steps - 2) {
+        for ti in 2..(theta_steps - 2) {
+            let val = accumulator[ri * theta_steps + ti];
+            if val < threshold {
+                continue;
+            }
+
+            // Check if it's a local maximum in a 5x5 neighborhood
+            let mut is_peak = true;
+            'outer: for dri in -2i32..=2 {
+                for dti in -2i32..=2 {
+                    if dri == 0 && dti == 0 {
+                        continue;
+                    }
+                    let nr = (ri as i32 + dri).clamp(0, rho_steps as i32 - 1) as usize;
+                    let nt = (ti as i32 + dti).clamp(0, theta_steps as i32 - 1) as usize;
+                    if accumulator[nr * theta_steps + nt] > val {
+                        is_peak = false;
+                        break 'outer;
+                    }
+                }
+            }
+
+            if is_peak {
+                peaks.push((ri, ti, val));
+            }
+        }
+    }
+
+    // Sort by vote count descending
+    peaks.sort_by(|a, b| b.2.cmp(&a.2));
+
+    // Take top N and convert to HorizonLine
+    let max_lines = 5;
+    let mut horizon_lines = Vec::new();
+
+    let max_votes = peaks.first().map(|p| p.2).unwrap_or(1).max(1);
+
+    for (ri, ti, votes) in peaks.iter().take(max_lines) {
+        let rho = *ri as f32 - diagonal;
+        let theta = theta_min + *ti as f32 * theta_step;
+        let confidence = *votes as f32 / max_votes as f32;
+
+        horizon_lines.push(HorizonLine {
+            rho,
+            theta,
+            confidence,
+        });
+    }
+
+    Ok(horizon_lines)
+}
+
+/// Auto-straighten the horizon by finding the dominant near-horizontal line
+/// and returning the rotation angle needed to correct it.
+/// Returns the angle in degrees that should be applied to straighten.
+#[tauri::command]
+pub fn auto_straighten_horizon(
+    state: tauri::State<AppState>,
+    angle_tolerance: f32,
+) -> Result<f32, String> {
+    let lines = detect_horizon_lines(state)?;
+
+    if lines.is_empty() {
+        return Ok(0.0);
+    }
+
+    let tolerance = angle_tolerance.clamp(0.0, 45.0);
+
+    // Find the best candidate: highest confidence, within tolerance
+    let best = lines
+        .iter()
+        .filter(|l| {
+            // The line angle relative to horizontal
+            // A horizontal line has theta = PI/2
+            let deviation = ((l.theta - PI / 2.0) * 180.0 / PI).abs();
+            deviation <= tolerance
+        })
+        .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap_or(std::cmp::Ordering::Equal));
+
+    match best {
+        Some(line) => {
+            // The deviation from horizontal in degrees
+            let deviation_deg = (line.theta - PI / 2.0) * 180.0 / PI;
+            Ok(-deviation_deg)
+        }
+        None => Ok(0.0),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Internal helpers for Canny + Hough
+// ---------------------------------------------------------------------------
+
+/// Compute Sobel gradient magnitude and direction.
+fn compute_sobel_gradients(gray: &image::GrayImage) -> (Vec<f32>, Vec<f32>) {
+    let (w, h) = gray.dimensions();
+    let raw = gray.as_raw();
+    let total = (w * h) as usize;
+    let mut mag = vec![0.0f32; total];
+    let mut dir = vec![0.0f32; total];
+
+    for y in 1..(h - 1) {
+        for x in 1..(w - 1) {
+            // Sobel X kernel: [[-1,0,1],[-2,0,2],[-1,0,1]]
+            let tl = raw[((y - 1) * w + (x - 1)) as usize] as f32;
+            let ml = raw[(y * w + (x - 1)) as usize] as f32;
+            let bl = raw[((y + 1) * w + (x - 1)) as usize] as f32;
+            let tr = raw[((y - 1) * w + (x + 1)) as usize] as f32;
+            let mr = raw[(y * w + (x + 1)) as usize] as f32;
+            let br = raw[((y + 1) * w + (x + 1)) as usize] as f32;
+            let tc = raw[((y - 1) * w + x) as usize] as f32;
+            let bc = raw[((y + 1) * w + x) as usize] as f32;
+
+            let gx = -tl + tr - 2.0 * ml + 2.0 * mr - bl + br;
+            let gy = -tl - 2.0 * tc - tr + bl + 2.0 * bc + br;
+
+            let idx = (y * w + x) as usize;
+            mag[idx] = (gx * gx + gy * gy).sqrt();
+            dir[idx] = gy.atan2(gx);
+        }
+    }
+
+    (mag, dir)
+}
+
+/// Non-maximum suppression for Canny edge detection.
+fn non_maximum_suppression(mag: &[f32], dir: &[f32], w: u32, h: u32) -> Vec<f32> {
+    let total = (w * h) as usize;
+    let mut nms = vec![0.0f32; total];
+
+    for y in 1..(h - 1) {
+        for x in 1..(w - 1) {
+            let idx = (y * w + x) as usize;
+            let m = mag[idx];
+            if m < 1e-4 {
+                continue;
+            }
+
+            // Quantize angle to 4 directions
+            let angle = dir[idx];
+            let (dx1, dy1, dx2, dy2) = {
+                let a = angle.abs();
+                if a < PI / 8.0 || a > 7.0 * PI / 8.0 {
+                    // Horizontal edge → compare left/right
+                    (1i32, 0i32, -1i32, 0i32)
+                } else if a < 3.0 * PI / 8.0 {
+                    // Diagonal \
+                    (1i32, 1i32, -1i32, -1i32)
+                } else if a < 5.0 * PI / 8.0 {
+                    // Vertical edge → compare up/down
+                    (0i32, 1i32, 0i32, -1i32)
+                } else {
+                    // Diagonal /
+                    (1i32, -1i32, -1i32, 1i32)
+                }
+            };
+
+            let nx1 = (x as i32 + dx1).clamp(0, w as i32 - 1) as u32;
+            let ny1 = (y as i32 + dy1).clamp(0, h as i32 - 1) as u32;
+            let nx2 = (x as i32 + dx2).clamp(0, w as i32 - 1) as u32;
+            let ny2 = (y as i32 + dy2).clamp(0, h as i32 - 1) as u32;
+
+            let m1 = mag[(ny1 * w + nx1) as usize];
+            let m2 = mag[(ny2 * w + nx2) as usize];
+
+            if m >= m1 && m >= m2 {
+                nms[idx] = m;
+            }
+        }
+    }
+
+    nms
+}
+
+/// Double threshold + hysteresis for Canny.
+fn double_threshold_hysteresis(
+    nms: &[f32],
+    w: u32,
+    h: u32,
+    low_thresh: f32,
+    high_thresh: f32,
+) -> Vec<bool> {
+    let total = (w * h) as usize;
+    let mut strong = vec![false; total];
+    let mut weak = vec![false; total];
+
+    // Classify pixels
+    for i in 0..total {
+        if nms[i] >= high_thresh {
+            strong[i] = true;
+        } else if nms[i] >= low_thresh {
+            weak[i] = true;
+        }
+    }
+
+    // Hysteresis: promote weak pixels connected to strong pixels
+    let mut edges = strong.clone();
+    let mut changed = true;
+    while changed {
+        changed = false;
+        for y in 1..(h - 1) {
+            for x in 1..(w - 1) {
+                let idx = (y * w + x) as usize;
+                if !weak[idx] || edges[idx] {
+                    continue;
+                }
+                // Check 8-connectivity for strong neighbors
+                for dy in -1i32..=1 {
+                    for dx in -1i32..=1 {
+                        if dx == 0 && dy == 0 {
+                            continue;
+                        }
+                        let nx = (x as i32 + dx).clamp(0, w as i32 - 1) as u32;
+                        let ny = (y as i32 + dy).clamp(0, h as i32 - 1) as u32;
+                        if edges[(ny * w + nx) as usize] {
+                            edges[idx] = true;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    edges
+}

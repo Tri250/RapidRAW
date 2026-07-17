@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { save, open } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
-import { FileInput, CheckCircle, XCircle, Loader, Ban, ChevronDown, ChevronRight, Settings, X } from 'lucide-react';
+import { FileInput, CheckCircle, XCircle, Loader, Ban, ChevronDown, ChevronRight, Settings, X, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import debounce from 'lodash.debounce';
@@ -277,6 +277,7 @@ export default function ExportPanel({
   const [isEstimating, setIsEstimating] = useState<boolean>(false);
   const [watermarkImageAspectRatio, setWatermarkImageAspectRatio] = useState(1);
   const [imageAspectRatio, setImageAspectRatio] = useState(16 / 9);
+  const [lastExportedFilePath, setLastExportedFilePath] = useState<string | null>(null);
   const filenameInputRef = useRef<HTMLInputElement>(null);
   const osPlatform = useOsPlatform();
   const isAndroid = osPlatform === 'android';
@@ -516,7 +517,7 @@ export default function ExportPanel({
         }
 
         setExportState({ status: Status.Exporting, progress: { current: 0, total: numImages }, errorMessage: '' });
-        await invoke(Invokes.ExportImages, {
+        const exportResult: any = await invoke(Invokes.ExportImages, {
           paths: pathsToExport,
           outputFolderOrFile: outputFolderOrFile,
           isExplicitFilePath: shouldChooseOutputFile,
@@ -526,6 +527,25 @@ export default function ExportPanel({
           currentEditPath: selectedImage?.path || null,
           currentEditAdjustments: adjustments || null,
         });
+
+        // On Android, save the exported file to the system gallery
+        if (isAndroid && exportResult) {
+          const exportedPaths: string[] = Array.isArray(exportResult) ? exportResult : [exportResult];
+          const mimeType = selectedFormat.extensions[0] === 'png' ? 'image/png' : 'image/jpeg';
+          for (const exportedPath of exportedPaths) {
+            try {
+              await invoke('save_to_android_gallery', {
+                filePath: exportedPath,
+                mimeType,
+              });
+            } catch (err) {
+              console.error('Failed to save to Android gallery:', err);
+            }
+          }
+          if (exportedPaths.length > 0) {
+            setLastExportedFilePath(exportedPaths[exportedPaths.length - 1]);
+          }
+        }
       }
     } catch (error) {
       setExportState({
@@ -923,6 +943,26 @@ export default function ExportPanel({
             </>
           )}
         </Button>
+        {isAndroid && status === Status.Success && lastExportedFilePath && (
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={async () => {
+              try {
+                const mimeType = fileFormat === 'png' ? 'image/png' : 'image/jpeg';
+                await invoke('share_image', {
+                  filePath: lastExportedFilePath,
+                  mimeType,
+                  title: t('export.share.title'),
+                });
+              } catch (err) {
+                console.error('Failed to share image:', err);
+              }
+            }}
+          >
+            <Share2 size={18} className="mr-2" /> {t('export.share.button')}
+          </Button>
+        )}
       </div>
     </div>
   );

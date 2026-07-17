@@ -31,6 +31,7 @@ mod negative_conversion;
 mod panorama_stitching;
 mod panorama_utils;
 mod preset_converter;
+mod portrait_processing;
 mod raw_processing;
 mod tagging;
 mod tagging_utils;
@@ -2396,6 +2397,16 @@ pub fn run() {
             lens_correction::get_lens_distortion_params,
             negative_conversion::preview_negative_conversion,
             negative_conversion::convert_negatives,
+            ai_commands::generate_ai_sky_replace,
+            ai_commands::generate_ai_background_remove,
+            ai_commands::apply_super_resolution,
+            mask_generation::generate_color_range_mask,
+            mask_generation::generate_luminance_range_mask,
+            mask_generation::apply_mask_feather,
+            image_processing::detect_horizon_lines,
+            image_processing::auto_straighten_horizon,
+            android_integration::save_to_android_gallery,
+            android_integration::share_image,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

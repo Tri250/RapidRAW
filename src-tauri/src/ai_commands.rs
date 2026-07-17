@@ -3,7 +3,7 @@ use std::hash::{Hash, Hasher};
 use std::io::Cursor;
 
 use base64::{Engine as _, engine::general_purpose};
-use image::{GrayImage, ImageFormat};
+use image::{GrayImage, ImageFormat, Rgba};
 
 use crate::ai_connector;
 use crate::ai_processing::{
@@ -669,4 +669,260 @@ pub async fn generate_ai_ratings_batch(
     }
 
     Ok(results)
+}
+
+// ---------------------------------------------------------------------------
+// Sky Replacement
+// ---------------------------------------------------------------------------
+
+/// Replace the sky region using an existing sky mask with Poisson-like blending
+/// at the edges. `sky_mask` is a grayscale mask (0=keep original, 255=use sky).
+/// `sky_image_data` is the new sky image as raw RGBA bytes.
+/// `blend_amount` controls edge blending (0..1).
+#[tauri::command]
+pub fn generate_ai_sky_replace(
+    state: tauri::State<AppState>,
+    sky_mask: Vec<u8>,
+    sky_image_data: Vec<u8>,
+    blend_amount: f32,
+) -> Result<Vec<u8>, String> {
+    let loaded_image = state
+        .original_image
+        .lock()
+        .unwrap()
+        .clone()
+        .ok_or("No original image loaded")?;
+
+    let (w, h) = loaded_image.image.dimensions();
+    if w == 0 || h == 0 {
+        return Err("Image has zero dimensions".to_string());
+    }
+
+    let mut base_rgba = loaded_image.image.to_rgba8();
+
+    // Decode the sky image
+    let sky_img = image::load_from_memory(&sky_image_data)
+        .map_err(|e| format!("Failed to decode sky image: {}", e))?;
+    let sky_rgba = sky_img.resize_exact(w, h, image::imageops::FilterType::Lanczos3).to_rgba8();
+
+    // Validate mask dimensions
+    if sky_mask.len() != (w as usize * h as usize) {
+        return Err(format!(
+            "Sky mask size {} does not match image {}x{}={}",
+            sky_mask.len(),
+            w,
+            h,
+            w as usize * h as usize
+        ));
+    }
+
+    let blend = blend_amount.clamp(0.0, 1.0);
+    let blend_radius = (blend * 10.0).round() as i32; // pixel radius for edge blending
+
+    // Build a feathered mask from the binary sky_mask
+    // Apply a simple box blur for feathering
+    let mut feathered = vec![0.0f32; (w * h) as usize];
+    for y in 0..h {
+        for x in 0..w {
+            let idx = (y * w + x) as usize;
+            feathered[idx] = sky_mask[idx] as f32 / 255.0;
+        }
+    }
+
+    // Simple box blur for feathering
+    if blend_radius > 0 {
+        let mut blurred = vec![0.0f32; feathered.len()];
+        let w_usize = w as usize;
+        let h_usize = h as usize;
+
+        // Horizontal pass
+        for y in 0..h_usize {
+            for x in 0..w_usize {
+                let mut sum = 0.0f32;
+                let mut count = 0;
+                for kx in -blend_radius..=blend_radius {
+                    let nx = (x as i32 + kx).clamp(0, w_usize as i32 - 1) as usize;
+                    sum += feathered[y * w_usize + nx];
+                    count += 1;
+                }
+                blurred[y * w_usize + x] = sum / count as f32;
+            }
+        }
+
+        // Vertical pass
+        for y in 0..h_usize {
+            for x in 0..w_usize {
+                let mut sum = 0.0f32;
+                let mut count = 0;
+                for ky in -blend_radius..=blend_radius {
+                    let ny = (y as i32 + ky).clamp(0, h_usize as i32 - 1) as usize;
+                    sum += blurred[ny * w_usize + x];
+                    count += 1;
+                }
+                feathered[y * w_usize + x] = sum / count as f32;
+            }
+        }
+    }
+
+    // Composite: blend original and sky using the feathered mask
+    for y in 0..h {
+        for x in 0..w {
+            let idx = (y * w + x) as usize;
+            let alpha = feathered[idx];
+
+            let base = base_rgba.get_pixel(x, y);
+            let sky = sky_rgba.get_pixel(x, y);
+
+            let r = (base[0] as f32 * (1.0 - alpha) + sky[0] as f32 * alpha).round() as u8;
+            let g = (base[1] as f32 * (1.0 - alpha) + sky[1] as f32 * alpha).round() as u8;
+            let b = (base[2] as f32 * (1.0 - alpha) + sky[2] as f32 * alpha).round() as u8;
+
+            base_rgba.put_pixel(x, y, Rgba([r, g, b, base[3]]));
+        }
+    }
+
+    // Encode result as PNG
+    let mut buf = Cursor::new(Vec::new());
+    base_rgba
+        .write_to(&mut buf, ImageFormat::Png)
+        .map_err(|e| format!("Failed to encode result: {}", e))?;
+
+    Ok(buf.into_inner())
+}
+
+// ---------------------------------------------------------------------------
+// Background Removal
+// ---------------------------------------------------------------------------
+
+/// Remove background using the existing foreground mask from AI state.
+/// Produces an RGBA PNG with alpha channel from the mask.
+#[tauri::command]
+pub fn generate_ai_background_remove(
+    state: tauri::State<AppState>,
+) -> Result<Vec<u8>, String> {
+    let loaded_image = state
+        .original_image
+        .lock()
+        .unwrap()
+        .clone()
+        .ok_or("No original image loaded")?;
+
+    let (w, h) = loaded_image.image.dimensions();
+    if w == 0 || h == 0 {
+        return Err("Image has zero dimensions".to_string());
+    }
+
+    // Get the foreground mask from AI state via depth map
+    let foreground_mask = {
+        let ai_state_lock = state.ai_state.lock().unwrap();
+        let ai_state = ai_state_lock
+            .as_ref()
+            .ok_or("AI state not initialized. Please generate a depth mask first.")?;
+
+        if let Some(depth) = &ai_state.depth_map {
+            // Use depth map: treat closer objects (higher depth value) as foreground
+            let mut mask = depth.depth_image.clone();
+            // Threshold: pixels above 128 are foreground
+            for pixel in mask.pixels_mut() {
+                pixel[0] = if pixel[0] > 128 { 255 } else { 0 };
+            }
+            // Resize to match
+            image::imageops::resize(&mask, w, h, image::imageops::FilterType::Triangle)
+        } else {
+            return Err(
+                "No depth map available. Please generate a depth mask first.".to_string(),
+            );
+        }
+    };
+
+    // Resize mask to match image dimensions
+    let mask_resized = if foreground_mask.width() != w || foreground_mask.height() != h {
+        image::imageops::resize(&foreground_mask, w, h, image::imageops::FilterType::Triangle)
+    } else {
+        foreground_mask
+    };
+
+    // Apply mask as alpha channel
+    let mut rgba = loaded_image.image.to_rgba8();
+    for y in 0..h {
+        for x in 0..w {
+            let alpha = mask_resized.get_pixel(x, y)[0];
+            let pixel = rgba.get_pixel_mut(x, y);
+            pixel[3] = alpha;
+        }
+    }
+
+    // Encode as PNG
+    let mut buf = Cursor::new(Vec::new());
+    rgba.write_to(&mut buf, ImageFormat::Png)
+        .map_err(|e| format!("Failed to encode result: {}", e))?;
+
+    Ok(buf.into_inner())
+}
+
+// ---------------------------------------------------------------------------
+// Super Resolution
+// ---------------------------------------------------------------------------
+
+/// Apply 2x super-resolution using Lanczos3 upsampling followed by
+/// sharpening enhancement. No deep learning model is used.
+#[tauri::command]
+pub fn apply_super_resolution(
+    state: tauri::State<AppState>,
+    scale: f32,
+) -> Result<Vec<u8>, String> {
+    let loaded_image = state
+        .original_image
+        .lock()
+        .unwrap()
+        .clone()
+        .ok_or("No original image loaded")?;
+
+    let (w, h) = loaded_image.image.dimensions();
+    if w == 0 || h == 0 {
+        return Err("Image has zero dimensions".to_string());
+    }
+
+    let effective_scale = scale.clamp(1.0, 4.0);
+    let new_w = (w as f32 * effective_scale).round() as u32;
+    let new_h = (h as f32 * effective_scale).round() as u32;
+
+    // Step 1: Lanczos3 upsampling
+    let mut upscaled = loaded_image
+        .image
+        .resize_exact(new_w, new_h, image::imageops::FilterType::Lanczos3)
+        .to_rgba8();
+
+    // Step 2: Sharpening enhancement (unsharp mask)
+    // Create a blurred version
+    let blurred = image::imageops::blur(&upscaled, 1.0);
+
+    // Unsharp mask: sharpened = original + amount * (original - blurred)
+    let amount = 0.5_f32;
+    for y in 0..new_h {
+        for x in 0..new_w {
+            let orig = upscaled.get_pixel(x, y);
+            let blur = blurred.get_pixel(x, y);
+
+            let r = (orig[0] as f32 + amount * (orig[0] as f32 - blur[0] as f32))
+                .round()
+                .clamp(0.0, 255.0) as u8;
+            let g = (orig[1] as f32 + amount * (orig[1] as f32 - blur[1] as f32))
+                .round()
+                .clamp(0.0, 255.0) as u8;
+            let b = (orig[2] as f32 + amount * (orig[2] as f32 - blur[2] as f32))
+                .round()
+                .clamp(0.0, 255.0) as u8;
+
+            upscaled.put_pixel(x, y, Rgba([r, g, b, orig[3]]));
+        }
+    }
+
+    // Encode as PNG
+    let mut buf = Cursor::new(Vec::new());
+    upscaled
+        .write_to(&mut buf, ImageFormat::Png)
+        .map_err(|e| format!("Failed to encode result: {}", e))?;
+
+    Ok(buf.into_inner())
 }

@@ -291,6 +291,15 @@
       },
       "swipeHint": "Swipe left/right to switch photos"
     },
+    "androidShare": {
+      "title": "Share to {{target}}",
+      "titleDefault": "Share Image",
+      "wechat": "WeChat",
+      "qq": "QQ",
+      "weibo": "Weibo",
+      "more": "More",
+      "cancel": "Cancel"
+    },
     "adjustments": {
       "actions": {
         "copySectionSettings": "Copy {{section}} Settings",
@@ -316,7 +325,46 @@
       "title": "Color"
     },
     "portraitPanel": {
-      "title": "Portrait"
+      "title": "Portrait",
+      "attributes": {
+        "single": "Single",
+        "male": "Male",
+        "female": "Female",
+        "child": "Child",
+        "elderMale": "Elder M",
+        "elderFemale": "Elder F",
+        "all": "All"
+      },
+      "blemishRemoval": "Blemish Removal",
+      "blemishActive": "Marking",
+      "blemishStart": "Start Marking",
+      "blemishUndo": "Undo Last",
+      "blemishCount": "{{count}} spots marked",
+      "blemishHint": "Tap image to mark blemish spots",
+      "skinSmoothing": "Skin Smoothing",
+      "skinSmoothingStrength": "Strength",
+      "skinSmoothingDetailPreserve": "Detail Preserve",
+      "faceReshape": "Face Reshape",
+      "faceSlimAmount": "Face Slim",
+      "jawAmount": "Jaw",
+      "foreheadAmount": "Forehead",
+      "eyeEnhance": "Eye Enhance",
+      "eyeEnlargeAmount": "Eye Enlarge",
+      "eyeBrightenAmount": "Eye Brighten",
+      "teethWhiten": "Teeth Whiten",
+      "teethWhitenBrightness": "Brightness",
+      "teethWhitenDesaturate": "Desaturate",
+      "makeup": "Makeup",
+      "lipstick": "Lipstick",
+      "blush": "Blush",
+      "eyebrow": "Eyebrow",
+      "hairAdjust": "Hair Adjust",
+      "hairHueShift": "Hue Shift",
+      "hairBrightness": "Brightness",
+      "bodyReshape": "Body Reshape",
+      "bodySlimAmount": "Body Slim",
+      "bodyHeightAmount": "Height",
+      "legLengthAmount": "Leg Length"
     },
     "ai": {
       "actions": {
@@ -821,7 +869,14 @@
       "noImagesSelected": "No images selected.",
       "success": "Export successful!"
     },
-    "title": "Export",
+    "share": {
+      "title": "Share to {{target}}",
+      "button": "Share Image"
+    },
+    "gallery": {
+      "saved": "Saved to system gallery",
+      "saveFailed": "Failed to save to gallery"
+    },
     "watermark": {
       "addWatermark": "Add Watermark",
       "anchors": {

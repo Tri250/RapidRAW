@@ -1,43 +1,114 @@
-import React, { useCallback, useState } from 'react';
-import { RotateCcw, Copy, ClipboardPaste, User, Users, Baby, PersonStanding } from 'lucide-react';
+import React, { useCallback, useState, useRef } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { User, Users, Baby, PersonStanding, Eraser, Sparkles, CircleDot, Eye, Smile, Palette, Scissors, Move } from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import DetailsPanel from '../../adjustments/Details';
-import EffectsPanel from '../../adjustments/Effects';
 import CollapsibleSection from '../../ui/CollapsibleSection';
-import { Adjustments, SectionVisibility, INITIAL_ADJUSTMENTS, ADJUSTMENT_SECTIONS } from '../../../utils/adjustments';
-import { useContextMenu } from '../../../context/ContextMenuContext';
-import { OPTION_SEPARATOR } from '../../ui/AppProperties';
+import Slider from '../../ui/Slider';
 import Text from '../../ui/Text';
 import { TextVariants } from '../../../types/typography';
 import { useShallow } from 'zustand/react/shallow';
 import { useEditorStore } from '../../../store/useEditorStore';
-import { useSettingsStore } from '../../../store/useSettingsStore';
 import { useUIStore } from '../../../store/useUIStore';
 import { useEditorActions } from '../../../hooks/useEditorActions';
+import {
+  Adjustments,
+  PortraitAdjustments,
+  INITIAL_PORTRAIT_ADJUSTMENTS,
+} from '../../../utils/adjustments';
+
+type PersonAttribute = 'single' | 'male' | 'female' | 'child' | 'elderMale' | 'elderFemale' | 'all';
+
+function PortraitSlider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  onDragStateChange,
+  fillOrigin,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  fillOrigin?: 'min' | 'default';
+  onChange: (value: number) => void;
+  onDragStateChange?: (isDragging: boolean) => void;
+}) {
+  return (
+    <Slider
+      label={label}
+      value={value}
+      min={min}
+      max={max}
+      step={step ?? 1}
+      onChange={(e) => onChange(Number(e.target.value))}
+      onDragStateChange={onDragStateChange}
+      fillOrigin={fillOrigin}
+    />
+  );
+}
+
+function ColorPickerRow({
+  label,
+  color,
+  opacity,
+  onColorChange,
+  onOpacityChange,
+  onDragStateChange,
+}: {
+  label: string;
+  color: string;
+  opacity: number;
+  onColorChange: (color: string) => void;
+  onOpacityChange: (opacity: number) => void;
+  onDragStateChange?: (isDragging: boolean) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={color}
+          onChange={(e) => onColorChange(e.target.value)}
+          className="w-8 h-8 rounded border border-surface cursor-pointer bg-transparent"
+        />
+        <span className="text-sm text-text-secondary grow">{label}</span>
+      </div>
+      <Slider
+        label={`${label} ${opacity}%`}
+        value={opacity}
+        min={0}
+        max={100}
+        step={1}
+        onChange={(e) => onOpacityChange(Number(e.target.value))}
+        onDragStateChange={onDragStateChange}
+        fillOrigin="min"
+      />
+    </div>
+  );
+}
 
 export default function PortraitPanelSwitcher() {
   const { t } = useTranslation();
-  const { showContextMenu } = useContextMenu();
-  const [personAttribute, setPersonAttribute] = useState<'single' | 'male' | 'female' | 'child' | 'elderMale' | 'elderFemale' | 'all'>('all');
+  const [personAttribute, setPersonAttribute] = useState<PersonAttribute>('all');
+  const [blemishMode, setBlemishMode] = useState(false);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
 
   const attributes = [
-    { key: 'single', label: '单人', icon: User },
-    { key: 'male', label: '男', icon: PersonStanding },
-    { key: 'female', label: '女', icon: PersonStanding },
-    { key: 'child', label: '儿童', icon: Baby },
-    { key: 'elderMale', label: '长辈男', icon: PersonStanding },
-    { key: 'elderFemale', label: '长辈女', icon: PersonStanding },
-    { key: 'all', label: '所有人', icon: Users },
+    { key: 'single' as PersonAttribute, label: t('editor.portraitPanel.attributes.single'), icon: User },
+    { key: 'male' as PersonAttribute, label: t('editor.portraitPanel.attributes.male'), icon: PersonStanding },
+    { key: 'female' as PersonAttribute, label: t('editor.portraitPanel.attributes.female'), icon: PersonStanding },
+    { key: 'child' as PersonAttribute, label: t('editor.portraitPanel.attributes.child'), icon: Baby },
+    { key: 'elderMale' as PersonAttribute, label: t('editor.portraitPanel.attributes.elderMale'), icon: PersonStanding },
+    { key: 'elderFemale' as PersonAttribute, label: t('editor.portraitPanel.attributes.elderFemale'), icon: PersonStanding },
+    { key: 'all' as PersonAttribute, label: t('editor.portraitPanel.attributes.all'), icon: Users },
   ] as const;
-  const { setAdjustments, handleLutSelect, setLutPreviewOverride } = useEditorActions();
 
-  const { appSettings, theme } = useSettingsStore(
-    useShallow((state) => ({
-      appSettings: state.appSettings,
-      theme: state.theme,
-    })),
-  );
+  const { setAdjustments } = useEditorActions();
 
   const { collapsibleSectionsState, setUI } = useUIStore(
     useShallow((state) => ({
@@ -48,19 +119,16 @@ export default function PortraitPanelSwitcher() {
 
   const {
     adjustments,
-    copiedSectionAdjustments,
-    histogram,
-    isWbPickerActive,
     setEditor,
   } = useEditorStore(
     useShallow((state) => ({
       adjustments: state.adjustments,
-      copiedSectionAdjustments: state.copiedSectionAdjustments,
-      histogram: state.histogram,
-      isWbPickerActive: state.isWbPickerActive,
       setEditor: state.setEditor,
     })),
   );
+
+  const portrait = adjustments.portrait || INITIAL_PORTRAIT_ADJUSTMENTS;
+  const sectionVisibility = adjustments.sectionVisibility || {};
 
   const setCollapsibleState = useCallback(
     (updater: any) =>
@@ -70,108 +138,326 @@ export default function PortraitPanelSwitcher() {
     [setUI],
   );
 
-  const toggleWbPicker = useCallback(
-    () => setEditor((state) => ({ isWbPickerActive: !state.isWbPickerActive })),
-    [setEditor],
-  );
-
   const onDragStateChange = useCallback(
     (isDragging: boolean) => setEditor({ isSliderDragging: isDragging }),
     [setEditor],
   );
 
-  const handleToggleVisibility = (sectionName: string) => {
-    setAdjustments((prev: Adjustments) => {
-      const currentVisibility: SectionVisibility = prev.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility;
-      return {
+  const updatePortrait = useCallback(
+    (key: keyof PortraitAdjustments, value: any) => {
+      setAdjustments((prev: Adjustments) => ({
         ...prev,
-        sectionVisibility: {
-          ...currentVisibility,
-          [sectionName]: !currentVisibility[sectionName],
+        portrait: {
+          ...(prev.portrait || INITIAL_PORTRAIT_ADJUSTMENTS),
+          [key]: value,
         },
-      };
-    });
-  };
+      }));
+    },
+    [setAdjustments],
+  );
 
   const handleToggleSection = (section: string) => {
     setCollapsibleState((prev: any) => {
       const isOpening = !prev[section];
-      if (appSettings?.enableFocusMode && isOpening) {
-        const newState = { ...prev };
-        Object.keys(newState).forEach((key) => {
-          newState[key] = false;
-        });
-        newState[section] = true;
-        return newState;
-      }
       return { ...prev, [section]: !prev[section] };
     });
   };
 
-  const handleSectionContextMenu = (event: any, sectionName: string) => {
-    event.preventDefault();
-    event.stopPropagation();
+  const handleBlemishClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!blemishMode) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+      const radius = 0.02;
 
-    const sectionKeys = ADJUSTMENT_SECTIONS[sectionName as keyof typeof ADJUSTMENT_SECTIONS];
-    if (!sectionKeys) return;
+      setAdjustments((prev: Adjustments) => {
+        const currentPortrait = prev.portrait || INITIAL_PORTRAIT_ADJUSTMENTS;
+        return {
+          ...prev,
+          portrait: {
+            ...currentPortrait,
+            blemishSpots: [...currentPortrait.blemishSpots, { x, y, radius }],
+          },
+        };
+      });
 
-    const handleCopy = () => {
-      const adjustmentsToCopy: any = {};
-      for (const key of sectionKeys) {
-        if (Object.prototype.hasOwnProperty.call(adjustments, key)) {
-          adjustmentsToCopy[key] = JSON.parse(JSON.stringify(adjustments[key as keyof Adjustments]));
-        }
-      }
-      setEditor({ copiedSectionAdjustments: { section: sectionName, values: adjustmentsToCopy } });
-    };
+      invoke('apply_blemish_removal', {
+        spots: [{ x, y, radius }],
+        personAttribute,
+      }).catch((err) => console.error('apply_blemish_removal failed:', err));
+    },
+    [blemishMode, personAttribute, setAdjustments],
+  );
 
-    const handlePaste = () => {
-      const copiedSection = useEditorStore.getState().copiedSectionAdjustments;
-      if (!copiedSection || copiedSection.section !== sectionName) return;
-      setAdjustments((prev: Adjustments) => ({
+  const handleRemoveLastBlemish = useCallback(() => {
+    setAdjustments((prev: Adjustments) => {
+      const currentPortrait = prev.portrait || INITIAL_PORTRAIT_ADJUSTMENTS;
+      const spots = [...currentPortrait.blemishSpots];
+      spots.pop();
+      return {
         ...prev,
-        ...copiedSection.values,
-        sectionVisibility: {
-          ...(prev.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility),
-          [sectionName]: true,
-        },
-      }));
-    };
+        portrait: { ...currentPortrait, blemishSpots: spots },
+      };
+    });
+  }, [setAdjustments]);
 
-    const handleReset = () => {
-      const resetValues: any = {};
-      for (const key of sectionKeys) {
-        resetValues[key] = JSON.parse(JSON.stringify(INITIAL_ADJUSTMENTS[key as keyof Adjustments]));
-      }
-      setAdjustments((prev: Adjustments) => ({
-        ...prev,
-        ...resetValues,
-        sectionVisibility: {
-          ...(prev.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility),
-          [sectionName]: true,
-        },
-      }));
-    };
-
-    const currentCopiedSection = useEditorStore.getState().copiedSectionAdjustments;
-    const isPasteAllowed = currentCopiedSection && currentCopiedSection.section === sectionName;
-    const translatedSection = t(`editor.adjustments.sections.${sectionName}`);
-
-    const pasteLabel = currentCopiedSection
-      ? t('editor.adjustments.actions.pasteLabel', { section: translatedSection })
-      : t('editor.adjustments.actions.pasteSettings');
-
-    const options: any = [
-      { label: t('editor.adjustments.actions.copySectionSettings', { section: translatedSection }), icon: Copy, onClick: handleCopy },
-      { label: pasteLabel, icon: ClipboardPaste, onClick: handlePaste, disabled: !isPasteAllowed },
-      { type: OPTION_SEPARATOR },
-      { label: t('editor.adjustments.actions.resetSectionSettings', { section: translatedSection }), icon: RotateCcw, onClick: handleReset },
-    ];
-
-    showContextMenu(event.clientX, event.clientY, options);
-  };
-
-  const portraitSections = ['details', 'effects'];
+  const portraitSections = [
+    {
+      key: 'blemishRemoval',
+      title: t('editor.portraitPanel.blemishRemoval'),
+      icon: Eraser,
+      content: (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setBlemishMode(!blemishMode)}
+              className={clsx(
+                'flex-1 text-xs font-medium py-2 rounded-md transition-colors',
+                blemishMode
+                  ? 'bg-accent text-button-text'
+                  : 'bg-surface text-text-secondary hover:text-text-primary',
+              )}
+            >
+              {blemishMode ? t('editor.portraitPanel.blemishActive') : t('editor.portraitPanel.blemishStart')}
+            </button>
+            <button
+              onClick={handleRemoveLastBlemish}
+              disabled={portrait.blemishSpots.length === 0}
+              className="flex-1 text-xs font-medium py-2 rounded-md bg-surface text-text-secondary hover:text-text-primary disabled:opacity-50"
+            >
+              {t('editor.portraitPanel.blemishUndo')}
+            </button>
+          </div>
+          {portrait.blemishSpots.length > 0 && (
+            <Text variant={TextVariants.small} className="text-text-secondary">
+              {t('editor.portraitPanel.blemishCount', { count: portrait.blemishSpots.length })}
+            </Text>
+          )}
+          {blemishMode && (
+            <div
+              ref={imageContainerRef}
+              onClick={handleBlemishClick}
+              className="w-full h-24 bg-bg-tertiary rounded-md flex items-center justify-center cursor-crosshair border border-dashed border-accent/50"
+            >
+              <Text variant={TextVariants.small} className="text-text-secondary">
+                {t('editor.portraitPanel.blemishHint')}
+              </Text>
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'skinSmoothing',
+      title: t('editor.portraitPanel.skinSmoothing'),
+      icon: Sparkles,
+      content: (
+        <div className="space-y-1">
+          <PortraitSlider
+            label={t('editor.portraitPanel.skinSmoothingStrength')}
+            value={portrait.skinSmoothingStrength}
+            min={0}
+            max={100}
+            onChange={(v) => updatePortrait('skinSmoothingStrength', v)}
+            onDragStateChange={onDragStateChange}
+            fillOrigin="min"
+          />
+          <PortraitSlider
+            label={t('editor.portraitPanel.skinSmoothingDetailPreserve')}
+            value={portrait.skinSmoothingDetailPreserve}
+            min={0}
+            max={100}
+            onChange={(v) => updatePortrait('skinSmoothingDetailPreserve', v)}
+            onDragStateChange={onDragStateChange}
+            fillOrigin="min"
+          />
+        </div>
+      ),
+    },
+    {
+      key: 'faceReshape',
+      title: t('editor.portraitPanel.faceReshape'),
+      icon: CircleDot,
+      content: (
+        <div className="space-y-1">
+          <PortraitSlider
+            label={t('editor.portraitPanel.faceSlimAmount')}
+            value={portrait.faceSlimAmount}
+            min={0}
+            max={100}
+            onChange={(v) => updatePortrait('faceSlimAmount', v)}
+            onDragStateChange={onDragStateChange}
+            fillOrigin="min"
+          />
+          <PortraitSlider
+            label={t('editor.portraitPanel.jawAmount')}
+            value={portrait.jawAmount}
+            min={-50}
+            max={50}
+            onChange={(v) => updatePortrait('jawAmount', v)}
+            onDragStateChange={onDragStateChange}
+          />
+          <PortraitSlider
+            label={t('editor.portraitPanel.foreheadAmount')}
+            value={portrait.foreheadAmount}
+            min={-50}
+            max={50}
+            onChange={(v) => updatePortrait('foreheadAmount', v)}
+            onDragStateChange={onDragStateChange}
+          />
+        </div>
+      ),
+    },
+    {
+      key: 'eyeEnhance',
+      title: t('editor.portraitPanel.eyeEnhance'),
+      icon: Eye,
+      content: (
+        <div className="space-y-1">
+          <PortraitSlider
+            label={t('editor.portraitPanel.eyeEnlargeAmount')}
+            value={portrait.eyeEnlargeAmount}
+            min={0}
+            max={100}
+            onChange={(v) => updatePortrait('eyeEnlargeAmount', v)}
+            onDragStateChange={onDragStateChange}
+            fillOrigin="min"
+          />
+          <PortraitSlider
+            label={t('editor.portraitPanel.eyeBrightenAmount')}
+            value={portrait.eyeBrightenAmount}
+            min={0}
+            max={100}
+            onChange={(v) => updatePortrait('eyeBrightenAmount', v)}
+            onDragStateChange={onDragStateChange}
+            fillOrigin="min"
+          />
+        </div>
+      ),
+    },
+    {
+      key: 'teethWhiten',
+      title: t('editor.portraitPanel.teethWhiten'),
+      icon: Smile,
+      content: (
+        <div className="space-y-1">
+          <PortraitSlider
+            label={t('editor.portraitPanel.teethWhitenBrightness')}
+            value={portrait.teethWhitenBrightness}
+            min={0}
+            max={100}
+            onChange={(v) => updatePortrait('teethWhitenBrightness', v)}
+            onDragStateChange={onDragStateChange}
+            fillOrigin="min"
+          />
+          <PortraitSlider
+            label={t('editor.portraitPanel.teethWhitenDesaturate')}
+            value={portrait.teethWhitenDesaturate}
+            min={0}
+            max={100}
+            onChange={(v) => updatePortrait('teethWhitenDesaturate', v)}
+            onDragStateChange={onDragStateChange}
+            fillOrigin="min"
+          />
+        </div>
+      ),
+    },
+    {
+      key: 'makeup',
+      title: t('editor.portraitPanel.makeup'),
+      icon: Palette,
+      content: (
+        <div className="space-y-2">
+          <ColorPickerRow
+            label={t('editor.portraitPanel.lipstick')}
+            color={portrait.lipstickColor}
+            opacity={portrait.lipstickOpacity}
+            onColorChange={(c) => updatePortrait('lipstickColor', c)}
+            onOpacityChange={(v) => updatePortrait('lipstickOpacity', v)}
+            onDragStateChange={onDragStateChange}
+          />
+          <ColorPickerRow
+            label={t('editor.portraitPanel.blush')}
+            color={portrait.blushColor}
+            opacity={portrait.blushOpacity}
+            onColorChange={(c) => updatePortrait('blushColor', c)}
+            onOpacityChange={(v) => updatePortrait('blushOpacity', v)}
+            onDragStateChange={onDragStateChange}
+          />
+          <ColorPickerRow
+            label={t('editor.portraitPanel.eyebrow')}
+            color={portrait.eyebrowColor}
+            opacity={portrait.eyebrowOpacity}
+            onColorChange={(c) => updatePortrait('eyebrowColor', c)}
+            onOpacityChange={(v) => updatePortrait('eyebrowOpacity', v)}
+            onDragStateChange={onDragStateChange}
+          />
+        </div>
+      ),
+    },
+    {
+      key: 'hairAdjust',
+      title: t('editor.portraitPanel.hairAdjust'),
+      icon: Scissors,
+      content: (
+        <div className="space-y-1">
+          <PortraitSlider
+            label={t('editor.portraitPanel.hairHueShift')}
+            value={portrait.hairHueShift}
+            min={-180}
+            max={180}
+            onChange={(v) => updatePortrait('hairHueShift', v)}
+            onDragStateChange={onDragStateChange}
+          />
+          <PortraitSlider
+            label={t('editor.portraitPanel.hairBrightness')}
+            value={portrait.hairBrightness}
+            min={-50}
+            max={50}
+            onChange={(v) => updatePortrait('hairBrightness', v)}
+            onDragStateChange={onDragStateChange}
+          />
+        </div>
+      ),
+    },
+    {
+      key: 'bodyReshape',
+      title: t('editor.portraitPanel.bodyReshape'),
+      icon: Move,
+      content: (
+        <div className="space-y-1">
+          <PortraitSlider
+            label={t('editor.portraitPanel.bodySlimAmount')}
+            value={portrait.bodySlimAmount}
+            min={0}
+            max={100}
+            onChange={(v) => updatePortrait('bodySlimAmount', v)}
+            onDragStateChange={onDragStateChange}
+            fillOrigin="min"
+          />
+          <PortraitSlider
+            label={t('editor.portraitPanel.bodyHeightAmount')}
+            value={portrait.bodyHeightAmount}
+            min={0}
+            max={100}
+            onChange={(v) => updatePortrait('bodyHeightAmount', v)}
+            onDragStateChange={onDragStateChange}
+            fillOrigin="min"
+          />
+          <PortraitSlider
+            label={t('editor.portraitPanel.legLengthAmount')}
+            value={portrait.legLengthAmount}
+            min={0}
+            max={100}
+            onChange={(v) => updatePortrait('legLengthAmount', v)}
+            onDragStateChange={onDragStateChange}
+            fillOrigin="min"
+          />
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="flex flex-col h-full">
@@ -201,41 +487,18 @@ export default function PortraitPanelSwitcher() {
         </div>
       </div>
       <div className="grow overflow-y-scroll p-4 flex flex-col gap-2">
-        {portraitSections.map((sectionName: string) => {
-          const SectionComponent: any = {
-            details: DetailsPanel,
-            effects: EffectsPanel,
-          }[sectionName];
-
-          const title = t(`editor.adjustments.sections.${sectionName}`);
-          const sectionVisibility = adjustments.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility;
-
-          return (
-            <div className="shrink-0 group" key={sectionName}>
-              <CollapsibleSection
-                isContentVisible={sectionVisibility[sectionName as keyof SectionVisibility]}
-                isOpen={collapsibleSectionsState[sectionName as keyof typeof collapsibleSectionsState]}
-                onContextMenu={(e: any) => handleSectionContextMenu(e, sectionName)}
-                onToggle={() => handleToggleSection(sectionName)}
-                onToggleVisibility={() => handleToggleVisibility(sectionName)}
-                title={title}
-              >
-                <SectionComponent
-                  adjustments={adjustments}
-                  setAdjustments={setAdjustments}
-                  histogram={histogram}
-                  theme={theme}
-                  handleLutSelect={handleLutSelect}
-                  onLutHover={setLutPreviewOverride}
-                  appSettings={appSettings}
-                  isWbPickerActive={isWbPickerActive}
-                  toggleWbPicker={toggleWbPicker}
-                  onDragStateChange={onDragStateChange}
-                />
-              </CollapsibleSection>
-            </div>
-          );
-        })}
+        {portraitSections.map((section) => (
+          <div className="shrink-0 group" key={section.key}>
+            <CollapsibleSection
+              isOpen={collapsibleSectionsState[section.key as keyof typeof collapsibleSectionsState]}
+              onToggle={() => handleToggleSection(section.key)}
+              title={section.title}
+              isContentVisible={sectionVisibility[section.key] !== false}
+            >
+              {section.content}
+            </CollapsibleSection>
+          </div>
+        ))}
       </div>
     </div>
   );
