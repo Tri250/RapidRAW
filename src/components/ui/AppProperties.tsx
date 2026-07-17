@@ -286,7 +286,7 @@ export interface Preset {
   name: string;
   includeMasks?: boolean;
   includeCropTransform?: boolean;
-  presetType?: 'tool' | 'style';
+  presetType?: 'tool' | 'style' | 'portrait' | 'color' | 'ai-color' | 'combined';
 }
 
 export interface Progress {

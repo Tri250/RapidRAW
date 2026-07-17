@@ -34,6 +34,7 @@ import {
   Settings2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import clsx from 'clsx';
 import ConfigurePresetModal from '../../modals/ConfigurePresetModal';
 import CreateFolderModal from '../../modals/CreateFolderModal';
 import RenameFolderModal from '../../modals/RenameFolderModal';
@@ -214,6 +215,25 @@ function PresetItemDisplay({
   const supportsGeometry =
     preset.includeCropTransform ?? geometryKeys.some((key) => preset.adjustments?.[key] !== undefined);
   const isTool = preset.presetType === 'tool';
+  const presetTypeLabels: Record<string, string> = {
+    portrait: t('editor.presets.types.portrait' as any),
+    color: t('editor.presets.types.color' as any),
+    'ai-color': t('editor.presets.types.ai-color' as any),
+    combined: t('editor.presets.types.combined' as any),
+    tool: t('editor.presets.types.tool' as any),
+    style: t('editor.presets.types.style' as any),
+  };
+  const presetTypeColors: Record<string, string> = {
+    portrait: 'bg-rose-500/90',
+    color: 'bg-amber-500/90',
+    'ai-color': 'bg-violet-500/90',
+    combined: 'bg-emerald-500/90',
+    tool: 'bg-sky-500/90',
+    style: 'bg-slate-500/90',
+  };
+  const typeLabel = preset.presetType ? presetTypeLabels[preset.presetType] || '' : '';
+  const typeColor = preset.presetType ? presetTypeColors[preset.presetType] || 'bg-slate-500/90' : '';
+
   const tooltipContent = useMemo(() => {
     const features = [];
     if (supportsMasks) features.push(t('editor.presets.supports.masks'));
@@ -255,9 +275,16 @@ function PresetItemDisplay({
         </div>
 
         <div className="grow min-w-0 flex flex-col justify-center">
-          <Text color={TextColors.primary} weight={TextWeights.medium} className="truncate">
-            {preset.name}
-          </Text>
+          <div className="flex items-center gap-1.5">
+            <Text color={TextColors.primary} weight={TextWeights.medium} className="truncate">
+              {preset.name}
+            </Text>
+            {typeLabel && (
+              <span className={`shrink-0 px-1.5 py-0.5 text-[9px] font-bold text-white rounded-sm ${typeColor}`}>
+                {typeLabel}
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-1.5 mt-0.5">
             {isTool ? (
               <Wrench size={12} className="text-text-secondary" />
@@ -512,6 +539,8 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
   const [activePresetId, setActivePresetId] = useState<string | null>(null);
   const [presetIntensity, setPresetIntensity] = useState<number>(100);
   const [baseAdjustments, setBaseAdjustments] = useState<Adjustments | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'portrait' | 'color' | 'ai-color' | 'combined'>('all');
+  const [activeGroup, setActiveGroup] = useState<'recommended' | 'my'>('my');
 
   const previewsRef = useRef(previews);
   previewsRef.current = previews;
@@ -847,7 +876,7 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
     name: string,
     includeMasks: boolean,
     includeCropTransform: boolean,
-    presetType: 'tool' | 'style',
+    presetType: Preset['presetType'],
   ) => {
     if (configureModalState.preset) {
       const updated = configurePreset(
@@ -1130,7 +1159,15 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
   };
 
   const folders = useMemo(() => presets.filter((item: UserPreset) => item.folder), [presets]);
-  const rootPresets = useMemo(() => presets.filter((item: UserPreset) => item.preset), [presets]);
+  const rootPresets = useMemo(() => {
+    const items = presets.filter((item: UserPreset) => item.preset);
+    if (activeFilter === 'all') return items;
+    return items.filter((item: UserPreset) => {
+      const type = item.preset?.presetType;
+      if (!type) return false;
+      return type === activeFilter;
+    });
+  }, [presets, activeFilter]);
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -1169,6 +1206,41 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
             >
               <Plus size={18} />
             </button>
+          </div>
+        </div>
+
+        <div className="px-4 pt-3 pb-1 shrink-0 flex flex-col gap-2">
+          <div className="flex items-center gap-1 bg-bg-primary rounded-lg p-1">
+            {(['recommended', 'my'] as const).map((group) => (
+              <button
+                key={group}
+                onClick={() => setActiveGroup(group)}
+                className={clsx(
+                  'flex-1 text-xs font-medium py-1.5 rounded-md transition-colors',
+                  activeGroup === group
+                    ? 'bg-accent text-button-text'
+                    : 'text-text-secondary hover:text-text-primary',
+                )}
+              >
+                {t(`editor.presets.groups.${group}` as any)}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+            {(['all', 'portrait', 'color', 'ai-color', 'combined'] as const).map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setActiveFilter(filter)}
+                className={clsx(
+                  'shrink-0 px-3 py-1 text-xs font-medium rounded-full border transition-colors',
+                  activeFilter === filter
+                    ? 'bg-accent/10 border-accent text-accent'
+                    : 'bg-transparent border-border-color text-text-secondary hover:text-text-primary',
+                )}
+              >
+                {t(`editor.presets.filters.${filter}` as any)}
+              </button>
+            ))}
           </div>
         </div>
 

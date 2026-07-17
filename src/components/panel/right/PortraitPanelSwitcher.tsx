@@ -1,5 +1,6 @@
-import React, { useCallback } from 'react';
-import { RotateCcw, Copy, ClipboardPaste } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
+import { RotateCcw, Copy, ClipboardPaste, User, Users, Baby, PersonStanding } from 'lucide-react';
+import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import DetailsPanel from '../../adjustments/Details';
 import EffectsPanel from '../../adjustments/Effects';
@@ -18,6 +19,17 @@ import { useEditorActions } from '../../../hooks/useEditorActions';
 export default function PortraitPanelSwitcher() {
   const { t } = useTranslation();
   const { showContextMenu } = useContextMenu();
+  const [personAttribute, setPersonAttribute] = useState<'single' | 'male' | 'female' | 'child' | 'elderMale' | 'elderFemale' | 'all'>('all');
+
+  const attributes = [
+    { key: 'single', label: '单人', icon: User },
+    { key: 'male', label: '男', icon: PersonStanding },
+    { key: 'female', label: '女', icon: PersonStanding },
+    { key: 'child', label: '儿童', icon: Baby },
+    { key: 'elderMale', label: '长辈男', icon: PersonStanding },
+    { key: 'elderFemale', label: '长辈女', icon: PersonStanding },
+    { key: 'all', label: '所有人', icon: Users },
+  ] as const;
   const { setAdjustments, handleLutSelect, setLutPreviewOverride } = useEditorActions();
 
   const { appSettings, theme } = useSettingsStore(
@@ -165,6 +177,28 @@ export default function PortraitPanelSwitcher() {
     <div className="flex flex-col h-full">
       <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface">
         <Text variant={TextVariants.title}>{t('editor.portraitPanel.title')}</Text>
+      </div>
+      <div className="px-4 pt-3 pb-1 shrink-0 border-b border-surface/50">
+        <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+          {attributes.map((attr) => {
+            const Icon = attr.icon;
+            return (
+              <button
+                key={attr.key}
+                onClick={() => setPersonAttribute(attr.key)}
+                className={clsx(
+                  'shrink-0 flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-full border transition-colors',
+                  personAttribute === attr.key
+                    ? 'bg-accent/10 border-accent text-accent'
+                    : 'bg-transparent border-border-color text-text-secondary hover:text-text-primary',
+                )}
+              >
+                <Icon size={12} />
+                {attr.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
       <div className="grow overflow-y-scroll p-4 flex flex-col gap-2">
         {portraitSections.map((sectionName: string) => {

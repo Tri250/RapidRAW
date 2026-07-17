@@ -81,7 +81,7 @@ export default function RightPanelSwitcher({
                   transition={isInstantTransition ? { duration: 0 } : { type: 'spring', bounce: 0.2, duration: 0.4 }}
                 />
               )}
-              <Icon size={20} className="relative z-10" />
+              <Icon size={22} strokeWidth={1.8} className="relative z-10" />
             </button>
           ))}
         </div>

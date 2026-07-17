@@ -59,7 +59,7 @@ export function usePresets(currentAdjustments: Adjustments) {
     folderId: string | null = null,
     includeMasks: boolean = false,
     includeCropTransform: boolean = false,
-    presetType: 'tool' | 'style' = 'style',
+    presetType: Preset['presetType'] = 'style',
   ) => {
     const GEOMETRY_KEYS = ADJUSTMENT_GROUPS.geometry.flatMap((group) => group.keys);
     const MASK_KEYS = ADJUSTMENT_GROUPS.masks.flatMap((group) => group.keys);
@@ -183,7 +183,7 @@ export function usePresets(currentAdjustments: Adjustments) {
     name: string,
     includeMasks: boolean,
     includeCropTransform: boolean,
-    presetType: 'tool' | 'style',
+    presetType: Preset['presetType'],
   ) => {
     let existingPreset: Preset | null = null;
 

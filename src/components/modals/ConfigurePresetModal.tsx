@@ -8,16 +8,18 @@ import Switch from '../ui/Switch';
 import { Preset } from '../ui/AppProperties';
 import { ADJUSTMENT_GROUPS } from '../../utils/adjustments';
 
+type PresetType = 'tool' | 'style' | 'portrait' | 'color' | 'ai-color' | 'combined';
+
 interface ConfigurePresetModalProps {
   isOpen: boolean;
   onClose(): void;
-  onSave(name: string, includeMasks: boolean, includeCropTransform: boolean, presetType: 'tool' | 'style'): void;
+  onSave(name: string, includeMasks: boolean, includeCropTransform: boolean, presetType: PresetType): void;
   initialPreset?: Preset | null;
 }
 
 interface PresetTypeSwitchProps {
-  selectedType: 'tool' | 'style';
-  onChange: (type: 'tool' | 'style') => void;
+  selectedType: PresetType;
+  onChange: (type: PresetType) => void;
 }
 
 const PresetTypeSwitch = ({ selectedType, onChange }: PresetTypeSwitchProps) => {
@@ -104,7 +106,7 @@ export default function ConfigurePresetModal({ isOpen, onClose, onSave, initialP
   const [name, setName] = useState('');
   const [includeMasks, setIncludeMasks] = useState(false);
   const [includeCropTransform, setIncludeCropTransform] = useState(false);
-  const [presetType, setPresetType] = useState<'tool' | 'style'>('style');
+  const [presetType, setPresetType] = useState<PresetType>('style');
   const [isMounted, setIsMounted] = useState(false);
   const [show, setShow] = useState(false);
 
