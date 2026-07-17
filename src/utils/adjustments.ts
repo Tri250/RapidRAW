@@ -856,6 +856,7 @@ export const ADJUSTMENT_GROUPS: Record<string, AdjustmentGroup[]> = {
         LensAdjustment.LensDistortionAmount,
         LensAdjustment.LensVignetteAmount,
         LensAdjustment.LensTcaAmount,
+        LensAdjustment.LensDistortionParams,
         LensAdjustment.LensDistortionEnabled,
         LensAdjustment.LensTcaEnabled,
         LensAdjustment.LensVignetteEnabled,
