@@ -1337,6 +1337,7 @@
       "title": "変形",
       "toggleGridTooltip": "グリッドを切り替え",
       "toggleHelperLinesTooltip": "ヘルプラインを切り替え",
+      "autoCropTooltip": "自動クロップ切替",
       "vertical": "垂直方向",
       "xAxis": "X軸",
       "yAxis": "Y軸",

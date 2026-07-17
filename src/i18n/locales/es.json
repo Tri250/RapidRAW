@@ -1338,6 +1338,7 @@
       "title": "Transformar",
       "toggleGridTooltip": "Alternar cuadrícula",
       "toggleHelperLinesTooltip": "Alternar líneas guía",
+      "autoCropTooltip": "Alternar recorte automático",
       "vertical": "Vertical",
       "xAxis": "Eje X",
       "yAxis": "Eje Y",

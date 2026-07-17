@@ -1394,6 +1394,7 @@
       "title": "Przekształcanie",
       "toggleGridTooltip": "Przełącz siatkę",
       "toggleHelperLinesTooltip": "Przełącz linie pomocnicze",
+      "autoCropTooltip": "Przełącz autoprzycinanie",
       "vertical": "Pionowo",
       "xAxis": "Oś X",
       "yAxis": "Oś Y",

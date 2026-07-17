@@ -1338,6 +1338,7 @@
       "title": "Trasforma",
       "toggleGridTooltip": "Attiva/Disattiva Griglia",
       "toggleHelperLinesTooltip": "Attiva/Disattiva Linee Guida",
+      "autoCropTooltip": "Attiva ritaglio automatico",
       "vertical": "Verticale",
       "xAxis": "Asse X",
       "yAxis": "Asse Y",

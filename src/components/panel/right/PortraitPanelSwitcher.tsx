@@ -14,9 +14,8 @@ import {
   Adjustments,
   PortraitAdjustments,
   INITIAL_PORTRAIT_ADJUSTMENTS,
+  PersonAttribute,
 } from '../../../utils/adjustments';
-
-type PersonAttribute = 'single' | 'male' | 'female' | 'child' | 'elderMale' | 'elderFemale' | 'all';
 
 function PortraitSlider({
   label,
@@ -93,7 +92,6 @@ function ColorPickerRow({
 
 export default function PortraitPanelSwitcher() {
   const { t } = useTranslation();
-  const [personAttribute, setPersonAttribute] = useState<PersonAttribute>('all');
   const [blemishMode, setBlemishMode] = useState(false);
   const imageContainerRef = useRef<HTMLDivElement>(null);
 
@@ -127,6 +125,7 @@ export default function PortraitPanelSwitcher() {
   );
 
   const portrait = adjustments.portrait || INITIAL_PORTRAIT_ADJUSTMENTS;
+  const personAttribute = portrait.personAttribute || 'all';
   const sectionVisibility = adjustments.sectionVisibility || {};
 
   const setCollapsibleState = useCallback(
@@ -488,7 +487,7 @@ export default function PortraitPanelSwitcher() {
             return (
               <button
                 key={attr.key}
-                onClick={() => setPersonAttribute(attr.key)}
+                onClick={() => updatePortrait('personAttribute', attr.key)}
                 className={clsx(
                   'shrink-0 flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-full border transition-colors',
                   personAttribute === attr.key

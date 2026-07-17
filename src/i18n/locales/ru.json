@@ -1337,6 +1337,7 @@
       "title": "Трансформация",
       "toggleGridTooltip": "Включить/выключить сетку",
       "toggleHelperLinesTooltip": "Включить/выключить вспомогательные линии",
+      "autoCropTooltip": "Автообрезка",
       "vertical": "По вертикали",
       "xAxis": "Ось X",
       "yAxis": "Ось Y",

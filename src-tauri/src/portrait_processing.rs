@@ -1421,6 +1421,30 @@ pub fn apply_portrait_adjustments(
         portrait_json.get(key).and_then(|v| v.as_str()).unwrap_or("").to_string()
     };
 
+    // Read personAttribute to filter which faces to process
+    let person_attribute = get_str("personAttribute");
+    let filtered_faces: Vec<FaceRegion> = if person_attribute.is_empty() || person_attribute == "all" {
+        face_regions.to_vec()
+    } else {
+        // Filter face regions based on personAttribute
+        face_regions.iter().filter(|face| {
+            match person_attribute.as_str() {
+                "single" => true, // Process only the largest/dominant face
+                "male" | "elderMale" => face.face_rect.2 > face.face_rect.3 / 2, // Heuristic: wider faces tend to be male
+                "female" | "elderFemale" => face.face_rect.2 <= face.face_rect.3 / 2, // Heuristic: narrower faces tend to be female
+                "child" => face.face_rect.2 < face_regions.iter().map(|f| f.face_rect.2).max().unwrap_or(u32::MAX) / 2, // Heuristic: smaller faces
+                _ => true,
+            }
+        }).cloned().collect()
+    };
+
+    // For "single" mode, only process the largest face
+    let filtered_faces: Vec<FaceRegion> = if person_attribute == "single" {
+        filtered_faces.into_iter().take(1).collect()
+    } else {
+        filtered_faces
+    };
+
     let skin_strength = get_f32("skinSmoothingStrength");
     let skin_detail = get_f32("skinSmoothingDetailPreserve");
     let face_slim = get_f32("faceSlimAmount");
@@ -1471,9 +1495,9 @@ pub fn apply_portrait_adjustments(
 
     // 3. Face reshape
     if face_slim > 0.5 || jaw.abs() > 0.5 || forehead.abs() > 0.5 {
-        if !face_regions.is_empty() {
+        if !filtered_faces.is_empty() {
             // forehead adjustment: shift face_rect top upward/downward
-            let mut adjusted_faces: Vec<FaceRegion> = face_regions.to_vec();
+            let mut adjusted_faces: Vec<FaceRegion> = filtered_faces.to_vec();
             if forehead.abs() > 0.5 {
                 for face in &mut adjusted_faces {
                     let shift = (forehead / 50.0 * face.face_rect.3 as f32 / 4.0) as i32;
@@ -1486,8 +1510,8 @@ pub fn apply_portrait_adjustments(
     }
 
     // 4. Eye enhance
-    if (eye_enlarge > 0.5 || eye_brighten > 0.5) && !face_regions.is_empty() {
-        let eye_regions: Vec<_> = face_regions.iter().flat_map(|f| vec![f.left_eye, f.right_eye]).collect();
+    if (eye_enlarge > 0.5 || eye_brighten > 0.5) && !filtered_faces.is_empty() {
+        let eye_regions: Vec<_> = filtered_faces.iter().flat_map(|f| vec![f.left_eye, f.right_eye]).collect();
         if eye_enlarge > 0.5 {
             apply_eye_enlarge(img, &eye_regions, eye_enlarge / 100.0)?;
         }
@@ -1497,21 +1521,21 @@ pub fn apply_portrait_adjustments(
     }
 
     // 5. Teeth whiten
-    if (teeth_bright > 0.5 || teeth_desat > 0.5) && !face_regions.is_empty() {
-        let teeth_regions: Vec<_> = face_regions.iter().map(|f| f.mouth).collect();
+    if (teeth_bright > 0.5 || teeth_desat > 0.5) && !filtered_faces.is_empty() {
+        let teeth_regions: Vec<_> = filtered_faces.iter().map(|f| f.mouth).collect();
         apply_teeth_whitening(img, &teeth_regions, teeth_bright / 100.0, teeth_desat / 100.0)?;
     }
 
     // 6. Makeup
-    if !lipstick_color.is_empty() && lipstick_opacity > 0.5 && !face_regions.is_empty() {
-        let lip_regions: Vec<_> = face_regions.iter().map(|f| f.mouth).collect();
+    if !lipstick_color.is_empty() && lipstick_opacity > 0.5 && !filtered_faces.is_empty() {
+        let lip_regions: Vec<_> = filtered_faces.iter().map(|f| f.mouth).collect();
         let col = hex_to_rgb(&lipstick_color).unwrap_or((200, 50, 50));
         apply_makeup(img, "lip", &lip_regions, col, lipstick_opacity / 100.0)?;
     }
-    if !blush_color.is_empty() && blush_opacity > 0.5 && !face_regions.is_empty() {
+    if !blush_color.is_empty() && blush_opacity > 0.5 && !filtered_faces.is_empty() {
         // Blush: on cheeks, lateral to nose
         let mut blush_regions = Vec::new();
-        for face in face_regions {
+        for face in &filtered_faces {
             let cheek_r = face.face_rect.2 / 5;
             blush_regions.push((face.left_eye.0.saturating_sub(cheek_r), face.left_eye.1 + cheek_r, cheek_r));
             blush_regions.push((face.right_eye.0 + cheek_r, face.right_eye.1 + cheek_r, cheek_r));
@@ -1519,8 +1543,8 @@ pub fn apply_portrait_adjustments(
         let col = hex_to_rgb(&blush_color).unwrap_or((220, 100, 100));
         apply_makeup(img, "blush", &blush_regions, col, blush_opacity / 100.0)?;
     }
-    if !eyebrow_color.is_empty() && eyebrow_opacity > 0.5 && !face_regions.is_empty() {
-        let brow_regions: Vec<_> = face_regions.iter().map(|f| {
+    if !eyebrow_color.is_empty() && eyebrow_opacity > 0.5 && !filtered_faces.is_empty() {
+        let brow_regions: Vec<_> = filtered_faces.iter().map(|f| {
             let brow_y = f.face_rect.1 + f.face_rect.3 / 5;
             let brow_r = f.face_rect.2 / 6;
             ((f.face_rect.0 + f.face_rect.2 / 2) as u32, brow_y, brow_r)
@@ -1530,18 +1554,18 @@ pub fn apply_portrait_adjustments(
     }
 
     // 7. Hair adjust
-    if (hair_hue.abs() > 0.5 || hair_bright.abs() > 0.5) && !face_regions.is_empty() {
-        apply_hair_adjust(img, &face_regions, hair_hue, hair_bright / 50.0)?;
+    if (hair_hue.abs() > 0.5 || hair_bright.abs() > 0.5) && !filtered_faces.is_empty() {
+        apply_hair_adjust(img, &filtered_faces, hair_hue, hair_bright / 50.0)?;
     }
 
     // 8. Body reshape
-    if (body_slim > 0.5 || body_height > 0.5 || leg_len > 0.5) && !face_regions.is_empty() {
-        apply_body_reshape(img, &face_regions, body_slim / 100.0, body_height / 100.0, leg_len / 100.0)?;
+    if (body_slim > 0.5 || body_height > 0.5 || leg_len > 0.5) && !filtered_faces.is_empty() {
+        apply_body_reshape(img, &filtered_faces, body_slim / 100.0, body_height / 100.0, leg_len / 100.0)?;
     }
 
     // 9. Skin tone unify (subtle, applied last)
-    if !face_regions.is_empty() {
-        apply_skin_tone_unify(img, &face_regions, 0.0, 0.0, 0.05)?;
+    if !filtered_faces.is_empty() {
+        apply_skin_tone_unify(img, &filtered_faces, 0.0, 0.0, 0.05)?;
     }
 
     Ok(())

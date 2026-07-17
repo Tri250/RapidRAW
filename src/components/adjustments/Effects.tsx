@@ -8,7 +8,7 @@ import { TextVariants } from '../../types/typography';
 
 interface EffectsPanelProps {
   adjustments: Adjustments;
-  isForMask: boolean;
+  isForMask?: boolean;
   setAdjustments(adjustments: Partial<Adjustments>): any;
   handleLutSelect(path: string): void;
   onLutHover?: (path: string | null) => void;

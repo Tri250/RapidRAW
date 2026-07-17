@@ -1338,6 +1338,7 @@
       "title": "변형",
       "toggleGridTooltip": "그리드 전환",
       "toggleHelperLinesTooltip": "보조선 전환",
+      "autoCropTooltip": "자동 크롭 전환",
       "vertical": "수직",
       "xAxis": "X축",
       "yAxis": "Y축",

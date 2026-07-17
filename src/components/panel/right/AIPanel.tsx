@@ -294,7 +294,7 @@ export default function AIPanel() {
   const setCustomEscapeHandler = useUIStore((s) => s.setCustomEscapeHandler);
 
   const { setAdjustments } = useEditorActions();
-  const { handleGenerativeReplace, handleDeleteAiPatch, handleGenerateAiForegroundMask } = useAiMasking();
+  const { handleGenerativeReplace, handleDeleteAiPatch, handleToggleAiPatchVisibility, handleGenerateAiForegroundMask } = useAiMasking();
   const appSettings = useSettingsStore((s) => s.appSettings);
   const aiProvider = appSettings?.aiProvider || 'cpu';
 
@@ -1533,7 +1533,7 @@ function ContainerRow({
             data-tooltip={container.visible ? t('editor.ai.actions.hideEdit') : t('editor.ai.actions.showEdit')}
             onClick={(e) => {
               e.stopPropagation();
-              updateContainer(container.id, { visible: !container.visible });
+              handleToggleAiPatchVisibility(container.id);
             }}
           >
             {container.visible ? <Eye size={16} /> : <EyeOff size={16} />}

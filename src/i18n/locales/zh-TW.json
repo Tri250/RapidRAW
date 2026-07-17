@@ -1338,6 +1338,7 @@
       "title": "變換",
       "toggleGridTooltip": "切換網格",
       "toggleHelperLinesTooltip": "切換輔助線",
+      "autoCropTooltip": "切換自動裁剪",
       "vertical": "垂直",
       "xAxis": "X 軸",
       "yAxis": "Y 軸",

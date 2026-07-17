@@ -1338,6 +1338,7 @@
       "title": "Transformar",
       "toggleGridTooltip": "Alternar Grade",
       "toggleHelperLinesTooltip": "Alternar Linhas Guias",
+      "autoCropTooltip": "Alternar recorte automático",
       "vertical": "Vertical",
       "xAxis": "Eixo X",
       "yAxis": "Eixo Y",

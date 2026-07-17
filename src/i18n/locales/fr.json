@@ -1338,6 +1338,7 @@
       "title": "Transformation",
       "toggleGridTooltip": "Basculer la grille",
       "toggleHelperLinesTooltip": "Basculer les lignes de repère",
+      "autoCropTooltip": "Activer le recadrage automatique",
       "vertical": "Vertical",
       "xAxis": "Axe X",
       "yAxis": "Axe Y",

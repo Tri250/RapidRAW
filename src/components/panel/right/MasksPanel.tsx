@@ -559,7 +559,7 @@ function DepthRangePicker({
 export default function MasksPanel() {
   const { t } = useTranslation();
   const { setAdjustments } = useEditorActions();
-  const { handleGenerateAiDepthMask, handleGenerateAiForegroundMask, handleGenerateAiSkyMask } = useAiMasking();
+  const { handleGenerateAiDepthMask, handleGenerateAiForegroundMask, handleGenerateAiSkyMask, handleDeleteMaskContainer: deleteMaskContainerFromHook } = useAiMasking();
   const setCustomEscapeHandler = useUIStore((s) => s.setCustomEscapeHandler);
   const { appSettings, theme } = useSettingsStore(
     useShallow((state) => ({
@@ -950,8 +950,7 @@ export default function MasksPanel() {
     }));
 
   const handleDeleteContainer = (id: string) => {
-    if (activeMaskContainerId === id) handleDeselect();
-    setAdjustments((prev: Adjustments) => ({ ...prev, masks: prev.masks.filter((m) => m.id !== id) }));
+    deleteMaskContainerFromHook(id);
   };
 
   const handleDeleteSubMask = (containerId: string, subMaskId: string) => {

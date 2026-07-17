@@ -121,6 +121,7 @@ export default function TransformModal({ isOpen, onClose, onApply, currentAdjust
   const [isApplying, setIsApplying] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
   const [showLines, setShowLines] = useState(false);
+  const [autoCrop, setAutoCrop] = useState(true);
   const [isCompareActive, setIsCompareActive] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
 
@@ -226,6 +227,7 @@ export default function TransformModal({ isOpen, onClose, onApply, currentAdjust
           params: fullParams,
           jsAdjustments: currentAdjustments,
           showLines: linesEnabled,
+          autoCrop,
         });
         setPreviewUrl(result);
       } catch (e) {
@@ -541,6 +543,16 @@ export default function TransformModal({ isOpen, onClose, onApply, currentAdjust
               data-tooltip={t('modals.transform.toggleHelperLinesTooltip')}
             >
               <LineChart size={18} />
+            </button>
+            <button
+              onClick={() => { setAutoCrop(!autoCrop); updatePreview(params, showLines); }}
+              className={clsx(
+                'p-2 rounded-full transition-colors',
+                autoCrop ? 'bg-white/20 text-white' : 'text-white/60 hover:bg-white/10 hover:text-white',
+              )}
+              data-tooltip={t('modals.transform.autoCropTooltip')}
+            >
+              <Maximize size={18} />
             </button>
 
             <div className="w-px h-5 bg-white/20 mx-1"></div>

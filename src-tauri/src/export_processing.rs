@@ -34,6 +34,7 @@ use crate::lut_processing::{
 use crate::mask_generation::{MaskDefinition, generate_mask_bitmap};
 
 use crate::cache_utils::{calculate_full_job_hash, calculate_transform_hash};
+use crate::portrait_processing::{apply_portrait_adjustments, detect_face_regions};
 use crate::{
     apply_all_transformations, generate_transformed_preview, get_cached_or_generate_mask,
     hydrate_adjustments, load_settings, resolve_warped_image_for_masks,
@@ -317,7 +318,7 @@ fn process_image_for_export_pipeline(
 
     let unique_hash = calculate_full_job_hash(path, js_adjustments);
 
-    process_and_get_dynamic_image(
+    let mut result = process_and_get_dynamic_image(
         context,
         state,
         transformed_image.as_ref(),
@@ -329,7 +330,19 @@ fn process_image_for_export_pipeline(
             roi: None,
         },
         debug_tag,
-    )
+    )?;
+
+    // Apply portrait adjustments if present
+    if let Some(portrait_json) = js_adjustments.get("portrait") {
+        if !portrait_json.is_null() {
+            let face_regions = detect_face_regions(&result);
+            if let Err(e) = apply_portrait_adjustments(&mut result, portrait_json, &face_regions) {
+                log::warn!("Portrait processing failed during export: {}", e);
+            }
+        }
+    }
+
+    Ok(result)
 }
 
 fn set_timestamps_from_exif(src: &Path, dst: &Path) {

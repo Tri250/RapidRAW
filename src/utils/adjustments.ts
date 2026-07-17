@@ -146,6 +146,8 @@ export interface ParametricCurve {
   red: ParametricCurveSettings;
 }
 
+export type PersonAttribute = 'single' | 'male' | 'female' | 'child' | 'elderMale' | 'elderFemale' | 'all';
+
 export interface PortraitAdjustments {
   skinSmoothingStrength: number;
   skinSmoothingDetailPreserve: number;
@@ -168,6 +170,7 @@ export interface PortraitAdjustments {
   bodyHeightAmount: number;
   legLengthAmount: number;
   blemishSpots: Array<{ x: number; y: number; radius: number }>;
+  personAttribute: PersonAttribute;
 }
 
 export const INITIAL_PORTRAIT_ADJUSTMENTS: PortraitAdjustments = {
@@ -192,6 +195,7 @@ export const INITIAL_PORTRAIT_ADJUSTMENTS: PortraitAdjustments = {
   bodyHeightAmount: 0,
   legLengthAmount: 0,
   blemishSpots: [],
+  personAttribute: 'all',
 };
 
 export interface Adjustments {

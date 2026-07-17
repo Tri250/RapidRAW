@@ -1338,6 +1338,7 @@
       "title": "Transformieren",
       "toggleGridTooltip": "Raster umschalten",
       "toggleHelperLinesTooltip": "Hilfslinien umschalten",
+      "autoCropTooltip": "Auto-Zuschnitt umschalten",
       "vertical": "Vertikal",
       "xAxis": "X-Achse",
       "yAxis": "Y-Achse",

@@ -127,13 +127,13 @@ const evaluateCurveY = (curve: Array<{ x: number; y: number }>, targetX: number)
   return targetX;
 };
 
-const mixAdjustments = (presetObj: any, intensity: number, initialObj: any = INITIAL_ADJUSTMENTS): any => {
+const mixAdjustments = (presetObj: any, intensity: number, initialObj: any = INITIAL_ADJUSTMENTS, currentObj?: any): any => {
   const fraction = intensity / 100;
 
   if (fraction === 1) return { ...presetObj };
   if (fraction === 0) return { ...initialObj };
 
-  const result: any = {};
+  const result: any = { ...initialObj };
   const keys = Object.keys(presetObj);
 
   for (let i = 0; i < keys.length; i++) {
@@ -192,7 +192,7 @@ const mixAdjustments = (presetObj: any, intensity: number, initialObj: any = INI
         result[key] = fraction > 0 ? presetVal : initialVal;
       }
     } else if (presetVal !== null && typeof presetVal === 'object') {
-      result[key] = mixAdjustments(presetVal, intensity, initialVal || {});
+      result[key] = mixAdjustments(presetVal, intensity, initialVal || {}, currentObj?.[key]);
     } else {
       result[key] = fraction > 0 ? presetVal : initialVal;
     }
@@ -864,11 +864,10 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
   const handleIntensityChange = useCallback(
     (preset: Preset, intensity: number) => {
       setPresetIntensity(intensity);
-      const mixed = mixAdjustments(preset.adjustments, intensity);
-      setAdjustments((prev: Adjustments) => ({
-        ...prev,
-        ...mixed,
-      }));
+      setAdjustments((prev: Adjustments) => {
+        const mixed = mixAdjustments(preset.adjustments, intensity, INITIAL_ADJUSTMENTS, prev);
+        return { ...prev, ...mixed };
+      });
     },
     [setAdjustments],
   );
