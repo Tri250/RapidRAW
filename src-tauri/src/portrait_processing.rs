@@ -853,7 +853,7 @@ pub fn detect_face_regions(img: &DynamicImage) -> Vec<FaceRegion> {
 /// Falls back to an empty vector if detection fails.
 pub fn detect_face_regions_onnx(
     img: &DynamicImage,
-    detector: &crate::face_landmark::FaceLandmarkDetector,
+    detector: &mut crate::face_landmark::FaceLandmarkDetector,
 ) -> Vec<FaceRegion> {
     match detector.detect_all(img) {
         Ok(landmarks) => landmarks

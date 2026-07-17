@@ -55,7 +55,7 @@ impl FaceLandmarkDetector {
         })
     }
 
-    pub fn detect_faces(&self, img: &DynamicImage) -> Result<Vec<FaceDetection>, String> {
+    pub fn detect_faces(&mut self, img: &DynamicImage) -> Result<Vec<FaceDetection>, String> {
         let (orig_w, orig_h) = img.dimensions();
         let input_size = 640u32;
 
@@ -244,7 +244,7 @@ impl FaceLandmarkDetector {
     }
 
     pub fn detect_landmarks_106(
-        &self,
+        &mut self,
         img: &DynamicImage,
         face: &FaceDetection,
     ) -> Result<FaceLandmarks106, String> {
@@ -350,12 +350,13 @@ impl FaceLandmarkDetector {
         })
     }
 
-    pub fn detect_all(&self, img: &DynamicImage) -> Result<Vec<FaceLandmarks106>, String> {
+    pub fn detect_all(&mut self, img: &DynamicImage) -> Result<Vec<FaceLandmarks106>, String> {
         let faces = self.detect_faces(img)?;
-        faces
-            .iter()
-            .map(|face| self.detect_landmarks_106(img, face))
-            .collect()
+        let mut results = Vec::new();
+        for face in &faces {
+            results.push(self.detect_landmarks_106(img, face)?);
+        }
+        Ok(results)
     }
 }
 

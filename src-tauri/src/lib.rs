@@ -533,8 +533,8 @@ fn process_preview_job(
             let ai_state_guard = state.ai_state.lock().unwrap();
             if let Some(detector_arc) = ai_state_guard.as_ref().and_then(|s| s.face_landmark_detector.clone()) {
                 drop(ai_state_guard);
-                let detector_guard = detector_arc.lock().unwrap();
-                crate::portrait_processing::detect_face_regions_onnx(&final_processed_image, &*detector_guard)
+                let mut detector_guard = detector_arc.lock().unwrap();
+                crate::portrait_processing::detect_face_regions_onnx(&final_processed_image, &mut *detector_guard)
             } else {
                 drop(ai_state_guard);
                 match tauri::async_runtime::block_on(async {
@@ -545,8 +545,8 @@ fn process_preview_job(
                     ).await
                 }) {
                     Ok(detector_arc) => {
-                        let detector_guard = detector_arc.lock().unwrap();
-                        crate::portrait_processing::detect_face_regions_onnx(&final_processed_image, &*detector_guard)
+                        let mut detector_guard = detector_arc.lock().unwrap();
+                        crate::portrait_processing::detect_face_regions_onnx(&final_processed_image, &mut *detector_guard)
                     }
                     Err(e) => {
                         log::warn!("Face landmark detector unavailable, falling back to skin-tone detection: {}", e);
@@ -1267,7 +1267,7 @@ async fn generate_all_community_previews(
         .map_err(|e| e.to_string())?;
 
         let is_raw = is_raw_file(&source_path_str);
-        let (orig_w, orig_h) = original_image.as_ref().dimensions();
+        let (orig_w, orig_h) = original_image.dimensions();
         let (base_image, base_scale) = if orig_w > PROCESSING_DIM || orig_h > PROCESSING_DIM {
             let downscaled = downscale_f32_image(&original_image, PROCESSING_DIM, PROCESSING_DIM);
             let scale = downscaled.width() as f32 / orig_w as f32;

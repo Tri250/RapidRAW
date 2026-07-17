@@ -935,7 +935,7 @@ pub async fn load_image(
         return Err("Load cancelled".to_string());
     }
 
-    let (orig_width, orig_height) = pristine_arc.dimensions();
+    let (orig_width, orig_height) = pristine_arc.as_ref().dimensions();
 
     *state.original_image.lock().unwrap() = Some(LoadedImage {
         path,
