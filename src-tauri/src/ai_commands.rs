@@ -3,7 +3,7 @@ use std::hash::{Hash, Hasher};
 use std::io::Cursor;
 
 use base64::{Engine as _, engine::general_purpose};
-use image::{GrayImage, ImageFormat, Rgba};
+use image::{GenericImageView, GrayImage, ImageFormat, Rgba};
 
 use crate::ai_connector;
 use crate::ai_processing::{
