@@ -111,6 +111,15 @@ fn main() {
                 "libonnxruntime.so",
                 "999ecfdb5b5a13e4097487773b6d71ce8a075408a237daab072e8f5e817bd78e",
             ),
+            ("android", _) => {
+                // ONNX Runtime is only available for arm64-v8a; skip for other Android ABIs
+                println!(
+                    "cargo:warning=ONNX Runtime not available for android-{}. Skipping AI model download.",
+                    target_arch
+                );
+                tauri_build::build();
+                return;
+            }
             _ => panic!("Unsupported target: {}-{}", target_os, target_arch),
         };
 
