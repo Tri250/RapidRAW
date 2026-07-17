@@ -31,19 +31,20 @@ interface UseAppInitializationProps {
 }
 
 const getDefaultLanguage = (i18nInstance: any): string => {
-  const browserLang = navigator.language || (navigator as any).userLanguage || 'en';
+  const browserLang = navigator.language || (navigator as any).userLanguage || '';
   const shortLang = browserLang.split('-')[0].toLowerCase();
   const supportedLanguages = Object.keys(i18nInstance.options.resources || {});
-  const fallbackLang =
-    typeof i18nInstance.options.fallbackLng === 'string'
-      ? i18nInstance.options.fallbackLng
-      : i18nInstance.options.fallbackLng?.[0] || 'en';
 
-  return supportedLanguages.includes(browserLang)
-    ? browserLang
-    : supportedLanguages.includes(shortLang)
-      ? shortLang
-      : fallbackLang;
+  // If the browser language is directly supported, use it
+  if (supportedLanguages.includes(browserLang)) {
+    return browserLang;
+  }
+  // Try matching the short language code (e.g. "zh" matches "zh-CN")
+  if (shortLang && supportedLanguages.some((l) => l.toLowerCase().startsWith(shortLang))) {
+    return supportedLanguages.find((l) => l.toLowerCase().startsWith(shortLang))!;
+  }
+  // Default to zh-CN for first-time users when no browser language matches
+  return 'zh-CN';
 };
 
 export const useAppInitialization = ({
