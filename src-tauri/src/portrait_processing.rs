@@ -849,6 +849,94 @@ pub fn detect_face_regions(img: &DynamicImage) -> Vec<FaceRegion> {
     regions
 }
 
+/// Detect face regions using the ONNX FaceLandmarkDetector (SCRFD + 2d106det).
+/// Falls back to an empty vector if detection fails.
+pub fn detect_face_regions_onnx(
+    img: &DynamicImage,
+    detector: &crate::face_landmark::FaceLandmarkDetector,
+) -> Vec<FaceRegion> {
+    match detector.detect_all(img) {
+        Ok(landmarks) => landmarks
+            .into_iter()
+            .map(|lm| {
+                let pts = lm.points;
+
+                // face_rect from contour points 0-32
+                let mut min_x = f32::MAX;
+                let mut min_y = f32::MAX;
+                let mut max_x = f32::MIN;
+                let mut max_y = f32::MIN;
+                for i in 0..33 {
+                    let (x, y) = pts[i];
+                    min_x = min_x.min(x);
+                    min_y = min_y.min(y);
+                    max_x = max_x.max(x);
+                    max_y = max_y.max(y);
+                }
+                let face_rect = (
+                    min_x as u32,
+                    min_y as u32,
+                    (max_x - min_x) as u32,
+                    (max_y - min_y) as u32,
+                );
+
+                // Eyes: indices 63..87 (24 points). Split by median x.
+                let eye_pts: Vec<_> = (63..87).map(|i| pts[i]).collect();
+                let (left_eye_pts, right_eye_pts) = if !eye_pts.is_empty() {
+                    let mut xs: Vec<f32> = eye_pts.iter().map(|p| p.0).collect();
+                    xs.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+                    let median_x = xs[xs.len() / 2];
+                    let left: Vec<_> = eye_pts.iter().filter(|p| p.0 < median_x).copied().collect();
+                    let right: Vec<_> = eye_pts.iter().filter(|p| p.0 >= median_x).copied().collect();
+                    (left, right)
+                } else {
+                    (Vec::new(), Vec::new())
+                };
+                let (le_cx, le_cy, le_r) = compute_center_radius(&left_eye_pts);
+                let (re_cx, re_cy, re_r) = compute_center_radius(&right_eye_pts);
+
+                // Nose: indices 51..63
+                let nose_pts: Vec<_> = (51..63).map(|i| pts[i]).collect();
+                let (n_cx, n_cy, n_r) = compute_center_radius(&nose_pts);
+
+                // Mouth: indices 87..106
+                let mouth_pts: Vec<_> = (87..106).map(|i| pts[i]).collect();
+                let (m_cx, m_cy, m_r) = compute_center_radius(&mouth_pts);
+
+                // Jawline: 3 key points from contour
+                let jawline_points = vec![pts[0], pts[16], pts[32]];
+
+                FaceRegion {
+                    face_rect,
+                    left_eye: (le_cx, le_cy, le_r),
+                    right_eye: (re_cx, re_cy, re_r),
+                    nose: (n_cx, n_cy, n_r),
+                    mouth: (m_cx, m_cy, m_r),
+                    jawline_points: jawline_points
+                        .into_iter()
+                        .map(|(x, y)| (x as u32, y as u32))
+                        .collect(),
+                }
+            })
+            .collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
+fn compute_center_radius(pts: &[(f32, f32)]) -> (u32, u32, u32) {
+    if pts.is_empty() {
+        return (0, 0, 0);
+    }
+    let min_x = pts.iter().map(|p| p.0).fold(f32::MAX, f32::min);
+    let max_x = pts.iter().map(|p| p.0).fold(f32::MIN, f32::max);
+    let min_y = pts.iter().map(|p| p.1).fold(f32::MAX, f32::min);
+    let max_y = pts.iter().map(|p| p.1).fold(f32::MIN, f32::max);
+    let cx = ((min_x + max_x) * 0.5) as u32;
+    let cy = ((min_y + max_y) * 0.5) as u32;
+    let r = ((max_x - min_x).max(max_y - min_y) * 0.5) as u32;
+    (cx, cy, r.max(1))
+}
+
 #[derive(Debug, Clone)]
 struct Component {
     label: u32,
@@ -1268,13 +1356,13 @@ fn lab_to_rgb(l: f32, a: f32, b: f32) -> (f32, f32, f32) {
 pub fn apply_one_click_beauty(
     img: &mut DynamicImage,
     strength: f32,
+    face_regions: &[FaceRegion],
 ) -> Result<(), String> {
     let s = strength.clamp(0.0, 1.0);
     if s < 1e-4 {
         return Ok(());
     }
 
-    let face_regions = detect_face_regions(img);
     if face_regions.is_empty() {
         // No face detected → apply a gentle global skin-tone smoothing
         apply_skin_smoothing(img, s * 0.3, 0.7)?;
@@ -1302,10 +1390,10 @@ pub fn apply_one_click_beauty(
     }
 
     // Face slim
-    apply_face_reshape(img, &face_regions, s * 0.25, s * 0.10)?;
+    apply_face_reshape(img, face_regions, s * 0.25, s * 0.10)?;
 
     // Skin tone unify
-    apply_skin_tone_unify(img, &face_regions, 0.0, 0.0, s * 0.25)?;
+    apply_skin_tone_unify(img, face_regions, 0.0, 0.0, s * 0.25)?;
 
     Ok(())
 }
@@ -1314,12 +1402,13 @@ pub fn apply_one_click_beauty(
 // 13. Portrait Adjustments Entry – Apply all portrait params from JSON
 // ---------------------------------------------------------------------------
 
-/// Master entry point: given a `DynamicImage` and a JSON-like portrait-adjustment
-/// map, auto-detect faces and apply every enabled adjustment in order.
+/// Master entry point: given a `DynamicImage`, pre-computed face regions, and a
+/// JSON-like portrait-adjustment map, apply every enabled adjustment in order.
 /// This is the function called from `process_preview_job` after the GPU pass.
 pub fn apply_portrait_adjustments(
     img: &mut DynamicImage,
     portrait_json: &serde_json::Value,
+    face_regions: &[FaceRegion],
 ) -> Result<(), String> {
     // Extract each field; missing or zero fields are skipped
     let get_f32 = |key: &str| -> f32 {
@@ -1366,9 +1455,6 @@ pub fn apply_portrait_adjustments(
                 .collect()
         })
         .unwrap_or_default();
-
-    // Detect faces once, reuse regions
-    let face_regions = detect_face_regions(img);
 
     // 1. Blemish removal (does not need face_regions)
     if !spots.is_empty() {

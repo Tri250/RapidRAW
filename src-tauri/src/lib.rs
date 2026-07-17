@@ -17,6 +17,7 @@ mod culling;
 mod denoising;
 mod exif_processing;
 mod export_processing;
+mod face_landmark;
 mod file_management;
 mod formats;
 mod gpu_processing;
@@ -528,7 +529,38 @@ fn process_preview_job(
     // Portrait post-processing (CPU-based, applied after GPU pass)
     let mut final_processed_image = final_processed_image;
     if let Some(portrait) = adjustments_clone.get("portrait") {
-        if let Err(e) = crate::portrait_processing::apply_portrait_adjustments(&mut final_processed_image, portrait) {
+        let face_regions = {
+            let ai_state_guard = state.ai_state.lock().unwrap();
+            if let Some(detector_arc) = ai_state_guard.as_ref().and_then(|s| s.face_landmark_detector.clone()) {
+                drop(ai_state_guard);
+                let detector_guard = detector_arc.lock().unwrap();
+                crate::portrait_processing::detect_face_regions_onnx(&final_processed_image, &*detector_guard)
+            } else {
+                drop(ai_state_guard);
+                match tauri::async_runtime::block_on(async {
+                    crate::ai_processing::get_or_init_face_landmark_detector(
+                        app_handle,
+                        &state.ai_state,
+                        &state.ai_init_lock,
+                    ).await
+                }) {
+                    Ok(detector_arc) => {
+                        let detector_guard = detector_arc.lock().unwrap();
+                        crate::portrait_processing::detect_face_regions_onnx(&final_processed_image, &*detector_guard)
+                    }
+                    Err(e) => {
+                        log::warn!("Face landmark detector unavailable, falling back to skin-tone detection: {}", e);
+                        crate::portrait_processing::detect_face_regions(&final_processed_image)
+                    }
+                }
+            }
+        };
+
+        if let Err(e) = crate::portrait_processing::apply_portrait_adjustments(
+            &mut final_processed_image,
+            portrait,
+            &face_regions,
+        ) {
             log::warn!("Portrait processing failed: {}", e);
         }
     }

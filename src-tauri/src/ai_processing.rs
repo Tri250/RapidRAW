@@ -59,6 +59,12 @@ const DEPTH_FILENAME: &str = "depth_anything_v2_vits.onnx";
 const DEPTH_INPUT_SIZE: u32 = 518;
 const DEPTH_SHA256: &str = "d2b11a11c1d4a12b47608fa65a17ee9a4c605b55ee1730c8e3b526304f2562be";
 
+const SCRFD_FILENAME: &str = "scrfd_10g_bnkps.onnx";
+const SCRFD_URL: &str = "https://huggingface.co/datasets/Alltitude/insightface/resolve/main/scrfd_10g_bnkps.onnx";
+
+const FACE_LANDMARK_106_FILENAME: &str = "2d106det.onnx";
+const FACE_LANDMARK_106_URL: &str = "https://huggingface.co/datasets/Alltitude/insightface/resolve/main/2d106det.onnx";
+
 pub struct AiModels {
     pub sam_encoder: Mutex<Session>,
     pub sam_decoder: Mutex<Session>,
@@ -93,6 +99,7 @@ pub struct AiState {
     pub lama_model: Option<Arc<Mutex<Session>>>,
     pub embeddings: Option<ImageEmbeddings>,
     pub depth_map: Option<CachedDepthMap>,
+    pub face_landmark_detector: Option<Arc<Mutex<crate::face_landmark::FaceLandmarkDetector>>>,
 }
 
 fn edt_1d(f: &mut [f32], v: &mut [usize], z: &mut [f32], d: &mut [f32]) {
@@ -409,6 +416,7 @@ pub async fn get_or_init_ai_models(
             lama_model: None,
             embeddings: None,
             depth_map: None,
+            face_landmark_detector: None,
         });
     }
 
@@ -469,6 +477,7 @@ pub async fn get_or_init_denoise_model(
             lama_model: None,
             embeddings: None,
             depth_map: None,
+            face_landmark_detector: None,
         });
     }
 
@@ -541,6 +550,7 @@ pub async fn get_or_init_clip_models(
             lama_model: None,
             embeddings: None,
             depth_map: None,
+            face_landmark_detector: None,
         });
     }
 
@@ -601,10 +611,101 @@ pub async fn get_or_init_lama_model(
             lama_model: Some(lama_model.clone()),
             embeddings: None,
             depth_map: None,
+            face_landmark_detector: None,
         });
     }
 
     Ok(lama_model)
+}
+
+async fn download_model_if_missing(
+    app_handle: &tauri::AppHandle,
+    models_dir: &Path,
+    filename: &str,
+    url: &str,
+    model_name: &str,
+) -> Result<(), String> {
+    let dest_path = models_dir.join(filename);
+    if dest_path.exists() {
+        return Ok(());
+    }
+    let _ = app_handle.emit("ai-model-download-start", model_name);
+    let result = download_model(url, &dest_path).await.map_err(|e| e.to_string());
+    let _ = app_handle.emit("ai-model-download-finish", model_name);
+    result
+}
+
+pub async fn get_or_init_face_landmark_detector(
+    app_handle: &tauri::AppHandle,
+    ai_state_mutex: &Mutex<Option<AiState>>,
+    ai_init_lock: &TokioMutex<()>,
+) -> Result<Arc<Mutex<crate::face_landmark::FaceLandmarkDetector>>, String> {
+    if let Some(detector) = ai_state_mutex
+        .lock()
+        .unwrap()
+        .as_ref()
+        .and_then(|state| state.face_landmark_detector.clone())
+    {
+        return Ok(detector);
+    }
+
+    let _guard = ai_init_lock.lock().await;
+
+    if let Some(detector) = ai_state_mutex
+        .lock()
+        .unwrap()
+        .as_ref()
+        .and_then(|state| state.face_landmark_detector.clone())
+    {
+        return Ok(detector);
+    }
+
+    let models_dir = get_models_dir(app_handle).map_err(|e| e.to_string())?;
+
+    download_model_if_missing(
+        app_handle,
+        &models_dir,
+        SCRFD_FILENAME,
+        SCRFD_URL,
+        "Face Detection Model",
+    )
+    .await?;
+
+    download_model_if_missing(
+        app_handle,
+        &models_dir,
+        FACE_LANDMARK_106_FILENAME,
+        FACE_LANDMARK_106_URL,
+        "Face Landmark Model",
+    )
+    .await?;
+
+    let _ = ort::init().with_name("AI-FaceLandmark").commit();
+
+    let scrfd_path = models_dir.join(SCRFD_FILENAME);
+    let landmark_path = models_dir.join(FACE_LANDMARK_106_FILENAME);
+
+    let detector = crate::face_landmark::FaceLandmarkDetector::new(&scrfd_path, &landmark_path)?;
+    let detector = Arc::new(Mutex::new(detector));
+
+    crate::register_exit_handler();
+
+    let mut ai_state_lock = ai_state_mutex.lock().unwrap();
+    if let Some(state) = ai_state_lock.as_mut() {
+        state.face_landmark_detector = Some(detector.clone());
+    } else {
+        *ai_state_lock = Some(AiState {
+            models: None,
+            denoise_model: None,
+            clip_models: None,
+            lama_model: None,
+            embeddings: None,
+            depth_map: None,
+            face_landmark_detector: Some(detector.clone()),
+        });
+    }
+
+    Ok(detector)
 }
 
 #[derive(Clone, Copy)]
