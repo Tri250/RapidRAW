@@ -30,4 +30,29 @@ export default defineConfig(async () => ({
     minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
   },
+
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      thresholds: {
+        lines: 15,
+        functions: 15,
+        branches: 10,
+        statements: 15,
+      },
+      exclude: [
+        'node_modules/**',
+        'src-tauri/**',
+        'src/test/**',
+        '**/*.d.ts',
+        '**/*.config.*',
+      ],
+    },
+    include: ['src/**/*.test.{ts,tsx}'],
+    exclude: ['node_modules/**', 'src-tauri/**'],
+  },
 }));

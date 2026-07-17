@@ -987,7 +987,7 @@ fn label_connected_components(mask: &[bool], w: u32, h: u32) -> Vec<u32> {
                 parent.push(next_label);
                 next_label += 1;
             } else {
-                let min_label = *neighbors.iter().min().unwrap();
+                let min_label = *neighbors.iter().min().unwrap_or(&0);
                 labels[idx] = min_label;
                 for &n in &neighbors {
                     union(&mut parent, min_label, n);
@@ -1176,7 +1176,10 @@ pub fn apply_body_reshape(
     let mut dst = RgbaImage::from_pixel(w, h, Rgba([0, 0, 0, 0]));
 
     // Use the highest face as the body anchor
-    let anchor_face = face_regions.iter().min_by_key(|f| f.face_rect.1).unwrap();
+    let anchor_face = match face_regions.iter().min_by_key(|f| f.face_rect.1) {
+        Some(f) => f,
+        None => return Ok(()),
+    };
     let body_y_start = anchor_face.face_rect.1 + anchor_face.face_rect.3;
 
     let slim = slim_amount.clamp(-1.0, 1.0);
@@ -1553,5 +1556,211 @@ fn hex_to_rgb(hex: &str) -> Option<(u8, u8, u8)> {
         Some((r, g, b))
     } else {
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use image::{RgbaImage, Rgba};
+
+    #[test]
+    fn test_rgb_to_f32_roundtrip() {
+        assert_eq!(rgb_to_f32(0, 0, 0), (0.0, 0.0, 0.0));
+        assert_eq!(rgb_to_f32(255, 255, 255), (1.0, 1.0, 1.0));
+        assert_eq!(rgb_to_f32(128, 128, 128), (128.0 / 255.0, 128.0 / 255.0, 128.0 / 255.0));
+    }
+
+    #[test]
+    fn test_f32_to_rgb_clamps() {
+        assert_eq!(f32_to_rgb(-0.5, 1.2, 0.5), (0, 255, 128));
+        assert_eq!(f32_to_rgb(0.0, 0.0, 1.0), (0, 0, 255));
+    }
+
+    #[test]
+    fn test_luminance() {
+        assert_eq!(luminance(1.0, 1.0, 1.0), 1.0);
+        assert_eq!(luminance(0.0, 0.0, 0.0), 0.0);
+        let lum = luminance(1.0, 0.0, 0.0);
+        assert!((lum - 0.299).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_gaussian() {
+        assert_eq!(gaussian(0.0, 1.0), 1.0);
+        assert!(gaussian(3.0, 1.0) < 0.05);
+        assert_eq!(gaussian(0.0, 0.0), 1.0);
+        assert_eq!(gaussian(1.0, 0.0), 0.0);
+    }
+
+    #[test]
+    fn test_rgb_to_hsl_red() {
+        let (h, s, l) = rgb_to_hsl(1.0, 0.0, 0.0);
+        assert!((h - 0.0).abs() < 1e-3 || (h - 360.0).abs() < 1e-3);
+        assert!((s - 1.0).abs() < 1e-3);
+        assert!((l - 0.5).abs() < 1e-3);
+    }
+
+    #[test]
+    fn test_hsl_to_rgb_roundtrip() {
+        for h in [0.0, 60.0, 120.0, 180.0, 240.0, 300.0] {
+            for s in [0.0, 0.5, 1.0] {
+                for l in [0.25, 0.5, 0.75] {
+                    let (r, g, b) = hsl_to_rgb(h, s, l);
+                    let (h2, s2, l2) = rgb_to_hsl(r, g, b);
+                    if s > 1e-6 {
+                        let dh = (h - h2).abs().min(360.0 - (h - h2).abs());
+                        assert!(dh < 1.0, "HSL roundtrip failed for h={}, s={}, l={}", h, s, l);
+                        assert!((s - s2).abs() < 1e-3);
+                    }
+                    assert!((l - l2).abs() < 1e-3);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_rgb_to_ycbcr() {
+        let (y, cb, cr) = rgb_to_ycbcr(255, 255, 255);
+        assert!(y > 250.0);
+        assert!(cb > 125.0 && cb < 135.0);
+        assert!(cr > 125.0 && cr < 135.0);
+    }
+
+    #[test]
+    fn test_rgb_to_lab_roundtrip() {
+        let (l, a, b) = rgb_to_lab(0.5, 0.5, 0.5);
+        let (r, g, b_out) = lab_to_rgb(l, a, b);
+        assert!((r - 0.5).abs() < 1e-3);
+        assert!((g - 0.5).abs() < 1e-3);
+        assert!((b_out - 0.5).abs() < 1e-3);
+    }
+
+    #[test]
+    fn test_hex_to_rgb() {
+        assert_eq!(hex_to_rgb("#FF0000"), Some((255, 0, 0)));
+        assert_eq!(hex_to_rgb("00FF00"), Some((0, 255, 0)));
+        assert_eq!(hex_to_rgb("0000FF"), Some((0, 0, 255)));
+        assert_eq!(hex_to_rgb("GG0000"), None);
+        assert_eq!(hex_to_rgb("FF000"), None);
+    }
+
+    #[test]
+    fn test_apply_skin_smoothing_zero_image() {
+        let mut img = DynamicImage::ImageRgba8(RgbaImage::from_pixel(1, 1, Rgba([128, 128, 128, 255])));
+        assert!(apply_skin_smoothing(&mut img, 0.5, 0.5).is_ok());
+    }
+
+    #[test]
+    fn test_apply_skin_smoothing_rejects_zero_dim() {
+        let mut img = DynamicImage::ImageRgba8(RgbaImage::new(0, 10));
+        assert!(apply_skin_smoothing(&mut img, 0.5, 0.5).is_err());
+    }
+
+    #[test]
+    fn test_detect_face_regions_tiny_image() {
+        let img = DynamicImage::ImageRgba8(RgbaImage::new(16, 16));
+        let regions = detect_face_regions(&img);
+        assert!(regions.is_empty());
+    }
+
+    #[test]
+    fn test_apply_face_reshape_zero_dim() {
+        let mut img = DynamicImage::ImageRgba8(RgbaImage::new(0, 10));
+        assert!(apply_face_reshape(&mut img, &[], 0.5, 0.5).is_err());
+    }
+
+    #[test]
+    fn test_apply_eye_enlarge_no_regions() {
+        let mut img = DynamicImage::ImageRgba8(RgbaImage::from_pixel(10, 10, Rgba([255, 0, 0, 255])));
+        assert!(apply_eye_enlarge(&mut img, &[], 0.5).is_ok());
+    }
+
+    #[test]
+    fn test_apply_teeth_whitening_zero_dim() {
+        let mut img = DynamicImage::ImageRgba8(RgbaImage::new(0, 10));
+        assert!(apply_teeth_whitening(&mut img, &[(5, 5, 3)], 0.5, 0.5).is_err());
+    }
+
+    #[test]
+    fn test_apply_eye_brighten_zero_dim() {
+        let mut img = DynamicImage::ImageRgba8(RgbaImage::new(0, 10));
+        assert!(apply_eye_brighten(&mut img, &[(5, 5, 3)], 0.5).is_err());
+    }
+
+    #[test]
+    fn test_apply_makeup_zero_dim() {
+        let mut img = DynamicImage::ImageRgba8(RgbaImage::new(0, 10));
+        assert!(apply_makeup(&mut img, "lip", &[(5, 5, 3)], (200, 50, 50), 0.5).is_err());
+    }
+
+    #[test]
+    fn test_apply_blemish_removal_zero_dim() {
+        let mut img = DynamicImage::ImageRgba8(RgbaImage::new(0, 10));
+        assert!(apply_blemish_removal(&mut img, &[(5, 5, 3)], 0.5).is_err());
+    }
+
+    #[test]
+    fn test_apply_hair_adjust_zero_dim() {
+        let mut img = DynamicImage::ImageRgba8(RgbaImage::new(0, 10));
+        assert!(apply_hair_adjust(&mut img, &[], 10.0, 0.1).is_err());
+    }
+
+    #[test]
+    fn test_apply_body_reshape_empty_faces() {
+        let mut img = DynamicImage::ImageRgba8(RgbaImage::from_pixel(10, 10, Rgba([255, 0, 0, 255])));
+        assert!(apply_body_reshape(&mut img, &[], 0.5, 0.5, 0.5).is_ok());
+    }
+
+    #[test]
+    fn test_apply_skin_tone_unify_zero_dim() {
+        let mut img = DynamicImage::ImageRgba8(RgbaImage::new(0, 10));
+        assert!(apply_skin_tone_unify(&mut img, &[], 0.0, 0.0, 0.5).is_err());
+    }
+
+    #[test]
+    fn test_apply_one_click_beauty_no_faces() {
+        let mut img = DynamicImage::ImageRgba8(RgbaImage::from_pixel(10, 10, Rgba([128, 128, 128, 255])));
+        assert!(apply_one_click_beauty(&mut img, 0.5, &[]).is_ok());
+    }
+
+    #[test]
+    fn test_compute_center_radius_empty() {
+        assert_eq!(compute_center_radius(&[]), (0, 0, 0));
+    }
+
+    #[test]
+    fn test_compute_center_radius_single() {
+        assert_eq!(compute_center_radius(&[(10.0, 20.0)]), (10, 20, 1));
+    }
+
+    #[test]
+    fn test_label_connected_components_empty() {
+        let mask = vec![false; 4];
+        let labels = label_connected_components(&mask, 2, 2);
+        assert_eq!(labels, vec![0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn test_extract_components_empty() {
+        let labels = vec![0, 0, 0, 0];
+        let comps = extract_components(&labels, 2, 2);
+        assert!(comps.is_empty());
+    }
+
+    #[test]
+    fn test_erode_mask_all_false() {
+        let src = vec![false; 4];
+        let mut dst = vec![false; 4];
+        erode_mask(&src, 2, 2, &mut dst, 1);
+        assert_eq!(dst, vec![false, false, false, false]);
+    }
+
+    #[test]
+    fn test_dilate_mask_all_false() {
+        let src = vec![false; 4];
+        let mut dst = vec![false; 4];
+        dilate_mask(&src, 2, 2, &mut dst, 1);
+        assert_eq!(dst, vec![false, false, false, false]);
     }
 }

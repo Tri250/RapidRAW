@@ -85,7 +85,7 @@ impl FaceLandmarkDetector {
         let t_input = Tensor::from_array(
             input_tensor
                 .into_shape((1, 3, input_size as usize, input_size as usize))
-                .unwrap()
+                .map_err(|e| format!("Tensor reshape failed: {}", e))?
                 .into_dyn()
                 .as_standard_layout()
                 .into_owned(),
@@ -298,7 +298,7 @@ impl FaceLandmarkDetector {
         let t_input = Tensor::from_array(
             input_tensor
                 .into_shape((1, 3, 192, 192))
-                .unwrap()
+                .map_err(|e| format!("Landmark tensor reshape failed: {}", e))?
                 .into_dyn()
                 .as_standard_layout()
                 .into_owned(),
@@ -434,4 +434,61 @@ fn estimate_affine_transform(
         [x[0] as f32, x[1] as f32, x[2] as f32],
         [x[3] as f32, x[4] as f32, x[5] as f32],
     ])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use image::{RgbImage, Rgb};
+
+    #[test]
+    fn test_iou_identical() {
+        let a = [0.0, 0.0, 10.0, 10.0];
+        let b = [0.0, 0.0, 10.0, 10.0];
+        assert!((iou(a, b) - 1.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn test_iou_no_overlap() {
+        let a = [0.0, 0.0, 10.0, 10.0];
+        let b = [20.0, 20.0, 30.0, 30.0];
+        assert_eq!(iou(a, b), 0.0);
+    }
+
+    #[test]
+    fn test_iou_partial_overlap() {
+        let a = [0.0, 0.0, 10.0, 10.0];
+        let b = [5.0, 5.0, 15.0, 15.0];
+        let inter = 5.0 * 5.0;
+        let union = 100.0 + 100.0 - inter;
+        let expected = inter / union;
+        assert!((iou(a, b) - expected).abs() < 1e-5);
+    }
+
+    #[test]
+    fn test_estimate_affine_transform_minimal() {
+        let src = vec![(0.0, 0.0), (1.0, 0.0), (0.0, 1.0)];
+        let dst = vec![(0.0, 0.0), (1.0, 0.0), (0.0, 1.0)];
+        let mat = estimate_affine_transform(&src, &dst).unwrap();
+        assert!((mat[0][0] - 1.0).abs() < 1e-3);
+        assert!((mat[1][1] - 1.0).abs() < 1e-3);
+        assert!((mat[0][2]).abs() < 1e-3);
+        assert!((mat[1][2]).abs() < 1e-3);
+    }
+
+    #[test]
+    fn test_estimate_affine_transform_insufficient_points() {
+        let src = vec![(0.0, 0.0), (1.0, 0.0)];
+        let dst = vec![(0.0, 0.0), (1.0, 0.0)];
+        assert!(estimate_affine_transform(&src, &dst).is_err());
+    }
+
+    #[test]
+    fn test_sample_bilinear_rgb_clamps() {
+        let img = RgbImage::from_pixel(2, 2, Rgb([128, 64, 32]));
+        let px = sample_bilinear_rgb(&img, 2, 2, -1.0, -1.0);
+        assert_eq!(px[0], 128);
+        let px2 = sample_bilinear_rgb(&img, 2, 2, 5.0, 5.0);
+        assert_eq!(px2[0], 128);
+    }
 }

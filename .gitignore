@@ -38,4 +38,4 @@ src-tauri/libs/
 **/keystore.properties
 **/keystore.jks
 **/release-keystore.jks
-**/key.properties
+**/key.propertiescoverage/
