@@ -173,7 +173,7 @@ pub fn generate_transformed_preview(
         }
     };
 
-    let (full_res_w, full_res_h) = transformed_full_res.dimensions();
+    let (full_res_w, full_res_h) = transformed_full_res.as_ref().dimensions();
 
     let final_preview_base = if full_res_w > preview_dim || full_res_h > preview_dim {
         downscale_f32_image(&transformed_full_res, preview_dim, preview_dim)
@@ -906,7 +906,7 @@ fn generate_original_transformed_preview(
     let default_dim = settings.editor_preview_resolution.unwrap_or(1920);
     let preview_dim = target_resolution.unwrap_or(default_dim);
 
-    let (w, h) = transformed_full_res.dimensions();
+    let (w, h) = transformed_full_res.as_ref().dimensions();
     let transformed_image = if w > preview_dim || h > preview_dim {
         downscale_f32_image(transformed_full_res.as_ref(), preview_dim, preview_dim)
     } else {
