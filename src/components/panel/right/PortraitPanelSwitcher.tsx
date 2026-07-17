@@ -1,5 +1,4 @@
 import React, { useCallback, useState, useRef } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { User, Users, Baby, PersonStanding, Eraser, Sparkles, CircleDot, Eye, Smile, Palette, Scissors, Move } from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -163,6 +162,29 @@ export default function PortraitPanelSwitcher() {
     });
   };
 
+  const handleOneClickBeauty = useCallback(() => {
+    setAdjustments((prev: Adjustments) => ({
+      ...prev,
+      portrait: {
+        ...(prev.portrait || INITIAL_PORTRAIT_ADJUSTMENTS),
+        skinSmoothingStrength: 35,
+        skinSmoothingDetailPreserve: 65,
+        faceSlimAmount: 25,
+        jawAmount: -10,
+        eyeEnlargeAmount: 20,
+        eyeBrightenAmount: 25,
+        teethWhitenBrightness: 30,
+        teethWhitenDesaturate: 25,
+        lipstickColor: '#D44D5C',
+        lipstickOpacity: 25,
+        blushColor: '#E8919C',
+        blushOpacity: 20,
+        eyebrowColor: '#6B4423',
+        eyebrowOpacity: 15,
+      },
+    }));
+  }, [setAdjustments]);
+
   const handleBlemishClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (!blemishMode) return;
@@ -181,13 +203,8 @@ export default function PortraitPanelSwitcher() {
           },
         };
       });
-
-      invoke('apply_blemish_removal', {
-        spots: [{ x, y, radius }],
-        personAttribute,
-      }).catch((err) => console.error('apply_blemish_removal failed:', err));
     },
-    [blemishMode, personAttribute, setAdjustments],
+    [blemishMode, setAdjustments],
   );
 
   const handleRemoveLastBlemish = useCallback(() => {
@@ -485,6 +502,13 @@ export default function PortraitPanelSwitcher() {
             );
           })}
         </div>
+        <button
+          onClick={handleOneClickBeauty}
+          className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-accent/10 border border-accent/30 text-accent text-sm font-medium hover:bg-accent/20 transition-colors"
+        >
+          <Sparkles size={14} />
+          {t('editor.portraitPanel.oneClickBeauty')}
+        </button>
       </div>
       <div className="grow overflow-y-scroll p-4 flex flex-col gap-2">
         {portraitSections.map((section) => (

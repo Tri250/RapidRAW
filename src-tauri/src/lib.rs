@@ -523,9 +523,17 @@ fn process_preview_job(
                 serde_json::json!({ "path": loaded_image.path }),
             );
             return Ok(b"WGPU_RENDER".to_vec());
-        }
+    }
 
-        let final_processed_image = Arc::new(final_processed_image);
+    // Portrait post-processing (CPU-based, applied after GPU pass)
+    let mut final_processed_image = final_processed_image;
+    if let Some(portrait) = adjustments_clone.get("portrait") {
+        if let Err(e) = crate::portrait_processing::apply_portrait_adjustments(&mut final_processed_image, portrait) {
+            log::warn!("Portrait processing failed: {}", e);
+        }
+    }
+
+    let final_processed_image = Arc::new(final_processed_image);
         let final_rgba_image = match &*final_processed_image {
             DynamicImage::ImageRgba8(img) => img,
             _ => return Err("Expected Rgba8 image from GPU for encoding".to_string()),
