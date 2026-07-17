@@ -17,10 +17,23 @@ describe('AndroidBottomNav', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders 5 nav items on Android', () => {
-    (useUIStore as any).mockReturnValue({ activeRightPanel: null });
+  it('renders 5 nav items on Android portrait', () => {
     (useUIStore as any).mockImplementation((selector: any) => {
-      const state = { activeRightPanel: null, setRightPanel };
+      const state = { activeRightPanel: null, setRightPanel, isAndroidLandscape: false };
+      return selector ? selector(state) : state;
+    });
+
+    render(<AndroidBottomNav isAndroid={true} />);
+    expect(screen.getByText('editor.android.bottomNav.library')).toBeInTheDocument();
+    expect(screen.getByText('editor.android.bottomNav.basic')).toBeInTheDocument();
+    expect(screen.getByText('editor.android.bottomNav.color')).toBeInTheDocument();
+    expect(screen.getByText('editor.android.bottomNav.portrait')).toBeInTheDocument();
+    expect(screen.getByText('editor.android.bottomNav.export')).toBeInTheDocument();
+  });
+
+  it('renders 5 nav items on Android landscape as side rail', () => {
+    (useUIStore as any).mockImplementation((selector: any) => {
+      const state = { activeRightPanel: null, setRightPanel, isAndroidLandscape: true };
       return selector ? selector(state) : state;
     });
 
@@ -34,7 +47,7 @@ describe('AndroidBottomNav', () => {
 
   it('toggles panel on click', () => {
     (useUIStore as any).mockImplementation((selector: any) => {
-      const state = { activeRightPanel: null, setRightPanel };
+      const state = { activeRightPanel: null, setRightPanel, isAndroidLandscape: false };
       return selector ? selector(state) : state;
     });
 

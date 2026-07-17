@@ -87,6 +87,10 @@ interface UIState {
   uiVisibility: UiVisibility;
   isLibraryExportPanelVisible: boolean;
 
+  // Orientation
+  isLandscape: boolean;
+  isAndroidLandscape: boolean;
+
   // Dimensions
   leftPanelWidth: number;
   rightPanelWidth: number;
@@ -141,6 +145,9 @@ export const useUIStore = create<UIState>((set, get) => ({
   isLayoutReady: false,
   uiVisibility: { folderTree: true, filmstrip: true },
   isLibraryExportPanelVisible: false,
+
+  isLandscape: false,
+  isAndroidLandscape: false,
 
   leftPanelWidth: 256,
   rightPanelWidth: 320,

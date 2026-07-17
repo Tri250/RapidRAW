@@ -413,6 +413,15 @@ function App() {
       setViewportSize((prev) =>
         prev.width === nextViewportSize.width && prev.height === nextViewportSize.height ? prev : nextViewportSize,
       );
+
+      // Update landscape orientation state
+      const isLand = nextViewportSize.width > nextViewportSize.height;
+      const { isLandscape, isAndroidLandscape } = useUIStore.getState();
+      const osPlatform = useSettingsStore.getState().osPlatform;
+      const isAndroid = osPlatform === 'android';
+      if (isLandscape !== isLand || isAndroidLandscape !== (isLand && isAndroid)) {
+        useUIStore.setState({ isLandscape: isLand, isAndroidLandscape: isLand && isAndroid });
+      }
     };
 
     updateViewportSize();

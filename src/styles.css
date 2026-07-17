@@ -403,6 +403,63 @@
   }
 }
 
+/* Landscape orientation optimizations for photography workflow */
+@media (orientation: landscape) {
+  /* Modal: side-by-side layout for landscape */
+  .modal-preview-adjustments {
+    flex-direction: row;
+  }
+
+  .modal-preview-adjustments > .modal-preview-pane {
+    flex: 1 1 60%;
+    height: 100%;
+    min-width: 0;
+  }
+
+  .modal-preview-adjustments > .modal-adjustments-pane {
+    height: 100%;
+    max-height: none;
+    width: auto;
+    flex: 0 1 40%;
+    min-width: 16rem;
+    max-width: 50%;
+    border-top-width: 0;
+    border-left-width: 1px;
+  }
+
+  /* Library view options: horizontal layout in landscape */
+  .library-view-options-content {
+    flex-direction: row;
+  }
+
+  .library-view-options-content > .library-view-options-section {
+    height: 100%;
+    border-bottom-width: 0;
+    border-right-width: 1px;
+  }
+
+  .library-view-options-content > .library-view-options-section:last-child {
+    border-right-width: 0;
+  }
+
+  /* Landscape: increase touch target sizes for photography interaction */
+  .slider-input::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+  }
+
+  .slider-input::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Landscape: ensure scrollbar is accessible with touch */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+}
+
 .cg-hue-gradient {
   background: linear-gradient(
     to right,

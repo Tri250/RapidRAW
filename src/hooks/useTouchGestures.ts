@@ -1,5 +1,13 @@
 import { useEffect, useCallback, useRef, RefObject } from 'react';
 
+/**
+ * Detect if the device is in landscape orientation
+ */
+function isLandscapeOrientation(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth > window.innerHeight;
+}
+
 interface Point {
   x: number;
   y: number;
@@ -35,7 +43,8 @@ export function usePinchZoom(
     onScaleChange?: (scale: number) => void;
   },
 ) {
-  const minScale = options?.minScale ?? 0.1;
+  // Landscape allows slightly more zoom range for detailed photo editing
+  const minScale = options?.minScale ?? (isLandscapeOrientation() ? 0.05 : 0.1);
   const maxScale = options?.maxScale ?? 10;
   const onScaleChange = options?.onScaleChange;
 
@@ -264,7 +273,9 @@ export function useSwipeNavigation(
     onSwipeRight?: () => void;
   },
 ) {
-  const threshold = options?.threshold ?? 50;
+  // Use a higher threshold in landscape to avoid accidental swipes on wider screens
+  const defaultThreshold = isLandscapeOrientation() ? 80 : 50;
+  const threshold = options?.threshold ?? defaultThreshold;
   const onSwipeLeft = options?.onSwipeLeft;
   const onSwipeRight = options?.onSwipeRight;
 

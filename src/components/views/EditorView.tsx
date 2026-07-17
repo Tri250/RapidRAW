@@ -103,6 +103,7 @@ export default function EditorView({
     activeRightPanel,
     renderedRightPanel,
     slideDirection,
+    isAndroidLandscape,
     setUI,
   } = useUIStore(
     useShallow((state) => ({
@@ -114,6 +115,7 @@ export default function EditorView({
       activeRightPanel: state.activeRightPanel,
       renderedRightPanel: state.renderedRightPanel,
       slideDirection: state.slideDirection,
+      isAndroidLandscape: state.isAndroidLandscape,
       setUI: state.setUI,
     })),
   );
@@ -249,10 +251,13 @@ export default function EditorView({
 
   return (
     <div className={clsx('flex grow h-full min-h-0', isCompactPortrait ? 'flex-col gap-2' : 'flex-row')}>
+      {/* Android landscape: side rail nav on the left edge */}
+      {isAndroid && isAndroidLandscape && <AndroidBottomNav isAndroid={isAndroid} />}
       <div className={clsx('flex-1 flex flex-col min-w-0', isCompactPortrait && 'min-h-0')}>
         {editorNode}
         {!isCompactPortrait && editorBottomBarNode}
-        {isAndroid && <AndroidBottomNav isAndroid={isAndroid} />}
+        {/* Android portrait: bottom nav below the editor */}
+        {isAndroid && !isAndroidLandscape && <AndroidBottomNav isAndroid={isAndroid} />}
       </div>
       <div
         className={clsx(
