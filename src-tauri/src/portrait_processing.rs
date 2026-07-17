@@ -1473,7 +1473,7 @@ pub fn apply_portrait_adjustments(
     if face_slim > 0.5 || jaw.abs() > 0.5 || forehead.abs() > 0.5 {
         if !face_regions.is_empty() {
             // forehead adjustment: shift face_rect top upward/downward
-            let mut adjusted_faces = face_regions.clone();
+            let mut adjusted_faces: Vec<FaceRegion> = face_regions.to_vec();
             if forehead.abs() > 0.5 {
                 for face in &mut adjusted_faces {
                     let shift = (forehead / 50.0 * face.face_rect.3 as f32 / 4.0) as i32;
@@ -1511,7 +1511,7 @@ pub fn apply_portrait_adjustments(
     if !blush_color.is_empty() && blush_opacity > 0.5 && !face_regions.is_empty() {
         // Blush: on cheeks, lateral to nose
         let mut blush_regions = Vec::new();
-        for face in &face_regions {
+        for face in face_regions {
             let cheek_r = face.face_rect.2 / 5;
             blush_regions.push((face.left_eye.0.saturating_sub(cheek_r), face.left_eye.1 + cheek_r, cheek_r));
             blush_regions.push((face.right_eye.0 + cheek_r, face.right_eye.1 + cheek_r, cheek_r));

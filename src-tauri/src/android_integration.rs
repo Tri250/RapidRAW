@@ -668,7 +668,7 @@ pub fn share_image(file_path: String, mime_type: String, title: String) -> Resul
             .map_err(|e| map_android_jni_error(&mut env, e))?;
         let intent = env
             .new_object(
-                intent_class,
+                &intent_class,
                 "(Ljava/lang/String;)V",
                 &[(&action_send).into()],
             )
@@ -747,7 +747,7 @@ pub fn share_image(file_path: String, mime_type: String, title: String) -> Resul
             .map_err(|e| map_android_jni_error(&mut env, e))?;
         let chooser = env
             .call_static_method(
-                intent_class,
+                &intent_class,
                 "createChooser",
                 "(Landroid/content/Intent;Ljava/lang/CharSequence;)Landroid/content/Intent;",
                 &[(&intent).into(), (&title_jstring).into()],

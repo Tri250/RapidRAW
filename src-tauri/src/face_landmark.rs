@@ -94,7 +94,7 @@ impl FaceLandmarkDetector {
 
         let outputs = self
             .scrfd_session
-            .run(ort::inputs![t_input].map_err(|e| e.to_string())?)
+            .run(ort::inputs![t_input])
             .map_err(|e| e.to_string())?;
 
         // Parse outputs. SCRFD has multiple heads (stride 8, 16, 32).
@@ -307,7 +307,7 @@ impl FaceLandmarkDetector {
 
         let outputs = self
             .landmark_session
-            .run(ort::inputs![t_input].map_err(|e| e.to_string())?)
+            .run(ort::inputs![t_input])
             .map_err(|e| e.to_string())?;
 
         let arr = outputs[0]

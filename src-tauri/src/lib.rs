@@ -1267,7 +1267,7 @@ async fn generate_all_community_previews(
         .map_err(|e| e.to_string())?;
 
         let is_raw = is_raw_file(&source_path_str);
-        let (orig_w, orig_h) = original_image.dimensions();
+        let (orig_w, orig_h) = original_image.as_ref().dimensions();
         let (base_image, base_scale) = if orig_w > PROCESSING_DIM || orig_h > PROCESSING_DIM {
             let downscaled = downscale_f32_image(&original_image, PROCESSING_DIM, PROCESSING_DIM);
             let scale = downscaled.width() as f32 / orig_w as f32;
