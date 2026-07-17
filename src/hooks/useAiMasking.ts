@@ -28,6 +28,16 @@ const getTransformAdjustments = (adj: Adjustments) => ({
   lensVignetteEnabled: adj.lensVignetteEnabled,
 });
 
+const findSubMask = (adjustments: Adjustments, subMaskId: string): SubMask | undefined => {
+  const fromMasks = adjustments.masks
+    ?.flatMap((m: MaskContainer) => m.subMasks)
+    .find((sm: SubMask) => sm.id === subMaskId);
+  if (fromMasks) return fromMasks;
+  return adjustments.aiPatches
+    ?.flatMap((p: AiPatch) => p.subMasks)
+    .find((sm: SubMask) => sm.id === subMaskId);
+};
+
 export function useAiMasking() {
   const { setAdjustments } = useEditorActions();
   const setEditor = useEditorStore((state) => state.setEditor);
@@ -296,9 +306,7 @@ export function useAiMasking() {
         startPoint: [startPoint.x, startPoint.y],
       });
 
-      const subMask = adjustments.aiPatches
-        ?.flatMap((p: AiPatch) => p.subMasks)
-        .find((sm: SubMask) => sm.id === subMaskId);
+      const subMask = findSubMask(adjustments, subMaskId);
       const mergedParameters = { ...(subMask?.parameters || {}), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
@@ -330,9 +338,7 @@ export function useAiMasking() {
         rotation: adjustments.rotation,
       });
 
-      const subMask = adjustments.aiPatches
-        ?.flatMap((p: AiPatch) => p.subMasks)
-        .find((sm: SubMask) => sm.id === subMaskId);
+      const subMask = findSubMask(adjustments, subMaskId);
       const mergedParameters = { ...(subMask?.parameters || {}), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
@@ -358,9 +364,7 @@ export function useAiMasking() {
         rotation: adjustments.rotation,
       });
 
-      const subMask = adjustments.aiPatches
-        ?.flatMap((p: AiPatch) => p.subMasks)
-        .find((sm: SubMask) => sm.id === subMaskId);
+      const subMask = findSubMask(adjustments, subMaskId);
       const mergedParameters = { ...(subMask?.parameters || {}), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
@@ -386,9 +390,7 @@ export function useAiMasking() {
         rotation: adjustments.rotation,
       });
 
-      const subMask = adjustments.aiPatches
-        ?.flatMap((p: AiPatch) => p.subMasks)
-        .find((sm: SubMask) => sm.id === subMaskId);
+      const subMask = findSubMask(adjustments, subMaskId);
       const mergedParameters = { ...(subMask?.parameters || {}), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });

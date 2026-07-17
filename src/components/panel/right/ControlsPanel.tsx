@@ -272,7 +272,7 @@ export default function Controls() {
       </AnimatePresence>
 
       <div className="grow overflow-y-scroll p-4 flex flex-col gap-2">
-        {['basic'].map((sectionName: string) => {
+        {['basic', 'curves', 'color', 'details', 'effects'].map((sectionName: string) => {
           const SectionComponent: any = {
             basic: BasicAdjustments,
             curves: CurveGraph,

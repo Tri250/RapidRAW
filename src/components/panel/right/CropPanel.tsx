@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Adjustments, INITIAL_ADJUSTMENTS } from '../../../utils/adjustments';
+import { calculateCenteredCrop } from '../../../utils/cropUtils';
 import clsx from 'clsx';
 import { Orientation } from '../../ui/AppProperties';
 import TransformModal from '../../modals/TransformModal';
@@ -406,11 +407,16 @@ export default function CropPanel() {
             ? 1 / prev.aspectRatio
             : prev.aspectRatio
           : null;
+      const newCrop =
+        selectedImage?.width && selectedImage?.height
+          ? calculateCenteredCrop(selectedImage.width, selectedImage.height, newSteps, newAspectRatio)
+          : null;
       return {
         ...prev,
         aspectRatio: newAspectRatio,
         orientationSteps: newSteps,
         rotation: 0,
+        crop: newCrop,
       };
     });
   };

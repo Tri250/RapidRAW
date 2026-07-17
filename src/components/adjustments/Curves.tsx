@@ -28,7 +28,6 @@ interface ColorData {
 interface CurveGraphProps {
   adjustments: Adjustments | any;
   histogram: ChannelConfig | null;
-  isForMask?: boolean;
   setAdjustments(updater: (prev: any) => any): void;
   theme: string;
   onDragStateChange?: (isDragging: boolean) => void;

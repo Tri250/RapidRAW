@@ -1859,7 +1859,7 @@ const ImageCanvas = memo(
           let effectiveTool;
 
           if (isAiSubjectActive) {
-            effectiveTool = ToolType.AiSeletor;
+            effectiveTool = ToolType.AiSelector;
           } else if (isAltPressed) {
             effectiveTool = baseTool === ToolType.Brush ? ToolType.Eraser : ToolType.Brush;
           } else {

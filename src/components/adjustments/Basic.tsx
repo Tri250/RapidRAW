@@ -191,7 +191,7 @@ export default function BasicAdjustments({
         />
       ) : (
         <ToneMapperSwitch
-          selectedMapper={adjustments.toneMapper || 'agx'}
+          selectedMapper={adjustments.toneMapper || 'basic'}
           onMapperChange={handleToneMapperChange}
           evShiftValue={adjustments.exposure}
           onEvShiftChange={(value) => handleAdjustmentChange(BasicAdjustment.Exposure, value)}
@@ -199,7 +199,7 @@ export default function BasicAdjustments({
         />
       )}
       <Slider
-        label={t('adjustments.basic.exposure')}
+        label={t('adjustments.basic.brightness')}
         max={5}
         min={-5}
         onChange={(e: any) => handleAdjustmentChange(BasicAdjustment.Brightness, e.target.value)}

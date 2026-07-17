@@ -561,9 +561,10 @@ export default function MasksPanel() {
   const { setAdjustments } = useEditorActions();
   const { handleGenerateAiDepthMask, handleGenerateAiForegroundMask, handleGenerateAiSkyMask } = useAiMasking();
   const setCustomEscapeHandler = useUIStore((s) => s.setCustomEscapeHandler);
-  const { appSettings } = useSettingsStore(
+  const { appSettings, theme } = useSettingsStore(
     useShallow((state) => ({
       appSettings: state.appSettings,
+      theme: state.theme,
     })),
   );
 
@@ -2549,6 +2550,7 @@ function SettingsPanel({
                 histogram={histogram}
                 isForMask={true}
                 appSettings={appSettings}
+                theme={theme}
                 onDragStateChange={onDragStateChange}
               />
             </CollapsibleSection>
