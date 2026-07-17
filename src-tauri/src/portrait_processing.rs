@@ -805,7 +805,7 @@ pub fn detect_face_regions(img: &DynamicImage) -> Vec<FaceRegion> {
     // Keep up to 6 largest components, require minimum area
     let mut sorted = components;
     sorted.sort_by(|a, b| b.area.cmp(&a.area));
-    let min_area = (w * h / 100).max(100);
+    let min_area = ((w as usize * h as usize) / 100).max(100);
     let top_components: Vec<_> = sorted.into_iter().filter(|c| c.area >= min_area).take(6).collect();
 
     if top_components.is_empty() {

@@ -693,7 +693,7 @@ pub fn generate_ai_sky_replace(
         .clone()
         .ok_or("No original image loaded")?;
 
-    let (w, h) = loaded_image.image.dimensions();
+    let (w, h) = loaded_image.image.as_ref().dimensions();
     if w == 0 || h == 0 {
         return Err("Image has zero dimensions".to_string());
     }
@@ -807,7 +807,7 @@ pub fn generate_ai_background_remove(
         .clone()
         .ok_or("No original image loaded")?;
 
-    let (w, h) = loaded_image.image.dimensions();
+    let (w, h) = loaded_image.image.as_ref().dimensions();
     if w == 0 || h == 0 {
         return Err("Image has zero dimensions".to_string());
     }
@@ -878,7 +878,7 @@ pub fn apply_super_resolution(
         .clone()
         .ok_or("No original image loaded")?;
 
-    let (w, h) = loaded_image.image.dimensions();
+    let (w, h) = loaded_image.image.as_ref().dimensions();
     if w == 0 || h == 0 {
         return Err("Image has zero dimensions".to_string());
     }

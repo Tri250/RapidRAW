@@ -92,14 +92,14 @@ impl FaceLandmarkDetector {
         )
         .map_err(|e| e.to_string())?;
 
-        // Parse outputs. SCRFD has multiple heads (stride 8, 16, 32).
-        // Each head produces score [1, N, 1], bbox [1, N, 4], kps [1, N, 10].
-        let output_count = self.scrfd_session.outputs.len();
-
         let outputs = self
             .scrfd_session
             .run(ort::inputs![t_input])
             .map_err(|e| e.to_string())?;
+
+        // Use outputs.len() instead of self.scrfd_session.outputs.len()
+        // to avoid borrow conflict with the mutable borrow from run()
+        let output_count = outputs.len();
         let mut scores: Vec<Array<f32, IxDyn>> = Vec::new();
         let mut bboxes: Vec<Array<f32, IxDyn>> = Vec::new();
         let mut kpss: Vec<Array<f32, IxDyn>> = Vec::new();
@@ -432,8 +432,8 @@ fn estimate_affine_transform(
         .map_err(|_| "Failed to solve affine transform via SVD".to_string())?;
 
     Ok([
-        [*x[0], *x[1], *x[2]],
-        [*x[3], *x[4], *x[5]],
+        [x[0] as f32, x[1] as f32, x[2] as f32],
+        [x[3] as f32, x[4] as f32, x[5] as f32],
     ])
 }
 

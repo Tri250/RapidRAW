@@ -3602,7 +3602,7 @@ pub fn detect_horizon_lines(
         .clone()
         .ok_or("No original image loaded")?;
 
-    let (w, h) = loaded_image.image.dimensions();
+    let (w, h) = loaded_image.image.as_ref().dimensions();
     if w == 0 || h == 0 {
         return Err("Image has zero dimensions".to_string());
     }
