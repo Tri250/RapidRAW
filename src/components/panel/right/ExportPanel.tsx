@@ -303,7 +303,7 @@ export default function ExportPanel({
         return;
       }
       try {
-        const dims: any = await invoke('get_image_dimensions', { path: pathsToExport[0] });
+        const dims: any = await invoke(Invokes.GetImageDimensions, { path: pathsToExport[0] });
         if (dims.width > 0 && dims.height > 0) setImageAspectRatio(dims.width / dims.height);
       } catch {
         setImageAspectRatio(3 / 2);
@@ -319,7 +319,7 @@ export default function ExportPanel({
         return;
       }
       try {
-        const dimensions: { width: number; height: number } = await invoke('get_image_dimensions', {
+        const dimensions: { width: number; height: number } = await invoke(Invokes.GetImageDimensions, {
           path: watermarkPath,
         });
         setWatermarkImageAspectRatio(dimensions.height > 0 ? dimensions.width / dimensions.height : 1);
@@ -534,7 +534,7 @@ export default function ExportPanel({
           const mimeType = selectedFormat.extensions[0] === 'png' ? 'image/png' : 'image/jpeg';
           for (const exportedPath of exportedPaths) {
             try {
-              await invoke('save_to_android_gallery', {
+              await invoke(Invokes.SaveToAndroidGallery, {
                 filePath: exportedPath,
                 mimeType,
               });
@@ -950,7 +950,7 @@ export default function ExportPanel({
             onClick={async () => {
               try {
                 const mimeType = fileFormat === 'png' ? 'image/png' : 'image/jpeg';
-                await invoke('share_image', {
+                await invoke(Invokes.ShareImage, {
                   filePath: lastExportedFilePath,
                   mimeType,
                   title: t('export.share.title'),

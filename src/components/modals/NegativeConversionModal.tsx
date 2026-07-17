@@ -142,7 +142,7 @@ export default function NegativeConversionModal({
       updatePreview(DEFAULT_PARAMS, true);
 
       if (selectedImagePath) {
-        invoke('generate_preview_for_path', {
+        invoke(Invokes.GeneratePreviewForPath, {
           path: selectedImagePath,
           jsAdjustments: {},
         })

@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Share2, MessageCircle, X } from 'lucide-react';
+import { Invokes } from './AppProperties';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import Text from './Text';
@@ -40,7 +41,7 @@ export default function AndroidShareSheet({
       if (sharing) return;
       setSharing(true);
       try {
-        await invoke('share_image', {
+        await invoke(Invokes.ShareImage, {
           filePath,
           mimeType,
           title: t('androidShare.title' as any, { target: t(`androidShare.${targetId}` as any) }),

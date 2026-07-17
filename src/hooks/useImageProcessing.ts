@@ -365,7 +365,7 @@ export function useImageProcessing(
       debounce(async (currentAdjustments: Adjustments, targetRes: number) => {
         if (targetRes > currentOriginalResRef.current) {
           try {
-            const base64Data: string = await invoke('generate_original_transformed_preview', {
+            const base64Data: string = await invoke(Invokes.GenerateOriginalTransformedPreview, {
               jsAdjustments: currentAdjustments,
               targetResolution: targetRes,
             });
@@ -527,7 +527,7 @@ export function useImageProcessing(
       if (showOriginal && selectedImage?.path && !transformedOriginalUrl) {
         try {
           const targetRes = calculateTargetRes();
-          const base64Data: string = await invoke('generate_original_transformed_preview', {
+          const base64Data: string = await invoke(Invokes.GenerateOriginalTransformedPreview, {
             jsAdjustments: adjustments,
             targetResolution: targetRes,
           });

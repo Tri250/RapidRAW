@@ -124,7 +124,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
       const cached = globalImageCache.get(path);
       const isFrontendCached = Boolean(cached && cached.selectedImage?.isReady);
       const isCachedInBackend = isFrontendCached
-        ? await invoke<boolean>('is_image_cached', { path }).catch(() => false)
+        ? await invoke<boolean>(Invokes.IsImageCached, { path }).catch(() => false)
         : false;
 
       const hasDifferentResolution =
@@ -273,7 +273,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
       const libraryViewMode = appSettings?.libraryViewMode;
 
       if (!preserveEditor) {
-        await invoke('cancel_thumbnail_generation');
+        await invoke(Invokes.CancelThumbnailGeneration);
         clearThumbnailQueue();
         setLibrary({ isViewLoading: true, activeAlbumId: null, libraryScrollTop: 0 });
         useLibraryStore.getState().setSearchCriteria({ tags: [], text: '', mode: 'OR' });
@@ -400,7 +400,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
       const { setUI } = useUIStore.getState();
 
       if (!preserveEditor) {
-        await invoke('cancel_thumbnail_generation');
+        await invoke(Invokes.CancelThumbnailGeneration);
         clearThumbnailQueue();
         useLibraryStore.getState().setSearchCriteria({ tags: [], text: '', mode: 'OR' });
         setLibrary({ libraryScrollTop: 0 });

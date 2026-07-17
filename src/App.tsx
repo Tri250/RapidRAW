@@ -795,7 +795,7 @@ function App() {
 }
 
 const AppWrapper = () => (
-  <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} routerPush={(to) => {}} routerReplace={(to) => {}}>
+  <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} routerPush={(to) => console.warn('Clerk routerPush called (desktop app):', to)} routerReplace={(to) => console.warn('Clerk routerReplace called (desktop app):', to)}>
     <ContextMenuProvider>
       <App />
       <GlobalTooltip />

@@ -1,6 +1,7 @@
 import { open } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Invokes } from './AppProperties';
 import { ChevronDown, ImageOff, Upload, X, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -65,7 +66,7 @@ export default function LUTControl({
         isDestructive: true,
         onClick: async () => {
           try {
-            const updatedList = await invoke<LutEntry[]>('remove_lut', { path: entry.path });
+            const updatedList = await invoke<LutEntry[]>(Invokes.RemoveLut, { path: entry.path });
             setEntries(updatedList);
             setPreviews((prev) => {
               const next = { ...prev };
@@ -86,7 +87,7 @@ export default function LUTControl({
 
   const refreshList = useCallback(async () => {
     try {
-      const list = await invoke<LutEntry[]>('list_luts');
+      const list = await invoke<LutEntry[]>(Invokes.ListLuts);
       setEntries(list);
     } catch (err) {
       console.error('Failed to list LUTs:', err);
@@ -110,7 +111,7 @@ export default function LUTControl({
 
     let isActive = true;
     setIsLoadingPreviews(true);
-    invoke<LutPreview[]>('generate_lut_previews', {
+    invoke<LutPreview[]>(Invokes.GenerateLutPreviews, {
       lutPaths: entries.map((entry) => entry.path),
       size: PREVIEW_SIZE,
     })
@@ -149,7 +150,7 @@ export default function LUTControl({
         const resolvedNames = await Promise.all(
           sourcePaths.map(async (path) => {
             try {
-              return await invoke<string>('resolve_android_content_uri_name', { uriStr: path });
+              return await invoke<string>(Invokes.ResolveAndroidContentUriName, { uriStr: path });
             } catch (e) {
               console.error('Failed to resolve Android URI:', e);
               return path;
@@ -172,7 +173,7 @@ export default function LUTControl({
         }
       }
 
-      const list = await invoke<LutEntry[]>('import_luts', { sourcePaths: validPaths });
+      const list = await invoke<LutEntry[]>(Invokes.ImportLuts, { sourcePaths: validPaths });
       previewCache.current.clear();
       setEntries(list);
       setPreviews({});

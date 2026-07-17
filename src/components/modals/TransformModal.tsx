@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invoke } from '@tauri-apps/api/core';
+import { Invokes } from '../ui/AppProperties';
 import { Check, RotateCcw, Grid3X3, Eye, EyeOff, Info, LineChart, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Button from '../ui/Button';
@@ -223,7 +224,7 @@ export default function TransformModal({ isOpen, onClose, onApply, currentAdjust
           lens_vignette_enabled: currentAdjustments.lensVignetteEnabled ?? true,
         };
 
-        const result: string = await invoke('preview_geometry_transform', {
+        const result: string = await invoke(Invokes.PreviewGeometryTransform, {
           params: fullParams,
           jsAdjustments: currentAdjustments,
           showLines: linesEnabled,
@@ -316,7 +317,7 @@ export default function TransformModal({ isOpen, onClose, onApply, currentAdjust
         lens_tca_enabled: currentAdjustments.lensTcaEnabled ?? true,
         lens_vignette_enabled: currentAdjustments.lensVignetteEnabled ?? true,
       };
-      const result: string = await invoke('preview_geometry_transform', {
+      const result: string = await invoke(Invokes.PreviewGeometryTransform, {
         params: fullParams,
         jsAdjustments: currentAdjustments,
         showLines: false,

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useTranslation, Trans } from 'react-i18next';
+import { Invokes } from '../ui/AppProperties';
 import {
   RotateCcw,
   Search,
@@ -235,7 +236,7 @@ export default function LensCorrectionModal({
 
   const fetchDistortionParams = async (maker: string, model: string) => {
     try {
-      const distParams: any = await invoke('get_lens_distortion_params', {
+      const distParams: any = await invoke(Invokes.GetLensDistortionParams, {
         maker,
         model,
         focalLength: focalLength,
@@ -281,7 +282,7 @@ export default function LensCorrectionModal({
           vig_k3: currentParams.lensDistortionParams?.vig_k3 ?? 0,
         };
 
-        const result: string = await invoke('preview_geometry_transform', {
+        const result: string = await invoke(Invokes.PreviewGeometryTransform, {
           params: fullParams,
           jsAdjustments: currentAdjustments,
           showLines: false,
@@ -299,7 +300,7 @@ export default function LensCorrectionModal({
       setIsMounted(true);
       const timer = setTimeout(() => setShow(true), 10);
 
-      invoke('load_settings').then((settings: any) => {
+      invoke(Invokes.LoadSettings).then((settings: any) => {
         if (settings?.myLenses) {
           setMyLenses(settings.myLenses);
         }
@@ -323,12 +324,12 @@ export default function LensCorrectionModal({
       handleResetZoom();
       updatePreview(initParams);
 
-      invoke('get_lensfun_makers')
+      invoke(Invokes.GetLensfunMakers)
         .then((m: any) => setMakers(m))
         .catch(console.error);
 
       if (initParams.lensMaker) {
-        invoke('get_lensfun_lenses_for_maker', { maker: initParams.lensMaker })
+        invoke(Invokes.GetLensfunLensesForMaker, { maker: initParams.lensMaker })
           .then((l: any) => setLenses(l))
           .catch(console.error);
       }
@@ -356,7 +357,7 @@ export default function LensCorrectionModal({
     setLenses([]);
     setDetectionStatus('idle');
 
-    invoke('get_lensfun_lenses_for_maker', { maker })
+    invoke(Invokes.GetLensfunLensesForMaker, { maker })
       .then((l: any) => setLenses(l))
       .catch(console.error);
 
@@ -386,7 +387,7 @@ export default function LensCorrectionModal({
     setParams(tempParams);
     setDetectionStatus('idle');
 
-    invoke('get_lensfun_lenses_for_maker', { maker: selected.maker })
+    invoke(Invokes.GetLensfunLensesForMaker, { maker: selected.maker })
       .then((l: any) => setLenses(l))
       .catch(console.error);
 
@@ -424,12 +425,12 @@ export default function LensCorrectionModal({
     setDetectionStatus('detecting');
 
     try {
-      const result: [string, string] | null = await invoke('autodetect_lens', { maker: exifMaker, model: exifModel });
+      const result: [string, string] | null = await invoke(Invokes.AutodetectLens, { maker: exifMaker, model: exifModel });
 
       if (result) {
         const [detectedMaker, detectedModel] = result;
 
-        invoke('get_lensfun_lenses_for_maker', { maker: detectedMaker })
+        invoke(Invokes.GetLensfunLensesForMaker, { maker: detectedMaker })
           .then((l: any) => setLenses(l))
           .catch(console.error);
 
@@ -521,7 +522,7 @@ export default function LensCorrectionModal({
         vig_k3: currentAdjustments.lensDistortionParams?.vig_k3 ?? 0,
       };
 
-      invoke('preview_geometry_transform', {
+      invoke(Invokes.PreviewGeometryTransform, {
         params: fullParams,
         jsAdjustments: currentAdjustments,
         showLines: false,
