@@ -288,6 +288,11 @@
         "basic": "基础",
         "color": "色彩",
         "portrait": "人像",
+        "crop": "裁剪",
+        "masks": "蒙版",
+        "ai": "AI",
+        "metadata": "元数据",
+        "presets": "预设",
         "export": "导出"
       },
       "swipeHint": "左右滑动切换照片"
@@ -419,6 +424,9 @@
       "editSettingsTitle": "编辑设置",
       "editsTitle": "编辑",
       "generativeEditTitle": "生成式编辑",
+      "enhancementTitle": "AI 图像增强",
+      "superResolution": "超分辨率",
+      "superResolutionTooltip": "使用 AI 超分辨率将图像放大 2 倍",
       "inpaintingTitle": "图像修复",
       "manualCleanupTitle": "手动清理",
       "noImageSelected": "未选择图像。",

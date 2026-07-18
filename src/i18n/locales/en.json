@@ -288,6 +288,11 @@
         "basic": "Basic",
         "color": "Color",
         "portrait": "Portrait",
+        "crop": "Crop",
+        "masks": "Masks",
+        "ai": "AI",
+        "metadata": "Metadata",
+        "presets": "Presets",
         "export": "Export"
       },
       "swipeHint": "Swipe left/right to switch photos"
@@ -419,6 +424,9 @@
       "editSettingsTitle": "Edit Settings",
       "editsTitle": "Edits",
       "generativeEditTitle": "Generative Edit",
+      "enhancementTitle": "AI Enhancement",
+      "superResolution": "Super Resolution",
+      "superResolutionTooltip": "Use AI super resolution to upscale image by 2x",
       "inpaintingTitle": "Inpainting",
       "manualCleanupTitle": "Manual Cleanup",
       "noImageSelected": "No image selected.",

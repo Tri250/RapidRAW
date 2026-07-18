@@ -931,27 +931,87 @@ pub fn apply_super_resolution(
         .resize_exact(new_w, new_h, image::imageops::FilterType::Lanczos3)
         .to_rgba8();
 
-    // Step 2: Sharpening enhancement (unsharp mask)
-    // Create a blurred version
-    let blurred = image::imageops::blur(&upscaled, 1.0);
+    // Step 2: Multi-scale detail enhancement
+    // Create blurred versions at different scales for frequency separation
+    let blurred_light = image::imageops::blur(&upscaled, 2.0);
+    let blurred_detail = image::imageops::blur(&upscaled, 0.8);
 
-    // Unsharp mask: sharpened = original + amount * (original - blurred)
-    let amount = 0.5_f32;
+    let unsharp_amount = 0.6_f32;
+    let edge_amount = 0.35_f32;
+    let detail_boost = 0.25_f32;
+
     for y in 0..new_h {
         for x in 0..new_w {
             let orig = upscaled.get_pixel(x, y);
-            let blur = blurred.get_pixel(x, y);
+            let blur_l = blurred_light.get_pixel(x, y);
+            let blur_d = blurred_detail.get_pixel(x, y);
 
-            let r = (orig[0] as f32 + amount * (orig[0] as f32 - blur[0] as f32))
-                .round()
-                .clamp(0.0, 255.0) as u8;
-            let g = (orig[1] as f32 + amount * (orig[1] as f32 - blur[1] as f32))
-                .round()
-                .clamp(0.0, 255.0) as u8;
-            let b = (orig[2] as f32 + amount * (orig[2] as f32 - blur[2] as f32))
-                .round()
-                .clamp(0.0, 255.0) as u8;
+            // Unsharp mask: sharpened = original + amount * (original - blurred)
+            let us_r = orig[0] as f32 + unsharp_amount * (orig[0] as f32 - blur_l[0] as f32);
+            let us_g = orig[1] as f32 + unsharp_amount * (orig[1] as f32 - blur_l[1] as f32);
+            let us_b = orig[2] as f32 + unsharp_amount * (orig[2] as f32 - blur_l[2] as f32);
 
+            // Detail recovery: boost high-frequency details lost in upsampling
+            let detail_r = (orig[0] as f32 - blur_d[0] as f32) * detail_boost;
+            let detail_g = (orig[1] as f32 - blur_d[1] as f32) * detail_boost;
+            let detail_b = (orig[2] as f32 - blur_d[2] as f32) * detail_boost;
+
+            // Local edge enhancement using Laplacian-like operator on neighbors
+            let mut lap_r = 0.0_f32;
+            let mut lap_g = 0.0_f32;
+            let mut lap_b = 0.0_f32;
+            let mut lap_count = 0_u32;
+
+            for dy in -1i32..=1 {
+                for dx in -1i32..=1 {
+                    if dx == 0 && dy == 0 {
+                        continue;
+                    }
+                    let nx = (x as i32 + dx).clamp(0, new_w as i32 - 1) as u32;
+                    let ny = (y as i32 + dy).clamp(0, new_h as i32 - 1) as u32;
+                    let np = upscaled.get_pixel(nx, ny);
+                    lap_r += np[0] as f32;
+                    lap_g += np[1] as f32;
+                    lap_b += np[2] as f32;
+                    lap_count += 1;
+                }
+            }
+
+            if lap_count > 0 {
+                let inv_count = 1.0 / lap_count as f32;
+                let avg_r = lap_r * inv_count;
+                let avg_g = lap_g * inv_count;
+                let avg_b = lap_b * inv_count;
+                lap_r = (orig[0] as f32 - avg_r) * edge_amount;
+                lap_g = (orig[1] as f32 - avg_g) * edge_amount;
+                lap_b = (orig[2] as f32 - avg_b) * edge_amount;
+            }
+
+            let r = (us_r + detail_r + lap_r).round().clamp(0.0, 255.0) as u8;
+            let g = (us_g + detail_g + lap_g).round().clamp(0.0, 255.0) as u8;
+            let b = (us_b + detail_b + lap_b).round().clamp(0.0, 255.0) as u8;
+
+            upscaled.put_pixel(x, y, Rgba([r, g, b, orig[3]]));
+        }
+    }
+
+    // Step 3: Subtle chroma noise reduction on upscaled image
+    // (prevents color artifacts from the enhancement)
+    let chroma_blurred = image::imageops::blur(&upscaled, 0.5);
+    let chroma_blend = 0.15_f32;
+    for y in 0..new_h {
+        for x in 0..new_w {
+            let orig = upscaled.get_pixel(x, y);
+            let blur = chroma_blurred.get_pixel(x, y);
+            let r = ((orig[0] as f32 * (1.0 - chroma_blend) + blur[0] as f32 * chroma_blend))
+                .round()
+                .clamp(0.0, 255.0) as u8;
+            let g = ((orig[1] as f32 * (1.0 - chroma_blend) + blur[1] as f32 * chroma_blend))
+                .round()
+                .clamp(0.0, 255.0) as u8;
+            let b = ((orig[2] as f32 * (1.0 - chroma_blend) + blur[2] as f32 * chroma_blend))
+                .round()
+                .clamp(0.0, 255.0) as u8;
             upscaled.put_pixel(x, y, Rgba([r, g, b, orig[3]]));
         }
     }

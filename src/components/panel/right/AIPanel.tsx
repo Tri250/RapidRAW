@@ -303,7 +303,7 @@ export default function AIPanel() {
   const setCustomEscapeHandler = useUIStore((s) => s.setCustomEscapeHandler);
 
   const { setAdjustments } = useEditorActions();
-  const { handleGenerativeReplace, handleDeleteAiPatch, handleToggleAiPatchVisibility, handleGenerateAiForegroundMask } = useAiMasking();
+  const { handleGenerativeReplace, handleDeleteAiPatch, handleToggleAiPatchVisibility, handleGenerateAiForegroundMask, handleApplySuperResolution } = useAiMasking();
   const appSettings = useSettingsStore((s) => s.appSettings);
   const aiProvider = appSettings?.aiProvider || 'cpu';
 
@@ -1088,7 +1088,7 @@ export default function AIPanel() {
                     <Text variant={TextVariants.heading} className="mb-2">
                       {t('editor.ai.generativeEditTitle')}
                     </Text>
-                    <div className="grid grid-cols-3 gap-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="grid grid-cols-3 gap-2 mb-6" onClick={(e) => e.stopPropagation()}>
                       {AI_GENERATIVE_CREATION_TYPES.map((maskType: MaskType) => (
                         <DraggableGridItem
                           key={maskType.type}
@@ -1097,6 +1097,23 @@ export default function AIPanel() {
                           onClick={() => handleAddAiPatchContainer(maskType.type)}
                         />
                       ))}
+                    </div>
+
+                    <Text variant={TextVariants.heading} className="mb-2">
+                      {t('editor.ai.enhancementTitle')}
+                    </Text>
+                    <div className="grid grid-cols-3 gap-2" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        className={`bg-surface text-text-primary rounded-lg p-2 flex flex-col items-center justify-center gap-2 aspect-square transition-colors ${isGeneratingAi ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card-active active:bg-accent/20'}`}
+                        onClick={() => !isGeneratingAi && handleApplySuperResolution(2.0)}
+                        disabled={isGeneratingAi}
+                        data-tooltip={t('editor.ai.superResolutionTooltip')}
+                      >
+                        <span className="text-lg font-bold">2x</span>
+                        <Text as="span" variant={TextVariants.small} color={TextColors.primary}>
+                          {t('editor.ai.superResolution')}
+                        </Text>
+                      </button>
                     </div>
                   </>
                 )}

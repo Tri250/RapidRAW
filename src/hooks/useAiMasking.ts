@@ -79,7 +79,7 @@ export function useAiMasking() {
       try {
         const patchDefinitionForBackend = adjustments.aiPatches.find((p: AiPatch) => p.id === patchId);
 
-        const newPatchDataJson: any = await invoke('generate_manual_cleanup_patch', {
+        const newPatchDataJson: any = await invoke(Invokes.GenerateManualCleanupPatch, {
           currentAdjustments: adjustments,
           patchDefinition: patchDefinitionForBackend,
           sourcePoint: [sourceX, sourceY],
@@ -343,7 +343,7 @@ export function useAiMasking() {
 
     try {
       const transformAdjustments = getTransformAdjustments(adjustments);
-      const newParameters = await invoke('generate_ai_depth_mask', {
+      const newParameters = await invoke(Invokes.GenerateAiDepthMask, {
         jsAdjustments: transformAdjustments,
         path: selectedImage.path,
         minDepth: parameters.minDepth ?? 20,
@@ -420,6 +420,29 @@ export function useAiMasking() {
     }
   };
 
+  const handleApplySuperResolution = useCallback(
+    async (scale: number = 2.0) => {
+      const { selectedImage } = useEditorStore.getState();
+      if (!selectedImage?.path) {
+        toast.error('No image selected for super resolution');
+        return;
+      }
+
+      setEditor({ isGeneratingAi: true });
+      try {
+        const resultBytes: number[] = await invoke(Invokes.ApplySuperResolution, { scale });
+        const tempPath: string = await invoke(Invokes.SaveTempFile, { bytes: resultBytes });
+        toast.success(`Super resolution saved to: ${tempPath}`);
+        return tempPath;
+      } catch (err: any) {
+        toast.error(`Super Resolution Failed: ${err.message || String(err)}`);
+      } finally {
+        setEditor({ isGeneratingAi: false });
+      }
+    },
+    [setEditor],
+  );
+
   useEffect(() => {
     const { activeMaskId, activeAiSubMaskId, adjustments, selectedImage } = useEditorStore.getState();
     const activeSubMask =
@@ -428,7 +451,7 @@ export function useAiMasking() {
 
     if (activeSubMask?.type === 'ai-subject' && selectedImage?.path) {
       const transformAdjustments = getTransformAdjustments(adjustments);
-      invoke('precompute_ai_subject_mask', {
+      invoke(Invokes.PrecomputeAiSubjectMask, {
         jsAdjustments: transformAdjustments,
         path: selectedImage.path,
       }).catch((err) => console.error('Failed to precompute AI subject mask:', err));
@@ -451,5 +474,6 @@ export function useAiMasking() {
     handleGenerateAiDepthMask,
     handleGenerateAiForegroundMask,
     handleGenerateAiSkyMask,
+    handleApplySuperResolution,
   };
 }

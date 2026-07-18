@@ -208,8 +208,12 @@ function App() {
 
   const isAndroid = osPlatform === 'android';
   const isPortraitViewport = viewportSize.width > 0 && viewportSize.height > viewportSize.width;
-  const isCompactPortrait =
-    viewportSize.width > 0 && viewportSize.width <= COMPACT_EDITOR_MAX_WIDTH && isPortraitViewport;
+  // Compact mode for narrow viewports in either orientation (phones in landscape)
+  const isCompactViewport =
+    viewportSize.width > 0 &&
+    ((viewportSize.width <= COMPACT_EDITOR_MAX_WIDTH && isPortraitViewport) ||
+      (viewportSize.width <= COMPACT_EDITOR_MAX_WIDTH && viewportSize.height <= 500));
+  const isCompactPortrait = isCompactViewport;
 
   const compactEditorPanelMinHeight = 220;
   const compactEditorPanelMaxHeight =
