@@ -262,14 +262,23 @@ interface AiProviderSwitchProps {
 
 const AiProviderSwitch = ({ selectedProvider, onProviderChange }: AiProviderSwitchProps) => {
   const { t } = useTranslation();
+  const osPlatform = useOsPlatform();
+  // Device-side mode: only show cpu and ai-connector options (no cloud)
+  const isDeviceSide = osPlatform === 'android';
 
   const aiProviders = useMemo(
-    () => [
-      { id: 'cpu', label: t('settings.processing.ai.providers.cpu'), icon: Cpu },
-      { id: 'ai-connector', label: t('settings.processing.ai.providers.aiConnector'), icon: Server },
-      //{ id: 'cloud', label: t('settings.processing.ai.providers.cloud'), icon: Cloud },
-    ],
-    [t],
+    () => {
+      const providers = [
+        { id: 'cpu', label: t('settings.processing.ai.providers.cpu'), icon: Cpu },
+        { id: 'ai-connector', label: t('settings.processing.ai.providers.aiConnector'), icon: Server },
+      ];
+      // Only show cloud option on non-device-side platforms
+      if (!isDeviceSide) {
+        providers.push({ id: 'cloud', label: t('settings.processing.ai.providers.cloud'), icon: Cloud });
+      }
+      return providers;
+    },
+    [t, isDeviceSide],
   );
 
   return (
@@ -501,6 +510,8 @@ export default function SettingsPanel({
 }: SettingsPanelProps) {
   const { user: _user } = useUser();
   const { t } = useTranslation();
+  const osPlatform = useOsPlatform();
+  const isDeviceSide = osPlatform === 'android';
   const [isClearing, setIsClearing] = useState(false);
   const [clearMessage, setClearMessage] = useState('');
   const [isClearingCache, setIsClearingCache] = useState(false);
@@ -522,6 +533,8 @@ export default function SettingsPanel({
   const [recordingAction, setRecordingAction] = useState<string | null>(null);
 
   const [aiProvider, setAiProvider] = useState(appSettings?.aiProvider || 'cpu');
+  const [mirrorUrl, setMirrorUrl] = useState('');
+  const [mirrorMessage, setMirrorMessage] = useState('');
   const [aiConnectorAddress, setAiConnectorAddress] = useState<string>(appSettings?.aiConnectorAddress || '');
   const [newShortcut, setNewShortcut] = useState('');
   const [newAiTag, setNewAiTag] = useState('');
@@ -531,7 +544,6 @@ export default function SettingsPanel({
   const [tempLensMaker, setTempLensMaker] = useState<string>('');
   const [tempLensModel, setTempLensModel] = useState<string>('');
 
-  const osPlatform = useOsPlatform();
   const [processingSettings, setProcessingSettings] = useState({
     editorPreviewResolution: appSettings?.editorPreviewResolution || 1920,
     thumbnailResolution: appSettings?.thumbnailResolution || 720,
@@ -704,6 +716,17 @@ export default function SettingsPanel({
       ...processingSettings,
     });
     await relaunch();
+  };
+
+  const handleMirrorUrlBlur = async () => {
+    try {
+      await invoke('set_ai_model_mirror', { mirrorUrl: mirrorUrl.trim() });
+      setMirrorMessage(mirrorUrl.trim() ? 'AI model mirror URL set.' : 'AI model mirror URL cleared.');
+      setTimeout(() => setMirrorMessage(''), 3000);
+    } catch (e) {
+      console.error('Failed to set mirror URL:', e);
+      setMirrorMessage('Failed to set mirror URL.');
+    }
   };
 
   const handleProviderChange = async (provider: string) => {
@@ -1817,6 +1840,20 @@ export default function SettingsPanel({
                     </SettingItem>
 
                     <SettingItem
+                      label={t('settings.processing.aiMirror')}
+                      description={t('settings.processing.aiMirrorDesc')}
+                    >
+                      <Input
+                        type="text"
+                        value={mirrorUrl}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMirrorUrl(e.target.value)}
+                        onBlur={() => handleMirrorUrlBlur()}
+                        placeholder="https://hf-mirror.com"
+                        className="w-full"
+                      />
+                    </SettingItem>
+
+                    <SettingItem
                       label={t('settings.processing.backend')}
                       description={t('settings.processing.backendDesc')}
                     >
@@ -2095,7 +2132,7 @@ export default function SettingsPanel({
                         </motion.div>
                       )}
 
-                      {aiProvider === 'cloud' && (
+                      {aiProvider === 'cloud' && !isDeviceSide && (
                         <motion.div
                           key="cloud"
                           initial={{ opacity: 0, x: 10 }}

@@ -1166,6 +1166,7 @@ pub fn apply_body_reshape(
     slim_amount: f32,
     height_amount: f32,
     leg_amount: f32,
+    symmetry_enabled: bool,
 ) -> Result<(), String> {
     let (w, h) = img.dimensions();
     if w == 0 || h == 0 || face_regions.is_empty() {
@@ -1465,6 +1466,10 @@ pub fn apply_portrait_adjustments(
     let body_slim = get_f32("bodySlimAmount");
     let body_height = get_f32("bodyHeightAmount");
     let leg_len = get_f32("legLengthAmount");
+    let body_symmetry = portrait_json
+        .get("bodySymmetryEnabled")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
 
     // Parse blemish spots
     let spots: Vec<(u32, u32, u32)> = portrait_json
@@ -1560,7 +1565,7 @@ pub fn apply_portrait_adjustments(
 
     // 8. Body reshape
     if (body_slim > 0.5 || body_height > 0.5 || leg_len > 0.5) && !filtered_faces.is_empty() {
-        apply_body_reshape(img, &filtered_faces, body_slim / 100.0, body_height / 100.0, leg_len / 100.0)?;
+        apply_body_reshape(img, &filtered_faces, body_slim / 100.0, body_height / 100.0, leg_len / 100.0, body_symmetry)?;
     }
 
     // 9. Skin tone unify (subtle, applied last)
@@ -1733,7 +1738,7 @@ mod tests {
     #[test]
     fn test_apply_body_reshape_empty_faces() {
         let mut img = DynamicImage::ImageRgba8(RgbaImage::from_pixel(10, 10, Rgba([255, 0, 0, 255])));
-        assert!(apply_body_reshape(&mut img, &[], 0.5, 0.5, 0.5).is_ok());
+        assert!(apply_body_reshape(&mut img, &[], 0.5, 0.5, 0.5, true).is_ok());
     }
 
     #[test]

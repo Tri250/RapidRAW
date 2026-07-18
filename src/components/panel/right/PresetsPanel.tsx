@@ -48,6 +48,7 @@ import { Invokes, OPTION_SEPARATOR, Panel, Preset, SelectedImage } from '../../u
 import { useEditorStore } from '../../../store/useEditorStore';
 import { useUIStore } from '../../../store/useUIStore';
 import { useEditorActions } from '../../../hooks/useEditorActions';
+import { useOsPlatform } from '../../../hooks/useOsPlatform';
 
 interface DroppableFolderItemProps {
   children: any;
@@ -508,6 +509,8 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
   const activePanel = useUIStore((s) => s.activeRightPanel);
   const setEditor = useEditorStore((s) => s.setEditor);
   const { setAdjustments } = useEditorActions();
+  const osPlatform = useOsPlatform();
+  const isDeviceSide = osPlatform === 'android';
 
   const {
     addFolder,
@@ -855,16 +858,31 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
     setActivePresetId(preset.id);
     setPresetIntensity(100);
 
-    setAdjustments((prevAdjustments: Adjustments) => ({
-      ...prevAdjustments,
-      ...preset.adjustments,
-    }));
+    if (preset.presetType === 'style') {
+      // Style preset: overwrite all settings (including crop/masks)
+      setAdjustments({
+        ...INITIAL_ADJUSTMENTS,
+        ...preset.adjustments,
+      });
+    } else {
+      // Tool preset: additive – layer on top of existing adjustments
+      setAdjustments((prevAdjustments: Adjustments) => ({
+        ...prevAdjustments,
+        ...preset.adjustments,
+      }));
+    }
   };
 
   const handleIntensityChange = useCallback(
     (preset: Preset, intensity: number) => {
       setPresetIntensity(intensity);
       setAdjustments((prev: Adjustments) => {
+        if (preset.presetType === 'style') {
+          // Style: interpolate between INITIAL and preset (full overwrite semantics)
+          const mixed = mixAdjustments(preset.adjustments, intensity, INITIAL_ADJUSTMENTS, INITIAL_ADJUSTMENTS);
+          return { ...INITIAL_ADJUSTMENTS, ...mixed };
+        }
+        // Tool: interpolate between current and preset (additive semantics)
         const mixed = mixAdjustments(preset.adjustments, intensity, INITIAL_ADJUSTMENTS, prev);
         return { ...prev, ...mixed };
       });
@@ -1195,6 +1213,7 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
         <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface">
           <Text variant={TextVariants.title}>{t('editor.presets.title')}</Text>
           <div className="flex items-center gap-1">
+            {!isDeviceSide && (
             <button
               className="p-2 rounded-full hover:bg-surface transition-colors"
               onClick={onNavigateToCommunity}
@@ -1202,6 +1221,7 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
             >
               <Users size={18} />
             </button>
+            )}
             <button
               className="p-2 rounded-full hover:bg-surface transition-colors"
               disabled={isLoading}
@@ -1285,10 +1305,12 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
           {!isLoading && presets.length === 0 && activeGroup === 'my' ? (
             <div className="text-center text-text-secondary flex flex-col items-center gap-4 pt-4">
               <Text className="max-w-xs">{t('editor.presets.status.empty')}</Text>
+              {!isDeviceSide && (
               <Button variant="secondary" onClick={onNavigateToCommunity}>
                 <Users size={16} className="mr-2" />
                 {t('editor.presets.status.getCommunity')}
               </Button>
+              )}
             </div>
           ) : (
             <>

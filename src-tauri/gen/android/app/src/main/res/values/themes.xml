@@ -1,6 +1,15 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Theme.rapid_raw" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Customize your theme here. -->
+        <item name="android:colorBackground">@color/app_background</item>
+        <item name="android:statusBarColor">@color/app_background</item>
+        <item name="android:navigationBarColor">@color/app_background</item>
+        <item name="android:windowBackground">@color/app_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+    <!-- SplashScreen theme for Android 12+ -->
+    <style name="Theme.rapid_raw.Splash" parent="Theme.rapid_raw">
+        <item name="android:windowBackground">@color/splash_background</item>
     </style>
 </resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Include app data for backup -->
+    <include domain="sharedpref" path="." />
+    <include domain="database" path="." />
+    <include domain="file" path="." />
+    <include domain="external" path="." />
+    <!-- Exclude large cache/model files from backup -->
+    <exclude domain="file" path="models/" />
+    <exclude domain="external" path="models/" />
+    <exclude domain="cache" path="." />
+</full-backup-content>

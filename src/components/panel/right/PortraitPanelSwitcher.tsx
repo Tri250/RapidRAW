@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import CollapsibleSection from '../../ui/CollapsibleSection';
 import Slider from '../../ui/Slider';
+import Switch from '../../ui/Switch';
 import Text from '../../ui/Text';
 import { TextVariants } from '../../../types/typography';
 import { useShallow } from 'zustand/react/shallow';
@@ -443,6 +444,16 @@ export default function PortraitPanelSwitcher() {
       icon: Move,
       content: (
         <div className="space-y-1">
+          <div className="flex items-center justify-between px-1 py-1">
+            <Text variant={TextVariants.small} color={TextColors.secondary}>
+              {t('editor.portraitPanel.bodySymmetry')}
+            </Text>
+            <Switch
+              label={t('editor.portraitPanel.bodySymmetry')}
+              checked={portrait.bodySymmetryEnabled}
+              onChange={(checked: boolean) => updatePortrait('bodySymmetryEnabled', checked)}
+            />
+          </div>
           <PortraitSlider
             label={t('editor.portraitPanel.bodySlimAmount')}
             value={portrait.bodySlimAmount}

@@ -3429,6 +3429,7 @@ pub fn generate_filename_from_template(
     let mut result = template.to_string();
     result = result.replace("{original_filename}", stem);
     result = result.replace("{sequence}", &sequence_str);
+    result = result.replace("{Date}", &local_date.format("%Y%m%d").to_string());
     result = result.replace("{YYYY}", &local_date.format("%Y").to_string());
     result = result.replace("{MM}", &local_date.format("%m").to_string());
     result = result.replace("{DD}", &local_date.format("%d").to_string());

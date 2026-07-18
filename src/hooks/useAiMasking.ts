@@ -7,6 +7,7 @@ import { Adjustments, AiPatch, MaskContainer, Coord } from '../utils/adjustments
 import { SubMask } from '../components/panel/right/Masks';
 import { Invokes } from '../components/ui/AppProperties';
 import { useAuth } from '@clerk/react';
+import { useSettingsStore } from '../store/useSettingsStore';
 
 const getTransformAdjustments = (adj: Adjustments) => ({
   transformDistortion: adj.transformDistortion,
@@ -101,7 +102,7 @@ export function useAiMasking() {
         }));
       }
     },
-    [setAdjustments, getToken],
+    [setAdjustments],
   );
 
   const handleGenerativeReplace = useCallback(
@@ -113,7 +114,16 @@ export function useAiMasking() {
       if (!patch) return;
 
       const patchDefinition = { ...patch, prompt };
-      const token = await getToken();
+      // Device-side fix: for local/cpu mode, token is not needed. Only fetch for cloud mode.
+      const aiProvider = useSettingsStore.getState().appSettings?.aiProvider || 'cpu';
+      let token: string | null = null;
+      if (aiProvider === 'cloud') {
+        try {
+          token = (await getToken()) || null;
+        } catch {
+          token = null;
+        }
+      }
 
       setAdjustments((prev: Adjustments) => ({
         ...prev,
@@ -165,7 +175,16 @@ export function useAiMasking() {
     async (subMaskId: string | null, startPoint: Coord, endPoint: Coord) => {
       const { selectedImage, adjustments, isGeneratingAi, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path || isGeneratingAi) return;
-      const token = await getToken();
+      // Device-side fix: for local/cpu mode, token is not needed. Only fetch for cloud mode.
+      const aiProvider = useSettingsStore.getState().appSettings?.aiProvider || 'cpu';
+      let token: string | null = null;
+      if (aiProvider === 'cloud') {
+        try {
+          token = (await getToken()) || null;
+        } catch {
+          token = null;
+        }
+      }
 
       const patchId = adjustments.aiPatches.find((p: AiPatch) =>
         p.subMasks.some((sm: SubMask) => sm.id === subMaskId),

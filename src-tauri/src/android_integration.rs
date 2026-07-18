@@ -697,8 +697,18 @@ pub fn share_image(file_path: String, mime_type: String, title: String) -> Resul
             .new_object(file_class, "(Ljava/lang/String;)V", &[(&file_obj).into()])
             .map_err(|e| map_android_jni_error(&mut env, e))?;
 
+        // Get the application ID dynamically from the context to match Manifest's ${applicationId}.fileprovider
+        let package_name = env
+            .call_method(&context, "getPackageName", "()Ljava/lang/String;", &[])
+            .and_then(|v| v.l())
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
+        let package_name_str: String = env
+            .get_string(&JString::from(package_name))
+            .map_err(|e| map_android_jni_error(&mut env, e))?
+            .into();
+        let authority_str = format!("{}.fileprovider", package_name_str);
         let authority = env
-            .new_string("com.rapidraw.fileprovider")
+            .new_string(&authority_str)
             .map_err(|e| map_android_jni_error(&mut env, e))?;
         let file_provider_class = env
             .find_class("androidx/core/content/FileProvider")

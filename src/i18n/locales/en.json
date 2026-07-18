@@ -293,12 +293,9 @@
       "swipeHint": "Swipe left/right to switch photos"
     },
     "androidShare": {
-      "title": "Share to {{target}}",
       "titleDefault": "Share Image",
-      "wechat": "WeChat",
-      "qq": "QQ",
-      "weibo": "Weibo",
-      "more": "More",
+      "systemShare": "Share",
+      "systemShareTitle": "Share from RapidRAW",
       "cancel": "Cancel"
     },
     "adjustments": {
@@ -366,6 +363,7 @@
       "bodySlimAmount": "Body Slim",
       "bodyHeightAmount": "Height",
       "legLengthAmount": "Leg Length",
+      "bodySymmetry": "Symmetric Adjust",
       "oneClickBeauty": "One-Click Beauty"
     },
     "ai": {
@@ -699,6 +697,7 @@
         "clickToOpenTooltip": "Click to open map in a new tab",
         "latitude": "Latitude",
         "longitude": "Longitude",
+        "offlineFallback": "Map unavailable (offline). Coordinates:",
         "title": "GPS Location"
       },
       "organization": {
@@ -1774,6 +1773,8 @@
       "title": "Processing Engine",
       "wgpu": "WGPU Direct Rendering",
       "wgpuDescAndroid": "Bypasses browser encoding for instantly responsive live previews. (Disabled on Android: Native WGPU surface creation is currently not supported alongside the mobile webview.)",
+      "aiMirror": "AI Model Mirror URL",
+      "aiMirrorDesc": "Set a custom mirror URL for downloading AI models (e.g. https://hf-mirror.com for users in China). Leave empty to use the default HuggingFace URLs.",
       "wgpuDescLinux": "Bypasses browser encoding for instantly responsive live previews. (Disabled on Linux: Tauri uses GTK for webviews, which conflicts with WGPU on the same X11 surface and causes flickering.)",
       "wgpuDescRecommended": "Bypasses browser encoding for instantly responsive live previews. Highly recommended for performance.",
       "wgpuLabel": "Enable Direct WGPU Render",

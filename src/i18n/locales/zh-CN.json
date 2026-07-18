@@ -293,12 +293,9 @@
       "swipeHint": "左右滑动切换照片"
     },
     "androidShare": {
-      "title": "分享到{{target}}",
       "titleDefault": "分享图片",
-      "wechat": "微信",
-      "qq": "QQ",
-      "weibo": "微博",
-      "more": "更多",
+      "systemShare": "分享",
+      "systemShareTitle": "来自 RapidRAW 的分享",
       "cancel": "取消"
     },
     "adjustments": {
@@ -366,6 +363,7 @@
       "bodySlimAmount": "瘦身",
       "bodyHeightAmount": "增高",
       "legLengthAmount": "长腿",
+      "bodySymmetry": "对称调整",
       "oneClickBeauty": "一键美颜"
     },
     "ai": {
@@ -699,6 +697,7 @@
         "clickToOpenTooltip": "点击在新标签页中打开地图",
         "latitude": "纬度",
         "longitude": "经度",
+        "offlineFallback": "地图不可用（离线状态）。坐标：",
         "title": "GPS 位置"
       },
       "organization": {

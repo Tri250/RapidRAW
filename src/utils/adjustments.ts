@@ -169,6 +169,7 @@ export interface PortraitAdjustments {
   bodySlimAmount: number;
   bodyHeightAmount: number;
   legLengthAmount: number;
+  bodySymmetryEnabled: boolean;
   blemishSpots: Array<{ x: number; y: number; radius: number }>;
   personAttribute: PersonAttribute;
 }
@@ -194,6 +195,7 @@ export const INITIAL_PORTRAIT_ADJUSTMENTS: PortraitAdjustments = {
   bodySlimAmount: 0,
   bodyHeightAmount: 0,
   legLengthAmount: 0,
+  bodySymmetryEnabled: true,
   blemishSpots: [],
   personAttribute: 'all',
 };
