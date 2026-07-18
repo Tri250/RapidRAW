@@ -1,6 +1,7 @@
 package io.github.CyberTimon.RapidRAW
 
 import android.Manifest
+import android.content.ComponentCallbacks2
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
@@ -51,10 +52,7 @@ class MainActivity : TauriActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Android 12+ SplashScreen
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            installSplashScreen()
-        }
+        // Android 12+ handles splash screen natively via the theme
 
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
