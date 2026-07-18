@@ -1895,6 +1895,18 @@ fn available_monitor_bounds(_window: &tauri::WebviewWindow) -> Vec<MonitorBounds
 }
 
 #[tauri::command]
+fn set_ai_model_mirror(mirror_url: String) -> Result<(), String> {
+    if mirror_url.is_empty() {
+        std::env::remove_var("RAPIDRAW_HF_MIRROR");
+        log::info!("AI model mirror URL cleared, using default HuggingFace URLs.");
+    } else {
+        std::env::set_var("RAPIDRAW_HF_MIRROR", &mirror_url);
+        log::info!("AI model mirror URL set to: {}", mirror_url);
+    }
+    Ok(())
+}
+
+#[tauri::command]
 fn frontend_ready(
     app_handle: tauri::AppHandle,
     window: tauri::Window,
@@ -2447,6 +2459,7 @@ pub fn run() {
             image_processing::auto_straighten_horizon,
             android_integration::save_to_android_gallery,
             android_integration::share_image,
+            set_ai_model_mirror,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

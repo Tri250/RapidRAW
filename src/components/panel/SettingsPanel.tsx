@@ -522,6 +522,8 @@ export default function SettingsPanel({
   const [recordingAction, setRecordingAction] = useState<string | null>(null);
 
   const [aiProvider, setAiProvider] = useState(appSettings?.aiProvider || 'cpu');
+  const [mirrorUrl, setMirrorUrl] = useState('');
+  const [mirrorMessage, setMirrorMessage] = useState('');
   const [aiConnectorAddress, setAiConnectorAddress] = useState<string>(appSettings?.aiConnectorAddress || '');
   const [newShortcut, setNewShortcut] = useState('');
   const [newAiTag, setNewAiTag] = useState('');
@@ -704,6 +706,17 @@ export default function SettingsPanel({
       ...processingSettings,
     });
     await relaunch();
+  };
+
+  const handleMirrorUrlBlur = async () => {
+    try {
+      await invoke('set_ai_model_mirror', { mirrorUrl: mirrorUrl.trim() });
+      setMirrorMessage(mirrorUrl.trim() ? 'AI model mirror URL set.' : 'AI model mirror URL cleared.');
+      setTimeout(() => setMirrorMessage(''), 3000);
+    } catch (e) {
+      console.error('Failed to set mirror URL:', e);
+      setMirrorMessage('Failed to set mirror URL.');
+    }
   };
 
   const handleProviderChange = async (provider: string) => {
@@ -1813,6 +1826,20 @@ export default function SettingsPanel({
                         id="wgpu-renderer-toggle"
                         label={t('settings.processing.wgpuLabel')}
                         onChange={(checked) => handleProcessingSettingChange('useWgpuRenderer', checked)}
+                      />
+                    </SettingItem>
+
+                    <SettingItem
+                      label={t('settings.processing.aiMirror')}
+                      description={t('settings.processing.aiMirrorDesc')}
+                    >
+                      <Input
+                        type="text"
+                        value={mirrorUrl}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMirrorUrl(e.target.value)}
+                        onBlur={() => handleMirrorUrlBlur()}
+                        placeholder="https://hf-mirror.com"
+                        className="w-full"
                       />
                     </SettingItem>
 

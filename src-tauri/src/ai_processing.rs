@@ -18,6 +18,29 @@ use tauri::Manager;
 use tokenizers::Tokenizer;
 use tokio::sync::Mutex as TokioMutex;
 
+/// Default mirror base URL for HuggingFace model downloads.
+/// For Chinese users, set to "https://hf-mirror.com" or other domestic CDN.
+/// Leave empty to use the default HuggingFace URLs directly.
+const DEFAULT_HF_MIRROR_BASE: &str = "";
+
+/// Environment variable to override the HuggingFace mirror base URL at runtime.
+const HF_MIRROR_ENV_VAR: &str = "RAPIDRAW_HF_MIRROR";
+
+fn resolve_model_url(original_url: &str) -> String {
+    let mirror_base = std::env::var(HF_MIRROR_ENV_VAR)
+        .ok()
+        .filter(|v| !v.is_empty())
+        .unwrap_or_else(|| DEFAULT_HF_MIRROR_BASE.to_string());
+
+    if mirror_base.is_empty() {
+        return original_url.to_string();
+    }
+
+    // Replace huggingface.co with the mirror domain
+    original_url
+        .replace("https://huggingface.co/", &format!("{}/", mirror_base.trim_end_matches('/')))
+}
+
 const ENCODER_URL: &str = "https://huggingface.co/CyberTimon/RapidRAW-Models/resolve/main/sam_vit_b_01ec64_encoder.onnx?download=true";
 const DECODER_URL: &str = "https://huggingface.co/CyberTimon/RapidRAW-Models/resolve/main/sam_vit_b_01ec64_decoder.onnx?download=true";
 const ENCODER_FILENAME: &str = "sam_vit_b_01ec64_encoder.onnx";
@@ -219,7 +242,8 @@ fn persist_downloaded_asset(dest: &Path, bytes: &[u8]) -> Result<()> {
 }
 
 async fn download_model(url: &str, dest: &Path) -> Result<()> {
-    let response = reqwest::get(url).await?.error_for_status()?;
+    let resolved_url = resolve_model_url(url);
+    let response = reqwest::get(&resolved_url).await?.error_for_status()?;
     let bytes = response.bytes().await?;
     persist_downloaded_asset(dest, &bytes)
 }

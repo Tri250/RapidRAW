@@ -1,4 +1,12 @@
 <resources>
     <string name="app_name">RapidRAW</string>
     <string name="main_activity_title">RapidRAW</string>
+    <string name="permission_storage_title">Storage Access Required</string>
+    <string name="permission_storage_message">RapidRAW needs access to your photos and files to import and edit images.</string>
+    <string name="permission_notification_title">Notification Permission</string>
+    <string name="permission_notification_message">Allow notifications to be alerted when exports are complete.</string>
+    <string name="permission_denied">Permission denied. Some features may not work properly.</string>
+    <string name="export_notification_title">Export Complete</string>
+    <string name="export_notification_message">%s has been saved to your gallery.</string>
+    <string name="share_subject">Shared from RapidRAW</string>
 </resources>

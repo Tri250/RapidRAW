@@ -444,7 +444,7 @@ impl Default for AppSettings {
             pinned_folders: Vec::new(),
             thumbnail_resolution: Some(720),
             #[cfg(target_os = "android")]
-            editor_preview_resolution: Some(1280),
+            editor_preview_resolution: Some(1440),
             #[cfg(not(target_os = "android"))]
             editor_preview_resolution: Some(1920),
             enable_zoom_hifi: Some(true),
@@ -465,7 +465,7 @@ impl Default for AppSettings {
             custom_ai_tags: Some(Vec::new()),
             ai_tag_count: Some(10),
             #[cfg(target_os = "android")]
-            thumbnail_size: Some("small".to_string()),
+            thumbnail_size: Some("medium".to_string()),
             #[cfg(not(target_os = "android"))]
             thumbnail_size: Some("medium".to_string()),
             thumbnail_aspect_ratio: Some("cover".to_string()),
@@ -483,7 +483,7 @@ impl Default for AppSettings {
             export_presets: default_export_presets(),
             my_lenses: Some(Vec::new()),
             #[cfg(target_os = "android")]
-            high_res_zoom_multiplier: Some(0.75),
+            high_res_zoom_multiplier: Some(1.0),
             #[cfg(not(target_os = "android"))]
             high_res_zoom_multiplier: Some(1.0),
             enable_folder_image_counts: Some(false),
@@ -502,11 +502,11 @@ impl Default for AppSettings {
             zoom_speed_multiplier: Some(1.0),
             keybinds: HashMap::new(),
             #[cfg(target_os = "android")]
-            thumbnail_worker_threads: Some(2),
+            thumbnail_worker_threads: Some(3),
             #[cfg(not(target_os = "android"))]
             thumbnail_worker_threads: Some(4),
             #[cfg(target_os = "android")]
-            image_cache_size: Some(2),
+            image_cache_size: Some(4),
             #[cfg(not(target_os = "android"))]
             image_cache_size: Some(5),
             tonemapper_override_enabled: Some(false),

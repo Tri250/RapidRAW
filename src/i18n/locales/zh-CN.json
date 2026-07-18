@@ -293,12 +293,9 @@
       "swipeHint": "左右滑动切换照片"
     },
     "androidShare": {
-      "title": "分享到{{target}}",
       "titleDefault": "分享图片",
-      "wechat": "微信",
-      "qq": "QQ",
-      "weibo": "微博",
-      "more": "更多",
+      "systemShare": "分享",
+      "systemShareTitle": "来自 RapidRAW 的分享",
       "cancel": "取消"
     },
     "adjustments": {
