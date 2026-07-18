@@ -1897,10 +1897,18 @@ fn available_monitor_bounds(_window: &tauri::WebviewWindow) -> Vec<MonitorBounds
 #[tauri::command]
 fn set_ai_model_mirror(mirror_url: String) -> Result<(), String> {
     if mirror_url.is_empty() {
-        std::env::remove_var("RAPIDRAW_HF_MIRROR");
+        // SAFETY: This is safe in a single-threaded context during app initialization.
+        // Environment variable mutations are not thread-safe, but this command is only
+        // called from the main thread during setup and before any AI model downloads.
+        unsafe {
+            std::env::remove_var("RAPIDRAW_HF_MIRROR");
+        }
         log::info!("AI model mirror URL cleared, using default HuggingFace URLs.");
     } else {
-        std::env::set_var("RAPIDRAW_HF_MIRROR", &mirror_url);
+        // SAFETY: Same as above — single-threaded context during app initialization.
+        unsafe {
+            std::env::set_var("RAPIDRAW_HF_MIRROR", &mirror_url);
+        }
         log::info!("AI model mirror URL set to: {}", mirror_url);
     }
     Ok(())

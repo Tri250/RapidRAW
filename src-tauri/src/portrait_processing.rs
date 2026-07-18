@@ -1187,6 +1187,10 @@ pub fn apply_body_reshape(
     let height = height_amount.clamp(-1.0, 1.0);
     let leg = leg_amount.clamp(-1.0, 1.0);
 
+    // When symmetry is enabled, both sides of the body are adjusted equally
+    // by pinching toward the center. When disabled, only one side is affected.
+    let symmetry_factor = if symmetry_enabled { 1.0 } else { 0.5 };
+
     for y_out in 0..h {
         for x_out in 0..w {
             let mut sx = x_out as f32;
@@ -1210,7 +1214,7 @@ pub fn apply_body_reshape(
                             0.0
                         };
                         let falloff = (1.0 - norm_y) * waist_weight;
-                        let strength = slim * falloff * 0.25;
+                        let strength = slim * falloff * 0.25 * symmetry_factor;
                         sx -= dx * strength;
                     }
 

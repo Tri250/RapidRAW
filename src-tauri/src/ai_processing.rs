@@ -90,7 +90,7 @@ const FACE_LANDMARK_106_URL: &str = "https://huggingface.co/datasets/Alltitude/i
 
 /// Check if there is sufficient available memory for AI model loading.
 /// `required_mb` is the minimum required memory in MB.
-fn check_available_memory(required_mb: u64) -> Result<(), String> {
+fn check_available_memory(required_mb: u64) -> anyhow::Result<()> {
     #[cfg(target_os = "android")]
     {
         // On Android, read /proc/meminfo for available memory
@@ -102,7 +102,7 @@ fn check_available_memory(required_mb: u64) -> Result<(), String> {
                         if let Ok(kb) = parts[1].parse::<u64>() {
                             let available_mb = kb / 1024;
                             if available_mb < required_mb {
-                                return Err(format!(
+                                return Err(anyhow::anyhow!(
                                     "设备内存不足（可用 {}MB，需要 {}MB）。建议关闭后台应用后重试。",
                                     available_mb, required_mb
                                 ));
@@ -472,25 +472,25 @@ pub async fn get_or_init_ai_models(
     let depth_path = models_dir.join(DEPTH_FILENAME);
 
     let sam_encoder = Session::builder()
-        .map_err(|e| format_oom_error("SAM Encoder", &e))?
+        .map_err(|e| anyhow::anyhow!("{}", format_oom_error("SAM Encoder", &e))?
         .commit_from_file(encoder_path)
-        .map_err(|e| format_oom_error("SAM Encoder", &e))?;
+        .map_err(|e| anyhow::anyhow!("{}", format_oom_error("SAM Encoder", &e))?;
     let sam_decoder = Session::builder()
-        .map_err(|e| format_oom_error("SAM Decoder", &e))?
+        .map_err(|e| anyhow::anyhow!("{}", format_oom_error("SAM Decoder", &e))?
         .commit_from_file(decoder_path)
-        .map_err(|e| format_oom_error("SAM Decoder", &e))?;
+        .map_err(|e| anyhow::anyhow!("{}", format_oom_error("SAM Decoder", &e))?;
     let u2netp = Session::builder()
-        .map_err(|e| format_oom_error("Foreground Model", &e))?
+        .map_err(|e| anyhow::anyhow!("{}", format_oom_error("Foreground Model", &e))?
         .commit_from_file(u2netp_path)
-        .map_err(|e| format_oom_error("Foreground Model", &e))?;
+        .map_err(|e| anyhow::anyhow!("{}", format_oom_error("Foreground Model", &e))?;
     let sky_seg = Session::builder()
-        .map_err(|e| format_oom_error("Sky Model", &e))?
+        .map_err(|e| anyhow::anyhow!("{}", format_oom_error("Sky Model", &e))?
         .commit_from_file(sky_seg_path)
-        .map_err(|e| format_oom_error("Sky Model", &e))?;
+        .map_err(|e| anyhow::anyhow!("{}", format_oom_error("Sky Model", &e))?;
     let depth_anything = Session::builder()
-        .map_err(|e| format_oom_error("Depth Model", &e))?
+        .map_err(|e| anyhow::anyhow!("{}", format_oom_error("Depth Model", &e))?
         .commit_from_file(depth_path)
-        .map_err(|e| format_oom_error("Depth Model", &e))?;
+        .map_err(|e| anyhow::anyhow!("{}", format_oom_error("Depth Model", &e))?;
 
     crate::register_exit_handler();
 
@@ -562,9 +562,9 @@ pub async fn get_or_init_denoise_model(
 
     let model_path = models_dir.join(DENOISE_FILENAME);
     let session = Session::builder()
-        .map_err(|e| format_oom_error("Denoise Model", &e))?
+        .map_err(|e| anyhow::anyhow!("{}", format_oom_error("Denoise Model", &e))?
         .commit_from_file(model_path)
-        .map_err(|e| format_oom_error("Denoise Model", &e))?;
+        .map_err(|e| anyhow::anyhow!("{}", format_oom_error("Denoise Model", &e))?;
     let denoise_model = Arc::new(Mutex::new(session));
 
     crate::register_exit_handler();
@@ -639,9 +639,9 @@ pub async fn get_or_init_clip_models(
     let clip_model_path = models_dir.join(CLIP_MODEL_FILENAME);
     let model = Mutex::new(
         Session::builder()
-            .map_err(|e| format_oom_error("CLIP Model", &e))?
+            .map_err(|e| anyhow::anyhow!("{}", format_oom_error("CLIP Model", &e))?
             .commit_from_file(clip_model_path)
-            .map_err(|e| format_oom_error("CLIP Model", &e))?,
+            .map_err(|e| anyhow::anyhow!("{}", format_oom_error("CLIP Model", &e))?,
     );
     let tokenizer =
         Tokenizer::from_file(clip_tokenizer_path).map_err(|e| anyhow::anyhow!(e.to_string()))?;
@@ -711,9 +711,9 @@ pub async fn get_or_init_lama_model(
 
     let model_path = models_dir.join(LAMA_FILENAME);
     let session = Session::builder()
-        .map_err(|e| format_oom_error("Inpainting Model", &e))?
+        .map_err(|e| anyhow::anyhow!("{}", format_oom_error("Inpainting Model", &e))?
         .commit_from_file(model_path)
-        .map_err(|e| format_oom_error("Inpainting Model", &e))?;
+        .map_err(|e| anyhow::anyhow!("{}", format_oom_error("Inpainting Model", &e))?;
     let lama_model = Arc::new(Mutex::new(session));
 
     crate::register_exit_handler();
@@ -806,7 +806,7 @@ pub async fn get_or_init_face_landmark_detector(
     let landmark_path = models_dir.join(FACE_LANDMARK_106_FILENAME);
 
     let detector = crate::face_landmark::FaceLandmarkDetector::new(&scrfd_path, &landmark_path)
-        .map_err(|e| format_oom_error("Face Detection", &e))?;
+        .map_err(|e| anyhow::anyhow!("{}", format_oom_error("Face Detection", &e))?;
     let detector = Arc::new(Mutex::new(detector));
 
     crate::register_exit_handler();
