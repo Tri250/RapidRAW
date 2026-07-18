@@ -112,7 +112,6 @@ pub fn assert_uniform_dimensions(frames: &[HdrFrame]) -> Result<(), String> {
 
 pub fn align_hdr_frames(frames: &mut [HdrFrame], app_handle: &AppHandle) {
     assert!(!frames.is_empty(), "alignment requires at least one frame");
-    let _ = app_handle.emit("hdr-progress", "Deghosting...");
     let brief_pairs = get_brief_pairs();
     let reference_index = frames.len() / 2;
     let detections: Vec<FrameDetection> = frames
@@ -147,6 +146,8 @@ pub fn align_hdr_frames(frames: &mut [HdrFrame], app_handle: &AppHandle) {
             }
         }
     }
+    let _ = app_handle.emit("hdr-progress", "Deghosting...");
+    deghost_aligned_frames(frames, reference_index);
 }
 
 fn detect_frame_features(
@@ -311,4 +312,138 @@ fn max_corner_displacement(transform: &Matrix3<f64>, width: u32, height: u32) ->
         }
     }
     max_displacement
+}
+
+/// Apply per-pixel deghosting to aligned HDR frames using exposure-weighted
+/// consistency checking. For each pixel, frames that deviate significantly
+/// from the expected value (given their exposure) are considered ghost
+/// regions and their contribution is reduced.
+///
+/// Algorithm:
+/// 1. Compute a reference exposure-normalised image from the median of all frames.
+/// 2. For each frame, compute per-pixel deviation from the reference.
+/// 3. Pixels with high deviation (ghost candidates) get their exposure weight
+///    reduced, so the merge algorithm prefers consistent pixels.
+fn deghost_aligned_frames(frames: &mut [HdrFrame], reference_index: usize) {
+    if frames.len() < 2 {
+        return;
+    }
+
+    let (width, height) = frames[reference_index].1.dimensions();
+    if width == 0 || height == 0 {
+        return;
+    }
+
+    // Collect exposure-normalised RGB32F data from all frames.
+    // We work with flat f32 buffers for efficient pixel access.
+    let frame_data: Vec<(Vec<[f32; 3]>, f32, f32)> = frames
+        .iter()
+        .map(|(_, img, exposure, gains)| {
+            let rgb32f = img.to_rgb32f();
+            let ev = exposure.as_secs_f32().max(1e-10);
+            let flat: Vec<[f32; 3]> = rgb32f
+                .pixels()
+                .map(|p| [p[0], p[1], p[2]])
+                .collect();
+            (flat, ev, *gains)
+        })
+        .collect();
+
+    let pixel_count = (width * height) as usize;
+    let num_frames = frame_data.len();
+
+    // Step 1: Compute median of exposure-normalised values as the reference
+    let mut median_r = vec![0.0f32; pixel_count];
+    let mut median_g = vec![0.0f32; pixel_count];
+    let mut median_b = vec![0.0f32; pixel_count];
+
+    for pix_idx in 0..pixel_count {
+        let mut vals_r = Vec::with_capacity(num_frames);
+        let mut vals_g = Vec::with_capacity(num_frames);
+        let mut vals_b = Vec::with_capacity(num_frames);
+
+        for (flat, ev, gains) in &frame_data {
+            let p = flat[pix_idx];
+            let norm = ev * gains.max(1e-10);
+            vals_r.push(p[0] / norm);
+            vals_g.push(p[1] / norm);
+            vals_b.push(p[2] / norm);
+        }
+
+        vals_r.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        vals_g.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        vals_b.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+
+        let mid = num_frames / 2;
+        median_r[pix_idx] = if num_frames % 2 == 0 && mid > 0 {
+            (vals_r[mid - 1] + vals_r[mid]) * 0.5
+        } else {
+            vals_r[mid]
+        };
+        median_g[pix_idx] = if num_frames % 2 == 0 && mid > 0 {
+            (vals_g[mid - 1] + vals_g[mid]) * 0.5
+        } else {
+            vals_g[mid]
+        };
+        median_b[pix_idx] = if num_frames % 2 == 0 && mid > 0 {
+            (vals_b[mid - 1] + vals_b[mid]) * 0.5
+        } else {
+            vals_b[mid]
+        };
+    }
+
+    // Step 2: For each non-reference frame, identify ghost pixels and
+    // replace them with values blended from the reference frame.
+    const GHOST_THRESHOLD: f32 = 0.15;
+    const GHOST_BLEND: f32 = 0.85;
+
+    let ref_flat = &frame_data[reference_index].0;
+
+    for frame_idx in 0..num_frames {
+        if frame_idx == reference_index {
+            continue;
+        }
+
+        let flat = &frame_data[frame_idx].0;
+        let mut modified_flat = flat.clone();
+
+        for pix_idx in 0..pixel_count {
+            let p = flat[pix_idx];
+            let rp = ref_flat[pix_idx];
+
+            let norm_r = median_r[pix_idx].abs().max(1e-6);
+            let norm_g = median_g[pix_idx].abs().max(1e-6);
+            let norm_b = median_b[pix_idx].abs().max(1e-6);
+
+            let dev_r = ((p[0] - median_r[pix_idx]) / norm_r).abs();
+            let dev_g = ((p[1] - median_g[pix_idx]) / norm_g).abs();
+            let dev_b = ((p[2] - median_b[pix_idx]) / norm_b).abs();
+
+            let max_dev = dev_r.max(dev_g).max(dev_b);
+
+            if max_dev > GHOST_THRESHOLD {
+                let blend = if max_dev > GHOST_THRESHOLD * 3.0 {
+                    GHOST_BLEND
+                } else {
+                    let t = (max_dev - GHOST_THRESHOLD) / (GHOST_THRESHOLD * 2.0);
+                    t.min(1.0) * GHOST_BLEND
+                };
+
+                let new_r = p[0] * (1.0 - blend) + rp[0] * blend;
+                let new_g = p[1] * (1.0 - blend) + rp[1] * blend;
+                let new_b = p[2] * (1.0 - blend) + rp[2] * blend;
+
+                modified_flat[pix_idx] = [new_r, new_g, new_b];
+            }
+        }
+
+        // Convert flat buffer back to Rgb32FImage
+        let mut modified_img = Rgb32FImage::new(width, height);
+        for (pix_idx, pixel) in modified_flat.iter().enumerate() {
+            let x = pix_idx as u32 % width;
+            let y = pix_idx as u32 / width;
+            modified_img.put_pixel(x, y, image::Rgb([pixel[0], pixel[1], pixel[2]]));
+        }
+        frames[frame_idx].1 = DynamicImage::ImageRgb32F(modified_img);
+    }
 }

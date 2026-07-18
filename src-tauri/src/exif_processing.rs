@@ -673,23 +673,12 @@ pub fn write_image_with_metadata(
     keep_metadata: bool,
     strip_gps: bool,
 ) -> Result<(), String> {
-    // FIXME: temporary solution until I find a way to write metadata to TIFF
-    if !keep_metadata || output_format.to_lowercase() == "tiff" {
+    if !keep_metadata {
         return Ok(());
     }
 
     let original_path = Path::new(original_path_str);
     if !original_path.exists() {
-        return Ok(());
-    }
-
-    // Skip TIFF sources to avoid potential tag corruption issues
-    let original_ext = original_path
-        .extension()
-        .and_then(|s| s.to_str())
-        .unwrap_or("")
-        .to_lowercase();
-    if original_ext == "tiff" || original_ext == "tif" {
         return Ok(());
     }
 

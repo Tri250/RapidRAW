@@ -568,27 +568,27 @@ fn compute_rating_from_features(image: &image::DynamicImage) -> (u8, String) {
     // Generate description
     let desc = if rating >= 4 {
         if avg_sat > 0.4 {
-            "色彩丰富，构图良好".to_string()
+            "Rich colors, good composition".to_string()
         } else if dynamic_range > 0.7 {
-            "动态范围优秀，曝光平衡".to_string()
+            "Excellent dynamic range, balanced exposure".to_string()
         } else {
-            "整体质量良好".to_string()
+            "Overall good quality".to_string()
         }
     } else if rating == 3 {
         if clipped_shadows > 0.1 {
-            "暗部细节有损失".to_string()
+            "Shadow detail loss".to_string()
         } else if clipped_highlights > 0.1 {
-            "高光有溢出".to_string()
+            "Highlights clipped".to_string()
         } else {
-            "质量一般".to_string()
+            "Average quality".to_string()
         }
     } else {
         if var_lum < 0.02 {
-            "画面缺乏对比度".to_string()
+            "Low contrast".to_string()
         } else if avg_sat < 0.1 {
-            "画面色彩平淡".to_string()
+            "Flat colors".to_string()
         } else {
-            "建议调整后使用".to_string()
+            "Consider adjustments".to_string()
         }
     };
 

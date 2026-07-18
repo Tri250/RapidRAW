@@ -1681,6 +1681,11 @@ pub fn run_depth_anything_model(
     image: &DynamicImage,
     depth_session: &Mutex<Session>,
 ) -> Result<GrayImage> {
+    let (orig_width, orig_height) = image.dimensions();
+    if orig_width == 0 || orig_height == 0 {
+        anyhow::bail!("Input image has zero dimensions for depth estimation");
+    }
+
     let resized_image = image.resize(DEPTH_INPUT_SIZE, DEPTH_INPUT_SIZE, FilterType::Triangle);
     let (resized_w, resized_h) = resized_image.dimensions();
     let resized_rgb = resized_image.into_rgb8();
@@ -1757,7 +1762,9 @@ pub fn run_depth_anything_model(
     let depth_map = GrayImage::from_raw(resized_w, resized_h, cropped_depth_data)
         .ok_or_else(|| anyhow::anyhow!("Failed to create mask from Depth output"))?;
 
-    Ok(depth_map)
+    let final_depth = imageops::resize(&depth_map, orig_width, orig_height, FilterType::Triangle);
+
+    Ok(final_depth)
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]

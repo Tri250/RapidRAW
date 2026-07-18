@@ -1325,7 +1325,15 @@ pub fn generate_mask_bitmap(
     crop_offset: (f32, f32),
     warped_image: Option<&DynamicImage>,
 ) -> Option<GrayImage> {
+    if width == 0 || height == 0 {
+        return None;
+    }
+
     if !mask_def.visible || mask_def.sub_masks.is_empty() {
+        return None;
+    }
+
+    if scale <= 0.0 {
         return None;
     }
 

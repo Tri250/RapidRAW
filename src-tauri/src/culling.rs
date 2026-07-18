@@ -127,7 +127,10 @@ fn analyze_image(
     hasher: &image_hasher::Hasher,
     settings: &crate::app_settings::AppSettings,
 ) -> Result<ImageAnalysisData, String> {
-    const ANALYSIS_DIM: u32 = 720; // FIXME: How should we calculate good focus if it's downscaled?!?
+    const ANALYSIS_DIM: u32 = 720;
+    // For focus assessment, we sample a center crop from the full-resolution
+    // image to avoid losing fine detail that the downscale would remove.
+    const FOCUS_CROP_DIM: u32 = 1500;
 
     if crate::file_management::is_cloud_placeholder(Path::new(path)) {
         return Err(format!("'{}' is stored in iCloud and not downloaded", path));
@@ -142,19 +145,37 @@ fn analyze_image(
     let thumbnail = img.thumbnail(ANALYSIS_DIM, ANALYSIS_DIM);
     let gray_thumbnail = thumbnail.to_luma8();
 
-    let sharpness_metric = calculate_laplacian_variance(&gray_thumbnail);
     let exposure_metric = calculate_exposure_metric(&gray_thumbnail);
 
-    let (thumb_w, thumb_h) = gray_thumbnail.dimensions();
-    let center_crop = imageops::crop_imm(
-        &gray_thumbnail,
-        thumb_w / 4,
-        thumb_h / 4,
-        thumb_w / 2,
-        thumb_h / 2,
-    )
-    .to_image();
-    let center_focus_metric = calculate_laplacian_variance(&center_crop);
+    // Compute focus metrics from a higher-resolution center crop of the
+    // original image, which preserves the fine detail needed for an
+    // accurate Laplacian variance measurement.
+    let (sharpness_metric, center_focus_metric) = if width >= 3 && height >= 3 {
+        let crop_x = (width.saturating_sub(FOCUS_CROP_DIM) / 2).max(0);
+        let crop_y = (height.saturating_sub(FOCUS_CROP_DIM) / 2).max(0);
+        let crop_w = FOCUS_CROP_DIM.min(width);
+        let crop_h = FOCUS_CROP_DIM.min(height);
+
+        let full_gray = img.to_luma8();
+        let center_crop = imageops::crop_imm(&full_gray, crop_x, crop_y, crop_w, crop_h).to_image();
+
+        let sharpness = calculate_laplacian_variance(&center_crop);
+
+        let (cw, ch) = center_crop.dimensions();
+        let inner_crop = imageops::crop_imm(
+            &center_crop,
+            cw / 4,
+            ch / 4,
+            cw / 2,
+            ch / 2,
+        )
+        .to_image();
+        let center_focus = calculate_laplacian_variance(&inner_crop);
+
+        (sharpness, center_focus)
+    } else {
+        (0.0, 0.0)
+    };
 
     let normalized_sharpness = ((sharpness_metric + 1.0).log10() / 3.5).min(1.0);
     let normalized_center_focus = ((center_focus_metric + 1.0).log10() / 3.5).min(1.0);
