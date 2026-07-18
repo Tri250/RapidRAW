@@ -8,5 +8,5 @@
     <!-- Exclude large cache/model files from backup -->
     <exclude domain="file" path="models/" />
     <exclude domain="external" path="models/" />
-    <exclude domain="cache" path="." />
+    <exclude domain="file" path="cache/" />
 </full-backup-content>
