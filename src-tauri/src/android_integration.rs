@@ -722,7 +722,11 @@ pub fn share_image(file_path: String, mime_type: String, title: String) -> Resul
                 file_provider_class,
                 "getUriForFile",
                 "(Landroid/content/Context;Ljava/lang/String;Ljava/io/File;)Landroid/net/Uri;",
-                &[(&context).into(), (&authority).into(), (&file_instance).into()],
+                &[
+                    (&context).into(),
+                    (&authority).into(),
+                    (&file_instance).into(),
+                ],
             )
             .and_then(|v| v.l())
             .map_err(|e| {

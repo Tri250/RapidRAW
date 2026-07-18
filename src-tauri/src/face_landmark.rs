@@ -67,7 +67,8 @@ impl FaceLandmarkDetector {
         let dy = ((input_size - new_h) / 2) as f32;
 
         let resized = img.resize(new_w, new_h, image::imageops::FilterType::Triangle);
-        let mut input_tensor = Array4::<f32>::zeros((1, 3, input_size as usize, input_size as usize));
+        let mut input_tensor =
+            Array4::<f32>::zeros((1, 3, input_size as usize, input_size as usize));
 
         for y in 0..new_h {
             for x in 0..new_w {
@@ -128,7 +129,8 @@ impl FaceLandmarkDetector {
             kps: Option<Array<f32, IxDyn>>,
         }
 
-        let mut by_n: std::collections::HashMap<usize, HeadArrays> = std::collections::HashMap::new();
+        let mut by_n: std::collections::HashMap<usize, HeadArrays> =
+            std::collections::HashMap::new();
 
         for arr in scores {
             let n = arr.shape()[1];
@@ -369,11 +371,7 @@ fn iou(a: [f32; 4], b: [f32; 4]) -> f32 {
     let area_a = (a[2] - a[0]) * (a[3] - a[1]);
     let area_b = (b[2] - b[0]) * (b[3] - b[1]);
     let union = area_a + area_b - inter;
-    if union <= 0.0 {
-        0.0
-    } else {
-        inter / union
-    }
+    if union <= 0.0 { 0.0 } else { inter / union }
 }
 
 fn sample_bilinear_rgb(img: &RgbImage, w: u32, h: u32, x: f32, y: f32) -> Rgb<u8> {
@@ -395,8 +393,7 @@ fn sample_bilinear_rgb(img: &RgbImage, w: u32, h: u32, x: f32, y: f32) -> Rgb<u8
         let v10 = p10[i] as f32;
         let v01 = p01[i] as f32;
         let v11 = p11[i] as f32;
-        let v = (v00 * (1.0 - fx) + v10 * fx) * (1.0 - fy)
-            + (v01 * (1.0 - fx) + v11 * fx) * fy;
+        let v = (v00 * (1.0 - fx) + v10 * fx) * (1.0 - fy) + (v01 * (1.0 - fx) + v11 * fx) * fy;
         c[i] = v.round().clamp(0.0, 255.0) as u8;
     }
     Rgb(c)
@@ -440,7 +437,7 @@ fn estimate_affine_transform(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use image::{RgbImage, Rgb};
+    use image::{Rgb, RgbImage};
 
     #[test]
     fn test_iou_identical() {

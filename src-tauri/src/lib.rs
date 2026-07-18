@@ -31,8 +31,8 @@ mod mask_generation;
 mod negative_conversion;
 mod panorama_stitching;
 mod panorama_utils;
-mod preset_converter;
 mod portrait_processing;
+mod preset_converter;
 mod raw_processing;
 mod tagging;
 mod tagging_utils;
@@ -524,48 +524,61 @@ fn process_preview_job(
                 serde_json::json!({ "path": loaded_image.path }),
             );
             return Ok(b"WGPU_RENDER".to_vec());
-    }
+        }
 
-    // Portrait post-processing (CPU-based, applied after GPU pass)
-    let mut final_processed_image = final_processed_image;
-    if let Some(portrait) = adjustments_clone.get("portrait") {
-        let face_regions = {
-            let ai_state_guard = state.ai_state.lock().unwrap();
-            if let Some(detector_arc) = ai_state_guard.as_ref().and_then(|s| s.face_landmark_detector.clone()) {
-                drop(ai_state_guard);
-                let mut detector_guard = detector_arc.lock().unwrap();
-                crate::portrait_processing::detect_face_regions_onnx(&final_processed_image, &mut *detector_guard)
-            } else {
-                drop(ai_state_guard);
-                match tauri::async_runtime::block_on(async {
-                    crate::ai_processing::get_or_init_face_landmark_detector(
-                        app_handle,
-                        &state.ai_state,
-                        &state.ai_init_lock,
-                    ).await
-                }) {
-                    Ok(detector_arc) => {
-                        let mut detector_guard = detector_arc.lock().unwrap();
-                        crate::portrait_processing::detect_face_regions_onnx(&final_processed_image, &mut *detector_guard)
-                    }
-                    Err(e) => {
-                        log::warn!("Face landmark detector unavailable, falling back to skin-tone detection: {}", e);
-                        crate::portrait_processing::detect_face_regions(&final_processed_image)
+        // Portrait post-processing (CPU-based, applied after GPU pass)
+        let mut final_processed_image = final_processed_image;
+        if let Some(portrait) = adjustments_clone.get("portrait") {
+            let face_regions = {
+                let ai_state_guard = state.ai_state.lock().unwrap();
+                if let Some(detector_arc) = ai_state_guard
+                    .as_ref()
+                    .and_then(|s| s.face_landmark_detector.clone())
+                {
+                    drop(ai_state_guard);
+                    let mut detector_guard = detector_arc.lock().unwrap();
+                    crate::portrait_processing::detect_face_regions_onnx(
+                        &final_processed_image,
+                        &mut *detector_guard,
+                    )
+                } else {
+                    drop(ai_state_guard);
+                    match tauri::async_runtime::block_on(async {
+                        crate::ai_processing::get_or_init_face_landmark_detector(
+                            app_handle,
+                            &state.ai_state,
+                            &state.ai_init_lock,
+                        )
+                        .await
+                    }) {
+                        Ok(detector_arc) => {
+                            let mut detector_guard = detector_arc.lock().unwrap();
+                            crate::portrait_processing::detect_face_regions_onnx(
+                                &final_processed_image,
+                                &mut *detector_guard,
+                            )
+                        }
+                        Err(e) => {
+                            log::warn!(
+                                "Face landmark detector unavailable, falling back to skin-tone detection: {}",
+                                e
+                            );
+                            crate::portrait_processing::detect_face_regions(&final_processed_image)
+                        }
                     }
                 }
+            };
+
+            if let Err(e) = crate::portrait_processing::apply_portrait_adjustments(
+                &mut final_processed_image,
+                portrait,
+                &face_regions,
+            ) {
+                log::warn!("Portrait processing failed: {}", e);
             }
-        };
-
-        if let Err(e) = crate::portrait_processing::apply_portrait_adjustments(
-            &mut final_processed_image,
-            portrait,
-            &face_regions,
-        ) {
-            log::warn!("Portrait processing failed: {}", e);
         }
-    }
 
-    let final_processed_image = Arc::new(final_processed_image);
+        let final_processed_image = Arc::new(final_processed_image);
         let final_rgba_image = match &*final_processed_image {
             DynamicImage::ImageRgba8(img) => img,
             _ => return Err("Expected Rgba8 image from GPU for encoding".to_string()),

@@ -22,11 +22,11 @@ use std::fs;
 use std::panic;
 use std::path::Path;
 use std::sync::OnceLock;
+use std::sync::mpsc;
 use std::sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
 };
-use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 #[derive(serde::Serialize)]

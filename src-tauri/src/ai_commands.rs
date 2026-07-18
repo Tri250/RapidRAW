@@ -415,7 +415,12 @@ fn compute_rating_from_features(image: &image::DynamicImage) -> (u8, String) {
 
     // Downsample for analysis speed
     let analysis_size = 200u32;
-    let small = image::imageops::resize(&rgb_image, analysis_size, analysis_size, image::imageops::FilterType::Triangle);
+    let small = image::imageops::resize(
+        &rgb_image,
+        analysis_size,
+        analysis_size,
+        image::imageops::FilterType::Triangle,
+    );
 
     let mut luminances: Vec<f32> = Vec::with_capacity((analysis_size * analysis_size) as usize);
     let mut reds: Vec<f32> = Vec::new();
@@ -437,7 +442,11 @@ fn compute_rating_from_features(image: &image::DynamicImage) -> (u8, String) {
 
     // Mean and variance of luminance
     let mean_lum: f32 = luminances.iter().sum::<f32>() / n;
-    let var_lum: f32 = luminances.iter().map(|x| (x - mean_lum).powi(2)).sum::<f32>() / n;
+    let var_lum: f32 = luminances
+        .iter()
+        .map(|x| (x - mean_lum).powi(2))
+        .sum::<f32>()
+        / n;
 
     // Dynamic range (contrast)
     let min_lum = luminances.iter().cloned().fold(f32::INFINITY, f32::min);
@@ -450,7 +459,11 @@ fn compute_rating_from_features(image: &image::DynamicImage) -> (u8, String) {
         for i in 0..luminances.len() {
             let max_c = reds[i].max(greens[i]).max(blues[i]);
             let min_c = reds[i].min(greens[i]).min(blues[i]);
-            sat_sum += if max_c > 0.0 { (max_c - min_c) / max_c } else { 0.0 };
+            sat_sum += if max_c > 0.0 {
+                (max_c - min_c) / max_c
+            } else {
+                0.0
+            };
         }
         sat_sum / n
     };
@@ -476,11 +489,25 @@ fn compute_rating_from_features(image: &image::DynamicImage) -> (u8, String) {
                 }
             }
         }
-        let center_mean = if center_count > 0 { center_lum_sum / center_count as f32 } else { 0.0 };
-        let edge_mean = if edge_count > 0 { edge_lum_sum / edge_count as f32 } else { 0.0 };
+        let center_mean = if center_count > 0 {
+            center_lum_sum / center_count as f32
+        } else {
+            0.0
+        };
+        let edge_mean = if edge_count > 0 {
+            edge_lum_sum / edge_count as f32
+        } else {
+            0.0
+        };
         // Moderate center-edge contrast is good (subject separation), but too much is harsh
         let contrast = (center_mean - edge_mean).abs();
-        if contrast > 0.3 { 0.7 } else if contrast > 0.1 { 1.0 } else { 0.6 }
+        if contrast > 0.3 {
+            0.7
+        } else if contrast > 0.1 {
+            1.0
+        } else {
+            0.6
+        }
     };
 
     // Exposure quality: penalize too dark or too bright (clipped)
@@ -489,7 +516,11 @@ fn compute_rating_from_features(image: &image::DynamicImage) -> (u8, String) {
     let exposure_score: f32 = 1.0 - (clipped_shadows + clipped_highlights).min(1.0);
 
     // Aspect ratio: standard ratios (3:2, 4:3, 16:9) get a slight bonus
-    let aspect = if height > 0 { width as f32 / height as f32 } else { 1.0 };
+    let aspect = if height > 0 {
+        width as f32 / height as f32
+    } else {
+        1.0
+    };
     let aspect_score: f32 = {
         let near_standard = (aspect - 1.5).abs() < 0.1 // ~3:2
             || (aspect - 1.333).abs() < 0.1 // ~4:3
@@ -502,7 +533,13 @@ fn compute_rating_from_features(image: &image::DynamicImage) -> (u8, String) {
         // Optimal variance around 0.06-0.10 for well-exposed photos
         let optimal_var = 0.08;
         let diff = (var_lum - optimal_var).abs();
-        if diff < 0.02 { 1.0 } else if diff < 0.05 { 0.8 } else { 0.5 }
+        if diff < 0.02 {
+            1.0
+        } else if diff < 0.05 {
+            0.8
+        } else {
+            0.5
+        }
     };
 
     // Combine scores (weighted)
@@ -567,7 +604,8 @@ pub async fn generate_ai_rating(
     let settings = load_settings(app_handle.clone()).unwrap_or_default();
 
     // Load image
-    let image_bytes = std::fs::read(&source_path).map_err(|e| format!("Failed to read image: {}", e))?;
+    let image_bytes =
+        std::fs::read(&source_path).map_err(|e| format!("Failed to read image: {}", e))?;
     let image = crate::image_loader::load_base_image_from_bytes(
         &image_bytes,
         &source_path_str,
@@ -581,19 +619,14 @@ pub async fn generate_ai_rating(
     let (rating, description) = compute_rating_from_features(&image);
 
     // Get tags using CLIP if available
-    let tags = match get_or_init_clip_models(&app_handle, &state.ai_state, &state.ai_init_lock).await {
-        Ok(clip_models) => {
-            generate_tags_with_clip(
-                &image,
-                &clip_models.model,
-                &clip_models.tokenizer,
-                None,
-                8,
-            )
-            .unwrap_or_else(|_| extract_color_tags(&image))
-        }
-        Err(_) => extract_color_tags(&image),
-    };
+    let tags =
+        match get_or_init_clip_models(&app_handle, &state.ai_state, &state.ai_init_lock).await {
+            Ok(clip_models) => {
+                generate_tags_with_clip(&image, &clip_models.model, &clip_models.tokenizer, None, 8)
+                    .unwrap_or_else(|_| extract_color_tags(&image))
+            }
+            Err(_) => extract_color_tags(&image),
+        };
 
     Ok(AiRatingResult {
         rating,
@@ -703,7 +736,9 @@ pub fn generate_ai_sky_replace(
     // Decode the sky image
     let sky_img = image::load_from_memory(&sky_image_data)
         .map_err(|e| format!("Failed to decode sky image: {}", e))?;
-    let sky_rgba = sky_img.resize_exact(w, h, image::imageops::FilterType::Lanczos3).to_rgba8();
+    let sky_rgba = sky_img
+        .resize_exact(w, h, image::imageops::FilterType::Lanczos3)
+        .to_rgba8();
 
     // Validate mask dimensions
     if sky_mask.len() != (w as usize * h as usize) {
@@ -797,9 +832,7 @@ pub fn generate_ai_sky_replace(
 /// Remove background using the existing foreground mask from AI state.
 /// Produces an RGBA PNG with alpha channel from the mask.
 #[tauri::command]
-pub fn generate_ai_background_remove(
-    state: tauri::State<AppState>,
-) -> Result<Vec<u8>, String> {
+pub fn generate_ai_background_remove(state: tauri::State<AppState>) -> Result<Vec<u8>, String> {
     let loaded_image = state
         .original_image
         .lock()
@@ -829,15 +862,18 @@ pub fn generate_ai_background_remove(
             // Resize to match
             image::imageops::resize(&mask, w, h, image::imageops::FilterType::Triangle)
         } else {
-            return Err(
-                "No depth map available. Please generate a depth mask first.".to_string(),
-            );
+            return Err("No depth map available. Please generate a depth mask first.".to_string());
         }
     };
 
     // Resize mask to match image dimensions
     let mask_resized = if foreground_mask.width() != w || foreground_mask.height() != h {
-        image::imageops::resize(&foreground_mask, w, h, image::imageops::FilterType::Triangle)
+        image::imageops::resize(
+            &foreground_mask,
+            w,
+            h,
+            image::imageops::FilterType::Triangle,
+        )
     } else {
         foreground_mask
     };

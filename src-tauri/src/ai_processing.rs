@@ -37,8 +37,10 @@ fn resolve_model_url(original_url: &str) -> String {
     }
 
     // Replace huggingface.co with the mirror domain
-    original_url
-        .replace("https://huggingface.co/", &format!("{}/", mirror_base.trim_end_matches('/')))
+    original_url.replace(
+        "https://huggingface.co/",
+        &format!("{}/", mirror_base.trim_end_matches('/')),
+    )
 }
 
 const ENCODER_URL: &str = "https://huggingface.co/CyberTimon/RapidRAW-Models/resolve/main/sam_vit_b_01ec64_encoder.onnx?download=true";
@@ -83,10 +85,12 @@ const DEPTH_INPUT_SIZE: u32 = 518;
 const DEPTH_SHA256: &str = "d2b11a11c1d4a12b47608fa65a17ee9a4c605b55ee1730c8e3b526304f2562be";
 
 const SCRFD_FILENAME: &str = "scrfd_10g_bnkps.onnx";
-const SCRFD_URL: &str = "https://huggingface.co/datasets/Alltitude/insightface/resolve/main/scrfd_10g_bnkps.onnx";
+const SCRFD_URL: &str =
+    "https://huggingface.co/datasets/Alltitude/insightface/resolve/main/scrfd_10g_bnkps.onnx";
 
 const FACE_LANDMARK_106_FILENAME: &str = "2d106det.onnx";
-const FACE_LANDMARK_106_URL: &str = "https://huggingface.co/datasets/Alltitude/insightface/resolve/main/2d106det.onnx";
+const FACE_LANDMARK_106_URL: &str =
+    "https://huggingface.co/datasets/Alltitude/insightface/resolve/main/2d106det.onnx";
 
 /// Check if there is sufficient available memory for AI model loading.
 /// `required_mb` is the minimum required memory in MB.
@@ -104,7 +108,8 @@ fn check_available_memory(required_mb: u64) -> anyhow::Result<()> {
                             if available_mb < required_mb {
                                 return Err(anyhow::anyhow!(
                                     "设备内存不足（可用 {}MB，需要 {}MB）。建议关闭后台应用后重试。",
-                                    available_mb, required_mb
+                                    available_mb,
+                                    required_mb
                                 ));
                             }
                         }
@@ -748,7 +753,9 @@ async fn download_model_if_missing(
         return Ok(());
     }
     let _ = app_handle.emit("ai-model-download-start", model_name);
-    let result = download_model(url, &dest_path).await.map_err(|e| e.to_string());
+    let result = download_model(url, &dest_path)
+        .await
+        .map_err(|e| e.to_string());
     let _ = app_handle.emit("ai-model-download-finish", model_name);
     result
 }

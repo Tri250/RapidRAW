@@ -1650,7 +1650,11 @@ pub fn generate_luminance_range_mask(
             let intensity = if lum >= min_l && lum <= max_l {
                 1.0
             } else if feather_sigma > 1e-6 {
-                let dist = if lum < min_l { min_l - lum } else { lum - max_l };
+                let dist = if lum < min_l {
+                    min_l - lum
+                } else {
+                    lum - max_l
+                };
                 (-dist * dist / (2.0 * feather_sigma * feather_sigma)).exp()
             } else {
                 0.0

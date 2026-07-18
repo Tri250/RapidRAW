@@ -10,7 +10,7 @@ use crate::app_state::AppState;
 #[derive(Clone, Debug)]
 pub struct FaceRegion {
     pub face_rect: (u32, u32, u32, u32), // x, y, width, height
-    pub left_eye: (u32, u32, u32),        // x_center, y_center, radius
+    pub left_eye: (u32, u32, u32),       // x_center, y_center, radius
     pub right_eye: (u32, u32, u32),
     pub nose: (u32, u32, u32),
     pub mouth: (u32, u32, u32),
@@ -120,10 +120,9 @@ pub fn apply_skin_smoothing(
                     let ng = src_raw[n_offset + 1] as f32;
                     let nb = src_raw[n_offset + 2] as f32;
 
-                    let color_dist = ((cr - nr) * (cr - nr)
-                        + (cg - ng) * (cg - ng)
-                        + (cb - nb) * (cb - nb))
-                    .sqrt();
+                    let color_dist =
+                        ((cr - nr) * (cr - nr) + (cg - ng) * (cg - ng) + (cb - nb) * (cb - nb))
+                            .sqrt();
 
                     let wr = gaussian(color_dist, effective_range_sigma);
 
@@ -225,7 +224,8 @@ pub fn apply_blemish_removal(
                 let mut wt = 0.0f32;
 
                 for (ri, &(rr, rg, rb, ra)) in ring_colors.iter().enumerate() {
-                    let ring_angle = 2.0 * std::f32::consts::PI * ri as f32 / ring_colors.len() as f32;
+                    let ring_angle =
+                        2.0 * std::f32::consts::PI * ri as f32 / ring_colors.len() as f32;
                     let angle_diff = (angle - ring_angle).abs();
                     let angle_diff = angle_diff.min(2.0 * std::f32::consts::PI - angle_diff);
                     let aw = (-angle_diff * angle_diff / 1.0).exp(); // angular weight
@@ -263,10 +263,18 @@ pub fn apply_blemish_removal(
                         x,
                         y,
                         Rgba([
-                            (or * (1.0 - blend) + fill_r * blend).round().clamp(0.0, 255.0) as u8,
-                            (og * (1.0 - blend) + fill_g * blend).round().clamp(0.0, 255.0) as u8,
-                            (ob * (1.0 - blend) + fill_b * blend).round().clamp(0.0, 255.0) as u8,
-                            (oa * (1.0 - blend) + fill_a * blend).round().clamp(0.0, 255.0) as u8,
+                            (or * (1.0 - blend) + fill_r * blend)
+                                .round()
+                                .clamp(0.0, 255.0) as u8,
+                            (og * (1.0 - blend) + fill_g * blend)
+                                .round()
+                                .clamp(0.0, 255.0) as u8,
+                            (ob * (1.0 - blend) + fill_b * blend)
+                                .round()
+                                .clamp(0.0, 255.0) as u8,
+                            (oa * (1.0 - blend) + fill_a * blend)
+                                .round()
+                                .clamp(0.0, 255.0) as u8,
                         ]),
                     );
                 }
@@ -605,8 +613,7 @@ pub fn apply_makeup(
                 let matches = match makeup_type {
                     "lip" => {
                         // Lips: warm hues (red/pink), medium+ saturation
-                        (hue < 20.0 || hue > 340.0 || (hue > 300.0 && hue < 360.0))
-                            && sat > 0.1
+                        (hue < 20.0 || hue > 340.0 || (hue > 300.0 && hue < 360.0)) && sat > 0.1
                     }
                     "blush" => {
                         // Cheeks: warm hues, low-medium saturation
@@ -806,7 +813,11 @@ pub fn detect_face_regions(img: &DynamicImage) -> Vec<FaceRegion> {
     let mut sorted = components;
     sorted.sort_by(|a, b| b.area.cmp(&a.area));
     let min_area = ((w as usize * h as usize) / 100).max(100);
-    let top_components: Vec<_> = sorted.into_iter().filter(|c| c.area >= min_area).take(6).collect();
+    let top_components: Vec<_> = sorted
+        .into_iter()
+        .filter(|c| c.area >= min_area)
+        .take(6)
+        .collect();
 
     if top_components.is_empty() {
         return Vec::new();
@@ -822,10 +833,26 @@ pub fn detect_face_regions(img: &DynamicImage) -> Vec<FaceRegion> {
         // Estimate feature positions based on classical face proportions
         let eye_y = face_cy - cheight as f32 * 0.22;
         let eye_sep = cwidth as f32 * 0.28;
-        let left_eye = ((face_cx - eye_sep) as u32, eye_y as u32, (cwidth as f32 * 0.18) as u32);
-        let right_eye = ((face_cx + eye_sep) as u32, eye_y as u32, (cwidth as f32 * 0.18) as u32);
-        let nose = (face_cx as u32, (face_cy + cheight as f32 * 0.05) as u32, (cwidth as f32 * 0.12) as u32);
-        let mouth = (face_cx as u32, (face_cy + cheight as f32 * 0.30) as u32, (cwidth as f32 * 0.22) as u32);
+        let left_eye = (
+            (face_cx - eye_sep) as u32,
+            eye_y as u32,
+            (cwidth as f32 * 0.18) as u32,
+        );
+        let right_eye = (
+            (face_cx + eye_sep) as u32,
+            eye_y as u32,
+            (cwidth as f32 * 0.18) as u32,
+        );
+        let nose = (
+            face_cx as u32,
+            (face_cy + cheight as f32 * 0.05) as u32,
+            (cwidth as f32 * 0.12) as u32,
+        );
+        let mouth = (
+            face_cx as u32,
+            (face_cy + cheight as f32 * 0.30) as u32,
+            (cwidth as f32 * 0.22) as u32,
+        );
 
         // Jawline: simple V-shape based on face width/height
         let jaw_width = cwidth as f32 * 0.45;
@@ -887,7 +914,11 @@ pub fn detect_face_regions_onnx(
                     xs.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
                     let median_x = xs[xs.len() / 2];
                     let left: Vec<_> = eye_pts.iter().filter(|p| p.0 < median_x).copied().collect();
-                    let right: Vec<_> = eye_pts.iter().filter(|p| p.0 >= median_x).copied().collect();
+                    let right: Vec<_> = eye_pts
+                        .iter()
+                        .filter(|p| p.0 >= median_x)
+                        .copied()
+                        .collect();
                     (left, right)
                 } else {
                     (Vec::new(), Vec::new())
@@ -1049,7 +1080,9 @@ fn erode_mask(src: &[bool], w: u32, h: u32, dst: &mut [bool], radius: u32) {
                         break;
                     }
                 }
-                if !all_set { break; }
+                if !all_set {
+                    break;
+                }
             }
             dst[(y * w + x) as usize] = all_set;
         }
@@ -1069,7 +1102,9 @@ fn dilate_mask(src: &[bool], w: u32, h: u32, dst: &mut [bool], radius: u32) {
                         break;
                     }
                 }
-                if any_set { break; }
+                if any_set {
+                    break;
+                }
             }
             dst[(y * w + x) as usize] = any_set;
         }
@@ -1250,9 +1285,9 @@ pub fn apply_body_reshape(
 pub fn apply_skin_tone_unify(
     img: &mut DynamicImage,
     face_regions: &[FaceRegion],
-    warmth: f32,      // -1..1  (cool ↔ warm)
-    redness: f32,     // -1..1  (green ↔ red)
-    strength: f32,    // 0..1
+    warmth: f32,   // -1..1  (cool ↔ warm)
+    redness: f32,  // -1..1  (green ↔ red)
+    strength: f32, // 0..1
 ) -> Result<(), String> {
     let (w, h) = img.dimensions();
     if w == 0 || h == 0 {
@@ -1283,7 +1318,11 @@ pub fn apply_skin_tone_unify(
 
                 // Skin-tone heuristic: moderate saturation, warm hue
                 let (hue, sat, lum) = rgb_to_hsl(rf, gf, bf);
-                let is_skin = (hue < 50.0 || hue > 330.0) && sat > 0.08 && sat < 0.65 && lum > 0.15 && lum < 0.85;
+                let is_skin = (hue < 50.0 || hue > 330.0)
+                    && sat > 0.08
+                    && sat < 0.65
+                    && lum > 0.15
+                    && lum < 0.85;
                 if !is_skin {
                     continue;
                 }
@@ -1381,7 +1420,8 @@ pub fn apply_one_click_beauty(
     apply_skin_smoothing(img, s * 0.35, 0.65)?;
 
     // Eye brighten
-    let eye_regions: Vec<_> = face_regions.iter()
+    let eye_regions: Vec<_> = face_regions
+        .iter()
         .flat_map(|f| vec![f.left_eye, f.right_eye])
         .collect();
     if !eye_regions.is_empty() {
@@ -1390,9 +1430,7 @@ pub fn apply_one_click_beauty(
     }
 
     // Teeth whiten
-    let teeth_regions: Vec<_> = face_regions.iter()
-        .map(|f| f.mouth)
-        .collect();
+    let teeth_regions: Vec<_> = face_regions.iter().map(|f| f.mouth).collect();
     if !teeth_regions.is_empty() {
         apply_teeth_whitening(img, &teeth_regions, s * 0.35, s * 0.30)?;
     }
@@ -1420,28 +1458,48 @@ pub fn apply_portrait_adjustments(
 ) -> Result<(), String> {
     // Extract each field; missing or zero fields are skipped
     let get_f32 = |key: &str| -> f32 {
-        portrait_json.get(key).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32
+        portrait_json
+            .get(key)
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0) as f32
     };
     let get_str = |key: &str| -> String {
-        portrait_json.get(key).and_then(|v| v.as_str()).unwrap_or("").to_string()
+        portrait_json
+            .get(key)
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string()
     };
 
     // Read personAttribute to filter which faces to process
     let person_attribute = get_str("personAttribute");
-    let filtered_faces: Vec<FaceRegion> = if person_attribute.is_empty() || person_attribute == "all" {
-        face_regions.to_vec()
-    } else {
-        // Filter face regions based on personAttribute
-        face_regions.iter().filter(|face| {
-            match person_attribute.as_str() {
-                "single" => true, // Process only the largest/dominant face
-                "male" | "elderMale" => face.face_rect.2 > face.face_rect.3 / 2, // Heuristic: wider faces tend to be male
-                "female" | "elderFemale" => face.face_rect.2 <= face.face_rect.3 / 2, // Heuristic: narrower faces tend to be female
-                "child" => face.face_rect.2 < face_regions.iter().map(|f| f.face_rect.2).max().unwrap_or(u32::MAX) / 2, // Heuristic: smaller faces
-                _ => true,
-            }
-        }).cloned().collect()
-    };
+    let filtered_faces: Vec<FaceRegion> =
+        if person_attribute.is_empty() || person_attribute == "all" {
+            face_regions.to_vec()
+        } else {
+            // Filter face regions based on personAttribute
+            face_regions
+                .iter()
+                .filter(|face| {
+                    match person_attribute.as_str() {
+                        "single" => true, // Process only the largest/dominant face
+                        "male" | "elderMale" => face.face_rect.2 > face.face_rect.3 / 2, // Heuristic: wider faces tend to be male
+                        "female" | "elderFemale" => face.face_rect.2 <= face.face_rect.3 / 2, // Heuristic: narrower faces tend to be female
+                        "child" => {
+                            face.face_rect.2
+                                < face_regions
+                                    .iter()
+                                    .map(|f| f.face_rect.2)
+                                    .max()
+                                    .unwrap_or(u32::MAX)
+                                    / 2
+                        } // Heuristic: smaller faces
+                        _ => true,
+                    }
+                })
+                .cloned()
+                .collect()
+        };
 
     // For "single" mode, only process the largest face
     let filtered_faces: Vec<FaceRegion> = if person_attribute == "single" {
@@ -1486,7 +1544,11 @@ pub fn apply_portrait_adjustments(
                     let y = spot.get("y")?.as_f64()? as f32;
                     let r = spot.get("radius")?.as_f64()? as f32;
                     let (iw, ih) = img.dimensions();
-                    Some(((x * iw as f32) as u32, (y * ih as f32) as u32, (r * iw as f32).max(3.0) as u32))
+                    Some((
+                        (x * iw as f32) as u32,
+                        (y * ih as f32) as u32,
+                        (r * iw as f32).max(3.0) as u32,
+                    ))
                 })
                 .collect()
         })
@@ -1520,7 +1582,10 @@ pub fn apply_portrait_adjustments(
 
     // 4. Eye enhance
     if (eye_enlarge > 0.5 || eye_brighten > 0.5) && !filtered_faces.is_empty() {
-        let eye_regions: Vec<_> = filtered_faces.iter().flat_map(|f| vec![f.left_eye, f.right_eye]).collect();
+        let eye_regions: Vec<_> = filtered_faces
+            .iter()
+            .flat_map(|f| vec![f.left_eye, f.right_eye])
+            .collect();
         if eye_enlarge > 0.5 {
             apply_eye_enlarge(img, &eye_regions, eye_enlarge / 100.0)?;
         }
@@ -1532,7 +1597,12 @@ pub fn apply_portrait_adjustments(
     // 5. Teeth whiten
     if (teeth_bright > 0.5 || teeth_desat > 0.5) && !filtered_faces.is_empty() {
         let teeth_regions: Vec<_> = filtered_faces.iter().map(|f| f.mouth).collect();
-        apply_teeth_whitening(img, &teeth_regions, teeth_bright / 100.0, teeth_desat / 100.0)?;
+        apply_teeth_whitening(
+            img,
+            &teeth_regions,
+            teeth_bright / 100.0,
+            teeth_desat / 100.0,
+        )?;
     }
 
     // 6. Makeup
@@ -1546,18 +1616,29 @@ pub fn apply_portrait_adjustments(
         let mut blush_regions = Vec::new();
         for face in &filtered_faces {
             let cheek_r = face.face_rect.2 / 5;
-            blush_regions.push((face.left_eye.0.saturating_sub(cheek_r), face.left_eye.1 + cheek_r, cheek_r));
-            blush_regions.push((face.right_eye.0 + cheek_r, face.right_eye.1 + cheek_r, cheek_r));
+            blush_regions.push((
+                face.left_eye.0.saturating_sub(cheek_r),
+                face.left_eye.1 + cheek_r,
+                cheek_r,
+            ));
+            blush_regions.push((
+                face.right_eye.0 + cheek_r,
+                face.right_eye.1 + cheek_r,
+                cheek_r,
+            ));
         }
         let col = hex_to_rgb(&blush_color).unwrap_or((220, 100, 100));
         apply_makeup(img, "blush", &blush_regions, col, blush_opacity / 100.0)?;
     }
     if !eyebrow_color.is_empty() && eyebrow_opacity > 0.5 && !filtered_faces.is_empty() {
-        let brow_regions: Vec<_> = filtered_faces.iter().map(|f| {
-            let brow_y = f.face_rect.1 + f.face_rect.3 / 5;
-            let brow_r = f.face_rect.2 / 6;
-            ((f.face_rect.0 + f.face_rect.2 / 2) as u32, brow_y, brow_r)
-        }).collect();
+        let brow_regions: Vec<_> = filtered_faces
+            .iter()
+            .map(|f| {
+                let brow_y = f.face_rect.1 + f.face_rect.3 / 5;
+                let brow_r = f.face_rect.2 / 6;
+                ((f.face_rect.0 + f.face_rect.2 / 2) as u32, brow_y, brow_r)
+            })
+            .collect();
         let col = hex_to_rgb(&eyebrow_color).unwrap_or((80, 50, 30));
         apply_makeup(img, "eyebrow", &brow_regions, col, eyebrow_opacity / 100.0)?;
     }
@@ -1569,7 +1650,14 @@ pub fn apply_portrait_adjustments(
 
     // 8. Body reshape
     if (body_slim > 0.5 || body_height > 0.5 || leg_len > 0.5) && !filtered_faces.is_empty() {
-        apply_body_reshape(img, &filtered_faces, body_slim / 100.0, body_height / 100.0, leg_len / 100.0, body_symmetry)?;
+        apply_body_reshape(
+            img,
+            &filtered_faces,
+            body_slim / 100.0,
+            body_height / 100.0,
+            leg_len / 100.0,
+            body_symmetry,
+        )?;
     }
 
     // 9. Skin tone unify (subtle, applied last)
@@ -1595,13 +1683,16 @@ fn hex_to_rgb(hex: &str) -> Option<(u8, u8, u8)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use image::{RgbaImage, Rgba};
+    use image::{Rgba, RgbaImage};
 
     #[test]
     fn test_rgb_to_f32_roundtrip() {
         assert_eq!(rgb_to_f32(0, 0, 0), (0.0, 0.0, 0.0));
         assert_eq!(rgb_to_f32(255, 255, 255), (1.0, 1.0, 1.0));
-        assert_eq!(rgb_to_f32(128, 128, 128), (128.0 / 255.0, 128.0 / 255.0, 128.0 / 255.0));
+        assert_eq!(
+            rgb_to_f32(128, 128, 128),
+            (128.0 / 255.0, 128.0 / 255.0, 128.0 / 255.0)
+        );
     }
 
     #[test]
@@ -1643,7 +1734,13 @@ mod tests {
                     let (h2, s2, l2) = rgb_to_hsl(r, g, b);
                     if s > 1e-6 {
                         let dh = (h - h2).abs().min(360.0 - (h - h2).abs());
-                        assert!(dh < 1.0, "HSL roundtrip failed for h={}, s={}, l={}", h, s, l);
+                        assert!(
+                            dh < 1.0,
+                            "HSL roundtrip failed for h={}, s={}, l={}",
+                            h,
+                            s,
+                            l
+                        );
                         assert!((s - s2).abs() < 1e-3);
                     }
                     assert!((l - l2).abs() < 1e-3);
@@ -1680,7 +1777,8 @@ mod tests {
 
     #[test]
     fn test_apply_skin_smoothing_zero_image() {
-        let mut img = DynamicImage::ImageRgba8(RgbaImage::from_pixel(1, 1, Rgba([128, 128, 128, 255])));
+        let mut img =
+            DynamicImage::ImageRgba8(RgbaImage::from_pixel(1, 1, Rgba([128, 128, 128, 255])));
         assert!(apply_skin_smoothing(&mut img, 0.5, 0.5).is_ok());
     }
 
@@ -1705,7 +1803,8 @@ mod tests {
 
     #[test]
     fn test_apply_eye_enlarge_no_regions() {
-        let mut img = DynamicImage::ImageRgba8(RgbaImage::from_pixel(10, 10, Rgba([255, 0, 0, 255])));
+        let mut img =
+            DynamicImage::ImageRgba8(RgbaImage::from_pixel(10, 10, Rgba([255, 0, 0, 255])));
         assert!(apply_eye_enlarge(&mut img, &[], 0.5).is_ok());
     }
 
@@ -1741,7 +1840,8 @@ mod tests {
 
     #[test]
     fn test_apply_body_reshape_empty_faces() {
-        let mut img = DynamicImage::ImageRgba8(RgbaImage::from_pixel(10, 10, Rgba([255, 0, 0, 255])));
+        let mut img =
+            DynamicImage::ImageRgba8(RgbaImage::from_pixel(10, 10, Rgba([255, 0, 0, 255])));
         assert!(apply_body_reshape(&mut img, &[], 0.5, 0.5, 0.5, true).is_ok());
     }
 
@@ -1753,7 +1853,8 @@ mod tests {
 
     #[test]
     fn test_apply_one_click_beauty_no_faces() {
-        let mut img = DynamicImage::ImageRgba8(RgbaImage::from_pixel(10, 10, Rgba([128, 128, 128, 255])));
+        let mut img =
+            DynamicImage::ImageRgba8(RgbaImage::from_pixel(10, 10, Rgba([128, 128, 128, 255])));
         assert!(apply_one_click_beauty(&mut img, 0.5, &[]).is_ok());
     }
 

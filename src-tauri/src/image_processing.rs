@@ -3592,9 +3592,7 @@ pub struct HorizonLine {
 
 /// Detect horizon lines using Canny edge detection + Hough transform.
 #[tauri::command]
-pub fn detect_horizon_lines(
-    state: tauri::State<AppState>,
-) -> Result<Vec<HorizonLine>, String> {
+pub fn detect_horizon_lines(state: tauri::State<AppState>) -> Result<Vec<HorizonLine>, String> {
     let loaded_image = state
         .original_image
         .lock()
@@ -3732,7 +3730,11 @@ pub fn auto_straighten_horizon(
             let deviation = ((l.theta - PI / 2.0) * 180.0 / PI).abs();
             deviation <= tolerance
         })
-        .max_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap_or(std::cmp::Ordering::Equal));
+        .max_by(|a, b| {
+            a.confidence
+                .partial_cmp(&b.confidence)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
     match best {
         Some(line) => {
