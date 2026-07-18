@@ -143,7 +143,6 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
             onClick: () => {
               invoke(Invokes.AddToAlbum, { albumId: item.id, paths: pathsToAdd })
                 .then(() => {
-                  console.log(`Added image(s) to ${item.name}`);
                   invoke(Invokes.GetAlbums).then((res: any) =>
                     useLibraryStore.getState().setLibrary({ albumTree: res }),
                   );
@@ -1302,7 +1301,6 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
             onClick: async () => {
               try {
                 await invoke(Invokes.AddToAlbum, { albumId: activeAlbumId, paths: copiedFilePaths });
-                console.log(`Added ${numCopied} image(s) to album`);
                 const updatedTree = await invoke<AlbumItem[]>(Invokes.GetAlbums);
                 setLibrary({ albumTree: updatedTree });
                 await props.refreshImageList();
