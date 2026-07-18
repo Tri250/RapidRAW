@@ -1,3 +1,6 @@
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::unnecessary_cast)]
+
 use std::path::Path;
 
 use image::{DynamicImage, GenericImageView, Rgb, RgbImage};
@@ -428,10 +431,7 @@ fn estimate_affine_transform(
         .solve(&b, 1e-6)
         .map_err(|_| "Failed to solve affine transform via SVD".to_string())?;
 
-    Ok([
-        [x[0] as f32, x[1] as f32, x[2] as f32],
-        [x[3] as f32, x[4] as f32, x[5] as f32],
-    ])
+    Ok([[x[0], x[1], x[2]], [x[3], x[4], x[5]]])
 }
 
 #[cfg(test)]

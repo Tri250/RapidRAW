@@ -1,3 +1,9 @@
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::needless_range_loop)]
+#![allow(clippy::excessive_precision)]
+#![allow(clippy::ptr_arg)]
+
 use image::{DynamicImage, GenericImageView, Rgba, RgbaImage};
 use rayon::prelude::*;
 
@@ -1636,7 +1642,7 @@ pub fn apply_portrait_adjustments(
             .map(|f| {
                 let brow_y = f.face_rect.1 + f.face_rect.3 / 5;
                 let brow_r = f.face_rect.2 / 6;
-                ((f.face_rect.0 + f.face_rect.2 / 2) as u32, brow_y, brow_r)
+                (f.face_rect.0 + f.face_rect.2 / 2, brow_y, brow_r)
             })
             .collect();
         let col = hex_to_rgb(&eyebrow_color).unwrap_or((80, 50, 30));

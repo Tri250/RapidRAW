@@ -539,7 +539,7 @@ fn process_preview_job(
                     let mut detector_guard = detector_arc.lock().unwrap();
                     crate::portrait_processing::detect_face_regions_onnx(
                         &final_processed_image,
-                        &mut *detector_guard,
+                        &mut detector_guard,
                     )
                 } else {
                     drop(ai_state_guard);
@@ -555,7 +555,7 @@ fn process_preview_job(
                             let mut detector_guard = detector_arc.lock().unwrap();
                             crate::portrait_processing::detect_face_regions_onnx(
                                 &final_processed_image,
-                                &mut *detector_guard,
+                                &mut detector_guard,
                             )
                         }
                         Err(e) => {

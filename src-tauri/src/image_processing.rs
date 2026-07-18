@@ -3682,7 +3682,7 @@ pub fn detect_horizon_lines(state: tauri::State<AppState>) -> Result<Vec<Horizon
     }
 
     // Sort by vote count descending
-    peaks.sort_by(|a, b| b.2.cmp(&a.2));
+    peaks.sort_by_key(|a| std::cmp::Reverse(a.2));
 
     // Take top N and convert to HorizonLine
     let max_lines = 5;
@@ -3799,7 +3799,7 @@ fn non_maximum_suppression(mag: &[f32], dir: &[f32], w: u32, h: u32) -> Vec<f32>
             let angle = dir[idx];
             let (dx1, dy1, dx2, dy2) = {
                 let a = angle.abs();
-                if a < PI / 8.0 || a > 7.0 * PI / 8.0 {
+                if !(PI / 8.0..=7.0 * PI / 8.0).contains(&a) {
                     // Horizontal edge → compare left/right
                     (1i32, 0i32, -1i32, 0i32)
                 } else if a < 3.0 * PI / 8.0 {

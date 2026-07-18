@@ -1518,6 +1518,7 @@ pub fn get_cached_or_generate_mask(
 /// Parameters are in HSL space: center_hue (0..360), center_sat (0..1), center_lum (0..1)
 /// and their respective ranges. `feather` controls edge smoothness.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn generate_color_range_mask(
     state: tauri::State<AppState>,
     center_hue: f32,

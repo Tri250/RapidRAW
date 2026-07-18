@@ -117,7 +117,7 @@ pub fn align_hdr_frames(frames: &mut [HdrFrame], app_handle: &AppHandle) {
     let reference_index = frames.len() / 2;
     let detections: Vec<FrameDetection> = frames
         .iter()
-        .map(|frame| detect_frame_features(&frame.1, &brief_pairs, is_raw_file(&frame.0)))
+        .map(|frame| detect_frame_features(&frame.1, brief_pairs, is_raw_file(&frame.0)))
         .collect();
     for index in 0..frames.len() {
         if index == reference_index {
