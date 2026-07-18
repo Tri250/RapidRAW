@@ -6,7 +6,7 @@ import CollapsibleSection from '../../ui/CollapsibleSection';
 import Slider from '../../ui/Slider';
 import Switch from '../../ui/Switch';
 import Text from '../../ui/Text';
-import { TextVariants } from '../../../types/typography';
+import { TextColors, TextVariants } from '../../../types/typography';
 import { useShallow } from 'zustand/react/shallow';
 import { useEditorStore } from '../../../store/useEditorStore';
 import { useUIStore } from '../../../store/useUIStore';

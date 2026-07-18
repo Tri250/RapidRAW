@@ -107,7 +107,7 @@ export const MASK_ICON_MAP: Record<Mask, any> = {
   [Mask.Flow]: Droplets,
   [Mask.Color]: Droplet,
   [Mask.Linear]: TriangleRight,
-  [Mask.Luminance]: Sparkles,
+  [Mask.Luminance]: Sun,
   [Mask.QuickEraser]: Eraser,
   [Mask.Radial]: Circle,
   [Mask.Clone]: Stamp,
