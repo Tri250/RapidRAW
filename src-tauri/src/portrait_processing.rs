@@ -1,8 +1,8 @@
-#![allow(clippy::too_many_arguments)]
-#![allow(clippy::collapsible_if)]
-#![allow(clippy::needless_range_loop)]
-#![allow(clippy::excessive_precision)]
-#![allow(clippy::ptr_arg)]
+#[allow(clippy::too_many_arguments)]
+#[allow(clippy::collapsible_if)]
+#[allow(clippy::needless_range_loop)]
+#[allow(clippy::excessive_precision)]
+#[allow(clippy::ptr_arg)]
 
 use image::{DynamicImage, GenericImageView, Rgba, RgbaImage};
 use rayon::prelude::*;

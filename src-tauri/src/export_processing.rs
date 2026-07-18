@@ -276,6 +276,7 @@ fn apply_export_resize_and_watermark(
 
 #[allow(clippy::too_many_arguments)]
 #[allow(clippy::if_same_then_else)]
+#[allow(clippy::collapsible_if)]
 fn process_image_for_export_pipeline(
     path: &str,
     base_image: &DynamicImage,

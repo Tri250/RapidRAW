@@ -1,5 +1,5 @@
-#![allow(clippy::collapsible_if)]
-#![allow(clippy::unnecessary_cast)]
+#[allow(clippy::collapsible_if)]
+#[allow(clippy::unnecessary_cast)]
 
 use std::path::Path;
 
