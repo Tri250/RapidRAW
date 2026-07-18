@@ -141,6 +141,13 @@ const ThumbnailComponent = ({
   const colorTag = tags?.find((t: string) => t.startsWith('color:'))?.substring(6);
   const colorLabel = COLOR_LABELS.find((c: Color) => c.name === colorTag);
 
+  const aiTags = useMemo(() => {
+    if (!tags || tags.length === 0) return [];
+    return tags
+      .filter((t: string) => !t.startsWith('color:') && !t.startsWith('user:'))
+      .slice(0, 2);
+  }, [tags]);
+
   const isAlways = exifOverlay === ExifOverlay.Always;
   const isHover = exifOverlay === ExifOverlay.Hover;
 
@@ -430,6 +437,18 @@ const ThumbnailComponent = ({
                 </Text>
               </div>
             </div>
+            {aiTags.length > 0 && (
+              <div className="flex flex-wrap gap-1 pt-1 pb-0.5">
+                {aiTags.map((tag: string) => (
+                  <span
+                    key={tag}
+                    className="px-1.5 py-0.5 rounded-sm bg-accent/20 text-accent text-[9px] font-medium tracking-wide backdrop-blur-sm"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

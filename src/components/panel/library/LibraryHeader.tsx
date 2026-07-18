@@ -104,8 +104,12 @@ function DropdownMenu({ buttonContent, buttonTitle, children, contentClassName =
 
 export function SearchInput({ indexingProgress, isIndexing, isAndroid }: any) {
   const { t } = useTranslation();
-  const { searchCriteria, setSearchCriteria } = useLibraryStore(
-    useShallow((state) => ({ searchCriteria: state.searchCriteria, setSearchCriteria: state.setSearchCriteria })),
+  const { searchCriteria, setSearchCriteria, imageList } = useLibraryStore(
+    useShallow((state) => ({
+      searchCriteria: state.searchCriteria,
+      setSearchCriteria: state.setSearchCriteria,
+      imageList: state.imageList,
+    })),
   );
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -155,13 +159,28 @@ export function SearchInput({ indexingProgress, isIndexing, isAndroid }: any) {
     setShowSuggestions(value.trim().length > 0);
   };
 
+  const dynamicAiTags = useMemo(() => {
+    const freq = new Map<string, number>();
+    imageList.forEach((img: ImageFile) => {
+      if (!img.tags) return;
+      img.tags.forEach((tag: string) => {
+        if (tag.startsWith('color:') || tag.startsWith('user:')) return;
+        freq.set(tag, (freq.get(tag) || 0) + 1);
+      });
+    });
+    return Array.from(freq.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([tag]) => tag);
+  }, [imageList]);
+
   const suggestions = useMemo(() => {
     if (!text.trim()) return [];
     const query = text.trim().toLowerCase();
-    return TAG_SUGGESTIONS.filter(
-      (tag) => tag.toLowerCase().includes(query) && !tags.includes(tag),
-    ).slice(0, 8);
-  }, [text, tags]);
+    const candidateTags = dynamicAiTags.length > 0 ? dynamicAiTags : TAG_SUGGESTIONS;
+    return candidateTags
+      .filter((tag) => tag.toLowerCase().includes(query) && !tags.includes(tag))
+      .slice(0, 8);
+  }, [text, tags, dynamicAiTags]);
 
   const handleSuggestionClick = (suggestion: string) => {
     setSearchCriteria((prev) => ({
@@ -846,12 +865,13 @@ const POPULAR_TAG_CHIPS: string[] = [
 
 export function AdvancedFilterPanel({ isAndroid }: { isAndroid: boolean }) {
   const { t } = useTranslation();
-  const { advancedFilter, setAdvancedFilter, searchCriteria, setSearchCriteria } = useLibraryStore(
+  const { advancedFilter, setAdvancedFilter, searchCriteria, setSearchCriteria, imageList } = useLibraryStore(
     useShallow((state) => ({
       advancedFilter: state.advancedFilter,
       setAdvancedFilter: state.setAdvancedFilter,
       searchCriteria: state.searchCriteria,
       setSearchCriteria: state.setSearchCriteria,
+      imageList: state.imageList,
     })),
   );
 
@@ -862,7 +882,25 @@ export function AdvancedFilterPanel({ isAndroid }: { isAndroid: boolean }) {
     advancedFilter.dateTo !== null ||
     advancedFilter.cameraModel !== null ||
     advancedFilter.focalLengthMin !== null ||
-    advancedFilter.focalLengthMax !== null;
+    advancedFilter.focalLengthMax !== null ||
+    searchCriteria.tags.length > 0;
+
+  const popularAiTags = useMemo(() => {
+    const freq = new Map<string, number>();
+    imageList.forEach((img: ImageFile) => {
+      if (!img.tags) return;
+      img.tags.forEach((tag: string) => {
+        if (tag.startsWith('color:') || tag.startsWith('user:')) return;
+        freq.set(tag, (freq.get(tag) || 0) + 1);
+      });
+    });
+    return Array.from(freq.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([tag]) => tag)
+      .slice(0, 12);
+  }, [imageList]);
+
+  const tagChips = popularAiTags.length > 0 ? popularAiTags : POPULAR_TAG_CHIPS;
 
   const handleTagChipClick = (tag: string) => {
     if (searchCriteria.tags.includes(tag)) {
@@ -986,7 +1024,7 @@ export function AdvancedFilterPanel({ isAndroid }: { isAndroid: boolean }) {
             </Text>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {POPULAR_TAG_CHIPS.map((tag) => {
+            {tagChips.map((tag) => {
               const isSelected = searchCriteria.tags.includes(tag);
               return (
                 <button
@@ -1011,7 +1049,10 @@ export function AdvancedFilterPanel({ isAndroid }: { isAndroid: boolean }) {
         <div className="flex items-center justify-end mt-2 pt-2 border-t border-border-color">
           <button
             className="text-xs text-accent hover:text-accent/80 transition-colors"
-            onClick={() => useLibraryStore.getState().clearAdvancedFilter()}
+            onClick={() => {
+              useLibraryStore.getState().clearAdvancedFilter();
+              setSearchCriteria((prev) => ({ ...prev, tags: [] }));
+            }}
           >
             {t('adjustments.basic.reset')}
           </button>
