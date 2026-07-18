@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback } from 'react';
 import { User, Users, Baby, PersonStanding, Eraser, Sparkles, CircleDot, Eye, Smile, Palette, Scissors, Move } from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -93,8 +93,6 @@ function ColorPickerRow({
 
 export default function PortraitPanelSwitcher() {
   const { t } = useTranslation();
-  const [blemishMode, setBlemishMode] = useState(false);
-  const imageContainerRef = useRef<HTMLDivElement>(null);
 
   const attributes = [
     { key: 'single' as PersonAttribute, label: t('editor.portraitPanel.attributes.single'), icon: User },
@@ -117,10 +115,12 @@ export default function PortraitPanelSwitcher() {
 
   const {
     adjustments,
+    isBlemishModeActive,
     setEditor,
   } = useEditorStore(
     useShallow((state) => ({
       adjustments: state.adjustments,
+      isBlemishModeActive: state.isBlemishModeActive,
       setEditor: state.setEditor,
     })),
   );
@@ -185,28 +185,6 @@ export default function PortraitPanelSwitcher() {
     }));
   }, [setAdjustments]);
 
-  const handleBlemishClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!blemishMode) return;
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width;
-      const y = (e.clientY - rect.top) / rect.height;
-      const radius = 0.02;
-
-      setAdjustments((prev: Adjustments) => {
-        const currentPortrait = prev.portrait || INITIAL_PORTRAIT_ADJUSTMENTS;
-        return {
-          ...prev,
-          portrait: {
-            ...currentPortrait,
-            blemishSpots: [...currentPortrait.blemishSpots, { x, y, radius }],
-          },
-        };
-      });
-    },
-    [blemishMode, setAdjustments],
-  );
-
   const handleRemoveLastBlemish = useCallback(() => {
     setAdjustments((prev: Adjustments) => {
       const currentPortrait = prev.portrait || INITIAL_PORTRAIT_ADJUSTMENTS;
@@ -219,6 +197,10 @@ export default function PortraitPanelSwitcher() {
     });
   }, [setAdjustments]);
 
+  const toggleBlemishMode = useCallback(() => {
+    setEditor((state) => ({ isBlemishModeActive: !state.isBlemishModeActive }));
+  }, [setEditor]);
+
   const portraitSections = [
     {
       key: 'blemishRemoval',
@@ -228,15 +210,15 @@ export default function PortraitPanelSwitcher() {
         <div className="space-y-2">
           <div className="flex gap-2">
             <button
-              onClick={() => setBlemishMode(!blemishMode)}
+              onClick={toggleBlemishMode}
               className={clsx(
                 'flex-1 text-xs font-medium py-2 rounded-md transition-colors',
-                blemishMode
+                isBlemishModeActive
                   ? 'bg-accent text-button-text'
                   : 'bg-surface text-text-secondary hover:text-text-primary',
               )}
             >
-              {blemishMode ? t('editor.portraitPanel.blemishActive') : t('editor.portraitPanel.blemishStart')}
+              {isBlemishModeActive ? t('editor.portraitPanel.blemishActive') : t('editor.portraitPanel.blemishStart')}
             </button>
             <button
               onClick={handleRemoveLastBlemish}
@@ -251,13 +233,9 @@ export default function PortraitPanelSwitcher() {
               {t('editor.portraitPanel.blemishCount', { count: portrait.blemishSpots.length })}
             </Text>
           )}
-          {blemishMode && (
-            <div
-              ref={imageContainerRef}
-              onClick={handleBlemishClick}
-              className="w-full h-24 bg-bg-tertiary rounded-md flex items-center justify-center cursor-crosshair border border-dashed border-accent/50"
-            >
-              <Text variant={TextVariants.small} className="text-text-secondary">
+          {isBlemishModeActive && (
+            <div className="w-full py-2 px-3 bg-accent/10 rounded-md border border-dashed border-accent/50">
+              <Text variant={TextVariants.small} className="text-accent">
                 {t('editor.portraitPanel.blemishHint')}
               </Text>
             </div>

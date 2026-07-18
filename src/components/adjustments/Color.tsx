@@ -421,8 +421,6 @@ export default function ColorPanel({
   const { t } = useTranslation();
   const [activeColor, setActiveColor] = useState('reds');
   const adjustmentVisibility = appSettings?.adjustmentVisibility || {};
-  const isWgpuEnabled = appSettings?.useWgpuRenderer !== false;
-
   const HSL_COLORS = useMemo<Array<ColorProps>>(
     () => [
       { name: 'reds', color: '#f87171', label: t('adjustments.color.mixerColors.reds') },
@@ -492,17 +490,12 @@ export default function ColorPanel({
           {!isForMask && toggleWbPicker && (
             <button
               onClick={toggleWbPicker}
-              disabled={isWgpuEnabled}
               className={`p-1.5 rounded-md transition-colors ${
-                isWgpuEnabled
-                  ? 'cursor-not-allowed text-text-secondary hover:bg-transparent'
-                  : isWbPickerActive
-                    ? 'bg-accent text-button-text'
-                    : 'hover:bg-bg-secondary text-text-secondary'
+                isWbPickerActive
+                  ? 'bg-accent text-button-text'
+                  : 'hover:bg-bg-secondary text-text-secondary'
               }`}
-              data-tooltip={
-                isWgpuEnabled ? t('adjustments.color.wbPickerWgpuDisabled') : t('adjustments.color.wbPickerTooltip')
-              }
+              data-tooltip={t('adjustments.color.wbPickerTooltip')}
             >
               <Pipette size={16} />
             </button>

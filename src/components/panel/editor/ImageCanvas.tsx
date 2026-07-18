@@ -4,7 +4,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 import { Stage, Layer, Ellipse, Line, Transformer, Group, Circle, Rect } from 'react-konva';
 import { PercentCrop, Crop } from 'react-image-crop';
 import { Stamp, Bandage } from 'lucide-react';
-import { Adjustments, AiPatch, Coord, MaskContainer } from '../../../utils/adjustments';
+import { Adjustments, AiPatch, Coord, MaskContainer, INITIAL_PORTRAIT_ADJUSTMENTS } from '../../../utils/adjustments';
 import { Mask, SubMask, SubMaskMode, ToolType } from '../right/Masks';
 import { AppSettings, BrushSettings, SelectedImage } from '../../ui/AppProperties';
 import { RenderSize } from '../../../hooks/useImageRenderSize';
@@ -66,6 +66,7 @@ interface ImageCanvasProps {
   updateSubMask(id: string | null, subMask: Partial<SubMask>): void;
   interactivePatch?: { url: string; normX: number; normY: number; normW: number; normH: number } | null;
   isWbPickerActive?: boolean;
+  isBlemishModeActive?: boolean;
   onWbPicked?: () => void;
   setAdjustments(fn: (prev: Adjustments) => Adjustments): void;
   overlayMode?: OverlayMode;
@@ -1175,6 +1176,7 @@ const ImageCanvas = memo(
     uncroppedAdjustedPreviewUrl,
     updateSubMask,
     isWbPickerActive = false,
+    isBlemishModeActive = false,
     onWbPicked,
     setAdjustments,
     overlayRotation,
@@ -1744,6 +1746,36 @@ const ImageCanvas = memo(
 
         if (isWbPickerActive) {
           handleWbClick(e);
+          return;
+        }
+
+        if (isBlemishModeActive) {
+          const stage = e.target.getStage();
+          const pointerPos = getCanvasPointer(stage);
+          if (!pointerPos) return;
+
+          const x = pointerPos.x / imageRenderSize.scale;
+          const y = pointerPos.y / imageRenderSize.scale;
+
+          const imgLogicalWidth = imageRenderSize.width / imageRenderSize.scale;
+          const imgLogicalHeight = imageRenderSize.height / imageRenderSize.scale;
+
+          if (x < 0 || x > imgLogicalWidth || y < 0 || y > imgLogicalHeight) return;
+
+          const normX = x / imgLogicalWidth;
+          const normY = y / imgLogicalHeight;
+          const radius = 0.02;
+
+          setAdjustments((prev: Adjustments) => {
+            const currentPortrait = prev.portrait || INITIAL_PORTRAIT_ADJUSTMENTS;
+            return {
+              ...prev,
+              portrait: {
+                ...currentPortrait,
+                blemishSpots: [...currentPortrait.blemishSpots, { x: normX, y: normY, radius }],
+              },
+            };
+          });
           return;
         }
 
@@ -2559,6 +2591,7 @@ const ImageCanvas = memo(
 
     const effectiveCursor = useMemo(() => {
       if (isWbPickerActive) return 'crosshair';
+      if (isBlemishModeActive) return 'crosshair';
       if (isParametricActive) return 'crosshair';
       if (isInitialDrawing) return 'crosshair';
 
@@ -2584,6 +2617,7 @@ const ImageCanvas = memo(
       return cursorStyle;
     }, [
       isWbPickerActive,
+      isBlemishModeActive,
       isInitialDrawing,
       isBrushActive,
       isManualCleanupActive,

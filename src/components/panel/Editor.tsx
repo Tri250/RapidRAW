@@ -100,6 +100,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
   const overlayRotation = useEditorStore((s) => s.overlayRotation);
   const isStraightenActive = useEditorStore((s) => s.isStraightenActive);
   const isWbPickerActive = useEditorStore((s) => s.isWbPickerActive);
+  const isBlemishModeActive = useEditorStore((s) => s.isBlemishModeActive);
   const liveRotation = useEditorStore((s) => s.liveRotation);
   const brushSettings = useEditorStore((s) => s.brushSettings);
   const activeMaskContainerId = useEditorStore((s) => s.activeMaskContainerId);
@@ -2073,6 +2074,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
             uncroppedAdjustedPreviewUrl={uncroppedAdjustedPreviewUrl}
             updateSubMask={updateSubMaskLocal}
             isWbPickerActive={isWbPickerActive}
+            isBlemishModeActive={isBlemishModeActive}
             onWbPicked={handleWbPicked}
             setAdjustments={setAdjustments}
             overlayRotation={overlayRotation}

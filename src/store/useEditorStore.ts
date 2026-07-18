@@ -52,6 +52,7 @@ interface EditorState {
   overlayRotation: number;
   isStraightenActive: boolean;
   isWbPickerActive: boolean;
+  isBlemishModeActive: boolean;
   liveRotation: number | null;
   brushSettings: BrushSettings | null;
 
@@ -116,6 +117,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   transformedOriginalUrl: null,
   isStraightenActive: false,
   isWbPickerActive: false,
+  isBlemishModeActive: false,
   liveRotation: null,
 
   copiedSectionAdjustments: null,
