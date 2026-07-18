@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import { useUIStore } from '../store/useUIStore';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { useEditorStore } from '../store/useEditorStore';
+import { Invokes } from '../components/ui/AppProperties';
 
 export function useAndroidBackHandler() {
   useEffect(() => {
@@ -94,8 +97,49 @@ export function useAndroidBackHandler() {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
     };
 
+    // Android low memory handler - release cached images and previews
+    (window as any).__handleLowMemory = (level: number) => {
+      const editor = useEditorStore.getState();
+      // Release cached preview URLs to free memory
+      if (level >= 10) { // TRIM_MEMORY_RUNNING_LOW or higher
+        if (editor.finalPreviewUrl) {
+          URL.revokeObjectURL(editor.finalPreviewUrl);
+          editor.setEditor({ finalPreviewUrl: null });
+        }
+        if (editor.uncroppedAdjustedPreviewUrl) {
+          URL.revokeObjectURL(editor.uncroppedAdjustedPreviewUrl);
+          editor.setEditor({ uncroppedAdjustedPreviewUrl: null });
+        }
+        if (editor.transformedOriginalUrl) {
+          URL.revokeObjectURL(editor.transformedOriginalUrl);
+          editor.setEditor({ transformedOriginalUrl: null });
+        }
+      }
+      // For critical level, also clear waveform/histogram caches
+      if (level >= 15) { // TRIM_MEMORY_RUNNING_CRITICAL
+        editor.setEditor({ histogram: null, waveform: null });
+      }
+    };
+
+    // Android app background handler - ensure sidecar is saved immediately
+    (window as any).__handleAppBackground = () => {
+      const editor = useEditorStore.getState();
+      const selectedPath = editor.selectedImage?.path;
+      if (selectedPath) {
+        // Flush debounced save and do an immediate save to ensure sidecar is persisted
+        invoke(Invokes.SaveMetadataAndUpdateThumbnail, {
+          path: selectedPath,
+          adjustments: editor.adjustments,
+        }).catch((err: any) => {
+          console.error('Background save failed:', err);
+        });
+      }
+    };
+
     return () => {
       delete (window as any).__handleAndroidBack;
+      delete (window as any).__handleLowMemory;
+      delete (window as any).__handleAppBackground;
     };
   }, []);
 }

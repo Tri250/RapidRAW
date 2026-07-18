@@ -931,7 +931,26 @@ export default function MetadataPanel() {
                         gpsData.lon
                       }`}
                       width="100%"
+                      onError={(e) => {
+                        // Hide iframe on error (offline scenario), show fallback coordinates
+                        const target = e.currentTarget as HTMLIFrameElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
                     ></iframe>
+                    {/* Offline fallback: show coordinates text when map tiles can't load */}
+                    <div
+                      className="hidden flex-col items-center justify-center bg-card-active rounded-md"
+                      style={{ height: '180px' }}
+                    >
+                      <Text variant={TextVariants.small} color={TextColors.secondary}>
+                        {t('editor.metadata.gps.offlineFallback')}
+                      </Text>
+                      <Text variant={TextVariants.small} color={TextColors.primary} weight={TextWeights.medium}>
+                        {gpsData.lat.toFixed(6)}, {gpsData.lon.toFixed(6)}
+                      </Text>
+                    </div>
                     <a
                       className="absolute inset-0 cursor-pointer hover:bg-black/10 transition-colors"
                       href={`https://www.openstreetmap.org/?mlat=${gpsData.lat}&mlon=${gpsData.lon}#map=15/${gpsData.lat}/${gpsData.lon}`}

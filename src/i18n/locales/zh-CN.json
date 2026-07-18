@@ -363,6 +363,7 @@
       "bodySlimAmount": "瘦身",
       "bodyHeightAmount": "增高",
       "legLengthAmount": "长腿",
+      "bodySymmetry": "对称调整",
       "oneClickBeauty": "一键美颜"
     },
     "ai": {
@@ -696,6 +697,7 @@
         "clickToOpenTooltip": "点击在新标签页中打开地图",
         "latitude": "纬度",
         "longitude": "经度",
+        "offlineFallback": "地图不可用（离线状态）。坐标：",
         "title": "GPS 位置"
       },
       "organization": {

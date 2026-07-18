@@ -858,16 +858,31 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
     setActivePresetId(preset.id);
     setPresetIntensity(100);
 
-    setAdjustments((prevAdjustments: Adjustments) => ({
-      ...prevAdjustments,
-      ...preset.adjustments,
-    }));
+    if (preset.presetType === 'style') {
+      // Style preset: overwrite all settings (including crop/masks)
+      setAdjustments({
+        ...INITIAL_ADJUSTMENTS,
+        ...preset.adjustments,
+      });
+    } else {
+      // Tool preset: additive – layer on top of existing adjustments
+      setAdjustments((prevAdjustments: Adjustments) => ({
+        ...prevAdjustments,
+        ...preset.adjustments,
+      }));
+    }
   };
 
   const handleIntensityChange = useCallback(
     (preset: Preset, intensity: number) => {
       setPresetIntensity(intensity);
       setAdjustments((prev: Adjustments) => {
+        if (preset.presetType === 'style') {
+          // Style: interpolate between INITIAL and preset (full overwrite semantics)
+          const mixed = mixAdjustments(preset.adjustments, intensity, INITIAL_ADJUSTMENTS, INITIAL_ADJUSTMENTS);
+          return { ...INITIAL_ADJUSTMENTS, ...mixed };
+        }
+        // Tool: interpolate between current and preset (additive semantics)
         const mixed = mixAdjustments(preset.adjustments, intensity, INITIAL_ADJUSTMENTS, prev);
         return { ...prev, ...mixed };
       });

@@ -88,6 +88,61 @@ const SCRFD_URL: &str = "https://huggingface.co/datasets/Alltitude/insightface/r
 const FACE_LANDMARK_106_FILENAME: &str = "2d106det.onnx";
 const FACE_LANDMARK_106_URL: &str = "https://huggingface.co/datasets/Alltitude/insightface/resolve/main/2d106det.onnx";
 
+/// Check if there is sufficient available memory for AI model loading.
+/// `required_mb` is the minimum required memory in MB.
+fn check_available_memory(required_mb: u64) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        // On Android, read /proc/meminfo for available memory
+        if let Ok(meminfo) = std::fs::read_to_string("/proc/meminfo") {
+            for line in meminfo.lines() {
+                if line.starts_with("MemAvailable:") {
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if parts.len() >= 2 {
+                        if let Ok(kb) = parts[1].parse::<u64>() {
+                            let available_mb = kb / 1024;
+                            if available_mb < required_mb {
+                                return Err(format!(
+                                    "设备内存不足（可用 {}MB，需要 {}MB）。建议关闭后台应用后重试。",
+                                    available_mb, required_mb
+                                ));
+                            }
+                        }
+                    }
+                    break;
+                }
+                // Also check MemAvailable's predecessor: MemFree + Cached
+                if line.starts_with("MemFree:") {
+                    // Will be used as fallback if MemAvailable not found
+                }
+            }
+        }
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = required_mb; // No memory check on non-Android platforms
+    }
+    Ok(())
+}
+
+/// Format an OOM-related error with a user-friendly message.
+fn format_oom_error(model_name: &str, error: &dyn std::fmt::Display) -> String {
+    let error_str = error.to_string();
+    let is_oom = error_str.to_lowercase().contains("out of memory")
+        || error_str.to_lowercase().contains("oom")
+        || error_str.to_lowercase().contains("alloc")
+        || error_str.to_lowercase().contains("memory");
+
+    if is_oom {
+        format!(
+            "加载{}失败：设备内存不足。建议关闭后台应用后重试。（详情：{}）",
+            model_name, error_str
+        )
+    } else {
+        format!("加载{}失败：{}", model_name, error_str)
+    }
+}
+
 pub struct AiModels {
     pub sam_encoder: Mutex<Session>,
     pub sam_decoder: Mutex<Session>,
@@ -407,17 +462,35 @@ pub async fn get_or_init_ai_models(
 
     let _ = ort::init().with_name("AI").commit();
 
+    // Memory threshold check: ensure sufficient memory before loading AI models on Android
+    check_available_memory(500)?; // Require at least 500MB available
+
     let encoder_path = models_dir.join(ENCODER_FILENAME);
     let decoder_path = models_dir.join(DECODER_FILENAME);
     let u2netp_path = models_dir.join(U2NETP_FILENAME);
     let sky_seg_path = models_dir.join(SKYSEG_FILENAME);
     let depth_path = models_dir.join(DEPTH_FILENAME);
 
-    let sam_encoder = Session::builder()?.commit_from_file(encoder_path)?;
-    let sam_decoder = Session::builder()?.commit_from_file(decoder_path)?;
-    let u2netp = Session::builder()?.commit_from_file(u2netp_path)?;
-    let sky_seg = Session::builder()?.commit_from_file(sky_seg_path)?;
-    let depth_anything = Session::builder()?.commit_from_file(depth_path)?;
+    let sam_encoder = Session::builder()
+        .map_err(|e| format_oom_error("SAM Encoder", &e))?
+        .commit_from_file(encoder_path)
+        .map_err(|e| format_oom_error("SAM Encoder", &e))?;
+    let sam_decoder = Session::builder()
+        .map_err(|e| format_oom_error("SAM Decoder", &e))?
+        .commit_from_file(decoder_path)
+        .map_err(|e| format_oom_error("SAM Decoder", &e))?;
+    let u2netp = Session::builder()
+        .map_err(|e| format_oom_error("Foreground Model", &e))?
+        .commit_from_file(u2netp_path)
+        .map_err(|e| format_oom_error("Foreground Model", &e))?;
+    let sky_seg = Session::builder()
+        .map_err(|e| format_oom_error("Sky Model", &e))?
+        .commit_from_file(sky_seg_path)
+        .map_err(|e| format_oom_error("Sky Model", &e))?;
+    let depth_anything = Session::builder()
+        .map_err(|e| format_oom_error("Depth Model", &e))?
+        .commit_from_file(depth_path)
+        .map_err(|e| format_oom_error("Depth Model", &e))?;
 
     crate::register_exit_handler();
 
@@ -484,8 +557,14 @@ pub async fn get_or_init_denoise_model(
     .await?;
 
     let _ = ort::init().with_name("AI-Denoise").commit();
+
+    check_available_memory(200)?;
+
     let model_path = models_dir.join(DENOISE_FILENAME);
-    let session = Session::builder()?.commit_from_file(model_path)?;
+    let session = Session::builder()
+        .map_err(|e| format_oom_error("Denoise Model", &e))?
+        .commit_from_file(model_path)
+        .map_err(|e| format_oom_error("Denoise Model", &e))?;
     let denoise_model = Arc::new(Mutex::new(session));
 
     crate::register_exit_handler();
@@ -554,8 +633,16 @@ pub async fn get_or_init_clip_models(
     }
 
     let _ = ort::init().with_name("AI-Tagging").commit();
+
+    check_available_memory(200)?;
+
     let clip_model_path = models_dir.join(CLIP_MODEL_FILENAME);
-    let model = Mutex::new(Session::builder()?.commit_from_file(clip_model_path)?);
+    let model = Mutex::new(
+        Session::builder()
+            .map_err(|e| format_oom_error("CLIP Model", &e))?
+            .commit_from_file(clip_model_path)
+            .map_err(|e| format_oom_error("CLIP Model", &e))?,
+    );
     let tokenizer =
         Tokenizer::from_file(clip_tokenizer_path).map_err(|e| anyhow::anyhow!(e.to_string()))?;
 
@@ -618,8 +705,15 @@ pub async fn get_or_init_lama_model(
     .await?;
 
     let _ = ort::init().with_name("AI-Inpainting").commit();
+
+    // Memory threshold check before loading LaMa inpainting model
+    check_available_memory(200)?; // Require at least 200MB available
+
     let model_path = models_dir.join(LAMA_FILENAME);
-    let session = Session::builder()?.commit_from_file(model_path)?;
+    let session = Session::builder()
+        .map_err(|e| format_oom_error("Inpainting Model", &e))?
+        .commit_from_file(model_path)
+        .map_err(|e| format_oom_error("Inpainting Model", &e))?;
     let lama_model = Arc::new(Mutex::new(session));
 
     crate::register_exit_handler();
@@ -706,10 +800,13 @@ pub async fn get_or_init_face_landmark_detector(
 
     let _ = ort::init().with_name("AI-FaceLandmark").commit();
 
+    check_available_memory(300).map_err(|e| e.to_string())?;
+
     let scrfd_path = models_dir.join(SCRFD_FILENAME);
     let landmark_path = models_dir.join(FACE_LANDMARK_106_FILENAME);
 
-    let detector = crate::face_landmark::FaceLandmarkDetector::new(&scrfd_path, &landmark_path)?;
+    let detector = crate::face_landmark::FaceLandmarkDetector::new(&scrfd_path, &landmark_path)
+        .map_err(|e| format_oom_error("Face Detection", &e))?;
     let detector = Arc::new(Mutex::new(detector));
 
     crate::register_exit_handler();

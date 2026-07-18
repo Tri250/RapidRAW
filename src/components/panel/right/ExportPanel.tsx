@@ -949,7 +949,19 @@ export default function ExportPanel({
             className="w-full"
             onClick={async () => {
               try {
-                const mimeType = fileFormat === 'png' ? 'image/png' : 'image/jpeg';
+                // Map file format to MIME type for Android share Intent
+                // Formats not widely supported by social apps (TIFF, JXL) fall back to image/*
+                const getMimeType = (fmt: string) => {
+                  switch (fmt) {
+                    case 'png': return 'image/png';
+                    case 'webp': return 'image/webp';
+                    case 'avif': return 'image/avif';
+                    case 'tiff': return 'image/*'; // Most social apps don't support TIFF, use wildcard
+                    case 'jxl': return 'image/*'; // JPEG XL not widely supported, use wildcard
+                    default: return 'image/jpeg';
+                  }
+                };
+                const mimeType = getMimeType(fileFormat);
                 await invoke('share_image', {
                   filePath: lastExportedFilePath,
                   mimeType,

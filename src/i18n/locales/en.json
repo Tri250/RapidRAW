@@ -363,6 +363,7 @@
       "bodySlimAmount": "Body Slim",
       "bodyHeightAmount": "Height",
       "legLengthAmount": "Leg Length",
+      "bodySymmetry": "Symmetric Adjust",
       "oneClickBeauty": "One-Click Beauty"
     },
     "ai": {
@@ -696,6 +697,7 @@
         "clickToOpenTooltip": "Click to open map in a new tab",
         "latitude": "Latitude",
         "longitude": "Longitude",
+        "offlineFallback": "Map unavailable (offline). Coordinates:",
         "title": "GPS Location"
       },
       "organization": {
