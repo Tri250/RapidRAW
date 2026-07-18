@@ -262,14 +262,23 @@ interface AiProviderSwitchProps {
 
 const AiProviderSwitch = ({ selectedProvider, onProviderChange }: AiProviderSwitchProps) => {
   const { t } = useTranslation();
+  const osPlatform = useOsPlatform();
+  // Device-side mode: only show cpu and ai-connector options (no cloud)
+  const isDeviceSide = osPlatform === 'android';
 
   const aiProviders = useMemo(
-    () => [
-      { id: 'cpu', label: t('settings.processing.ai.providers.cpu'), icon: Cpu },
-      { id: 'ai-connector', label: t('settings.processing.ai.providers.aiConnector'), icon: Server },
-      //{ id: 'cloud', label: t('settings.processing.ai.providers.cloud'), icon: Cloud },
-    ],
-    [t],
+    () => {
+      const providers = [
+        { id: 'cpu', label: t('settings.processing.ai.providers.cpu'), icon: Cpu },
+        { id: 'ai-connector', label: t('settings.processing.ai.providers.aiConnector'), icon: Server },
+      ];
+      // Only show cloud option on non-device-side platforms
+      if (!isDeviceSide) {
+        providers.push({ id: 'cloud', label: t('settings.processing.ai.providers.cloud'), icon: Cloud });
+      }
+      return providers;
+    },
+    [t, isDeviceSide],
   );
 
   return (
@@ -501,6 +510,8 @@ export default function SettingsPanel({
 }: SettingsPanelProps) {
   const { user: _user } = useUser();
   const { t } = useTranslation();
+  const osPlatform = useOsPlatform();
+  const isDeviceSide = osPlatform === 'android';
   const [isClearing, setIsClearing] = useState(false);
   const [clearMessage, setClearMessage] = useState('');
   const [isClearingCache, setIsClearingCache] = useState(false);
@@ -533,7 +544,6 @@ export default function SettingsPanel({
   const [tempLensMaker, setTempLensMaker] = useState<string>('');
   const [tempLensModel, setTempLensModel] = useState<string>('');
 
-  const osPlatform = useOsPlatform();
   const [processingSettings, setProcessingSettings] = useState({
     editorPreviewResolution: appSettings?.editorPreviewResolution || 1920,
     thumbnailResolution: appSettings?.thumbnailResolution || 720,
@@ -2122,7 +2132,7 @@ export default function SettingsPanel({
                         </motion.div>
                       )}
 
-                      {aiProvider === 'cloud' && (
+                      {aiProvider === 'cloud' && !isDeviceSide && (
                         <motion.div
                           key="cloud"
                           initial={{ opacity: 0, x: 10 }}

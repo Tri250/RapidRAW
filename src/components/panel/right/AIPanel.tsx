@@ -59,6 +59,7 @@ import { createSubMask } from '../../../utils/maskUtils';
 import Text from '../../ui/Text';
 import { TEXT_COLOR_KEYS, TextColors, TextVariants, TextWeights } from '../../../types/typography';
 import { useUser, useAuth } from '@clerk/react';
+import { useOsPlatform } from '../../../hooks/useOsPlatform';
 import { useSettingsStore } from '../../../store/useSettingsStore';
 import { useEditorStore } from '../../../store/useEditorStore';
 import { useProcessStore } from '../../../store/useProcessStore';
@@ -245,6 +246,14 @@ const ConnectionStatus = ({
     hoverContent = <Text variant={TextVariants.small}>{t('editor.ai.connection.builtinDesc')}</Text>;
   }
 
+  // For local/cpu mode, always show ready status regardless of cloud sign-in state
+  if (aiProvider === 'cpu') {
+    statusColor = 'bg-green-500';
+    statusText = t('editor.ai.connection.ready');
+    titleText = t('editor.ai.connection.builtinLabel');
+    hoverContent = <Text variant={TextVariants.small}>{t('editor.ai.connection.builtinDesc')}</Text>;
+  }
+
   return (
     <div
       className="bg-surface rounded-lg"
@@ -303,8 +312,12 @@ export default function AIPanel() {
   const isPro = user?.publicMetadata?.plan === 'pro';
   const [cloudUsage, setCloudUsage] = useState<{ requests: number; limit: number; month: string } | null>(null);
 
+  // Device-side fix: local/builtin AI (cpu) is always available for generative features.
+  // Cloud requires signedIn+isPro, ai-connector requires connection.
   const isGenerativeAvailable =
-    (aiProvider === 'cloud' && !!isSignedIn && !!isPro) || (aiProvider === 'ai-connector' && isAIConnectorConnected);
+    aiProvider === 'cpu' ||
+    (aiProvider === 'cloud' && !!isSignedIn && !!isPro) ||
+    (aiProvider === 'ai-connector' && isAIConnectorConnected);
 
   useEffect(() => {
     if (aiProvider !== 'cloud' || !isSignedIn || !isPro) return;
@@ -1204,6 +1217,7 @@ export default function AIPanel() {
                   collapsibleState={collapsibleState}
                   setCollapsibleState={setCollapsibleState}
                   isGenerativeAvailable={isGenerativeAvailable}
+                  aiProvider={aiProvider}
                 />
               </motion.div>
             )}
@@ -1863,13 +1877,16 @@ function SettingsPanel({
   collapsibleState,
   setCollapsibleState,
   isGenerativeAvailable,
+  aiProvider,
 }: any) {
   const { t } = useTranslation();
   const isActive = !!container;
   const isComponentMode = !!activeSubMask;
   const displayContainer = container || PLACEHOLDER_PATCH;
   const [prompt, setPrompt] = useState(displayContainer.prompt || '');
-  const [useFastInpaint, setUseFastInpaint] = useState(!isGenerativeAvailable);
+  // Device-side fix: cpu mode always uses fast/local inpaint (LaMa model)
+  const isLocalOnly = aiProvider === 'cpu';
+  const [useFastInpaint, setUseFastInpaint] = useState(isLocalOnly || !isGenerativeAvailable);
   const prevContainerId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -1885,7 +1902,7 @@ function SettingsPanel({
 
   useEffect(() => {
     if (container) {
-      if (!isGenerativeAvailable) {
+      if (isLocalOnly || !isGenerativeAvailable) {
         setUseFastInpaint(true);
       } else if (container.id !== prevContainerId.current) {
         setUseFastInpaint(isQuickErasePatch);
@@ -1894,7 +1911,7 @@ function SettingsPanel({
     } else {
       prevContainerId.current = null;
     }
-  }, [isGenerativeAvailable, container, isQuickErasePatch]);
+  }, [isGenerativeAvailable, container, isQuickErasePatch, isLocalOnly]);
 
   const subMaskConfig = activeSubMask ? SUB_MASK_CONFIG[activeSubMask.type] || {} : {};
   const isAiMask =
@@ -1953,13 +1970,15 @@ function SettingsPanel({
             <div>
               <Switch
                 checked={useFastInpaint}
-                disabled={!isGenerativeAvailable}
+                disabled={isLocalOnly || !isGenerativeAvailable}
                 label={t('editor.ai.settings.useBasicInpaint')}
                 onChange={setUseFastInpaint}
                 tooltip={
-                  !isGenerativeAvailable
+                  isLocalOnly
                     ? t('editor.ai.settings.basicInpaintTooltipDisabled')
-                    : t('editor.ai.settings.basicInpaintTooltipEnabled')
+                    : !isGenerativeAvailable
+                      ? t('editor.ai.settings.basicInpaintTooltipDisabled')
+                      : t('editor.ai.settings.basicInpaintTooltipEnabled')
                 }
               />
 
