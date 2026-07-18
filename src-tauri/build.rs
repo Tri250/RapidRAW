@@ -133,7 +133,20 @@ fn main() {
     let dest_path = dest_dir.join(lib_name);
 
     let mut is_valid = false;
-    if dest_path.exists() {
+    let skip_download = env::var("ORT_SKIP_DOWNLOAD").unwrap_or_default() == "1";
+
+    if skip_download && dest_path.exists() {
+        println!(
+            "cargo:warning=ORT_SKIP_DOWNLOAD=1 and library exists at {:?}. Skipping download.",
+            dest_path
+        );
+        is_valid = true;
+    } else if skip_download && !dest_path.exists() {
+        println!(
+            "cargo:warning=ORT_SKIP_DOWNLOAD=1 but library not found at {:?}. Attempting download.",
+            dest_path
+        );
+    } else if dest_path.exists() {
         match verify_sha256(&dest_path, expected_hash) {
             Ok(true) => {
                 println!(
