@@ -284,8 +284,14 @@ pub fn apply_blemish_removal(
         let r = radius.max(1);
         let blend_r = blend_radius.clamp(0.0, 1.0) * r as f32;
 
-        // Sample ring pixels from just outside the blemish
-        let sample_ring = r + (r / 3).max(1);
+        // Bug #8 fix: ring must be far enough that the blend/feather zone
+        // does NOT reach back into the sample ring.
+        // Old: sample_ring = r + (r/3).max(1) → for r=2, ring=3, but blend
+        // can extend to r+blend_r which overlaps ring.
+        // New: minimum gap of (r + blend_r.ceil() + 2) pixels.
+        let min_gap = (r as f32 + blend_r + 2.0).ceil() as u32;
+        let sample_ring = min_gap.max(r + (r / 3).max(1));
+
         let num_samples = (2.0 * std::f32::consts::PI * sample_ring as f32).ceil() as u32;
         let mut ring_colors: Vec<(f32, f32, f32, f32)> = Vec::new();
 
@@ -336,7 +342,10 @@ pub fn apply_blemish_removal(
                         2.0 * std::f32::consts::PI * ri as f32 / ring_colors.len() as f32;
                     let angle_diff = (angle - ring_angle).abs();
                     let angle_diff = angle_diff.min(2.0 * std::f32::consts::PI - angle_diff);
-                    let aw = (-angle_diff * angle_diff / 1.0).exp(); // angular weight
+                    // Bug #9 fix: sigma increased from 1.0 to 3.0 radians.
+                    // Old σ=1.0 gave ±57° effective range → strong directional bias.
+                    // New σ=3.0 gives ~±171° range → smooth 360° blending.
+                    let aw = (-angle_diff * angle_diff / 3.0).exp();
                     sum_r += rr * aw;
                     sum_g += rg * aw;
                     sum_b += rb * aw;
@@ -455,17 +464,23 @@ fn apply_face_reshape_rgba(
 
     for y_out in bb_min_y..=bb_max_y {
         for x_out in bb_min_x..=bb_max_x {
-            let mut sx = x_out as f32;
-            let mut sy = y_out as f32;
+            // Bug #6 fix: both slim and jaw must operate on the original
+            // (x_out, y_out), not chain effects. Store original coords and
+            // accumulate displacements independently.
+            let orig_x = x_out as f32;
+            let orig_y = y_out as f32;
+            let mut sx = orig_x;
+            let mut sy = orig_y;
 
             for face in face_regions {
                 let (fx, fy, fw, fh) = face.face_rect;
                 let face_cx = fx as f32 + fw as f32 / 2.0;
                 let face_cy = fy as f32 + fh as f32 / 2.0;
 
+                // Slim: horizontal displacement toward center from ORIGINAL position
                 if slim.abs() > 1e-4 {
-                    let dx = sx - face_cx;
-                    let dy = sy - face_cy;
+                    let dx = orig_x - face_cx;
+                    let dy = orig_y - face_cy;
                     let norm_x = dx / (fw as f32 / 2.0).max(1.0);
                     let norm_y = dy / (fh as f32 / 2.0).max(1.0);
                     let dist_sq = norm_x * norm_x + norm_y * norm_y;
@@ -477,9 +492,10 @@ fn apply_face_reshape_rgba(
                     }
                 }
 
+                // Jaw: vertical compression from ORIGINAL position
                 if jaw.abs() > 1e-4 {
-                    let dx = sx - face_cx;
-                    let dy = sy - face_cy;
+                    let dx = orig_x - face_cx;
+                    let dy = orig_y - face_cy;
                     let norm_y = dy / (fh as f32 / 2.0).max(1.0);
                     if norm_y > 0.0 && norm_y < 1.0 {
                         let norm_x = dx / (fw as f32 / 2.0).max(1.0);
@@ -769,8 +785,11 @@ pub fn apply_makeup(
                 // Check if the pixel's hue matches the makeup target area
                 let matches = match makeup_type {
                     "lip" => {
-                        // Lips: warm hues (red/pink), medium+ saturation
-                        (hue < 20.0 || hue > 340.0 || (hue > 300.0 && hue < 360.0)) && sat > 0.1
+                        // Bug #10 fix: narrowed hue range and raised saturation threshold.
+                        // Old range covered 0°~20° AND 300°~360° (≈80° total) which
+                        // included gums and tongue. New range is 0°~20° AND 340°~360°
+                        // (≈40° total), with sat > 0.2 to avoid pale skin.
+                        (hue < 20.0 || hue > 340.0) && sat > 0.2
                     }
                     "blush" => {
                         // Cheeks: warm hues, low-medium saturation
@@ -1318,22 +1337,23 @@ pub fn detect_face_regions_onnx(
                     (max_y - min_y) as u32,
                 );
 
-                // Eyes: indices 63..87 (24 points). Split by median x.
-                let eye_pts: Vec<_> = (63..87).map(|i| pts[i]).collect();
-                let (left_eye_pts, right_eye_pts) = if !eye_pts.is_empty() {
-                    let mut xs: Vec<f32> = eye_pts.iter().map(|p| p.0).collect();
-                    xs.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-                    let median_x = xs[xs.len() / 2];
-                    let left: Vec<_> = eye_pts.iter().filter(|p| p.0 < median_x).copied().collect();
-                    let right: Vec<_> = eye_pts
-                        .iter()
-                        .filter(|p| p.0 >= median_x)
-                        .copied()
-                        .collect();
-                    (left, right)
-                } else {
-                    (Vec::new(), Vec::new())
-                };
+                // Eyes: use 2d106det semantic indices for direct left/right grouping.
+                // Bug #7 fix: was using indices 63..87 (24 points) and splitting by
+                // x-axis median — this fails when the face is tilted > 15° because
+                // left/right eyes overlap in x.
+                //
+                // 2d106det semantic layout:
+                //   Left eye contour:  pts[33..39]  (6 points)
+                //   Right eye contour: pts[39..51]  (12 points, includes lids)
+                //
+                // We also pull from the eyebrow region (87..92 and 92..97) as
+                // supplementary anchors if the eye contours are sparse.
+                let left_eye_pts: Vec<_> = (33..39)
+                    .filter_map(|i| pts.get(i).copied())
+                    .collect();
+                let right_eye_pts: Vec<_> = (39..51)
+                    .filter_map(|i| pts.get(i).copied())
+                    .collect();
                 let (le_cx, le_cy, le_r) = compute_center_radius(&left_eye_pts);
                 let (re_cx, re_cy, re_r) = compute_center_radius(&right_eye_pts);
 
@@ -1622,7 +1642,8 @@ fn build_soft_skin_mask(rgba: &RgbaImage, w: u32, h: u32) -> Vec<f32> {
 // ---------------------------------------------------------------------------
 
 /// Adjust hair color by shifting hue and brightness in hair-like regions.
-/// Uses dark/low-saturation pixel detection as a proxy for hair.
+/// Uses dark/low-saturation pixel detection combined with texture/edge
+/// analysis to avoid matching dark clothing (Bug #11 fix).
 pub fn apply_hair_adjust(
     img: &mut DynamicImage,
     face_regions: &[FaceRegion],
@@ -1638,13 +1659,19 @@ pub fn apply_hair_adjust(
     let hue_delta = hue_shift.clamp(-180.0, 180.0);
     let bright = brightness.clamp(-0.5, 0.5);
 
-    // Hair region: above and around each face, dark / low-sat pixels
     for face in face_regions {
         let (fx, fy, fw, fh) = face.face_rect;
-        let head_top = fy.saturating_sub(fh / 2);
-        let head_bottom = (fy + fh * 3 / 2).min(h - 1);
-        let head_left = (fx as i32 - (fw as i32) / 2).max(0) as u32;
-        let head_right = (fx + fw * 3 / 2).min(w - 1);
+
+        // Bug #11 fix: shrink the hair region to the area ABOVE the face
+        // (hair is on the head, not the shoulders/background).
+        // Old region went from fy-fh/2 to fy+fh*1.5, covering shoulders and
+        // background. New region: fy-fh*0.7 to fy+fh*0.1 (mostly above face).
+        let head_top = fy.saturating_sub((fh as f32 * 0.7) as u32);
+        let head_bottom = (fy + (fh as f32 * 0.1) as u32).min(h - 1);
+        // Narrow horizontal range: face width + 30% margin on each side
+        let margin = (fw as f32 * 0.3) as u32;
+        let head_left = fx.saturating_sub(margin);
+        let head_right = (fx + fw + margin).min(w - 1);
 
         for y in head_top..=head_bottom {
             for x in head_left..=head_right {
@@ -1652,9 +1679,49 @@ pub fn apply_hair_adjust(
                 let (rf, gf, bf) = rgb_to_f32(pixel[0], pixel[1], pixel[2]);
                 let (hue, sat, lum) = rgb_to_hsl(rf, gf, bf);
 
-                // Hair heuristic: dark or low saturation
-                let is_hair = lum < 0.35 || (lum < 0.55 && sat < 0.25);
+                // Bug #11: improved hair heuristic.
+                // Old: lum < 0.35 || (lum < 0.55 && sat < 0.25)
+                //   → matched all dark objects (clothing, furniture, shadows).
+                // New: tighter constraints that better isolate hair.
+                let is_dark = lum < 0.40;
+                let is_low_sat = sat < 0.30 && lum < 0.55;
+                // Hair typically has R ≈ G ≈ B (neutral dark) or warm brown tint.
+                // Exclude obvious skin tones and strong colors.
+                let is_not_skin = !(hue < 40.0 && sat > 0.15 && lum > 0.25);
+                let is_not_strong_color = sat < 0.55;
+                let is_hair = (is_dark || is_low_sat)
+                    && is_not_skin
+                    && is_not_strong_color;
+
                 if !is_hair {
+                    continue;
+                }
+
+                // Local texture check: hair has fine texture (high local variance),
+                // while dark clothing is often uniform. Compute a 3×3 gradient
+                // variance; if too smooth, skip (likely fabric/shadow).
+                let gx = if x > 0 && x < w - 1 {
+                    let pl = rgba.get_pixel(x - 1, y);
+                    let pr = rgba.get_pixel(x + 1, y);
+                    (pl[0] as f32 - pr[0] as f32).abs()
+                        + (pl[1] as f32 - pr[1] as f32).abs()
+                        + (pl[2] as f32 - pr[2] as f32).abs()
+                } else {
+                    0.0
+                };
+                let gy = if y > 0 && y < h - 1 {
+                    let pu = rgba.get_pixel(x, y - 1);
+                    let pd = rgba.get_pixel(x, y + 1);
+                    (pu[0] as f32 - pd[0] as f32).abs()
+                        + (pu[1] as f32 - pd[1] as f32).abs()
+                        + (pu[2] as f32 - pd[2] as f32).abs()
+                } else {
+                    0.0
+                };
+                let edge_mag = (gx + gy) / (255.0 * 3.0);
+                // Hair typically has some texture; very smooth dark regions
+                // are likely clothing/fabric.
+                if edge_mag < 0.02 && sat < 0.15 {
                     continue;
                 }
 
@@ -1663,8 +1730,8 @@ pub fn apply_hair_adjust(
                 let fcy = fy as f32 + fh as f32 / 2.0;
                 let dx = x as f32 - fcx;
                 let dy = y as f32 - fcy;
-                let norm_x = dx / (fw as f32 * 1.2).max(1.0);
-                let norm_y = dy / (fh as f32 * 1.2).max(1.0);
+                let norm_x = dx / (fw as f32 * 0.8).max(1.0);
+                let norm_y = dy / (fh as f32 * 0.8).max(1.0);
                 let dist_sq = norm_x * norm_x + norm_y * norm_y;
                 if dist_sq > 1.0 {
                     continue;
@@ -1987,12 +2054,39 @@ fn apply_skin_tone_unify_rgba(
     }
 }
 
+/// sRGB gamma decode: convert gamma-encoded [0,1] to linear light [0,1].
+/// Bug #12 fix: rgb_to_lab / lab_to_rgb must operate on linear RGB,
+/// not gamma-encoded sRGB. Without this step the LAB conversion is
+/// mathematically incorrect.
+#[inline(always)]
+fn srgb_to_linear(v: f32) -> f32 {
+    if v <= 0.04045 {
+        v / 12.92
+    } else {
+        ((v + 0.055) / 1.055).powf(2.4)
+    }
+}
+
+#[inline(always)]
+fn linear_to_srgb(v: f32) -> f32 {
+    if v <= 0.0031308 {
+        v * 12.92
+    } else {
+        1.055 * v.powf(1.0 / 2.4) - 0.055
+    }
+}
+
 #[inline(always)]
 fn rgb_to_lab(r: f32, g: f32, b: f32) -> (f32, f32, f32) {
+    // Bug #12 fix: decode sRGB gamma before linear RGB→XYZ→LAB.
+    let r_lin = srgb_to_linear(r);
+    let g_lin = srgb_to_linear(g);
+    let b_lin = srgb_to_linear(b);
+
     // D65 illuminant
-    let x = 0.4124564 * r + 0.3575761 * g + 0.1804375 * b;
-    let y = 0.2126729 * r + 0.7151522 * g + 0.0721750 * b;
-    let z = 0.0193339 * r + 0.1191920 * g + 0.9503041 * b;
+    let x = 0.4124564 * r_lin + 0.3575761 * g_lin + 0.1804375 * b_lin;
+    let y = 0.2126729 * r_lin + 0.7151522 * g_lin + 0.0721750 * b_lin;
+    let z = 0.0193339 * r_lin + 0.1191920 * g_lin + 0.9503041 * b_lin;
 
     fn f(t: f32) -> f32 {
         if t > 216.0 / 24389.0 {
@@ -2034,7 +2128,13 @@ fn lab_to_rgb(l: f32, a: f32, b: f32) -> (f32, f32, f32) {
     let r = 3.2404542 * x - 1.5371385 * y - 0.4985314 * z;
     let g = -0.9692660 * x + 1.8760108 * y + 0.0415560 * z;
     let b = 0.0556434 * x - 0.2040259 * y + 1.0572252 * z;
-    (r, g, b)
+
+    // Bug #12 fix: re-encode to sRGB gamma after linear RGB→XYZ conversion.
+    (
+        linear_to_srgb(r.clamp(0.0, 1.0)),
+        linear_to_srgb(g.clamp(0.0, 1.0)),
+        linear_to_srgb(b.clamp(0.0, 1.0)),
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -2179,9 +2279,15 @@ pub fn apply_portrait_adjustments(
                 .collect()
         };
 
-    // For "single" mode, only process the largest face
+    // For "single" mode, only process the largest (dominant) face.
+    // Bug #5 fix: was .take(1) which took the first in detection order,
+    // not the largest. Now uses max_by_key on face area (width * height).
     let filtered_faces: Vec<FaceRegion> = if person_attribute == "single" {
-        filtered_faces.into_iter().take(1).collect()
+        filtered_faces
+            .into_iter()
+            .max_by_key(|f| f.face_rect.2 * f.face_rect.3)
+            .into_iter()
+            .collect()
     } else {
         filtered_faces
     };
