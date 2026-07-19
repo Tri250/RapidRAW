@@ -76,11 +76,25 @@ pub fn apply_skin_smoothing(
     if w == 0 || h == 0 {
         return Err("Image has zero dimensions".to_string());
     }
+    let mut rgba = img.to_rgba8();
+    apply_skin_smoothing_rgba(&mut rgba, w, h, strength, detail_preserve, face_regions);
+    *img = DynamicImage::ImageRgba8(rgba);
+    Ok(())
+}
 
-    let rgba = img.to_rgba8();
+/// Core bilateral-filter skin smoothing operating directly on an RgbaImage buffer.
+/// Used by `apply_one_click_beauty` to avoid repeated DynamicImage ↔ RgbaImage
+/// conversions across multiple pipeline steps.
+fn apply_skin_smoothing_rgba(
+    rgba: &mut RgbaImage,
+    w: u32,
+    h: u32,
+    strength: f32,
+    detail_preserve: f32,
+    face_regions: &[FaceRegion],
+) {
     let src = rgba.clone();
 
-    // Range sigma is driven by strength; detail_preserve reduces the effective strength
     let range_sigma = 10.0 + strength.clamp(0.0, 1.0) * 65.0;
     let spatial_sigma = 3.0_f32;
     let effective_range_sigma = range_sigma * (1.0 - detail_preserve.clamp(0.0, 1.0) * 0.7);
@@ -88,28 +102,24 @@ pub fn apply_skin_smoothing(
     let radius = (spatial_sigma * 3.0).ceil() as i32;
 
     let src_raw = src.as_raw();
-    let dst_raw = rgba.as_raw();
-
-    let mut result = dst_raw.to_vec();
 
     let w_usize = w as usize;
     let h_usize = h as usize;
 
-    // Build skin-only feather mask: face regions + skin confidence
     let skin_mask = build_feathered_skin_mask(&src, w, h, face_regions);
 
-    result
+    // Write results directly into rgba's buffer via a mutable slice
+    let result_slice: &mut [u8] = &mut **rgba;
+
+    result_slice
         .par_chunks_mut(4)
         .enumerate()
         .for_each(|(idx, pixel)| {
-            let x = idx % w_usize;
-            let y = idx / w_usize;
-
             let mask_val = skin_mask[idx];
 
-            // If fully outside skin region, keep original pixel
+            let center_offset = idx * 4;
+
             if mask_val <= 0.001 {
-                let center_offset = (y * w_usize + x) * 4;
                 pixel[0] = src_raw[center_offset];
                 pixel[1] = src_raw[center_offset + 1];
                 pixel[2] = src_raw[center_offset + 2];
@@ -117,7 +127,6 @@ pub fn apply_skin_smoothing(
                 return;
             }
 
-            let center_offset = (y * w_usize + x) * 4;
             let cr = src_raw[center_offset] as f32;
             let cg = src_raw[center_offset + 1] as f32;
             let cb = src_raw[center_offset + 2] as f32;
@@ -127,13 +136,13 @@ pub fn apply_skin_smoothing(
             let mut sum_b = 0.0f32;
             let mut w_sum = 0.0f32;
 
-            let x_i = x as i32;
-            let y_i = y as i32;
+            let x = (idx % w_usize) as i32;
+            let y = (idx / w_usize) as i32;
 
             for ky in -radius..=radius {
-                let ny = (y_i + ky).clamp(0, (h_usize - 1) as i32) as usize;
+                let ny = (y + ky).clamp(0, (h_usize - 1) as i32) as usize;
                 for kx in -radius..=radius {
-                    let nx = (x_i + kx).clamp(0, (w_usize - 1) as i32) as usize;
+                    let nx = (x + kx).clamp(0, (w_usize - 1) as i32) as usize;
 
                     let spatial_dist = ((kx * kx + ky * ky) as f32).sqrt();
                     let ws = gaussian(spatial_dist, spatial_sigma);
@@ -163,7 +172,6 @@ pub fn apply_skin_smoothing(
                 let smooth_g = (sum_g * inv).round().clamp(0.0, 255.0) as u8;
                 let smooth_b = (sum_b * inv).round().clamp(0.0, 255.0) as u8;
 
-                // Blend smoothed and original by mask value (feathered edge)
                 pixel[0] = ((smooth_r as f32) * mask_val + (src_raw[center_offset] as f32) * (1.0 - mask_val)).round() as u8;
                 pixel[1] = ((smooth_g as f32) * mask_val + (src_raw[center_offset + 1] as f32) * (1.0 - mask_val)).round() as u8;
                 pixel[2] = ((smooth_b as f32) * mask_val + (src_raw[center_offset + 2] as f32) * (1.0 - mask_val)).round() as u8;
@@ -175,10 +183,6 @@ pub fn apply_skin_smoothing(
                 pixel[3] = src_raw[center_offset + 3];
             }
         });
-
-    let out = RgbaImage::from_raw(w, h, result).ok_or("Failed to create output image")?;
-    *img = DynamicImage::ImageRgba8(out);
-    Ok(())
 }
 
 /// Build a feathered skin mask: face-region ellipses intersected with skin confidence.
@@ -407,17 +411,50 @@ pub fn apply_face_reshape(
     if w == 0 || h == 0 {
         return Err("Image has zero dimensions".to_string());
     }
+    let mut rgba = img.to_rgba8();
+    apply_face_reshape_rgba(&mut rgba, w, h, face_regions, slim_amount, jaw_amount);
+    *img = DynamicImage::ImageRgba8(rgba);
+    Ok(())
+}
 
-    let src = img.to_rgba8();
-    let mut dst = RgbaImage::from_pixel(w, h, Rgba([0, 0, 0, 0]));
+/// Core face reshape operating directly on RgbaImage.
+/// Only processes the union of face bounding boxes expanded by the warp radius,
+/// avoiding a full w×h scan (Bug #14 fix).
+fn apply_face_reshape_rgba(
+    rgba: &mut RgbaImage,
+    w: u32,
+    h: u32,
+    face_regions: &[FaceRegion],
+    slim_amount: f32,
+    jaw_amount: f32,
+) {
+    if face_regions.is_empty() {
+        return;
+    }
 
     let slim = slim_amount.clamp(-1.0, 1.0);
     let jaw = jaw_amount.clamp(-1.0, 1.0);
 
-    // Build warp field: for each output pixel, compute source pixel
-    // using inverse mapping with bilinear interpolation
-    for y_out in 0..h {
-        for x_out in 0..w {
+    // Compute the affected region: union of all face bboxes expanded by max radius
+    let mut bb_min_x = w;
+    let mut bb_min_y = h;
+    let mut bb_max_x = 0u32;
+    let mut bb_max_y = 0u32;
+    for face in face_regions {
+        let (fx, fy, fw, fh) = face.face_rect;
+        // Expand by half the face dimensions (the elliptical influence radius)
+        let margin_x = (fw as f32 * 0.6).ceil() as u32;
+        let margin_y = (fh as f32 * 0.6).ceil() as u32;
+        bb_min_x = bb_min_x.min(fx.saturating_sub(margin_x));
+        bb_min_y = bb_min_y.min(fy.saturating_sub(margin_y));
+        bb_max_x = bb_max_x.max((fx + fw + margin_x).min(w - 1));
+        bb_max_y = bb_max_y.max((fy + fh + margin_y).min(h - 1));
+    }
+
+    let src = rgba.clone();
+
+    for y_out in bb_min_y..=bb_max_y {
+        for x_out in bb_min_x..=bb_max_x {
             let mut sx = x_out as f32;
             let mut sy = y_out as f32;
 
@@ -426,18 +463,13 @@ pub fn apply_face_reshape(
                 let face_cx = fx as f32 + fw as f32 / 2.0;
                 let face_cy = fy as f32 + fh as f32 / 2.0;
 
-                // Slim: horizontal displacement toward center, strongest at jaw level
                 if slim.abs() > 1e-4 {
                     let dx = sx - face_cx;
                     let dy = sy - face_cy;
-
-                    // Influence region: elliptical around the face
                     let norm_x = dx / (fw as f32 / 2.0).max(1.0);
                     let norm_y = dy / (fh as f32 / 2.0).max(1.0);
-
                     let dist_sq = norm_x * norm_x + norm_y * norm_y;
                     if dist_sq < 1.0 {
-                        // Weight falls off from center, stronger in lower half (jaw)
                         let lower_weight = (norm_y * 0.5 + 0.5).clamp(0.0, 1.0);
                         let falloff = 1.0 - dist_sq;
                         let strength = slim * falloff * falloff * lower_weight * 0.3;
@@ -445,14 +477,10 @@ pub fn apply_face_reshape(
                     }
                 }
 
-                // Jaw: vertical compression of lower face
                 if jaw.abs() > 1e-4 {
                     let dx = sx - face_cx;
                     let dy = sy - face_cy;
-
                     let norm_y = dy / (fh as f32 / 2.0).max(1.0);
-
-                    // Only affect lower portion of the face
                     if norm_y > 0.0 && norm_y < 1.0 {
                         let norm_x = dx / (fw as f32 / 2.0).max(1.0);
                         let dist_sq = norm_x * norm_x + norm_y * norm_y;
@@ -465,14 +493,10 @@ pub fn apply_face_reshape(
                 }
             }
 
-            // Bilinear interpolation from source
             let px = sample_bilinear_rgba(&src, w, h, sx, sy);
-            dst.put_pixel(x_out, y_out, px);
+            rgba.put_pixel(x_out, y_out, px);
         }
     }
-
-    *img = DynamicImage::ImageRgba8(dst);
-    Ok(())
 }
 
 // ---------------------------------------------------------------------------
@@ -491,18 +515,43 @@ pub fn apply_eye_enlarge(
     if w == 0 || h == 0 {
         return Err("Image has zero dimensions".to_string());
     }
-
     if amount.abs() < 1e-4 || eye_regions.is_empty() {
         return Ok(());
     }
+    let mut rgba = img.to_rgba8();
+    apply_eye_enlarge_rgba(&mut rgba, w, h, eye_regions, amount);
+    *img = DynamicImage::ImageRgba8(rgba);
+    Ok(())
+}
 
-    let src = img.to_rgba8();
-    let mut dst = RgbaImage::from_pixel(w, h, Rgba([0, 0, 0, 0]));
+/// Core eye enlarge operating directly on RgbaImage.
+/// Only processes the union of eye region bounding boxes, avoiding a full
+/// w×h scan (Bug #14 fix).
+fn apply_eye_enlarge_rgba(
+    rgba: &mut RgbaImage,
+    w: u32,
+    h: u32,
+    eye_regions: &[(u32, u32, u32)],
+    amount: f32,
+) {
+    // Compute the affected region: union of all eye bounding boxes
+    let mut bb_min_x = w;
+    let mut bb_min_y = h;
+    let mut bb_max_x = 0u32;
+    let mut bb_max_y = 0u32;
+    for &(ecx, ecy, er) in eye_regions {
+        let r = er.max(1);
+        bb_min_x = bb_min_x.min(ecx.saturating_sub(r));
+        bb_min_y = bb_min_y.min(ecy.saturating_sub(r));
+        bb_max_x = bb_max_x.max((ecx + r).min(w - 1));
+        bb_max_y = bb_max_y.max((ecy + r).min(h - 1));
+    }
 
-    let magnify = 1.0 + amount.clamp(0.0, 1.0) * 0.5; // 1.0 .. 1.5
+    let magnify = 1.0 + amount.clamp(0.0, 1.0) * 0.5;
+    let src = rgba.clone();
 
-    for y_out in 0..h {
-        for x_out in 0..w {
+    for y_out in bb_min_y..=bb_max_y {
+        for x_out in bb_min_x..=bb_max_x {
             let mut sx = x_out as f32;
             let mut sy = y_out as f32;
 
@@ -513,26 +562,20 @@ pub fn apply_eye_enlarge(
                 let r = er.max(1) as f32;
 
                 if dist < r {
-                    // Spherical magnification: map output pixel back to a
-                    // contracted source position inside the eye
                     let norm = dist / r;
-                    // Smooth falloff so edges blend seamlessly
-                    let weight = 1.0 - norm * norm; // quadratic falloff
+                    let weight = 1.0 - norm * norm;
                     let effective_magnify = 1.0 + (magnify - 1.0) * weight;
 
                     sx = ecx as f32 + dx / effective_magnify;
                     sy = ecy as f32 + dy / effective_magnify;
-                    break; // Only apply the first matching eye region
+                    break;
                 }
             }
 
             let px = sample_bilinear_rgba(&src, w, h, sx, sy);
-            dst.put_pixel(x_out, y_out, px);
+            rgba.put_pixel(x_out, y_out, px);
         }
     }
-
-    *img = DynamicImage::ImageRgba8(dst);
-    Ok(())
 }
 
 // ---------------------------------------------------------------------------
@@ -551,8 +594,20 @@ pub fn apply_teeth_whitening(
     if w == 0 || h == 0 {
         return Err("Image has zero dimensions".to_string());
     }
-
     let mut rgba = img.to_rgba8();
+    apply_teeth_whitening_rgba(&mut rgba, w, h, regions, brightness, saturation);
+    *img = DynamicImage::ImageRgba8(rgba);
+    Ok(())
+}
+
+fn apply_teeth_whitening_rgba(
+    rgba: &mut RgbaImage,
+    w: u32,
+    h: u32,
+    regions: &[(u32, u32, u32)],
+    brightness: f32,
+    saturation: f32,
+) {
     let brightness_factor = 1.0 + brightness.clamp(0.0, 1.0) * 0.5;
     let sat_factor = 1.0 - saturation.clamp(0.0, 1.0) * 0.8;
 
@@ -575,20 +630,16 @@ pub fn apply_teeth_whitening(
                 let pixel = rgba.get_pixel(x, y);
                 let (rf, gf, bf) = rgb_to_f32(pixel[0], pixel[1], pixel[2]);
 
-                // Convert to HSL
                 let (hue, sat, lum) = rgb_to_hsl(rf, gf, bf);
 
-                // Teeth are typically: hue 30-65 (yellow-ish), low-medium saturation, medium-high lightness
                 let is_tooth_hue = hue > 20.0 && hue < 80.0;
                 let is_tooth_sat = sat < 0.55;
                 let is_tooth_lum = lum > 0.25;
 
                 if is_tooth_hue && is_tooth_sat && is_tooth_lum {
-                    // Distance-based weight for smooth falloff
                     let weight = 1.0 - (dist / r as f32);
-                    let weight = weight * weight; // Quadratic falloff
+                    let weight = weight * weight;
 
-                    // New saturation (reduce yellow) and brightness
                     let new_sat = sat * (1.0 - weight * (1.0 - sat_factor));
                     let new_lum = lum + (1.0 - lum) * weight * (brightness_factor - 1.0) * 0.5;
 
@@ -600,9 +651,6 @@ pub fn apply_teeth_whitening(
             }
         }
     }
-
-    *img = DynamicImage::ImageRgba8(rgba);
-    Ok(())
 }
 
 // ---------------------------------------------------------------------------
@@ -619,9 +667,20 @@ pub fn apply_eye_brighten(
     if w == 0 || h == 0 {
         return Err("Image has zero dimensions".to_string());
     }
-
     let mut rgba = img.to_rgba8();
-    let bright = brightness.clamp(0.0, 1.0) * 0.3; // Max 30% brightness boost
+    apply_eye_brighten_rgba(&mut rgba, w, h, regions, brightness);
+    *img = DynamicImage::ImageRgba8(rgba);
+    Ok(())
+}
+
+fn apply_eye_brighten_rgba(
+    rgba: &mut RgbaImage,
+    w: u32,
+    h: u32,
+    regions: &[(u32, u32, u32)],
+    brightness: f32,
+) {
+    let bright = brightness.clamp(0.0, 1.0) * 0.3;
 
     for &(cx, cy, radius) in regions {
         let r = radius.max(1) as i32;
@@ -644,15 +703,12 @@ pub fn apply_eye_brighten(
 
                 let pixel = rgba.get_pixel(x, y);
                 let (rf, gf, bf) = rgb_to_f32(pixel[0], pixel[1], pixel[2]);
-                let lum = luminance(rf, gf, bf);
 
-                // Increase brightness: push toward 1.0
                 let boost = bright * weight;
                 let new_r = rf + (1.0 - rf) * boost;
                 let new_g = gf + (1.0 - gf) * boost;
                 let new_b = bf + (1.0 - bf) * boost;
 
-                // Slight contrast boost around midtones
                 let contrast_boost = 1.0 + weight * bright * 0.5;
                 let mid = 0.5;
                 let cr = mid + (new_r - mid) * contrast_boost;
@@ -664,9 +720,6 @@ pub fn apply_eye_brighten(
             }
         }
     }
-
-    *img = DynamicImage::ImageRgba8(rgba);
-    Ok(())
 }
 
 // ---------------------------------------------------------------------------
@@ -896,11 +949,14 @@ pub fn detect_face_regions(img: &DynamicImage) -> Vec<FaceRegion> {
     // 1. Multi-model skin-tone mask
     let skin_mask = build_skin_mask(&rgba, w, h, 0.35);
 
-    // 2. Morphological opening (3x3 erosion + 3x3 dilation)
+    // 2. Morphological opening (erosion + dilation) with radius scaled to image size
+    // Scale radius so that at ~6000px diagonal → radius=3, at ~300px → radius=1
+    let diag = ((w * w + h * h) as f64).sqrt();
+    let morph_radius = ((diag / 1500.0).ceil() as u32).max(1).min(5);
     let mut opened = vec![false; (w * h) as usize];
-    erode_mask(&skin_mask, w, h, &mut opened, 1);
+    erode_mask(&skin_mask, w, h, &mut opened, morph_radius);
     let mut dilated = vec![false; (w * h) as usize];
-    dilate_mask(&opened, w, h, &mut dilated, 1);
+    dilate_mask(&opened, w, h, &mut dilated, morph_radius);
 
     // 3. Connected components (4-connectivity)
     let labels = label_connected_components(&dilated, w, h);
@@ -1865,22 +1921,34 @@ fn build_body_mask(
 pub fn apply_skin_tone_unify(
     img: &mut DynamicImage,
     face_regions: &[FaceRegion],
-    warmth: f32,   // -1..1  (cool ↔ warm)
-    redness: f32,  // -1..1  (green ↔ red)
-    strength: f32, // 0..1
+    warmth: f32,
+    redness: f32,
+    strength: f32,
 ) -> Result<(), String> {
     let (w, h) = img.dimensions();
     if w == 0 || h == 0 {
         return Err("Image has zero dimensions".to_string());
     }
-
     let mut rgba = img.to_rgba8();
+    apply_skin_tone_unify_rgba(&mut rgba, w, h, face_regions, warmth, redness, strength);
+    *img = DynamicImage::ImageRgba8(rgba);
+    Ok(())
+}
+
+fn apply_skin_tone_unify_rgba(
+    rgba: &mut RgbaImage,
+    w: u32,
+    h: u32,
+    face_regions: &[FaceRegion],
+    warmth: f32,
+    redness: f32,
+    strength: f32,
+) {
     let s = strength.clamp(0.0, 1.0);
     if s < 1e-4 {
-        return Ok(());
+        return;
     }
 
-    // Target LAB skin tone: L*=70, a*=15 (slightly red), b*=18 (slightly yellow)
     let target_a = 15.0 + redness * 20.0;
     let target_b = 18.0 + warmth * 15.0;
 
@@ -1896,7 +1964,6 @@ pub fn apply_skin_tone_unify(
                 let pixel = rgba.get_pixel(x, y);
                 let (rf, gf, bf) = rgb_to_f32(pixel[0], pixel[1], pixel[2]);
 
-                // Skin-tone heuristic: moderate saturation, warm hue
                 let (hue, sat, lum) = rgb_to_hsl(rf, gf, bf);
                 let is_skin = (hue < 50.0 || hue > 330.0)
                     && sat > 0.08
@@ -1909,7 +1976,6 @@ pub fn apply_skin_tone_unify(
 
                 let (l, a, b_val) = rgb_to_lab(rf, gf, bf);
 
-                // Shift toward target, preserving luminance
                 let new_a = a + (target_a - a) * s;
                 let new_b = b_val + (target_b - b_val) * s;
 
@@ -1919,9 +1985,6 @@ pub fn apply_skin_tone_unify(
             }
         }
     }
-
-    *img = DynamicImage::ImageRgba8(rgba);
-    Ok(())
 }
 
 #[inline(always)]
@@ -1990,37 +2053,49 @@ pub fn apply_one_click_beauty(
         return Ok(());
     }
 
+    let (w, h) = img.dimensions();
+    if w == 0 || h == 0 {
+        return Err("Image has zero dimensions".to_string());
+    }
+
     if face_regions.is_empty() {
         // No face detected → apply a gentle global skin-tone smoothing
         apply_skin_smoothing(img, s * 0.3, 0.7, &[])?;
         return Ok(());
     }
 
-    // Skin smoothing
-    apply_skin_smoothing(img, s * 0.35, 0.65, face_regions)?;
+    // Convert to RgbaImage once; all _rgba variants operate on this buffer directly.
+    // This avoids the 6× to_rgba8() → compute → DynamicImage::ImageRgba8() round-trips
+    // that the original code performed (Bug #13 fix).
+    let mut rgba = img.to_rgba8();
 
-    // Eye brighten
+    // 1. Skin smoothing
+    apply_skin_smoothing_rgba(&mut rgba, w, h, s * 0.35, 0.65, face_regions);
+
+    // 2. Eye brighten + enlarge
     let eye_regions: Vec<_> = face_regions
         .iter()
         .flat_map(|f| vec![f.left_eye, f.right_eye])
         .collect();
     if !eye_regions.is_empty() {
-        apply_eye_brighten(img, &eye_regions, s * 0.45)?;
-        apply_eye_enlarge(img, &eye_regions, s * 0.20)?;
+        apply_eye_brighten_rgba(&mut rgba, w, h, &eye_regions, s * 0.45);
+        apply_eye_enlarge_rgba(&mut rgba, w, h, &eye_regions, s * 0.20);
     }
 
-    // Teeth whiten
+    // 3. Teeth whiten
     let teeth_regions: Vec<_> = face_regions.iter().map(|f| f.mouth).collect();
     if !teeth_regions.is_empty() {
-        apply_teeth_whitening(img, &teeth_regions, s * 0.35, s * 0.30)?;
+        apply_teeth_whitening_rgba(&mut rgba, w, h, &teeth_regions, s * 0.35, s * 0.30);
     }
 
-    // Face slim
-    apply_face_reshape(img, face_regions, s * 0.25, s * 0.10)?;
+    // 4. Face reshape
+    apply_face_reshape_rgba(&mut rgba, w, h, face_regions, s * 0.25, s * 0.10);
 
-    // Skin tone unify
-    apply_skin_tone_unify(img, face_regions, 0.0, 0.0, s * 0.25)?;
+    // 5. Skin tone unify
+    apply_skin_tone_unify_rgba(&mut rgba, w, h, face_regions, 0.0, 0.0, s * 0.25);
 
+    // Wrap back once
+    *img = DynamicImage::ImageRgba8(rgba);
     Ok(())
 }
 
@@ -2066,13 +2141,36 @@ pub fn apply_portrait_adjustments(
                         "male" | "elderMale" => face.face_rect.2 > face.face_rect.3 / 2, // Heuristic: wider faces tend to be male
                         "female" | "elderFemale" => face.face_rect.2 <= face.face_rect.3 / 2, // Heuristic: narrower faces tend to be female
                         "child" => {
-                            face.face_rect.2
-                                < face_regions
+                            // Use absolute face width relative to image width as a
+                            // size heuristic, NOT relative to the largest face.
+                            // This fixes the bug where a single child face is never
+                            // detected because max == itself and width < width/2
+                            // is always false.
+                            //
+                            // Typical child face width on a portrait photo is
+                            // < 30% of image width (adults are ~35-50%).
+                            let img_w = face_regions
+                                .iter()
+                                .map(|f| f.face_rect.0 + f.face_rect.2)
+                                .max()
+                                .unwrap_or(1);
+                            // Face width < 28% of image width → likely child
+                            // Also: if face is significantly smaller than the
+                            // average face (for multi-person photos)
+                            let is_small_absolute = face.face_rect.2 < img_w / 4;
+                            let avg_width = face_regions
+                                .iter()
+                                .map(|f| f.face_rect.2)
+                                .sum::<u32>()
+                                / face_regions.len().max(1) as u32;
+                            let is_small_relative = face.face_rect.2 < avg_width / 2;
+                            let is_smallest = face.face_rect.2
+                                == face_regions
                                     .iter()
                                     .map(|f| f.face_rect.2)
-                                    .max()
-                                    .unwrap_or(u32::MAX)
-                                    / 2
+                                    .min()
+                                    .unwrap_or(u32::MAX);
+                            is_small_absolute || (face_regions.len() > 1 && (is_small_relative && is_smallest))
                         } // Heuristic: smaller faces
                         _ => true,
                     }
