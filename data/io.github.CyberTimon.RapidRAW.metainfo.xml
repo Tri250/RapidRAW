@@ -38,6 +38,21 @@
   <url type="homepage">https://github.com/Tri250/RapidRAW</url>
 
   <releases>
+    <release version="v1.8.5" date="2026-07-19">
+        <url type="details">https://github.com/Tri250/RapidRAW/releases/tag/v1.8.5</url>
+        <description translate="no">
+            <p>RAW工坊 v1.8.5 - Bug修复与工作流优化</p>
+            <ul>
+                <li>修复AI蒙版预计算在切换蒙版时永远不触发的问题（useEffect依赖非响应式）</li>
+                <li>修复lint工作流Node.js版本不一致问题（20→22）</li>
+                <li>修复lint工作流clippy缺少build-essential系统依赖</li>
+                <li>修复几何变换预览线条坐标可能越界的问题</li>
+                <li>修复release工作流：添加tag推送触发支持</li>
+                <li>修复build工作流：添加显式permissions确保上传权限</li>
+                <li>修复build工作流：npm install→npm ci提高CI可靠性</li>
+            </ul>
+        </description>
+    </release>
     <release version="v1.7.0" date="2026-07-16">
         <url type="details">https://github.com/Tri250/RapidRAW/releases/tag/v1.7.0</url>
         <description translate="no">
