@@ -20,16 +20,24 @@ export function calculateCenteredCrop(
   rotation: number = 0,
 ): Crop | null {
   if (!aspectRatio || aspectRatio <= 0) return null;
+  if (imageWidth <= 0 || imageHeight <= 0) return null;
 
   const { width: W, height: H } = getOrientedDimensions(imageWidth, imageHeight, orientationSteps);
+  if (W <= 0 || H <= 0) return null;
 
   const angle = Math.abs(rotation);
   const rad = ((angle % 180) * Math.PI) / 180;
   const sin = Math.sin(rad);
   const cos = Math.cos(rad);
 
-  const h_c = Math.min(H / (aspectRatio * sin + cos), W / (aspectRatio * cos + sin));
+  const denomH = aspectRatio * sin + cos;
+  const denomW = aspectRatio * cos + sin;
+  if (denomH === 0 || denomW === 0) return null;
+
+  const h_c = Math.min(H / denomH, W / denomW);
   const w_c = aspectRatio * h_c;
+
+  if (w_c <= 0 || h_c <= 0) return null;
 
   return {
     unit: 'px',

@@ -209,6 +209,8 @@ export function useImageProcessing(
             const fullW = view.getUint32(16, true);
             const fullH = view.getUint32(20, true);
 
+            if (fullW === 0 || fullH === 0) return;
+
             const imageBuffer = buffer.slice(24);
             const blob = new Blob([imageBuffer], { type: 'image/jpeg' });
             const url = URL.createObjectURL(blob);
