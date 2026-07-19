@@ -435,8 +435,8 @@ fn process_preview_job(
         roi.map(|(nx, ny, nw, nh)| crate::gpu_processing::Roi {
             x: (nx.max(0.0) * preview_width as f32).round() as u32,
             y: (ny.max(0.0) * preview_height as f32).round() as u32,
-            width: (nw.max(0.0) * preview_width as f32).round().max(1) as u32,
-            height: (nh.max(0.0) * preview_height as f32).round().max(1) as u32,
+            width: (nw.max(0.0) * preview_width as f32).round().max(1.0) as u32,
+            height: (nh.max(0.0) * preview_height as f32).round().max(1.0) as u32,
         })
     } else {
         None
