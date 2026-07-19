@@ -323,10 +323,10 @@ export function useAiMasking() {
         path: selectedImage.path,
         rotation: adjustments.rotation,
         startPoint: [startPoint.x, startPoint.y],
-      });
+      }) as Record<string, any>;
 
       const subMask = findSubMask(adjustments, subMaskId);
-      const mergedParameters = { ...(subMask?.parameters || {}), ...newParameters };
+      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
     } catch (error) {
@@ -355,10 +355,10 @@ export function useAiMasking() {
         flipVertical: adjustments.flipVertical,
         orientationSteps: adjustments.orientationSteps,
         rotation: adjustments.rotation,
-      });
+      }) as Record<string, any>;
 
       const subMask = findSubMask(adjustments, subMaskId);
-      const mergedParameters = { ...(subMask?.parameters || {}), ...newParameters };
+      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
     } catch (error) {
@@ -381,10 +381,10 @@ export function useAiMasking() {
         flipVertical: adjustments.flipVertical,
         orientationSteps: adjustments.orientationSteps,
         rotation: adjustments.rotation,
-      });
+      }) as Record<string, any>;
 
       const subMask = findSubMask(adjustments, subMaskId);
-      const mergedParameters = { ...(subMask?.parameters || {}), ...newParameters };
+      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
     } catch (error) {
@@ -407,10 +407,10 @@ export function useAiMasking() {
         flipVertical: adjustments.flipVertical,
         orientationSteps: adjustments.orientationSteps,
         rotation: adjustments.rotation,
-      });
+      }) as Record<string, any>;
 
       const subMask = findSubMask(adjustments, subMaskId);
-      const mergedParameters = { ...(subMask?.parameters || {}), ...newParameters };
+      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
     } catch (error) {

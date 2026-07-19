@@ -27,6 +27,7 @@ import {
   SortCriteria,
   SortDirection,
   ExifOverlay,
+  ImageFile,
 } from '../../ui/AppProperties';
 import { COLOR_LABELS, Color } from '../../../utils/adjustments';
 import Text from '../../ui/Text';

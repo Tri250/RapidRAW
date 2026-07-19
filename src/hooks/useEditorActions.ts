@@ -204,7 +204,7 @@ export function useEditorActions() {
 
       if (!copiedAdjustments || !appSettings) return;
 
-      const { mode, includedAdjustments } = appSettings.copyPasteSettings;
+      const { mode, includedAdjustments } = appSettings.copyPasteSettings ?? { mode: 'merge' as const, includedAdjustments: [] as string[] };
       const adjustmentsToApply: Partial<Adjustments> = {};
 
       for (const key of includedAdjustments) {

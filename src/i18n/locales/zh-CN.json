@@ -301,6 +301,10 @@
       "titleDefault": "分享图片",
       "systemShare": "分享",
       "systemShareTitle": "来自 RapidRAW 的分享",
+      "wechat": "微信",
+      "qq": "QQ",
+      "weibo": "微博",
+      "more": "更多",
       "cancel": "取消"
     },
     "adjustments": {

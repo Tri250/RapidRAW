@@ -143,7 +143,7 @@ export default function ColorPanelSwitcher() {
 
     const currentCopiedSection = useEditorStore.getState().copiedSectionAdjustments;
     const isPasteAllowed = currentCopiedSection && currentCopiedSection.section === sectionName;
-    const translatedSection = t(`editor.adjustments.sections.${sectionName}`);
+    const translatedSection = t(`editor.adjustments.sections.${sectionName}` as any);
 
     const pasteLabel = currentCopiedSection
       ? t('editor.adjustments.actions.pasteLabel', { section: translatedSection })
@@ -173,7 +173,7 @@ export default function ColorPanelSwitcher() {
             color: ColorPanel,
           }[sectionName];
 
-          const title = t(`editor.adjustments.sections.${sectionName}`);
+          const title = t(`editor.adjustments.sections.${sectionName}` as any);
           const sectionVisibility = adjustments.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility;
 
           return (
@@ -184,7 +184,7 @@ export default function ColorPanelSwitcher() {
                 onContextMenu={(e: any) => handleSectionContextMenu(e, sectionName)}
                 onToggle={() => handleToggleSection(sectionName)}
                 onToggleVisibility={() => handleToggleVisibility(sectionName)}
-                title={title}
+                title={title as string}
               >
                 <SectionComponent
                   adjustments={adjustments}

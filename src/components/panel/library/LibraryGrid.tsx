@@ -472,7 +472,7 @@ export default function LibraryGrid(props: any) {
     }
   }, [activePath, gridData, multiSelectedPaths.length, listHandle, currentFolderPath, imageList, libraryViewMode]);
 
-  const memoizedRowProps = useMemo(() => {
+  const memoizedRowProps = useMemo((): any => {
     if (!gridData) return {};
 
     return {
@@ -579,7 +579,7 @@ export default function LibraryGrid(props: any) {
             rowHeight={getItemSize}
             onScroll={(e: React.UIEvent<HTMLElement>) => handleScroll(e.currentTarget.scrollTop)}
             className="custom-scrollbar"
-            rowComponent={Row}
+            rowComponent={Row as any}
             rowProps={memoizedRowProps}
           />
         </div>

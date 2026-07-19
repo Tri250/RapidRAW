@@ -183,7 +183,7 @@ export default function Controls() {
     };
 
     const isPasteAllowed = copiedSectionAdjustments && copiedSectionAdjustments.section === sectionName;
-    const translatedSection = t(`editor.adjustments.sections.${sectionName}`);
+    const translatedSection = t(`editor.adjustments.sections.${sectionName}` as any);
 
     const pasteLabel = copiedSectionAdjustments
       ? t('editor.adjustments.actions.pasteLabel', { section: translatedSection })
@@ -281,7 +281,7 @@ export default function Controls() {
             effects: EffectsPanel,
           }[sectionName];
 
-          const title = t(`editor.adjustments.sections.${sectionName}`);
+          const title = t(`editor.adjustments.sections.${sectionName}` as any);
           const sectionVisibility = adjustments.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility;
 
           return (
@@ -292,7 +292,7 @@ export default function Controls() {
                 onContextMenu={(e: any) => handleSectionContextMenu(e, sectionName)}
                 onToggle={() => handleToggleSection(sectionName)}
                 onToggleVisibility={() => handleToggleVisibility(sectionName)}
-                title={title}
+                title={title as string}
               >
                 <SectionComponent
                   adjustments={adjustments}

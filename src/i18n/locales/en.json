@@ -301,6 +301,10 @@
       "titleDefault": "Share Image",
       "systemShare": "Share",
       "systemShareTitle": "Share from RapidRAW",
+      "wechat": "WeChat",
+      "qq": "QQ",
+      "weibo": "Weibo",
+      "more": "More",
       "cancel": "Cancel"
     },
     "adjustments": {

@@ -3,6 +3,10 @@ import { useState, useLayoutEffect, useRef } from 'react';
 export interface ImageDimensions {
   height: number;
   width: number;
+  offsetX?: number;
+  offsetY?: number;
+  containerWidth?: number;
+  containerHeight?: number;
 }
 
 export interface RenderSize {

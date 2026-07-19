@@ -318,7 +318,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
     return null;
   }, [selectedImage, adjustments.crop, adjustments.orientationSteps]);
 
-  const imageRenderSize = useImageRenderSize(imageContainerRef, croppedDimensions);
+  const imageRenderSize = useImageRenderSize(imageContainerRef as React.RefObject<HTMLElement>, croppedDimensions);
   const imageRenderSizeRef = useRef(imageRenderSize);
   imageRenderSizeRef.current = imageRenderSize;
 

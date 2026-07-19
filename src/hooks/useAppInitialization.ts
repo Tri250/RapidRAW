@@ -120,7 +120,7 @@ export const useAppInitialization = ({
       .then((types: any) => setSupportedTypes(types))
       .catch((err) => {
         console.error('Failed to load supported file types:', err);
-        setSupportedTypes({ extensions: [], mimeTypes: [] });
+        setSupportedTypes({ extensions: [], mimeTypes: [] } as any);
       });
   }, [setSupportedTypes]);
 
@@ -174,7 +174,7 @@ export const useAppInitialization = ({
               paths: settings.pinnedFolders,
               expandedFolders: settings.lastFolderState?.expandedFolders || [],
               showImageCounts: settings.enableFolderImageCounts || settings.folderTreeSort?.key === 'imageCount',
-            });
+            }) as any[];
             setLibrary({ pinnedFolderTrees: trees });
           } catch (err) {
             console.error('Failed to load pinned folder trees:', err);

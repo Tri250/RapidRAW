@@ -139,6 +139,8 @@ const SUB_MASK_CONFIG: Record<Mask, any> = {
     ],
   },
   [Mask.QuickEraser]: { parameters: [] },
+  [Mask.Clone]: { showBrushTools: true },
+  [Mask.Heal]: { showBrushTools: true },
 };
 
 const BrushTools = ({
@@ -765,31 +767,33 @@ export default function MasksPanel() {
 
     if (type === Mask.Linear || type === Mask.Radial || type === Mask.Color || type === Mask.Luminance) {
       if (!subMask.parameters) subMask.parameters = {};
-      subMask.parameters.isInitialDraw = true;
+      const params = subMask.parameters as any;
+      params.isInitialDraw = true;
       if (type === Mask.Linear || type === Mask.Radial) {
-        subMask.parameters.startX = -10000;
-        subMask.parameters.startY = -10000;
-        subMask.parameters.endX = -10000;
-        subMask.parameters.endY = -10000;
-        subMask.parameters.centerX = -10000;
-        subMask.parameters.centerY = -10000;
-        subMask.parameters.radiusX = 0;
-        subMask.parameters.radiusY = 0;
+        params.startX = -10000;
+        params.startY = -10000;
+        params.endX = -10000;
+        params.endY = -10000;
+        params.centerX = -10000;
+        params.centerY = -10000;
+        params.radiusX = 0;
+        params.radiusY = 0;
       } else {
-        subMask.parameters.targetX = -10000;
-        subMask.parameters.targetY = -10000;
-        subMask.parameters.tolerance = 20;
-        subMask.parameters.feather = 35;
+        params.targetX = -10000;
+        params.targetY = -10000;
+        params.tolerance = 20;
+        params.feather = 35;
       }
     }
 
     if (type === Mask.AiDepth) {
       if (!subMask.parameters) subMask.parameters = {};
-      subMask.parameters.minDepth = 20;
-      subMask.parameters.maxDepth = 100;
-      subMask.parameters.minFade = 15;
-      subMask.parameters.maxFade = 15;
-      subMask.parameters.feather = 10;
+      const params = subMask.parameters as any;
+      params.minDepth = 20;
+      params.maxDepth = 100;
+      params.minFade = 15;
+      params.maxFade = 15;
+      params.feather = 10;
     }
     return subMask;
   };
@@ -1122,11 +1126,11 @@ export default function MasksPanel() {
       const creationFn = () => {
         if (overData?.type === 'Container') {
           handleAddSubMask(overData.item!.id, dragData.maskType!);
-        } else if (overData?.type === 'SubMask') {
+        } else if (overData?.type === 'SubMask' && over) {
           const container = adjustments.masks.find((m) => m.id === overData.parentId);
           if (container) {
             const targetIndex = container.subMasks.findIndex((sm) => sm.id === over.id);
-            handleAddSubMask(overData.parentId!, dragData.maskType!, targetIndex);
+            handleAddSubMask(overData.parentId!, dragData.maskType!, SubMaskMode.Additive, targetIndex);
           }
         } else {
           handleAddMaskContainer(dragData.maskType!);
@@ -1953,7 +1957,7 @@ function SubMaskRow({
     setNodeRef(node);
     setDroppableRef(node);
   };
-  const MaskIcon = MASK_ICON_MAP[subMask.type] || Circle;
+  const MaskIcon = MASK_ICON_MAP[subMask.type as Mask] || Circle;
   const { showContextMenu } = useContextMenu();
   const [isHovered, setIsHovered] = useState(false);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -2188,6 +2192,7 @@ function SettingsPanel({
 }: any) {
   const { t } = useTranslation();
   const { showContextMenu } = useContextMenu();
+  const { theme } = useSettingsStore((state) => ({ theme: state.theme }));
   const isActive = !!container;
   const presetButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -2268,7 +2273,7 @@ function SettingsPanel({
     updateSubMask(activeSubMask.id, { parameters: newParams });
   };
 
-  const subMaskConfig = activeSubMask ? SUB_MASK_CONFIG[activeSubMask.type] || {} : {};
+  const subMaskConfig = activeSubMask ? SUB_MASK_CONFIG[activeSubMask.type as Mask] || {} : {};
   const isAiMask = activeSubMask && ['ai-subject', 'ai-foreground', 'ai-sky', 'ai-depth'].includes(activeSubMask.type);
   const isComponentMode = !!activeSubMask;
 
@@ -2482,7 +2487,7 @@ function SettingsPanel({
                   label={
                     param.key === 'feather' && activeSubMask.type === Mask.AiDepth
                       ? t('editor.masks.params.globalFeather')
-                      : t('editor.masks.params.' + param.key)
+                      : t(`editor.masks.params.${param.key}` as any)
                   }
                   min={param.min}
                   max={param.max}

@@ -67,6 +67,7 @@ export enum Invokes {
   GenerateUncroppedPreview = 'generate_uncropped_preview',
   GetFolderTree = 'get_folder_tree',
   GetFolderChildren = 'get_folder_children',
+  GetPinnedFolderTrees = 'get_pinned_folder_trees',
   GetLogFilePath = 'get_log_file_path',
   GetOrCreateInternalLibraryRoot = 'get_or_create_internal_library_root',
   GetSupportedFileTypes = 'get_supported_file_types',
@@ -221,6 +222,7 @@ export interface AppSettings {
   exifOverlay?: ExifOverlay;
   language?: string;
   folderTreeSort?: FolderTreeSort;
+  fontFamily?: string;
 }
 
 export interface BrushSettings {
@@ -298,6 +300,7 @@ export interface Progress {
   completed?: number;
   current?: number;
   total: number;
+  stage?: string;
 }
 
 export interface SelectedImage {
@@ -322,6 +325,8 @@ export interface SortCriteria {
 export interface SupportedTypes {
   nonRaw: Array<string>;
   raw: Array<string>;
+  extensions?: string[];
+  mimeTypes?: string[];
 }
 
 export enum ThumbnailSize {

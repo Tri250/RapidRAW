@@ -204,9 +204,9 @@ export function computeSortedLibrary(libraryState: any, settingsState: any): Ima
             };
 
             if (searchMode === 'OR') {
-              tagsMatch = parsedTags.some((pt) => evaluateTag(pt));
+              tagsMatch = parsedTags.some((pt: { type: string; value: string }) => evaluateTag(pt));
             } else {
-              tagsMatch = parsedTags.every((pt) => evaluateTag(pt));
+              tagsMatch = parsedTags.every((pt: { type: string; value: string }) => evaluateTag(pt));
             }
           }
 

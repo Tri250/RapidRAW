@@ -30,7 +30,6 @@ on:
       ref:
         required: false
         type: string
-        default: ${{ github.ref }}
       mobile:
         required: false
         type: string
@@ -45,9 +44,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           repository: ${{ inputs.repository }}
           ref: ${{ inputs.ref }}
-          fetch-depth: 0
 
       - name: Install Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -58,7 +57,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          key: ${{ inputs.mobile == '' && inputs.platform || format('{0}-{1}', inputs.platform, inputs.mobile) }}
+          key: ${{ inputs.mobile != '' && format('{0}-{1}', inputs.platform, inputs.mobile) || inputs.platform }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -121,12 +120,11 @@ jobs:
           echo "storeFile=$RUNNER_TEMP/rapidraw-release.jks" >> keystore.properties
 
       - name: rustup install target
-        if: ${{ inputs.target != '' }}
+        if: inputs.target != ''
         run: rustup target add ${{ inputs.target }}
 
       - id: patch-release-name
         shell: bash
-        if: ${{ inputs.release-id != '' }}
         run: |
           platform="${{ inputs.platform }}"
           if [[ "${{ inputs.mobile }}" == "android" ]]; then
@@ -134,7 +132,11 @@ jobs:
           else
             replacement="$(echo ${platform} | sed -E 's/-latest//')"
           fi
-          patched_platform=$(echo '${{ inputs.asset-name-pattern }}' | sed -E "s/\[platform\]/${replacement}/")
+          if [[ -n "${{ inputs.asset-name-pattern }}" ]]; then
+            patched_platform=$(echo '${{ inputs.asset-name-pattern }}' | sed -E "s/\[platform\]/${replacement}/")
+          else
+            patched_platform="${replacement}"
+          fi
           if [[ -n "${{ inputs.asset-prefix }}" ]]; then
             patched_platform="${{ inputs.asset-prefix }}_${patched_platform}"
           fi
@@ -142,30 +144,31 @@ jobs:
 
       - id: tauri-build
         name: Build with tauri-action
-        if: ${{ inputs.mobile == '' }}
+        if: inputs.mobile == ''
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NO_STRIP: ${{ startsWith(inputs.platform, 'ubuntu') }}
         with:
-          args: --verbose ${{ inputs.build-args }} ${{ inputs.target != '' && '--target' || ''  }} ${{ inputs.target }}
+          args: --verbose${{ inputs.build-args && format(' {0}', inputs.build-args) || '' }}${{ inputs.target != '' && format(' --target {0}', inputs.target) || '' }}
           assetNamePattern: ${{ steps.patch-release-name.outputs.platform }}
           releaseId: ${{ inputs.release-id }}
           retryAttempts: 3
 
       - name: Build Android
-        if: ${{ inputs.mobile == 'android' }}
+        if: inputs.mobile == 'android'
         shell: bash
         env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ORT_SKIP_DOWNLOAD: '1'
           ORT_LIB_LOCATION: ${{ format('{0}/src-tauri/libs/arm64-v8a', github.workspace) }}
           ORT_STRATEGY: manual
         run: |
-          npx tauri android build --verbose ${{ inputs.build-args }}
+          npx tauri android build --verbose${{ inputs.build-args && format(' {0}', inputs.build-args) || '' }}
 
       - name: Prepare Android Release Assets
-        if: ${{ inputs.mobile == 'android' && inputs.release-id != '' }}
+        if: inputs.mobile == 'android' && inputs.release-id != ''
         shell: bash
         run: |
           set -euo pipefail
@@ -189,19 +192,18 @@ jobs:
           done
 
       - name: Upload Android Release Assets
-        if: ${{ inputs.mobile == 'android' && inputs.release-id != '' }}
+        if: inputs.mobile == 'android' && inputs.release-id != ''
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
-          tag_ref="${{ inputs.ref }}"
-          tag_name="${tag_ref#refs/tags/}"
+          tag_name="${{ github.event.release.tag_name || github.ref_name }}"
           gh release upload "$tag_name" "$RUNNER_TEMP"/android-release-assets/* --clobber
 
       - name: Upload Android Artifacts
-        if: ${{ inputs.mobile == 'android' && inputs.release-id == '' }}
+        if: inputs.mobile == 'android' && inputs.release-id == ''
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.asset-prefix }}_android${{ inputs.target && format('_{0}', inputs.target) || '' }}_artifacts
@@ -213,7 +215,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Upload Windows Artifacts
-        if: ${{ startsWith(inputs.platform, 'windows') && inputs.release-id == '' && inputs.mobile == '' }}
+        if: startsWith(inputs.platform, 'windows') && inputs.release-id == '' && inputs.mobile == ''
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.asset-prefix }}_${{ inputs.platform }}${{ inputs.target && format('_{0}', inputs.target) || '' }}_artifacts

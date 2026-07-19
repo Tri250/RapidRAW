@@ -236,7 +236,7 @@ export function useLibraryActions(handleImageSelect?: (path: string) => void) {
           paths: rootPaths,
           expandedFolders: expandedArray,
           showImageCounts,
-        });
+        }) as any[];
         updates.folderTrees = treesData;
       } else {
         updates.folderTrees = [];
@@ -247,7 +247,7 @@ export function useLibraryActions(handleImageSelect?: (path: string) => void) {
           paths: pinnedFolders,
           expandedFolders: expandedArray,
           showImageCounts,
-        });
+        }) as any[];
         updates.pinnedFolderTrees = pinnedTreesData;
       } else {
         updates.pinnedFolderTrees = [];
@@ -279,7 +279,7 @@ export function useLibraryActions(handleImageSelect?: (path: string) => void) {
         paths: newPins,
         expandedFolders: Array.from(expandedFolders),
         showImageCounts: appSettings.enableFolderImageCounts ?? false,
-      });
+      }) as any[];
       setLibrary({ pinnedFolderTrees: trees });
     } catch (err) {
       toast.error(`Failed to refresh pinned folders: ${err}`);

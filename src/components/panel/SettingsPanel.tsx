@@ -885,7 +885,7 @@ export default function SettingsPanel({
     });
   };
 
-  const shortcutTagVariants = {
+  const shortcutTagVariants: any = {
     visible: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 500, damping: 30 } },
     exit: { opacity: 0, scale: 0.8, transition: { duration: 0.15 } },
   };

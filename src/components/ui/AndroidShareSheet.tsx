@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Share2, X } from 'lucide-react';
+import { Share2, X, MessageCircle, Send, MoreHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import Text from './Text';
@@ -13,6 +13,12 @@ interface AndroidShareSheetProps {
   onClose: () => void;
 }
 
+interface ShareTarget {
+  key: string;
+  icon: React.ReactNode;
+  labelKey: string;
+}
+
 export default function AndroidShareSheet({
   filePath,
   mimeType,
@@ -22,15 +28,40 @@ export default function AndroidShareSheet({
   const { t } = useTranslation();
   const [sharing, setSharing] = useState(false);
 
+  const shareTargets: ShareTarget[] = [
+    {
+      key: 'wechat',
+      icon: <MessageCircle size={20} />,
+      labelKey: 'androidShare.wechat',
+    },
+    {
+      key: 'qq',
+      icon: <Send size={20} />,
+      labelKey: 'androidShare.qq',
+    },
+    {
+      key: 'weibo',
+      icon: <Share2 size={20} />,
+      labelKey: 'androidShare.weibo',
+    },
+    {
+      key: 'more',
+      icon: <MoreHorizontal size={20} />,
+      labelKey: 'androidShare.more',
+    },
+  ];
+
   const handleShare = useCallback(
-    async () => {
+    async (target?: string) => {
       if (sharing) return;
       setSharing(true);
       try {
         await invoke('share_image', {
           filePath,
           mimeType,
-          title: t('androidShare.systemShareTitle' as any),
+          title: target
+            ? t(`androidShare.${target}` as any)
+            : t('androidShare.systemShareTitle' as any),
         });
       } catch (err) {
         console.error('Share failed:', err);
@@ -71,18 +102,23 @@ export default function AndroidShareSheet({
               </button>
             </div>
             <div className="p-4">
-              <button
-                onClick={handleShare}
-                disabled={sharing}
-                className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-surface transition-colors disabled:opacity-50 w-full"
-              >
-                <div className="w-12 h-12 rounded-full bg-surface flex items-center justify-center text-text-primary">
-                  <Share2 size={20} />
-                </div>
-                <Text variant={TextVariants.small} className="text-text-secondary">
-                  {t('androidShare.systemShare' as any)}
-                </Text>
-              </button>
+              <div className="grid grid-cols-4 gap-2">
+                {shareTargets.map((target) => (
+                  <button
+                    key={target.key}
+                    onClick={() => handleShare(target.key)}
+                    disabled={sharing}
+                    className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-surface transition-colors disabled:opacity-50"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-surface flex items-center justify-center text-text-primary">
+                      {target.icon}
+                    </div>
+                    <Text variant={TextVariants.small} className="text-text-secondary">
+                      {t(target.labelKey as any)}
+                    </Text>
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="p-4 pt-0">
               <button

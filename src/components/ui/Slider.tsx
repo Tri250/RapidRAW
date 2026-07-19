@@ -12,6 +12,7 @@ type SliderChangeEvent =
 
 interface SliderProps {
   defaultValue?: number;
+  disabled?: boolean;
   label: React.ReactNode;
   max: number;
   min: number;
@@ -34,6 +35,7 @@ const hasFineAdjustmentModifier = (event: MouseEvent | TouchEvent | React.MouseE
 
 const Slider = ({
   defaultValue = 0,
+  disabled = false,
   label,
   max,
   min,
@@ -113,6 +115,10 @@ const Slider = ({
     if (!sliderElement) return;
 
     const handleWheel = (event: WheelEvent) => {
+      if (disabled) {
+        return;
+      }
+
       if (!event.shiftKey) {
         return;
       }
@@ -279,6 +285,7 @@ const Slider = ({
   }, [isEditing]);
 
   const handleReset = () => {
+    if (disabled) return;
     const syntheticEvent = {
       target: {
         value: defaultValue,
@@ -299,6 +306,11 @@ const Slider = ({
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLInputElement>) => {
+    if (disabled) {
+      e.preventDefault();
+      return;
+    }
+
     if (Date.now() - lastUpTime.current < DOUBLE_CLICK_THRESHOLD_MS) {
       e.preventDefault();
       return;
@@ -319,6 +331,7 @@ const Slider = ({
   };
 
   const handleTouchStart = (e: React.TouchEvent<HTMLInputElement>) => {
+    if (disabled) return;
     if (e.touches.length === 0) return;
 
     const touch = e.touches[0];
@@ -390,6 +403,7 @@ const Slider = ({
   };
 
   const handleValueClick = () => {
+    if (disabled) return;
     setIsEditing(true);
   };
 
@@ -480,7 +494,7 @@ const Slider = ({
   const numericValue = isNaN(Number(value)) ? 0 : Number(value);
 
   return (
-    <div className="mb-2 group" ref={containerRef}>
+    <div className={`mb-2 group ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`} ref={containerRef}>
       <div className="flex justify-between items-center mb-1">
         <div
           className={`grid ${typeof label === 'string' ? 'cursor-pointer' : ''}`}
@@ -512,6 +526,7 @@ const Slider = ({
           {isEditing ? (
             <input
               className="w-full text-sm text-right bg-card-active border border-gray-500 rounded-sm px-1 py-0 outline-none focus:ring-1 focus:ring-blue-500 text-text-primary"
+              disabled={disabled}
               max={max}
               min={min}
               onBlur={handleInputCommit}
@@ -524,7 +539,7 @@ const Slider = ({
             />
           ) : (
             <span
-              className="text-sm text-text-primary w-full text-right select-none cursor-text"
+              className={`text-sm text-text-primary w-full text-right select-none ${disabled ? 'cursor-not-allowed' : 'cursor-text'}`}
               onClick={handleValueClick}
               onDoubleClick={handleReset}
               data-tooltip={t('ui.slider.clickToEdit')}
@@ -555,9 +570,10 @@ const Slider = ({
           aria-valuemin={min}
           aria-valuemax={max}
           aria-valuenow={value}
-          className={`absolute top-1/2 left-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer m-0 p-0 slider-input z-10 ${
-            isDragging ? 'slider-thumb-active' : ''
-          }`}
+          disabled={disabled}
+          className={`absolute top-1/2 left-0 w-full h-1.5 appearance-none bg-transparent m-0 p-0 slider-input z-10 ${
+            disabled ? 'cursor-not-allowed' : 'cursor-pointer'
+          } ${isDragging ? 'slider-thumb-active' : ''}`}
           style={{ margin: 0, touchAction: isDragging ? 'none' : 'pan-y' }}
           max={String(max)}
           min={String(min)}

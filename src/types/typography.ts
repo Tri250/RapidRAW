@@ -1,4 +1,4 @@
-export type TextVariant = 'displayLarge' | 'display' | 'headline' | 'title' | 'heading' | 'body' | 'label' | 'small';
+export type TextVariant = 'displayLarge' | 'display' | 'headline' | 'title' | 'heading' | 'body' | 'label' | 'small' | 'caption';
 export type TextWeight = 'bold' | 'semibold' | 'medium' | 'normal';
 export type TextColor = 'primary' | 'secondary' | 'accent' | 'button' | 'info' | 'success' | 'error' | 'white';
 
@@ -97,5 +97,11 @@ export const TextVariants: Record<TextVariant, VariantConfig> = {
     defaultWeight: 'normal',
     defaultColor: 'secondary',
     defaultElement: 'p',
+  },
+  caption: {
+    size: 'text-xs',
+    defaultWeight: 'normal',
+    defaultColor: 'secondary',
+    defaultElement: 'span',
   },
 };

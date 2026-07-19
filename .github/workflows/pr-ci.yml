@@ -47,3 +47,6 @@ jobs:
       build-args: ${{ matrix.args }}
       asset-prefix: ${{ matrix.asset-prefix }}
       mobile: ${{ matrix.mobile }}
+    secrets: inherit
+    permissions:
+      contents: read

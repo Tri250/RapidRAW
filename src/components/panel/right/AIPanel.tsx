@@ -496,26 +496,26 @@ export default function AIPanel() {
     if (config && config.parameters) {
       config.parameters.forEach((param: any) => {
         if (param.defaultValue !== undefined) {
-          subMask.parameters[param.key] = param.defaultValue / (param.multiplier || 1);
+          (subMask.parameters as any)[param.key] = param.defaultValue / (param.multiplier || 1);
         }
       });
     }
 
     if (type === Mask.Linear && subMask.parameters) {
-      subMask.parameters.range = Math.min(imgW, imgH) * 0.1;
+      (subMask.parameters as any).range = Math.min(imgW, imgH) * 0.1;
     }
 
     if (type === Mask.Linear || type === Mask.Radial) {
-      if (!subMask.parameters) subMask.parameters = {};
-      subMask.parameters.isInitialDraw = true;
-      subMask.parameters.startX = -10000;
-      subMask.parameters.startY = -10000;
-      subMask.parameters.endX = -10000;
-      subMask.parameters.endY = -10000;
-      subMask.parameters.centerX = -10000;
-      subMask.parameters.centerY = -10000;
-      subMask.parameters.radiusX = 0;
-      subMask.parameters.radiusY = 0;
+      if (!subMask.parameters) subMask.parameters = {} as any;
+      (subMask.parameters as any).isInitialDraw = true;
+      (subMask.parameters as any).startX = -10000;
+      (subMask.parameters as any).startY = -10000;
+      (subMask.parameters as any).endX = -10000;
+      (subMask.parameters as any).endY = -10000;
+      (subMask.parameters as any).centerX = -10000;
+      (subMask.parameters as any).centerY = -10000;
+      (subMask.parameters as any).radiusX = 0;
+      (subMask.parameters as any).radiusY = 0;
     }
     return subMask;
   };
@@ -1181,6 +1181,7 @@ export default function AIPanel() {
                       copiedSubMask={copiedSubMask}
                       analyzingSubMaskId={analyzingSubMaskId}
                       onAddComponent={(e: React.MouseEvent) => handleAddAiContextMenu(e, container.id)}
+                      handleToggleAiPatchVisibility={handleToggleAiPatchVisibility}
                     />
                   ))}
                 </AnimatePresence>
@@ -1389,6 +1390,7 @@ function ContainerRow({
   copiedSubMask,
   analyzingSubMaskId,
   onAddComponent,
+  handleToggleAiPatchVisibility,
 }: any) {
   const { t } = useTranslation();
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
@@ -1524,7 +1526,7 @@ function ContainerRow({
         >
           {isStandalone ? (
             (() => {
-              const StandaloneIcon = MASK_ICON_MAP[firstSubMask.type] || Circle;
+              const StandaloneIcon = MASK_ICON_MAP[firstSubMask.type as Mask] || Circle;
               return <StandaloneIcon size={18} />;
             })()
           ) : isExpanded ? (
@@ -1693,7 +1695,7 @@ function SubMaskRow({
     setNodeRef(node);
     setDroppableRef(node);
   };
-  const MaskIcon = MASK_ICON_MAP[subMask.type] || Circle;
+  const MaskIcon = MASK_ICON_MAP[subMask.type as Mask] || Circle;
   const { showContextMenu } = useContextMenu();
   const [isHovered, setIsHovered] = useState(false);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -2102,7 +2104,7 @@ function SettingsPanel({
               {subMaskConfig.parameters?.map((param: any) => (
                 <Slider
                   key={param.key}
-                  label={t('editor.ai.params.' + param.key)}
+                  label={t('editor.ai.params.' + param.key as any)}
                   min={param.min}
                   max={param.max}
                   step={param.step}
