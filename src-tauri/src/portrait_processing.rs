@@ -837,36 +837,36 @@ pub fn detect_face_regions(img: &DynamicImage) -> Vec<FaceRegion> {
         let face_cy = cy as f32 + cheight as f32 / 2.0;
 
         // Estimate feature positions based on classical face proportions
-        let eye_y = face_cy - cheight as f32 * 0.22;
+        let eye_y = (face_cy - cheight as f32 * 0.22).max(0.0);
         let eye_sep = cwidth as f32 * 0.28;
         let left_eye = (
-            (face_cx - eye_sep) as u32,
+            (face_cx - eye_sep).max(0.0) as u32,
             eye_y as u32,
-            (cwidth as f32 * 0.18) as u32,
+            (cwidth as f32 * 0.18).max(1.0) as u32,
         );
         let right_eye = (
-            (face_cx + eye_sep) as u32,
+            (face_cx + eye_sep).max(0.0) as u32,
             eye_y as u32,
-            (cwidth as f32 * 0.18) as u32,
+            (cwidth as f32 * 0.18).max(1.0) as u32,
         );
         let nose = (
-            face_cx as u32,
-            (face_cy + cheight as f32 * 0.05) as u32,
-            (cwidth as f32 * 0.12) as u32,
+            face_cx.max(0.0) as u32,
+            (face_cy + cheight as f32 * 0.05).max(0.0) as u32,
+            (cwidth as f32 * 0.12).max(1.0) as u32,
         );
         let mouth = (
-            face_cx as u32,
-            (face_cy + cheight as f32 * 0.30) as u32,
-            (cwidth as f32 * 0.22) as u32,
+            face_cx.max(0.0) as u32,
+            (face_cy + cheight as f32 * 0.30).max(0.0) as u32,
+            (cwidth as f32 * 0.22).max(1.0) as u32,
         );
 
         // Jawline: simple V-shape based on face width/height
         let jaw_width = cwidth as f32 * 0.45;
         let jaw_y = face_cy + cheight as f32 * 0.42;
         let jawline_points = vec![
-            ((face_cx - jaw_width) as u32, jaw_y as u32),
-            (face_cx as u32, (jaw_y + cheight as f32 * 0.08) as u32),
-            ((face_cx + jaw_width) as u32, jaw_y as u32),
+            ((face_cx - jaw_width).max(0.0) as u32, jaw_y.max(0.0) as u32),
+            (face_cx.max(0.0) as u32, (jaw_y + cheight as f32 * 0.08).max(0.0) as u32),
+            ((face_cx + jaw_width).max(0.0) as u32, jaw_y.max(0.0) as u32),
         ];
 
         regions.push(FaceRegion {

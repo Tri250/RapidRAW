@@ -433,10 +433,10 @@ fn process_preview_job(
 
     let pixel_roi = if is_interactive {
         roi.map(|(nx, ny, nw, nh)| crate::gpu_processing::Roi {
-            x: (nx * preview_width as f32).round() as u32,
-            y: (ny * preview_height as f32).round() as u32,
-            width: (nw * preview_width as f32).round() as u32,
-            height: (nh * preview_height as f32).round() as u32,
+            x: (nx.max(0.0) * preview_width as f32).round() as u32,
+            y: (ny.max(0.0) * preview_height as f32).round() as u32,
+            width: (nw.max(0.0) * preview_width as f32).round().max(1) as u32,
+            height: (nh.max(0.0) * preview_height as f32).round().max(1) as u32,
         })
     } else {
         None
