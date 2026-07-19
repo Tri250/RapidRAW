@@ -95,8 +95,10 @@ export function usePresets(currentAdjustments: Adjustments) {
 
     let updatedPresets: Array<UserPreset>;
     if (folderId) {
+      let folderFound = false;
       updatedPresets = presets.map((item: UserPreset) => {
         if (item.folder && item.folder.id === folderId) {
+          folderFound = true;
           return {
             folder: {
               ...item.folder,
@@ -106,6 +108,11 @@ export function usePresets(currentAdjustments: Adjustments) {
         }
         return item;
       });
+      // Bug fix: if folderId was specified but no matching folder exists,
+      // fallback to adding at root instead of silently dropping the preset.
+      if (!folderFound) {
+        updatedPresets = [...updatedPresets, { preset: newPresetData }];
+      }
     } else {
       updatedPresets = [...presets, { preset: newPresetData }];
     }
@@ -300,12 +307,10 @@ export function usePresets(currentAdjustments: Adjustments) {
 
     const includeMasks =
       existingPreset.includeMasks ??
-      (existingPreset.adjustments?.masks && existingPreset.adjustments.masks.length > 0) ??
-      false;
+      !!(existingPreset.adjustments?.masks && existingPreset.adjustments.masks.length > 0);
     const includeCropTransform =
       existingPreset.includeCropTransform ??
-      GEOMETRY_KEYS.some((key) => existingPreset.adjustments?.[key] !== undefined) ??
-      false;
+      GEOMETRY_KEYS.some((key) => existingPreset.adjustments?.[key] !== undefined);
     const presetType = existingPreset.presetType || 'style';
 
     const presetAdjustments: Record<string, any> = {};
@@ -602,7 +607,7 @@ export function usePresets(currentAdjustments: Adjustments) {
     [setPresets],
   );
 
-  const exportPresetsToFile = useCallback(async (presetsToExport: Array<any>, filePath: string) => {
+  const exportPresetsToFile = useCallback(async (presetsToExport: Array<UserPreset>, filePath: string) => {
     // Validate the file path
     if (!filePath || typeof filePath !== 'string' || filePath.trim() === '') {
       throw new Error('File path is required for exporting presets');

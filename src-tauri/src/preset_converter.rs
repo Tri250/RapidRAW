@@ -340,12 +340,28 @@ pub fn convert_xmp_to_preset(xmp_content: &str) -> Result<Preset, String> {
     let preset_name =
         extract_xmp_name(xmp_content).unwrap_or_else(|| "Imported Preset".to_string());
 
+    // Infer include_crop_transform from geometry-related keys in the XMP
+    let has_crop = attrs.contains_key("CropTop")
+        || attrs.contains_key("CropLeft")
+        || attrs.contains_key("CropBottom")
+        || attrs.contains_key("CropRight")
+        || attrs.contains_key("CropAngle")
+        || attrs.contains_key("CropConstrainToWarp");
+
+    let include_crop_transform = Some(has_crop);
+
+    // Infer include_masks from mask-related keys (Lightroom uses RangeMask)
+    let has_masks = attrs.contains_key("RangeMaskType")
+        || attrs.contains_key("RangeMaskRangeAmount");
+
+    let include_masks = Some(has_masks);
+
     Ok(Preset {
         id: Uuid::new_v4().to_string(),
         name: preset_name,
         adjustments: Value::Object(adjustments),
-        include_masks: Some(false),
-        include_crop_transform: Some(false),
+        include_masks,
+        include_crop_transform,
         preset_type: Some("style".to_string()),
     })
 }

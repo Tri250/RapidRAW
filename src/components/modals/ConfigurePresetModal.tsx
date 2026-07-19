@@ -115,8 +115,7 @@ export default function ConfigurePresetModal({ isOpen, onClose, onSave, initialP
       setName(initialPreset?.name || '');
       setIncludeMasks(
         initialPreset?.includeMasks ??
-          (initialPreset?.adjustments?.masks && initialPreset.adjustments.masks.length > 0) ??
-          false,
+          !!(initialPreset?.adjustments?.masks && initialPreset.adjustments.masks.length > 0),
       );
 
       const GEOMETRY_KEYS = ADJUSTMENT_GROUPS.geometry.flatMap((group) => group.keys);
