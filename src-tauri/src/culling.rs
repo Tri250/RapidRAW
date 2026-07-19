@@ -162,14 +162,8 @@ fn analyze_image(
         let sharpness = calculate_laplacian_variance(&center_crop);
 
         let (cw, ch) = center_crop.dimensions();
-        let inner_crop = imageops::crop_imm(
-            &center_crop,
-            cw / 4,
-            ch / 4,
-            cw / 2,
-            ch / 2,
-        )
-        .to_image();
+        let inner_crop =
+            imageops::crop_imm(&center_crop, cw / 4, ch / 4, cw / 2, ch / 2).to_image();
         let center_focus = calculate_laplacian_variance(&inner_crop);
 
         (sharpness, center_focus)

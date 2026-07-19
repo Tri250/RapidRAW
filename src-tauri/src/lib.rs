@@ -1120,12 +1120,7 @@ async fn preview_geometry_transform(
                 let y3 = (y1 + b).clamp(0.0, max_y);
                 let x4 = (x2 + a).clamp(0.0, max_x);
                 let y4 = (y2 + b).clamp(0.0, max_y);
-                draw_line_segment_mut(
-                    &mut visualization,
-                    (x3, y3),
-                    (x4, y4),
-                    color,
-                );
+                draw_line_segment_mut(&mut visualization, (x3, y3), (x4, y4), color);
             }
 
             DynamicImage::ImageRgba8(visualization)

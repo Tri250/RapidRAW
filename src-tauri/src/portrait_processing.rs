@@ -1,8 +1,8 @@
-#[allow(clippy::too_many_arguments)]
-#[allow(clippy::collapsible_if)]
-#[allow(clippy::needless_range_loop)]
-#[allow(clippy::excessive_precision)]
-#[allow(clippy::ptr_arg)]
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::needless_range_loop)]
+#![allow(clippy::excessive_precision)]
+#![allow(clippy::ptr_arg)]
 
 use image::{DynamicImage, GenericImageView, Rgba, RgbaImage};
 use rayon::prelude::*;
@@ -865,7 +865,10 @@ pub fn detect_face_regions(img: &DynamicImage) -> Vec<FaceRegion> {
         let jaw_y = face_cy + cheight as f32 * 0.42;
         let jawline_points = vec![
             ((face_cx - jaw_width).max(0.0) as u32, jaw_y.max(0.0) as u32),
-            (face_cx.max(0.0) as u32, (jaw_y + cheight as f32 * 0.08).max(0.0) as u32),
+            (
+                face_cx.max(0.0) as u32,
+                (jaw_y + cheight as f32 * 0.08).max(0.0) as u32,
+            ),
             ((face_cx + jaw_width).max(0.0) as u32, jaw_y.max(0.0) as u32),
         ];
 

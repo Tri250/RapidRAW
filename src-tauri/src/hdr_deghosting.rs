@@ -341,10 +341,7 @@ fn deghost_aligned_frames(frames: &mut [HdrFrame], reference_index: usize) {
         .map(|(_, img, exposure, gains)| {
             let rgb32f = img.to_rgb32f();
             let ev = exposure.as_secs_f32().max(1e-10);
-            let flat: Vec<[f32; 3]> = rgb32f
-                .pixels()
-                .map(|p| [p[0], p[1], p[2]])
-                .collect();
+            let flat: Vec<[f32; 3]> = rgb32f.pixels().map(|p| [p[0], p[1], p[2]]).collect();
             (flat, ev, *gains)
         })
         .collect();

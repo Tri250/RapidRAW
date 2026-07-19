@@ -1,4 +1,4 @@
-#[allow(clippy::too_many_arguments)]
+#![allow(clippy::too_many_arguments)]
 
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -18,7 +18,6 @@ use crate::app_settings::load_settings;
 use crate::app_state::AppState;
 use crate::cache_utils::GEOMETRY_KEYS;
 use crate::file_management::parse_virtual_path;
-use crate::formats::is_raw_file;
 use crate::get_cached_full_warped_image;
 use crate::tagging::{extract_color_tags, generate_tags_with_clip};
 
@@ -1003,13 +1002,13 @@ pub fn apply_super_resolution(
         for x in 0..new_w {
             let orig = upscaled.get_pixel(x, y);
             let blur = chroma_blurred.get_pixel(x, y);
-            let r = ((orig[0] as f32 * (1.0 - chroma_blend) + blur[0] as f32 * chroma_blend))
+            let r = (orig[0] as f32 * (1.0 - chroma_blend) + blur[0] as f32 * chroma_blend)
                 .round()
                 .clamp(0.0, 255.0) as u8;
-            let g = ((orig[1] as f32 * (1.0 - chroma_blend) + blur[1] as f32 * chroma_blend))
+            let g = (orig[1] as f32 * (1.0 - chroma_blend) + blur[1] as f32 * chroma_blend)
                 .round()
                 .clamp(0.0, 255.0) as u8;
-            let b = ((orig[2] as f32 * (1.0 - chroma_blend) + blur[2] as f32 * chroma_blend))
+            let b = (orig[2] as f32 * (1.0 - chroma_blend) + blur[2] as f32 * chroma_blend)
                 .round()
                 .clamp(0.0, 255.0) as u8;
             upscaled.put_pixel(x, y, Rgba([r, g, b, orig[3]]));
