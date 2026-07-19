@@ -311,68 +311,76 @@ pub fn apply_face_reshape(
     }
 
     let src = img.to_rgba8();
-    let mut dst = RgbaImage::from_pixel(w, h, Rgba([0, 0, 0, 0]));
+    let mut dst_buf = vec![0u8; (w * h * 4) as usize];
 
     let slim = slim_amount.clamp(-1.0, 1.0);
     let jaw = jaw_amount.clamp(-1.0, 1.0);
 
     // Build warp field: for each output pixel, compute source pixel
     // using inverse mapping with bilinear interpolation
-    for y_out in 0..h {
-        for x_out in 0..w {
-            let mut sx = x_out as f32;
-            let mut sy = y_out as f32;
+    dst_buf
+        .par_chunks_exact_mut(4 * w as usize)
+        .enumerate()
+        .for_each(|(y_out, row)| {
+            for x_out in 0..w {
+                let mut sx = x_out as f32;
+                let mut sy = y_out as f32;
 
-            for face in face_regions {
-                let (fx, fy, fw, fh) = face.face_rect;
-                let face_cx = fx as f32 + fw as f32 / 2.0;
-                let face_cy = fy as f32 + fh as f32 / 2.0;
+                for face in face_regions {
+                    let (fx, fy, fw, fh) = face.face_rect;
+                    let face_cx = fx as f32 + fw as f32 / 2.0;
+                    let face_cy = fy as f32 + fh as f32 / 2.0;
 
-                // Slim: horizontal displacement toward center, strongest at jaw level
-                if slim.abs() > 1e-4 {
-                    let dx = sx - face_cx;
-                    let dy = sy - face_cy;
+                    // Slim: horizontal displacement toward center, strongest at jaw level
+                    if slim.abs() > 1e-4 {
+                        let dx = sx - face_cx;
+                        let dy = sy - face_cy;
 
-                    // Influence region: elliptical around the face
-                    let norm_x = dx / (fw as f32 / 2.0).max(1.0);
-                    let norm_y = dy / (fh as f32 / 2.0).max(1.0);
-
-                    let dist_sq = norm_x * norm_x + norm_y * norm_y;
-                    if dist_sq < 1.0 {
-                        // Weight falls off from center, stronger in lower half (jaw)
-                        let lower_weight = (norm_y * 0.5 + 0.5).clamp(0.0, 1.0);
-                        let falloff = 1.0 - dist_sq;
-                        let strength = slim * falloff * falloff * lower_weight * 0.3;
-                        sx -= dx * strength;
-                    }
-                }
-
-                // Jaw: vertical compression of lower face
-                if jaw.abs() > 1e-4 {
-                    let dx = sx - face_cx;
-                    let dy = sy - face_cy;
-
-                    let norm_y = dy / (fh as f32 / 2.0).max(1.0);
-
-                    // Only affect lower portion of the face
-                    if norm_y > 0.0 && norm_y < 1.0 {
+                        // Influence region: elliptical around the face
                         let norm_x = dx / (fw as f32 / 2.0).max(1.0);
+                        let norm_y = dy / (fh as f32 / 2.0).max(1.0);
+
                         let dist_sq = norm_x * norm_x + norm_y * norm_y;
                         if dist_sq < 1.0 {
+                            // Weight falls off from center, stronger in lower half (jaw)
+                            let lower_weight = (norm_y * 0.5 + 0.5).clamp(0.0, 1.0);
                             let falloff = 1.0 - dist_sq;
-                            let strength = jaw * falloff * falloff * 0.15;
-                            sy -= dy * strength;
+                            let strength = slim * falloff * falloff * lower_weight * 0.3;
+                            sx -= dx * strength;
+                        }
+                    }
+
+                    // Jaw: vertical compression of lower face
+                    if jaw.abs() > 1e-4 {
+                        let dx = sx - face_cx;
+                        let dy = sy - face_cy;
+
+                        let norm_y = dy / (fh as f32 / 2.0).max(1.0);
+
+                        // Only affect lower portion of the face
+                        if norm_y > 0.0 && norm_y < 1.0 {
+                            let norm_x = dx / (fw as f32 / 2.0).max(1.0);
+                            let dist_sq = norm_x * norm_x + norm_y * norm_y;
+                            if dist_sq < 1.0 {
+                                let falloff = 1.0 - dist_sq;
+                                let strength = jaw * falloff * falloff * 0.15;
+                                sy -= dy * strength;
+                            }
                         }
                     }
                 }
+
+                // Bilinear interpolation from source
+                let px = sample_bilinear_rgba(&src, w, h, sx, sy);
+                let idx = x_out as usize * 4;
+                row[idx] = px[0];
+                row[idx + 1] = px[1];
+                row[idx + 2] = px[2];
+                row[idx + 3] = px[3];
             }
+        });
 
-            // Bilinear interpolation from source
-            let px = sample_bilinear_rgba(&src, w, h, sx, sy);
-            dst.put_pixel(x_out, y_out, px);
-        }
-    }
-
+    let dst = RgbaImage::from_raw(w, h, dst_buf).expect("buffer size mismatch");
     *img = DynamicImage::ImageRgba8(dst);
     Ok(())
 }
@@ -399,40 +407,48 @@ pub fn apply_eye_enlarge(
     }
 
     let src = img.to_rgba8();
-    let mut dst = RgbaImage::from_pixel(w, h, Rgba([0, 0, 0, 0]));
+    let mut dst_buf = vec![0u8; (w * h * 4) as usize];
 
     let magnify = 1.0 + amount.clamp(0.0, 1.0) * 0.5; // 1.0 .. 1.5
 
-    for y_out in 0..h {
-        for x_out in 0..w {
-            let mut sx = x_out as f32;
-            let mut sy = y_out as f32;
+    dst_buf
+        .par_chunks_exact_mut(4 * w as usize)
+        .enumerate()
+        .for_each(|(y_out, row)| {
+            for x_out in 0..w {
+                let mut sx = x_out as f32;
+                let mut sy = y_out as f32;
 
-            for &(ecx, ecy, er) in eye_regions {
-                let dx = x_out as f32 - ecx as f32;
-                let dy = y_out as f32 - ecy as f32;
-                let dist = (dx * dx + dy * dy).sqrt();
-                let r = er.max(1) as f32;
+                for &(ecx, ecy, er) in eye_regions {
+                    let dx = x_out as f32 - ecx as f32;
+                    let dy = y_out as f32 - ecy as f32;
+                    let dist = (dx * dx + dy * dy).sqrt();
+                    let r = er.max(1) as f32;
 
-                if dist < r {
-                    // Spherical magnification: map output pixel back to a
-                    // contracted source position inside the eye
-                    let norm = dist / r;
-                    // Smooth falloff so edges blend seamlessly
-                    let weight = 1.0 - norm * norm; // quadratic falloff
-                    let effective_magnify = 1.0 + (magnify - 1.0) * weight;
+                    if dist < r {
+                        // Spherical magnification: map output pixel back to a
+                        // contracted source position inside the eye
+                        let norm = dist / r;
+                        // Smooth falloff so edges blend seamlessly
+                        let weight = 1.0 - norm * norm; // quadratic falloff
+                        let effective_magnify = 1.0 + (magnify - 1.0) * weight;
 
-                    sx = ecx as f32 + dx / effective_magnify;
-                    sy = ecy as f32 + dy / effective_magnify;
-                    break; // Only apply the first matching eye region
+                        sx = ecx as f32 + dx / effective_magnify;
+                        sy = ecy as f32 + dy / effective_magnify;
+                        break; // Only apply the first matching eye region
+                    }
                 }
+
+                let px = sample_bilinear_rgba(&src, w, h, sx, sy);
+                let idx = x_out as usize * 4;
+                row[idx] = px[0];
+                row[idx + 1] = px[1];
+                row[idx + 2] = px[2];
+                row[idx + 3] = px[3];
             }
+        });
 
-            let px = sample_bilinear_rgba(&src, w, h, sx, sy);
-            dst.put_pixel(x_out, y_out, px);
-        }
-    }
-
+    let dst = RgbaImage::from_raw(w, h, dst_buf).expect("buffer size mismatch");
     *img = DynamicImage::ImageRgba8(dst);
     Ok(())
 }
@@ -454,9 +470,10 @@ pub fn apply_teeth_whitening(
         return Err("Image has zero dimensions".to_string());
     }
 
-    let mut rgba = img.to_rgba8();
+    let mut rgba_buf = img.to_rgba8().into_raw();
     let brightness_factor = 1.0 + brightness.clamp(0.0, 1.0) * 0.5;
     let sat_factor = 1.0 - saturation.clamp(0.0, 1.0) * 0.8;
+    let row_bytes = w as usize * 4;
 
     for &(cx, cy, radius) in regions {
         let r = radius.max(1) as i32;
@@ -465,44 +482,57 @@ pub fn apply_teeth_whitening(
         let y_min = (cy as i32 - r).max(0) as u32;
         let y_max = (cy as i32 + r).min(h as i32 - 1) as u32;
 
-        for y in y_min..=y_max {
-            for x in x_min..=x_max {
-                let dx = x as f32 - cx as f32;
-                let dy = y as f32 - cy as f32;
-                let dist = (dx * dx + dy * dy).sqrt();
-                if dist > r as f32 {
-                    continue;
+        let region_start = y_min as usize * row_bytes;
+        let region_end = (y_max as usize + 1) * row_bytes;
+        let slice = &mut rgba_buf[region_start..region_end];
+
+        slice
+            .par_chunks_exact_mut(row_bytes)
+            .enumerate()
+            .for_each(|(dy, row)| {
+                let y = y_min + dy as u32;
+                for x in x_min..=x_max {
+                    let dx = x as f32 - cx as f32;
+                    let dy_f = y as f32 - cy as f32;
+                    let dist = (dx * dx + dy_f * dy_f).sqrt();
+                    if dist > r as f32 {
+                        continue;
+                    }
+
+                    let idx = x as usize * 4;
+                    let pixel = &row[idx..idx + 4];
+                    let (rf, gf, bf) = rgb_to_f32(pixel[0], pixel[1], pixel[2]);
+
+                    // Convert to HSL
+                    let (hue, sat, lum) = rgb_to_hsl(rf, gf, bf);
+
+                    // Teeth are typically: hue 30-65 (yellow-ish), low-medium saturation, medium-high lightness
+                    let is_tooth_hue = hue > 20.0 && hue < 80.0;
+                    let is_tooth_sat = sat < 0.55;
+                    let is_tooth_lum = lum > 0.25;
+
+                    if is_tooth_hue && is_tooth_sat && is_tooth_lum {
+                        // Distance-based weight for smooth falloff
+                        let weight = 1.0 - (dist / r as f32);
+                        let weight = weight * weight; // Quadratic falloff
+
+                        // New saturation (reduce yellow) and brightness
+                        let new_sat = sat * (1.0 - weight * (1.0 - sat_factor));
+                        let new_lum = lum + (1.0 - lum) * weight * (brightness_factor - 1.0) * 0.5;
+
+                        let (nr, ng, nb) = hsl_to_rgb(hue, new_sat, new_lum.clamp(0.0, 1.0));
+                        let (r8, g8, b8) = f32_to_rgb(nr, ng, nb);
+
+                        row[idx] = r8;
+                        row[idx + 1] = g8;
+                        row[idx + 2] = b8;
+                        row[idx + 3] = pixel[3];
+                    }
                 }
-
-                let pixel = rgba.get_pixel(x, y);
-                let (rf, gf, bf) = rgb_to_f32(pixel[0], pixel[1], pixel[2]);
-
-                // Convert to HSL
-                let (hue, sat, lum) = rgb_to_hsl(rf, gf, bf);
-
-                // Teeth are typically: hue 30-65 (yellow-ish), low-medium saturation, medium-high lightness
-                let is_tooth_hue = hue > 20.0 && hue < 80.0;
-                let is_tooth_sat = sat < 0.55;
-                let is_tooth_lum = lum > 0.25;
-
-                if is_tooth_hue && is_tooth_sat && is_tooth_lum {
-                    // Distance-based weight for smooth falloff
-                    let weight = 1.0 - (dist / r as f32);
-                    let weight = weight * weight; // Quadratic falloff
-
-                    // New saturation (reduce yellow) and brightness
-                    let new_sat = sat * (1.0 - weight * (1.0 - sat_factor));
-                    let new_lum = lum + (1.0 - lum) * weight * (brightness_factor - 1.0) * 0.5;
-
-                    let (nr, ng, nb) = hsl_to_rgb(hue, new_sat, new_lum.clamp(0.0, 1.0));
-                    let (r8, g8, b8) = f32_to_rgb(nr, ng, nb);
-
-                    rgba.put_pixel(x, y, Rgba([r8, g8, b8, pixel[3]]));
-                }
-            }
-        }
+            });
     }
 
+    let rgba = RgbaImage::from_raw(w, h, rgba_buf).expect("buffer size mismatch");
     *img = DynamicImage::ImageRgba8(rgba);
     Ok(())
 }
@@ -522,8 +552,9 @@ pub fn apply_eye_brighten(
         return Err("Image has zero dimensions".to_string());
     }
 
-    let mut rgba = img.to_rgba8();
+    let mut rgba_buf = img.to_rgba8().into_raw();
     let bright = brightness.clamp(0.0, 1.0) * 0.3; // Max 30% brightness boost
+    let row_bytes = w as usize * 4;
 
     for &(cx, cy, radius) in regions {
         let r = radius.max(1) as i32;
@@ -532,41 +563,54 @@ pub fn apply_eye_brighten(
         let y_min = (cy as i32 - r).max(0) as u32;
         let y_max = (cy as i32 + r).min(h as i32 - 1) as u32;
 
-        for y in y_min..=y_max {
-            for x in x_min..=x_max {
-                let dx = x as f32 - cx as f32;
-                let dy = y as f32 - cy as f32;
-                let dist = (dx * dx + dy * dy).sqrt();
-                if dist > r as f32 {
-                    continue;
+        let region_start = y_min as usize * row_bytes;
+        let region_end = (y_max as usize + 1) * row_bytes;
+        let slice = &mut rgba_buf[region_start..region_end];
+
+        slice
+            .par_chunks_exact_mut(row_bytes)
+            .enumerate()
+            .for_each(|(dy, row)| {
+                let y = y_min + dy as u32;
+                for x in x_min..=x_max {
+                    let dx = x as f32 - cx as f32;
+                    let dy_f = y as f32 - cy as f32;
+                    let dist = (dx * dx + dy_f * dy_f).sqrt();
+                    if dist > r as f32 {
+                        continue;
+                    }
+
+                    let weight = 1.0 - (dist / r as f32);
+                    let weight = weight * weight;
+
+                    let idx = x as usize * 4;
+                    let pixel = &row[idx..idx + 4];
+                    let (rf, gf, bf) = rgb_to_f32(pixel[0], pixel[1], pixel[2]);
+                    let lum = luminance(rf, gf, bf);
+
+                    // Increase brightness: push toward 1.0
+                    let boost = bright * weight;
+                    let new_r = rf + (1.0 - rf) * boost;
+                    let new_g = gf + (1.0 - gf) * boost;
+                    let new_b = bf + (1.0 - bf) * boost;
+
+                    // Slight contrast boost around midtones
+                    let contrast_boost = 1.0 + weight * bright * 0.5;
+                    let mid = 0.5;
+                    let cr = mid + (new_r - mid) * contrast_boost;
+                    let cg = mid + (new_g - mid) * contrast_boost;
+                    let cb = mid + (new_b - mid) * contrast_boost;
+
+                    let (r8, g8, b8) = f32_to_rgb(cr, cg, cb);
+                    row[idx] = r8;
+                    row[idx + 1] = g8;
+                    row[idx + 2] = b8;
+                    row[idx + 3] = pixel[3];
                 }
-
-                let weight = 1.0 - (dist / r as f32);
-                let weight = weight * weight;
-
-                let pixel = rgba.get_pixel(x, y);
-                let (rf, gf, bf) = rgb_to_f32(pixel[0], pixel[1], pixel[2]);
-                let lum = luminance(rf, gf, bf);
-
-                // Increase brightness: push toward 1.0
-                let boost = bright * weight;
-                let new_r = rf + (1.0 - rf) * boost;
-                let new_g = gf + (1.0 - gf) * boost;
-                let new_b = bf + (1.0 - bf) * boost;
-
-                // Slight contrast boost around midtones
-                let contrast_boost = 1.0 + weight * bright * 0.5;
-                let mid = 0.5;
-                let cr = mid + (new_r - mid) * contrast_boost;
-                let cg = mid + (new_g - mid) * contrast_boost;
-                let cb = mid + (new_b - mid) * contrast_boost;
-
-                let (r8, g8, b8) = f32_to_rgb(cr, cg, cb);
-                rgba.put_pixel(x, y, Rgba([r8, g8, b8, pixel[3]]));
-            }
-        }
+            });
     }
 
+    let rgba = RgbaImage::from_raw(w, h, rgba_buf).expect("buffer size mismatch");
     *img = DynamicImage::ImageRgba8(rgba);
     Ok(())
 }

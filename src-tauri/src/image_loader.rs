@@ -372,13 +372,22 @@ pub fn load_image_with_orientation(
         Ok(())
     };
 
+    // Read EXIF orientation before spawning the decode thread (fast, synchronous).
+    // This avoids an extra clone of the byte buffer.
+    let orientation = {
+        let exif_reader = ExifReader::new();
+        let mut exif_cursor = Cursor::new(bytes);
+        exif_reader.read_from_container(&mut exif_cursor)
+            .ok()
+            .and_then(|exif| {
+                exif.get_field(Tag::Orientation, exif::In::PRIMARY)
+                    .and_then(|f| f.value.get_uint(0))
+            })
+            .map(|o| Orientation::from_u16(o as u16))
+    };
+
     // Clone bytes to an owned Vec so the decode thread can take ownership.
-    // The original `bytes: &[u8]` borrows from the caller and cannot be moved
-    // into a `'static` thread — cloning here is necessary for thread safety.
     let bytes_owned = bytes.to_vec();
-    // Keep a separate clone for EXIF reading after decode (the decode thread
-    // consumes its own clone via Cursor).
-    let bytes_for_exif = bytes_owned.clone();
     let cursor = Cursor::new(bytes_owned);
     let mut reader = ImageReader::new(cursor)
         .with_guessed_format()
@@ -437,24 +446,11 @@ pub fn load_image_with_orientation(
         ));
     }
 
-    let oriented_image = {
-        let exif_reader = ExifReader::new();
-        // Create a new cursor from the owned bytes for EXIF reading
-        // (the original cursor was moved into the decode thread)
-        let exif_cursor = Cursor::new(bytes_for_exif);
-        if let Ok(exif) = exif_reader.read_from_container(&mut exif_cursor.clone()) {
-            if let Some(orientation) = exif
-                .get_field(Tag::Orientation, exif::In::PRIMARY)
-                .and_then(|f| f.value.get_uint(0))
-            {
-                check_cancel()?;
-                apply_orientation(image, Orientation::from_u16(orientation as u16))
-            } else {
-                image
-            }
-        } else {
-            image
-        }
+    let oriented_image = if let Some(orientation) = orientation {
+        check_cancel()?;
+        apply_orientation(image, orientation)
+    } else {
+        image
     };
 
     Ok(DynamicImage::ImageRgb32F(oriented_image.to_rgb32f()))
