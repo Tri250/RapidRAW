@@ -443,24 +443,24 @@ export function useAiMasking() {
     [setEditor],
   );
 
-  useEffect(() => {
-    const { activeMaskId, activeAiSubMaskId, adjustments, selectedImage } = useEditorStore.getState();
-    const activeSubMask =
-      adjustments?.masks?.flatMap((m: MaskContainer) => m.subMasks).find((sm: SubMask) => sm.id === activeMaskId) ||
-      adjustments?.aiPatches?.flatMap((p: AiPatch) => p.subMasks).find((sm: SubMask) => sm.id === activeAiSubMaskId);
+  const activeMaskId = useEditorStore((state) => state.activeMaskId);
+  const activeAiSubMaskId = useEditorStore((state) => state.activeAiSubMaskId);
+  const selectedImagePath = useEditorStore((state) => state.selectedImage?.path);
+  const adjustmentsForPrecompute = useEditorStore((state) => state.adjustments);
 
-    if (activeSubMask?.type === 'ai-subject' && selectedImage?.path) {
-      const transformAdjustments = getTransformAdjustments(adjustments);
+  useEffect(() => {
+    const activeSubMask =
+      adjustmentsForPrecompute?.masks?.flatMap((m: MaskContainer) => m.subMasks).find((sm: SubMask) => sm.id === activeMaskId) ||
+      adjustmentsForPrecompute?.aiPatches?.flatMap((p: AiPatch) => p.subMasks).find((sm: SubMask) => sm.id === activeAiSubMaskId);
+
+    if (activeSubMask?.type === 'ai-subject' && selectedImagePath) {
+      const transformAdjustments = getTransformAdjustments(adjustmentsForPrecompute);
       invoke(Invokes.PrecomputeAiSubjectMask, {
         jsAdjustments: transformAdjustments,
-        path: selectedImage.path,
+        path: selectedImagePath,
       }).catch((err) => console.error('Failed to precompute AI subject mask:', err));
     }
-  }, [
-    useEditorStore.getState().activeMaskId,
-    useEditorStore.getState().activeAiSubMaskId,
-    useEditorStore.getState().selectedImage?.path,
-  ]);
+  }, [activeMaskId, activeAiSubMaskId, selectedImagePath, adjustmentsForPrecompute]);
 
   return {
     updateSubMask,

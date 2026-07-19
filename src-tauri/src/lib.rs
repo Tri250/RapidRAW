@@ -1107,11 +1107,23 @@ async fn preview_geometry_transform(
                 let x2 = x0 - dist * (-b);
                 let y2 = y0 - dist * (a);
 
+                // Clamp line endpoints to image bounds to prevent overflow in draw_line_segment_mut
+                let max_x = visualization.width() as f32;
+                let max_y = visualization.height() as f32;
+                let x1 = x1.clamp(0.0, max_x);
+                let y1 = y1.clamp(0.0, max_y);
+                let x2 = x2.clamp(0.0, max_x);
+                let y2 = y2.clamp(0.0, max_y);
+
                 draw_line_segment_mut(&mut visualization, (x1, y1), (x2, y2), color);
+                let x3 = (x1 + a).clamp(0.0, max_x);
+                let y3 = (y1 + b).clamp(0.0, max_y);
+                let x4 = (x2 + a).clamp(0.0, max_x);
+                let y4 = (y2 + b).clamp(0.0, max_y);
                 draw_line_segment_mut(
                     &mut visualization,
-                    (x1 + a, y1 + b),
-                    (x2 + a, y2 + b),
+                    (x3, y3),
+                    (x4, y4),
                     color,
                 );
             }

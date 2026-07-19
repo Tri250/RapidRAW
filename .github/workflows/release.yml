@@ -3,6 +3,9 @@ name: 'Release: Build & Package App'
 on:
   release:
     types: [created]
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   release:
@@ -43,7 +46,7 @@ jobs:
             asset-prefix: '04'
     uses: ./.github/workflows/build.yml
     with:
-      release-id: ${{ github.event.release.id }}
+      release-id: ${{ github.event.release.id || '' }}
       platform: ${{ matrix.platform }}
       target: ${{ matrix.target }}
       build-args: ${{ matrix.build-args }}
