@@ -58,17 +58,19 @@ fn gaussian(x: f32, sigma: f32) -> f32 {
 }
 
 // ---------------------------------------------------------------------------
-// 1. Skin Smoothing – Bilateral Filter
+// 1. Skin Smoothing – Bilateral Filter with skin mask
 // ---------------------------------------------------------------------------
 
-/// Apply bilateral filter for skin smoothing.
+/// Apply bilateral filter for skin smoothing, restricted to skin regions.
 /// `strength` controls the range sigma (0..1 maps to range_sigma 10..75).
 /// `detail_preserve` modulates how much edge detail is retained (0..1).
 /// Spatial sigma is fixed at 3.0 as specified.
+/// When `face_regions` is empty, falls back to global smoothing (for backward compat).
 pub fn apply_skin_smoothing(
     img: &mut DynamicImage,
     strength: f32,
     detail_preserve: f32,
+    face_regions: &[FaceRegion],
 ) -> Result<(), String> {
     let (w, h) = img.dimensions();
     if w == 0 || h == 0 {
@@ -93,12 +95,27 @@ pub fn apply_skin_smoothing(
     let w_usize = w as usize;
     let h_usize = h as usize;
 
+    // Build skin-only feather mask: face regions + skin confidence
+    let skin_mask = build_feathered_skin_mask(&src, w, h, face_regions);
+
     result
         .par_chunks_mut(4)
         .enumerate()
         .for_each(|(idx, pixel)| {
             let x = idx % w_usize;
             let y = idx / w_usize;
+
+            let mask_val = skin_mask[idx];
+
+            // If fully outside skin region, keep original pixel
+            if mask_val <= 0.001 {
+                let center_offset = (y * w_usize + x) * 4;
+                pixel[0] = src_raw[center_offset];
+                pixel[1] = src_raw[center_offset + 1];
+                pixel[2] = src_raw[center_offset + 2];
+                pixel[3] = src_raw[center_offset + 3];
+                return;
+            }
 
             let center_offset = (y * w_usize + x) * 4;
             let cr = src_raw[center_offset] as f32;
@@ -142,9 +159,14 @@ pub fn apply_skin_smoothing(
 
             if w_sum > 0.0 {
                 let inv = 1.0 / w_sum;
-                pixel[0] = (sum_r * inv).round().clamp(0.0, 255.0) as u8;
-                pixel[1] = (sum_g * inv).round().clamp(0.0, 255.0) as u8;
-                pixel[2] = (sum_b * inv).round().clamp(0.0, 255.0) as u8;
+                let smooth_r = (sum_r * inv).round().clamp(0.0, 255.0) as u8;
+                let smooth_g = (sum_g * inv).round().clamp(0.0, 255.0) as u8;
+                let smooth_b = (sum_b * inv).round().clamp(0.0, 255.0) as u8;
+
+                // Blend smoothed and original by mask value (feathered edge)
+                pixel[0] = ((smooth_r as f32) * mask_val + (src_raw[center_offset] as f32) * (1.0 - mask_val)).round() as u8;
+                pixel[1] = ((smooth_g as f32) * mask_val + (src_raw[center_offset + 1] as f32) * (1.0 - mask_val)).round() as u8;
+                pixel[2] = ((smooth_b as f32) * mask_val + (src_raw[center_offset + 2] as f32) * (1.0 - mask_val)).round() as u8;
                 pixel[3] = src_raw[center_offset + 3];
             } else {
                 pixel[0] = src_raw[center_offset];
@@ -157,6 +179,82 @@ pub fn apply_skin_smoothing(
     let out = RgbaImage::from_raw(w, h, result).ok_or("Failed to create output image")?;
     *img = DynamicImage::ImageRgba8(out);
     Ok(())
+}
+
+/// Build a feathered skin mask: face-region ellipses intersected with skin confidence.
+/// Returns a float mask [0..1] that is 1.0 for definite skin pixels and
+/// falls off smoothly at face boundaries and skin-tone edges.
+fn build_feathered_skin_mask(
+    rgba: &RgbaImage,
+    w: u32,
+    h: u32,
+    face_regions: &[FaceRegion],
+) -> Vec<f32> {
+    let area = (w * h) as usize;
+
+    // If no face regions, return full mask (fallback to global smoothing)
+    if face_regions.is_empty() {
+        return vec![1.0f32; area];
+    }
+
+    let mut mask = vec![0.0f32; area];
+
+    // Step 1: Elliptical falloff mask for each face region
+    for face in face_regions {
+        let (fx, fy, fw, fh) = face.face_rect;
+        let cx = fx as f32 + fw as f32 / 2.0;
+        let cy = fy as f32 + fh as f32 / 2.0;
+
+        // Slightly expand face region to include neck and nearby skin
+        let rx = fw as f32 * 0.65;
+        let ry = fh as f32 * 0.65;
+
+        let x_start = (fx as i32 - (fw as f32 * 0.3) as i32).max(0) as u32;
+        let x_end = (fx + fw + (fw as f32 * 0.3) as u32).min(w - 1);
+        let y_start = (fy as i32 - (fh as f32 * 0.3) as i32).max(0) as u32;
+        let y_end = (fy + fh + (fh as f32 * 0.3) as u32).min(h - 1);
+
+        for y in y_start..=y_end {
+            for x in x_start..=x_end {
+                let dx = x as f32 - cx;
+                let dy = y as f32 - cy;
+                let norm_x = dx / rx.max(1.0);
+                let norm_y = dy / ry.max(1.0);
+                let dist_sq = norm_x * norm_x + norm_y * norm_y;
+
+                let elliptic_weight = if dist_sq < 1.0 {
+                    1.0 - dist_sq
+                } else {
+                    0.0
+                };
+
+                let idx = (y * w + x) as usize;
+                mask[idx] = mask[idx].max(elliptic_weight);
+            }
+        }
+    }
+
+    // Step 2: Multiply by per-pixel skin confidence for finer detail
+    for y in 0..h {
+        for x in 0..w {
+            let idx = (y * w + x) as usize;
+            if mask[idx] > 0.0 {
+                let p = rgba.get_pixel(x, y);
+                let skin_conf = skin_confidence(p[0], p[1], p[2]);
+                // Use a soft threshold: 0.25 = start of falloff, 0.45 = full
+                let skin_weight = if skin_conf >= 0.45 {
+                    1.0
+                } else if skin_conf > 0.25 {
+                    (skin_conf - 0.25) / 0.20
+                } else {
+                    0.0
+                };
+                mask[idx] *= skin_weight;
+            }
+        }
+    }
+
+    mask
 }
 
 // ---------------------------------------------------------------------------
@@ -774,18 +872,19 @@ fn hsl_to_rgb(h: f32, s: f32, l: f32) -> (f32, f32, f32) {
 }
 
 // ---------------------------------------------------------------------------
-// 8. Face Region Detection – Skin-tone detection + connected components
+// 8. Face Region Detection – Multi-model skin detection + facial feature verification
 // ---------------------------------------------------------------------------
 
-/// Detect face regions using YCbCr skin-tone detection, connected-component
-/// analysis and elliptical fitting.  Returns a list of `FaceRegion`s suitable
-/// for the portrait-processing pipeline.
+/// Detect face regions using multi-model skin-tone detection, connected-component
+/// analysis, facial feature verification and elliptical fitting.
 ///
-/// The algorithm works in four stages:
-/// 1. YCbCr skin-tone threshold (Cb 77..127, Cr 133..173).
+/// The algorithm works in six stages:
+/// 1. Multi-model skin-tone detection (YCbCr + RGB + HSV fusion).
 /// 2. Binary morphological opening to remove noise.
 /// 3. Connected-component labelling; keep the largest N components.
-/// 4. Elliptical bounding box → infer eye / nose / mouth positions.
+/// 4. Aspect ratio and size filtering.
+/// 5. Facial feature verification (eye symmetry, mouth detection, face shape).
+/// 6. Elliptical bounding box → infer eye / nose / mouth positions.
 pub fn detect_face_regions(img: &DynamicImage) -> Vec<FaceRegion> {
     let (w, h) = img.dimensions();
     if w < 32 || h < 32 {
@@ -794,16 +893,8 @@ pub fn detect_face_regions(img: &DynamicImage) -> Vec<FaceRegion> {
 
     let rgba = img.to_rgba8();
 
-    // 1. Skin-tone mask in YCbCr
-    let mut skin_mask = vec![false; (w * h) as usize];
-    for y in 0..h {
-        for x in 0..w {
-            let p = rgba.get_pixel(x, y);
-            let (y_val, cb, cr) = rgb_to_ycbcr(p[0], p[1], p[2]);
-            let is_skin = cb >= 77.0 && cb <= 127.0 && cr >= 133.0 && cr <= 173.0 && y_val > 40.0;
-            skin_mask[(y * w + x) as usize] = is_skin;
-        }
-    }
+    // 1. Multi-model skin-tone mask
+    let skin_mask = build_skin_mask(&rgba, w, h, 0.35);
 
     // 2. Morphological opening (3x3 erosion + 3x3 dilation)
     let mut opened = vec![false; (w * h) as usize];
@@ -815,21 +906,58 @@ pub fn detect_face_regions(img: &DynamicImage) -> Vec<FaceRegion> {
     let labels = label_connected_components(&dilated, w, h);
     let components = extract_components(&labels, w, h);
 
-    // Keep up to 6 largest components, require minimum area
+    // Keep up to 12 largest components initially, require minimum area
     let mut sorted = components;
     sorted.sort_by(|a, b| b.area.cmp(&a.area));
-    let min_area = ((w as usize * h as usize) / 100).max(100);
+    let min_area = ((w as usize * h as usize) / 200).max(80);
     let top_components: Vec<_> = sorted
         .into_iter()
         .filter(|c| c.area >= min_area)
-        .take(6)
+        .take(12)
         .collect();
 
     if top_components.is_empty() {
         return Vec::new();
     }
 
-    // 4. Fit ellipse / bounding box and infer facial features
+    // 4 & 5. Filter by face-like properties and facial feature verification
+    let mut verified: Vec<(Component, f32)> = Vec::new();
+    for comp in &top_components {
+        let (cx, cy, cwidth, cheight) = comp.bounding_box;
+        let aspect = cwidth as f32 / cheight as f32;
+
+        // Filter 1: Aspect ratio check (face is roughly 0.6 - 1.4 w/h)
+        if aspect < 0.5 || aspect > 1.5 {
+            continue;
+        }
+
+        // Filter 2: Skin pixel density within bounding box (should be mostly skin)
+        let skin_pixels_in_box = comp.area as f32;
+        let box_area = (cwidth as f32) * (cheight as f32);
+        let fill_ratio = skin_pixels_in_box / box_area;
+        if fill_ratio < 0.25 {
+            continue;
+        }
+
+        // Filter 3: Facial feature verification score
+        let feature_score = verify_facial_features(&rgba, w, h, comp);
+        if feature_score < 0.25 {
+            continue;
+        }
+
+        // Combined score: fill ratio + feature score
+        let combined = 0.3 * fill_ratio.min(1.0) + 0.7 * feature_score;
+        verified.push((comp.clone(), combined));
+    }
+
+    verified.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    let top_components: Vec<_> = verified.into_iter().take(6).map(|(c, _)| c).collect();
+
+    if top_components.is_empty() {
+        return Vec::new();
+    }
+
+    // 6. Fit ellipse / bounding box and infer facial features
     let mut regions = Vec::new();
     for comp in &top_components {
         let (cx, cy, cwidth, cheight) = comp.bounding_box;
@@ -883,6 +1011,224 @@ pub fn detect_face_regions(img: &DynamicImage) -> Vec<FaceRegion> {
     }
 
     regions
+}
+
+/// Verify facial features within a candidate face component.
+/// Returns a confidence score in [0..1].
+/// Checks: eye-region darkness + symmetry, mouth-region color,
+/// horizontal/vertical face proportions, symmetry of skin mask.
+fn verify_facial_features(rgba: &RgbaImage, w: u32, h: u32, comp: &Component) -> f32 {
+    let (cx, cy, cwidth, cheight) = comp.bounding_box;
+    if cwidth < 10 || cheight < 10 {
+        return 0.0;
+    }
+
+    let face_cx = cx as f32 + cwidth as f32 / 2.0;
+    let face_cy = cy as f32 + cheight as f32 / 2.0;
+
+    // ---- Check 1: Eye region darkness and symmetry ----
+    let eye_y = (face_cy - cheight as f32 * 0.22).max(cy as f32);
+    let eye_half_h = (cheight as f32 * 0.10).max(3.0);
+    let eye_sep = cwidth as f32 * 0.28;
+    let eye_half_w = (cwidth as f32 * 0.14).max(3.0);
+
+    let left_eye_dark = region_darkness(
+        rgba,
+        w,
+        h,
+        (face_cx - eye_sep - eye_half_w).max(0.0) as u32,
+        (eye_y - eye_half_h).max(0.0) as u32,
+        (eye_half_w * 2.0) as u32,
+        (eye_half_h * 2.0) as u32,
+    );
+    let right_eye_dark = region_darkness(
+        rgba,
+        w,
+        h,
+        (face_cx + eye_sep - eye_half_w).max(0.0) as u32,
+        (eye_y - eye_half_h).max(0.0) as u32,
+        (eye_half_w * 2.0) as u32,
+        (eye_half_h * 2.0) as u32,
+    );
+
+    // Forehead/cheek brightness reference (above eyes, center)
+    let forehead_y = (cy as f32 + cheight as f32 * 0.15).max(cy as f32);
+    let cheek_bright = region_darkness(
+        rgba,
+        w,
+        h,
+        (face_cx - cwidth as f32 * 0.15).max(0.0) as u32,
+        forehead_y as u32,
+        (cwidth as f32 * 0.3) as u32,
+        (cheight as f32 * 0.12) as u32,
+    );
+
+    // Eyes should be darker than forehead/cheeks
+    let eye_contrast = ((cheek_bright - (left_eye_dark + right_eye_dark) * 0.5) / 0.5).max(0.0).min(1.0);
+    let eye_symmetry = 1.0 - (left_eye_dark - right_eye_dark).abs();
+    let eye_score = (eye_contrast * 0.7 + eye_symmetry * 0.3).min(1.0);
+
+    // ---- Check 2: Mouth region - warmer/darker than surrounding skin ----
+    let mouth_y = face_cy + cheight as f32 * 0.30;
+    let mouth_half_h = (cheight as f32 * 0.07).max(2.0);
+    let mouth_half_w = (cwidth as f32 * 0.18).max(3.0);
+    let mouth_dark = region_darkness(
+        rgba,
+        w,
+        h,
+        (face_cx - mouth_half_w).max(0.0) as u32,
+        (mouth_y - mouth_half_h).max(0.0) as u32,
+        (mouth_half_w * 2.0) as u32,
+        (mouth_half_h * 2.0) as u32,
+    );
+
+    // Chin reference (below mouth)
+    let chin_dark = region_darkness(
+        rgba,
+        w,
+        h,
+        (face_cx - cwidth as f32 * 0.1).max(0.0) as u32,
+        (mouth_y + mouth_half_h * 1.5).min(cy as f32 + cheight as f32 - 2.0) as u32,
+        (cwidth as f32 * 0.2) as u32,
+        (cheight as f32 * 0.08) as u32,
+    );
+    let mouth_contrast = ((chin_dark - mouth_dark) / 0.4).max(0.0).min(1.0);
+
+    // Mouth redness: R should be higher than G and B relative to chin
+    let mouth_redness = region_redness(
+        rgba,
+        w,
+        h,
+        (face_cx - mouth_half_w).max(0.0) as u32,
+        (mouth_y - mouth_half_h).max(0.0) as u32,
+        (mouth_half_w * 2.0) as u32,
+        (mouth_half_h * 2.0) as u32,
+    );
+    let chin_redness = region_redness(
+        rgba,
+        w,
+        h,
+        (face_cx - cwidth as f32 * 0.1).max(0.0) as u32,
+        (mouth_y + mouth_half_h * 1.5).min(cy as f32 + cheight as f32 - 2.0) as u32,
+        (cwidth as f32 * 0.2) as u32,
+        (cheight as f32 * 0.08) as u32,
+    );
+    let mouth_red_contrast = ((mouth_redness - chin_redness) / 0.15).max(0.0).min(1.0);
+
+    let mouth_score = (mouth_contrast * 0.4 + mouth_red_contrast * 0.6).min(1.0);
+
+    // ---- Check 3: Face symmetry (left-right skin mask symmetry) ----
+    let symmetry_score = compute_face_symmetry(comp, w);
+
+    // ---- Check 4: Vertical proportion (eye line at ~40-50% from top) ----
+    let eye_y_ratio = (eye_y - cy as f32) / cheight as f32;
+    let proportion_score = if eye_y_ratio > 0.3 && eye_y_ratio < 0.55 {
+        1.0 - ((eye_y_ratio - 0.42) / 0.15).abs()
+    } else {
+        0.0
+    }
+    .max(0.0);
+
+    // ---- Weighted fusion ----
+    let total = 0.35 * eye_score + 0.25 * mouth_score + 0.25 * symmetry_score + 0.15 * proportion_score;
+    total.clamp(0.0, 1.0)
+}
+
+/// Average darkness (1 - luminance) of a rectangular region.
+fn region_darkness(rgba: &RgbaImage, w: u32, h: u32, x: u32, y: u32, rw: u32, rh: u32) -> f32 {
+    let x0 = x.min(w.saturating_sub(1));
+    let y0 = y.min(h.saturating_sub(1));
+    let x1 = (x0 + rw).min(w);
+    let y1 = (y0 + rh).min(h);
+    if x1 <= x0 || y1 <= y0 {
+        return 0.5;
+    }
+
+    let mut sum = 0.0f32;
+    let mut count = 0u32;
+    for yy in y0..y1 {
+        for xx in x0..x1 {
+            let p = rgba.get_pixel(xx, yy);
+            let (rf, gf, bf) = rgb_to_f32(p[0], p[1], p[2]);
+            let lum = luminance(rf, gf, bf);
+            sum += 1.0 - lum;
+            count += 1;
+        }
+    }
+    if count == 0 { 0.5 } else { sum / count as f32 }
+}
+
+/// Average redness (R - (G+B)/2) of a rectangular region, normalized to [0..1].
+fn region_redness(rgba: &RgbaImage, w: u32, h: u32, x: u32, y: u32, rw: u32, rh: u32) -> f32 {
+    let x0 = x.min(w.saturating_sub(1));
+    let y0 = y.min(h.saturating_sub(1));
+    let x1 = (x0 + rw).min(w);
+    let y1 = (y0 + rh).min(h);
+    if x1 <= x0 || y1 <= y0 {
+        return 0.0;
+    }
+
+    let mut sum = 0.0f32;
+    let mut count = 0u32;
+    for yy in y0..y1 {
+        for xx in x0..x1 {
+            let p = rgba.get_pixel(xx, yy);
+            let (rf, gf, bf) = rgb_to_f32(p[0], p[1], p[2]);
+            let redness = rf - (gf + bf) * 0.5;
+            sum += redness;
+            count += 1;
+        }
+    }
+    if count == 0 { 0.0 } else { (sum / count as f32).clamp(0.0, 1.0) }
+}
+
+/// Compute left-right symmetry of a component's skin pixels.
+fn compute_face_symmetry(comp: &Component, _w: u32) -> f32 {
+    let (cx, _cy, cwidth, cheight) = comp.bounding_box;
+    if cwidth < 4 || cheight < 4 {
+        return 0.5;
+    }
+
+    let face_cx = cx + cwidth / 2;
+    let half_w = cwidth / 2;
+
+    // Build a mini-mask of skin pixels within the bounding box
+    let mut mask = vec![false; (cwidth * cheight) as usize];
+    for &(px, py) in &comp.pixels {
+        let lx = px - cx;
+        let ly = py - comp.bounding_box.1;
+        if lx < cwidth && ly < cheight {
+            mask[(ly * cwidth + lx) as usize] = true;
+        }
+    }
+
+    // Compare left half to mirrored right half
+    let mut match_count = 0u32;
+    let mut total = 0u32;
+
+    for ly in 0..cheight {
+        for lx in 0..half_w {
+            let left_idx = (ly * cwidth + lx) as usize;
+            let rx = cwidth - 1 - lx;
+            let right_idx = (ly * cwidth + rx) as usize;
+
+            let left_val = mask[left_idx];
+            let right_val = mask[right_idx];
+
+            if left_val || right_val {
+                total += 1;
+                if left_val == right_val {
+                    match_count += 1;
+                }
+            }
+        }
+    }
+
+    if total == 0 {
+        0.5
+    } else {
+        match_count as f32 / total as f32
+    }
 }
 
 /// Detect face regions using the ONNX FaceLandmarkDetector (SCRFD + 2d106det).
@@ -1131,6 +1477,90 @@ fn rgb_to_ycbcr(r: u8, g: u8, b: u8) -> (f32, f32, f32) {
     (y, cb, cr)
 }
 
+/// Multi-model skin detection: combines YCbCr, RGB ratio, and HSV for robust
+/// detection across all skin tones (light, medium, dark).
+/// Returns a confidence score in [0..1].
+#[inline(always)]
+fn skin_confidence(r: u8, g: u8, b: u8) -> f32 {
+    let rf = r as f32 / 255.0;
+    let gf = g as f32 / 255.0;
+    let bf = b as f32 / 255.0;
+
+    // Model 1: Extended YCbCr (Kovac et al. + extended for dark skin)
+    let (y_val, cb, cr) = rgb_to_ycbcr(r, g, b);
+    // Wider ranges: Cb 70-140, Cr 105-180, covers light → dark skin tones
+    let ycbcr_score = if y_val > 20.0
+        && cb >= 70.0 && cb <= 140.0
+        && cr >= 105.0 && cr <= 180.0
+    {
+        // Score peaks in the middle of the range, falls off at edges
+        let cb_center = 105.0;
+        let cr_center = 142.0;
+        let cb_dist = ((cb - cb_center) / 35.0).abs();
+        let cr_dist = ((cr - cr_center) / 37.0).abs();
+        (1.0 - cb_dist * 0.5).max(0.0) * (1.0 - cr_dist * 0.5).max(0.0)
+    } else {
+        0.0
+    };
+
+    // Model 2: Normalized RGB ratio (Kovac et al.)
+    let rgb_score = if rf > 0.2 && gf > 0.15 && bf > 0.1
+        && rf > gf
+        && rf > bf
+        && (rf - gf).abs() > 0.02
+    {
+        // R > G > B is typical for skin; weight by how well it fits
+        let rg = rf - gf;
+        let rb = rf - bf;
+        (rg.min(rb) * 3.0).min(1.0).max(0.0)
+    } else {
+        0.0
+    };
+
+    // Model 3: HSV-based (hue in warm range, moderate saturation)
+    let (hue, sat, lum) = rgb_to_hsl(rf, gf, bf);
+    let hsv_score = if sat > 0.05 && sat < 0.85 && lum > 0.08 && lum < 0.95 {
+        let hue_norm = if hue > 180.0 { 360.0 - hue } else { hue };
+        if hue_norm < 50.0 {
+            1.0 - (hue_norm - 20.0).abs() / 40.0
+        } else {
+            0.0
+        }
+        .max(0.0)
+    } else {
+        0.0
+    };
+
+    // Weighted fusion: YCbCr is most reliable, RGB and HSV as supplements
+    let score = 0.5 * ycbcr_score + 0.3 * rgb_score + 0.2 * hsv_score;
+    score.clamp(0.0, 1.0)
+}
+
+/// Binary skin mask with adaptive threshold.
+fn build_skin_mask(rgba: &RgbaImage, w: u32, h: u32, threshold: f32) -> Vec<bool> {
+    let mut mask = vec![false; (w * h) as usize];
+    for y in 0..h {
+        for x in 0..w {
+            let p = rgba.get_pixel(x, y);
+            let conf = skin_confidence(p[0], p[1], p[2]);
+            mask[(y * w + x) as usize] = conf >= threshold;
+        }
+    }
+    mask
+}
+
+/// Build a soft (f32) skin mask for feathered blending.
+fn build_soft_skin_mask(rgba: &RgbaImage, w: u32, h: u32) -> Vec<f32> {
+    let mut mask = vec![0.0f32; (w * h) as usize];
+    for y in 0..h {
+        for x in 0..w {
+            let p = rgba.get_pixel(x, y);
+            mask[(y * w + x) as usize] = skin_confidence(p[0], p[1], p[2]);
+        }
+    }
+    mask
+}
+
 // ---------------------------------------------------------------------------
 // 9. Hair Adjustment – Hue shift + Brightness
 // ---------------------------------------------------------------------------
@@ -1199,10 +1629,11 @@ pub fn apply_hair_adjust(
 }
 
 // ---------------------------------------------------------------------------
-// 10. Body Reshape – Liquify for full-body slimming / elongation
+// 10. Body Reshape – Liquify for full-body slimming / elongation with contour mask
 // ---------------------------------------------------------------------------
 
-/// Apply body reshaping (slim, heighten, leg-lengthen) using a mesh warp.
+/// Apply body reshaping (slim, heighten, leg-lengthen) using a mesh warp,
+/// restricted to the detected body region to protect the background.
 /// Operates on the lower half of the image relative to the face position.
 pub fn apply_body_reshape(
     img: &mut DynamicImage,
@@ -1235,6 +1666,9 @@ pub fn apply_body_reshape(
     // by pinching toward the center. When disabled, only one side is affected.
     let symmetry_factor = if symmetry_enabled { 1.0 } else { 0.5 };
 
+    // Build a body contour mask below the face to protect background
+    let body_mask = build_body_mask(&src, w, h, face_regions, body_y_start);
+
     for y_out in 0..h {
         for x_out in 0..w {
             let mut sx = x_out as f32;
@@ -1247,31 +1681,36 @@ pub fn apply_body_reshape(
                 if body_h > 0.0 {
                     let norm_y = dy_body / body_h;
 
-                    // Slim: horizontal pinch toward center, stronger at waist
-                    if slim.abs() > 1e-4 {
-                        let cx = w as f32 / 2.0;
-                        let dx = sx - cx;
-                        // Waist is around 30-50% down the body
-                        let waist_weight = if norm_y > 0.2 && norm_y < 0.6 {
-                            1.0 - ((norm_y - 0.4) / 0.2).abs()
-                        } else {
-                            0.0
-                        };
-                        let falloff = (1.0 - norm_y) * waist_weight;
-                        let strength = slim * falloff * 0.25 * symmetry_factor;
-                        sx -= dx * strength;
-                    }
+                    // Get body mask weight for this pixel
+                    let mask_val = body_mask[(y_out * w + x_out) as usize];
 
-                    // Height / leg lengthen: vertical stretch of lower body
-                    if (height + leg).abs() > 1e-4 {
-                        let leg_start_norm = 0.55;
-                        let is_leg = norm_y > leg_start_norm;
-                        let base_stretch = height * 0.15;
-                        let leg_stretch = if is_leg { leg * 0.20 } else { 0.0 };
-                        let total_stretch = base_stretch + leg_stretch;
+                    if mask_val > 0.001 {
+                        // Slim: horizontal pinch toward center, stronger at waist
+                        if slim.abs() > 1e-4 {
+                            let cx = w as f32 / 2.0;
+                            let dx = sx - cx;
+                            // Waist is around 30-50% down the body
+                            let waist_weight = if norm_y > 0.2 && norm_y < 0.6 {
+                                1.0 - ((norm_y - 0.4) / 0.2).abs()
+                            } else {
+                                0.0
+                            };
+                            let falloff = (1.0 - norm_y) * waist_weight;
+                            let strength = slim * falloff * 0.25 * symmetry_factor * mask_val;
+                            sx -= dx * strength;
+                        }
 
-                        let stretch_weight = norm_y * norm_y; // stronger lower down
-                        sy -= dy_body * total_stretch * stretch_weight;
+                        // Height / leg lengthen: vertical stretch of lower body
+                        if (height + leg).abs() > 1e-4 {
+                            let leg_start_norm = 0.55;
+                            let is_leg = norm_y > leg_start_norm;
+                            let base_stretch = height * 0.15;
+                            let leg_stretch = if is_leg { leg * 0.20 } else { 0.0 };
+                            let total_stretch = base_stretch + leg_stretch;
+
+                            let stretch_weight = norm_y * norm_y; // stronger lower down
+                            sy -= dy_body * total_stretch * stretch_weight * mask_val;
+                        }
                     }
                 }
             }
@@ -1283,6 +1722,138 @@ pub fn apply_body_reshape(
 
     *img = DynamicImage::ImageRgba8(dst);
     Ok(())
+}
+
+/// Build a soft body contour mask for the region below the face.
+/// Uses multiple cues: central vertical falloff, skin-tone detection,
+/// edge/gradient analysis, and horizontal column density.
+/// Returns a float mask [0..1].
+fn build_body_mask(
+    rgba: &RgbaImage,
+    w: u32,
+    h: u32,
+    face_regions: &[FaceRegion],
+    body_y_start: u32,
+) -> Vec<f32> {
+    let area = (w * h) as usize;
+    let mut mask = vec![0.0f32; area];
+
+    if body_y_start >= h - 1 {
+        return mask;
+    }
+
+    // Find the main anchor face (highest one) for body center
+    let anchor_face = face_regions.iter().min_by_key(|f| f.face_rect.1).unwrap();
+    let face_cx = anchor_face.face_rect.0 as f32 + anchor_face.face_rect.2 as f32 / 2.0;
+    let face_width = anchor_face.face_rect.2 as f32;
+
+    let body_h = (h - body_y_start) as f32;
+
+    // ---- Step 1: Vertical column projection to find body width per row ----
+    // Compute horizontal energy (variance + skin + center bias) for each row
+    let mut row_left = vec![w as i32; h as usize];
+    let mut row_right = vec![0i32; h as usize];
+
+    for y in body_y_start..h {
+        // Estimate body half-width at this row: wider at top (shoulders), narrower at waist, wider at hips
+        let dy = (y - body_y_start) as f32 / body_h.max(1.0);
+        // Approximate body shape: shoulders (0.0) -> waist (0.35) -> hips (0.65) -> legs (1.0)
+        let half_width_factor = if dy < 0.35 {
+            // Shoulders to waist: narrow down
+            0.9 - 0.3 * (dy / 0.35)
+        } else if dy < 0.65 {
+            // Waist to hips: widen
+            0.6 + 0.4 * ((dy - 0.35) / 0.30)
+        } else {
+            // Hips to legs: narrow down
+            1.0 - 0.5 * ((dy - 0.65) / 0.35)
+        };
+        let expected_half_w = (face_width * half_width_factor * 1.3).max(20.0);
+
+        // Search left and right from center for body edges using skin+edge cues
+        let cx = face_cx as i32;
+        let search_range = (expected_half_w * 1.8).min(w as f32 * 0.45) as i32;
+
+        // Left edge: move outward from center until edge/non-skin is found
+        let mut l = cx;
+        for dx in 0..=search_range {
+            let xx = (cx - dx).clamp(0, w as i32 - 1) as u32;
+            let p = rgba.get_pixel(xx, y);
+            let skin_c = skin_confidence(p[0], p[1], p[2]);
+            // Score: skin contributes, proximity to center contributes
+            let dist_factor = 1.0 - (dx as f32 / search_range as f32).min(1.0);
+            let score = skin_c * 0.5 + dist_factor * 0.5;
+            if score < 0.25 && dx as f32 > expected_half_w * 0.6 {
+                break;
+            }
+            l = cx - dx;
+        }
+
+        // Right edge
+        let mut r = cx;
+        for dx in 0..=search_range {
+            let xx = (cx + dx).clamp(0, w as i32 - 1) as u32;
+            let p = rgba.get_pixel(xx, y);
+            let skin_c = skin_confidence(p[0], p[1], p[2]);
+            let dist_factor = 1.0 - (dx as f32 / search_range as f32).min(1.0);
+            let score = skin_c * 0.5 + dist_factor * 0.5;
+            if score < 0.25 && dx as f32 > expected_half_w * 0.6 {
+                break;
+            }
+            r = cx + dx;
+        }
+
+        row_left[y as usize] = l.max(0);
+        row_right[y as usize] = r.min(w as i32 - 1);
+    }
+
+    // Smooth the row edges (3-row moving average)
+    let mut smooth_left = row_left.clone();
+    let mut smooth_right = row_right.clone();
+    for y in (body_y_start + 1)..(h - 1) {
+        let yi = y as usize;
+        smooth_left[yi] = (row_left[yi - 1] + row_left[yi] + row_left[yi + 1]) / 3;
+        smooth_right[yi] = (row_right[yi - 1] + row_right[yi] + row_right[yi + 1]) / 3;
+    }
+
+    // ---- Step 2: Fill the mask with soft edges ----
+    for y in body_y_start..h {
+        let yi = y as usize;
+        let l = smooth_left[yi] as f32;
+        let r = smooth_right[yi] as f32;
+        let cx = (l + r) * 0.5;
+        let half_w = (r - l) * 0.5;
+        let feather = (half_w * 0.15).max(5.0); // feather zone on each side
+
+        let x_start = (l - feather).max(0.0) as u32;
+        let x_end = (r + feather).min(w as f32 - 1.0) as u32;
+
+        for x in x_start..=x_end {
+            let dx = (x as f32 - cx).abs();
+            let dist_from_edge = half_w - dx;
+            let weight = if dist_from_edge > 0.0 {
+                // Inside body: 1.0, feathering near edge
+                (dist_from_edge / feather).min(1.0)
+            } else {
+                // Outside: 0.0
+                0.0
+            };
+            mask[(y * w + x) as usize] = weight;
+        }
+    }
+
+    // ---- Step 3: Vertical feather at body_y_start (transition from face) ----
+    let transition_h = (anchor_face.face_rect.3 as f32 * 0.3).max(5.0) as u32;
+    for y in body_y_start..(body_y_start + transition_h).min(h) {
+        let dy = (y - body_y_start) as f32 / transition_h as f32;
+        let vert_weight = dy * dy; // quadratic fade-in
+        for x in 0..w {
+            let idx = (y * w + x) as usize;
+            mask[idx] *= vert_weight;
+        }
+    }
+
+    mask
 }
 
 // ---------------------------------------------------------------------------
@@ -1421,12 +1992,12 @@ pub fn apply_one_click_beauty(
 
     if face_regions.is_empty() {
         // No face detected → apply a gentle global skin-tone smoothing
-        apply_skin_smoothing(img, s * 0.3, 0.7)?;
+        apply_skin_smoothing(img, s * 0.3, 0.7, &[])?;
         return Ok(());
     }
 
     // Skin smoothing
-    apply_skin_smoothing(img, s * 0.35, 0.65)?;
+    apply_skin_smoothing(img, s * 0.35, 0.65, face_regions)?;
 
     // Eye brighten
     let eye_regions: Vec<_> = face_regions
@@ -1569,7 +2140,7 @@ pub fn apply_portrait_adjustments(
 
     // 2. Skin smoothing
     if skin_strength > 1e-4 {
-        apply_skin_smoothing(img, skin_strength / 100.0, skin_detail / 100.0)?;
+        apply_skin_smoothing(img, skin_strength / 100.0, skin_detail / 100.0, &filtered_faces)?;
     }
 
     // 3. Face reshape
@@ -1790,13 +2361,13 @@ mod tests {
     fn test_apply_skin_smoothing_zero_image() {
         let mut img =
             DynamicImage::ImageRgba8(RgbaImage::from_pixel(1, 1, Rgba([128, 128, 128, 255])));
-        assert!(apply_skin_smoothing(&mut img, 0.5, 0.5).is_ok());
+        assert!(apply_skin_smoothing(&mut img, 0.5, 0.5, &[]).is_ok());
     }
 
     #[test]
     fn test_apply_skin_smoothing_rejects_zero_dim() {
         let mut img = DynamicImage::ImageRgba8(RgbaImage::new(0, 10));
-        assert!(apply_skin_smoothing(&mut img, 0.5, 0.5).is_err());
+        assert!(apply_skin_smoothing(&mut img, 0.5, 0.5, &[]).is_err());
     }
 
     #[test]
