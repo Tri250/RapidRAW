@@ -556,6 +556,27 @@ export default function ExportPanel({
     }
   };
 
+  const successResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearSuccessResetTimer = useCallback(() => {
+    if (successResetTimerRef.current) {
+      clearTimeout(successResetTimerRef.current);
+      successResetTimerRef.current = null;
+    }
+  }, []);
+
+  // Auto-reset success/cancelled/error states after a delay so the user
+  // can export again without manually dismissing the status.
+  useEffect(() => {
+    clearSuccessResetTimer();
+    if (status === Status.Success || status === Status.Cancelled || status === Status.Error) {
+      successResetTimerRef.current = setTimeout(() => {
+        setExportState({ status: Status.Idle, progress: { current: 0, total: 0 }, errorMessage: '' });
+      }, 4000);
+    }
+    return () => clearSuccessResetTimer();
+  }, [status, setExportState]);
+
   const handleCancel = async () => {
     try {
       await invoke(Invokes.CancelExport);
@@ -639,13 +660,23 @@ export default function ExportPanel({
             {numImages > 1 && (
               <Section title={t('export.sections.fileNaming')}>
                 <input
-                  className="w-full bg-surface border border-surface rounded-md p-2 text-sm text-text-primary focus:ring-accent focus:border-accent"
+                  className={`w-full bg-surface border rounded-md p-2 text-sm text-text-primary focus:ring-accent focus:border-accent transition-colors ${
+                    !filenameTemplate.includes('{sequence}') && !filenameTemplate.includes('{original_filename}')
+                      ? 'border-yellow-500/60 focus:border-yellow-500'
+                      : 'border-surface'
+                  }`}
                   disabled={isExporting}
                   onChange={(e) => setFilenameTemplate(e.target.value)}
                   ref={filenameInputRef}
                   type="text"
                   value={filenameTemplate}
                 />
+                {!filenameTemplate.includes('{sequence}') && !filenameTemplate.includes('{original_filename}') && (
+                  <Text variant={TextVariants.small} color={TextColors.secondary} className="mt-1.5 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 inline-block" />
+                    {t('export.file.sequenceVariableRecommended') || '建议使用 {sequence} 或 {original_filename} 避免文件名冲突'}
+                  </Text>
+                )}
                 <div className="flex flex-wrap gap-2 mt-2">
                   {FILENAME_VARIABLES.map((variable: string) => (
                     <button

@@ -107,6 +107,8 @@ export default function Controls() {
   };
 
   const handleResetAdjustments = () => {
+    const confirmed = window.confirm(t('editor.adjustments.confirmReset') || '确定要重置所有调整参数吗？此操作无法撤销。');
+    if (!confirmed) return;
     setAdjustments((prev: Adjustments) => ({
       ...prev,
       ...Object.keys(ADJUSTMENT_SECTIONS)
@@ -222,13 +224,16 @@ export default function Controls() {
           </button>
           <button
             className={clsx(
-              'p-2 rounded-full transition-colors',
-              isWaveformVisible ? 'bg-surface hover:bg-card-active' : 'hover:bg-surface',
+              'p-2 rounded-full transition-colors relative',
+              isWaveformVisible ? 'bg-accent/15 text-accent hover:bg-accent/25' : 'hover:bg-surface text-text-secondary',
             )}
             onClick={onToggleWaveform}
             data-tooltip={t('editor.adjustments.tooltips.toggleAnalytics')}
           >
             <ChartArea size={18} />
+            {isWaveformVisible && (
+              <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-accent rounded-full" />
+            )}
           </button>
           <button
             className="p-2 rounded-full hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors"

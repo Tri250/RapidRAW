@@ -1419,6 +1419,14 @@ function ContainerRow({
       updateContainer(container.id, { name: tempName.trim() });
     }
     setRenamingId(null);
+    setTempName('');
+  };
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setRenamingId(null);
+      setTempName('');
+    }
   };
 
   const onContextMenu = (e: React.MouseEvent) => {
@@ -1551,7 +1559,10 @@ function ContainerRow({
               value={tempName}
               onChange={(e) => setTempName(e.target.value)}
               onBlur={handleRenameSubmit}
-              onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRenameSubmit();
+                if (e.key === 'Escape') handleRenameKeyDown(e);
+              }}
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
@@ -1827,7 +1838,13 @@ function SubMaskRow({
           value={tempName}
           onChange={(e) => setTempName(e.target.value)}
           onBlur={handleRenameSubmit}
-          onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleRenameSubmit();
+            if (e.key === 'Escape') {
+              setRenamingId(null);
+              setTempName('');
+            }
+          }}
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
@@ -1835,10 +1852,10 @@ function SubMaskRow({
           {getSubMaskName(subMask)}
         </Text>
       )}
-      <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex opacity-0 group-hover:opacity-100 transition-opacity items-center gap-1">
         {index > 1 && (
           <button
-            className="p-1 hover:text-text-primary text-text-secondary"
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:text-text-primary text-text-secondary hover:bg-card-active transition-colors"
             data-tooltip={
               subMask.mode === SubMaskMode.Additive
                 ? t('editor.ai.actions.switchToSubtract')
@@ -1859,12 +1876,19 @@ function SubMaskRow({
             }}
           >
             {subMask.mode === SubMaskMode.Additive ? (
-              <Plus size={16} />
+              <Plus size={14} />
             ) : subMask.mode === SubMaskMode.Subtractive ? (
-              <Minus size={16} />
+              <Minus size={14} />
             ) : (
-              <SquaresIntersect size={16} />
+              <SquaresIntersect size={14} />
             )}
+            <Text variant={TextVariants.small} className="text-[10px] uppercase tracking-wide">
+              {subMask.mode === SubMaskMode.Additive
+                ? t('editor.ai.mode.add') || 'Add'
+                : subMask.mode === SubMaskMode.Subtractive
+                  ? t('editor.ai.mode.sub') || 'Sub'
+                  : t('editor.ai.mode.inter') || 'Inter'}
+            </Text>
           </button>
         )}
         <button

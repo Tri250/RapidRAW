@@ -234,6 +234,7 @@ export default function MetadataPanel() {
   const { t } = useTranslation();
   const [isOrganizationExpanded, setIsOrganizationExpanded] = useState(false);
   const [isAuthorExpanded, setIsAuthorExpanded] = useState(false);
+  const [isAiRatingExpanded, setIsAiRatingExpanded] = useState(false);
   const [tagInputValue, setTagInputValue] = useState('');
   const [isTagInputFocused, setIsTagInputFocused] = useState(false);
   const [aiRatingLoading, setAiRatingLoading] = useState(false);
@@ -447,116 +448,134 @@ export default function MetadataPanel() {
         {selectedImage ? (
           <div className="flex flex-col gap-6">
             <div>
-              <Text variant={TextVariants.heading} className="mb-3">
-                {t('editor.aiRating.title')}
-              </Text>
-              <div className="bg-surface border border-surface rounded-xl p-3.5 flex flex-col gap-3">
-                <button
-                  onClick={handleGenerateAiRating}
-                  disabled={aiRatingLoading}
-                  className={clsx(
-                    'flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg text-sm font-medium transition-all',
-                    aiRatingLoading
-                      ? 'bg-accent/20 text-accent cursor-wait'
-                      : 'bg-accent/10 text-accent hover:bg-accent/20 active:scale-[0.98]',
-                  )}
-                >
-                  {aiRatingLoading ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Sparkles size={16} />
-                  )}
-                  {aiRatingLoading ? t('editor.aiRating.applying') : t('editor.aiRating.generate')}
-                </button>
-
-                {aiRatingResult && (
-                  <div className="flex flex-col gap-3">
-                    <div>
-                      <Text
-                        variant={TextVariants.small}
-                        color={TextColors.primary}
-                        weight={TextWeights.semibold}
-                        className="uppercase tracking-wider mb-2 block"
+              <button
+                onClick={() => setIsAiRatingExpanded(!isAiRatingExpanded)}
+                className="w-full flex items-center justify-between mb-3 group"
+              >
+                <Text variant={TextVariants.heading}>{t('editor.aiRating.title')}</Text>
+                <span className="text-text-secondary group-hover:text-text-primary transition-colors">
+                  {isAiRatingExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </span>
+              </button>
+              <AnimatePresence initial={false}>
+                {isAiRatingExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <div className="bg-surface border border-surface rounded-xl p-3.5 flex flex-col gap-3">
+                      <button
+                        onClick={handleGenerateAiRating}
+                        disabled={aiRatingLoading}
+                        className={clsx(
+                          'flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg text-sm font-medium transition-all',
+                          aiRatingLoading
+                            ? 'bg-accent/20 text-accent cursor-wait'
+                            : 'bg-accent/10 text-accent hover:bg-accent/20 active:scale-[0.98]',
+                        )}
                       >
-                        {t('editor.metadata.organization.rating')}
-                      </Text>
-                      <div className="flex items-center gap-1.5">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={star}
-                            size={18}
-                            className={clsx(
-                              'transition-colors duration-200',
-                              star <= aiRatingResult.rating
-                                ? 'fill-accent text-accent'
-                                : 'fill-transparent text-text-secondary',
-                            )}
-                          />
-                        ))}
-                      </div>
-                    </div>
+                        {aiRatingLoading ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <Sparkles size={16} />
+                        )}
+                        {aiRatingLoading ? t('editor.aiRating.applying') : t('editor.aiRating.generate')}
+                      </button>
 
-                    {aiRatingResult.description && (
-                      <div>
-                        <Text
-                          variant={TextVariants.small}
-                          color={TextColors.secondary}
-                          weight={TextWeights.semibold}
-                          className="uppercase tracking-wider mb-1 block"
-                        >
-                          {t('editor.aiRating.description')}
-                        </Text>
-                        <Text variant={TextVariants.small} color={TextColors.primary}>
-                          {aiRatingResult.description}
-                        </Text>
-                      </div>
-                    )}
-
-                    {aiRatingResult.tags.length > 0 && (
-                      <div>
-                        <Text
-                          variant={TextVariants.small}
-                          color={TextColors.secondary}
-                          weight={TextWeights.semibold}
-                          className="uppercase tracking-wider mb-1.5 block"
-                        >
-                          {t('editor.metadata.organization.tags')}
-                        </Text>
-                        <div className="flex flex-wrap gap-1">
-                          {aiRatingResult.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="bg-bg-primary px-2 py-0.5 rounded-md text-xs text-text-primary border border-surface"
+                      {aiRatingResult && (
+                        <div className="flex flex-col gap-3">
+                          <div>
+                            <Text
+                              variant={TextVariants.small}
+                              color={TextColors.primary}
+                              weight={TextWeights.semibold}
+                              className="uppercase tracking-wider mb-2 block"
                             >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                              {t('editor.metadata.organization.rating')}
+                            </Text>
+                            <div className="flex items-center gap-1.5">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  size={18}
+                                  className={clsx(
+                                    'transition-colors duration-200',
+                                    star <= aiRatingResult.rating
+                                      ? 'fill-accent text-accent'
+                                      : 'fill-transparent text-text-secondary',
+                                  )}
+                                />
+                              ))}
+                            </div>
+                          </div>
 
-                    <button
-                      onClick={handleApplyAiRatingToExif}
-                      disabled={aiRatingApplied}
-                      className={clsx(
-                        'flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded-lg text-xs font-medium transition-all',
-                        aiRatingApplied
-                          ? 'bg-green-500/20 text-green-400'
-                          : 'bg-bg-primary text-text-secondary hover:text-text-primary hover:bg-bg-secondary border border-surface',
+                          {aiRatingResult.description && (
+                            <div>
+                              <Text
+                                variant={TextVariants.small}
+                                color={TextColors.secondary}
+                                weight={TextWeights.semibold}
+                                className="uppercase tracking-wider mb-1 block"
+                              >
+                                {t('editor.aiRating.description')}
+                              </Text>
+                              <Text variant={TextVariants.small} color={TextColors.primary}>
+                                {aiRatingResult.description}
+                              </Text>
+                            </div>
+                          )}
+
+                          {aiRatingResult.tags.length > 0 && (
+                            <div>
+                              <Text
+                                variant={TextVariants.small}
+                                color={TextColors.secondary}
+                                weight={TextWeights.semibold}
+                                className="uppercase tracking-wider mb-1.5 block"
+                              >
+                                {t('editor.metadata.organization.tags')}
+                              </Text>
+                              <div className="flex flex-wrap gap-1">
+                                {aiRatingResult.tags.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="bg-bg-primary px-2 py-0.5 rounded-md text-xs text-text-primary border border-surface"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <button
+                            onClick={handleApplyAiRatingToExif}
+                            disabled={aiRatingApplied}
+                            className={clsx(
+                              'flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded-lg text-xs font-medium transition-all',
+                              aiRatingApplied
+                                ? 'bg-green-500/20 text-green-400'
+                                : 'bg-bg-primary text-text-secondary hover:text-text-primary hover:bg-bg-secondary border border-surface',
+                            )}
+                          >
+                            {aiRatingApplied ? (
+                              <>
+                                <Check size={12} />
+                                {t('editor.aiRating.applied')}
+                              </>
+                            ) : (
+                              t('editor.aiRating.applyToExif')
+                            )}
+                          </button>
+                        </div>
                       )}
-                    >
-                      {aiRatingApplied ? (
-                        <>
-                          <Check size={12} />
-                          {t('editor.aiRating.applied')}
-                        </>
-                      ) : (
-                        t('editor.aiRating.applyToExif')
-                      )}
-                    </button>
-                  </div>
+                    </div>
+                  </motion.div>
                 )}
-              </div>
+              </AnimatePresence>
             </div>
 
             <div>
@@ -768,7 +787,7 @@ export default function MetadataPanel() {
                             {[1, 2, 3, 4, 5].map((star) => (
                               <button
                                 key={star}
-                                onClick={() => handleRate(star, targetPaths)}
+                                onClick={() => handleRate(star === rating ? 0 : star, targetPaths)}
                                 className="focus:outline-hidden transition-transform active:scale-95 hover:scale-110"
                               >
                                 <Star
@@ -916,9 +935,9 @@ export default function MetadataPanel() {
                   {t('editor.metadata.gps.title')}
                 </Text>
                 <div className="bg-surface border border-surface rounded-xl p-3 flex flex-col gap-3">
-                  <div className="relative rounded-md overflow-hidden shadow-sm">
+                  <div className="relative rounded-md overflow-hidden shadow-sm group/map">
                     <iframe
-                      className="pointer-events-none"
+                      className="transition-opacity duration-200 group-hover/map:opacity-80"
                       frameBorder="0"
                       height="180"
                       loading="lazy"
@@ -952,12 +971,16 @@ export default function MetadataPanel() {
                       </Text>
                     </div>
                     <a
-                      className="absolute inset-0 cursor-pointer hover:bg-black/10 transition-colors"
+                      className="absolute inset-0 cursor-pointer bg-black/0 hover:bg-black/10 transition-colors opacity-0 group-hover/map:opacity-100 flex items-center justify-center"
                       href={`https://www.openstreetmap.org/?mlat=${gpsData.lat}&mlon=${gpsData.lon}#map=15/${gpsData.lat}/${gpsData.lon}`}
                       rel="noopener noreferrer"
                       target="_blank"
                       data-tooltip={t('editor.metadata.gps.clickToOpenTooltip')}
-                    ></a>
+                    >
+                      <span className="bg-bg-primary/90 backdrop-blur-sm text-text-primary text-xs font-medium px-3 py-1.5 rounded-full shadow-lg border border-surface translate-y-2 group-hover/map:translate-y-0 transition-transform">
+                        {t('editor.metadata.gps.openExternal') || '打开地图'}
+                      </span>
+                    </a>
                   </div>
                   <div className="flex flex-col gap-0.5">
                     <MetadataItem label={t('editor.metadata.gps.latitude')} value={gpsData.lat?.toFixed(6)} />

@@ -66,16 +66,27 @@ function ColorPickerRow({
   onOpacityChange: (opacity: number) => void;
   onDragStateChange?: (isDragging: boolean) => void;
 }) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
+        <button
+          onClick={() => inputRef.current?.click()}
+          className="w-8 h-8 rounded border border-surface cursor-pointer shrink-0 overflow-hidden relative shadow-sm hover:scale-105 transition-transform"
+          style={{ backgroundColor: color }}
+          aria-label={label}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-black/10 pointer-events-none" />
+        </button>
         <input
+          ref={inputRef}
           type="color"
           value={color}
           onChange={(e) => onColorChange(e.target.value)}
-          className="w-8 h-8 rounded border border-surface cursor-pointer bg-transparent"
+          className="sr-only"
         />
         <span className="text-sm text-text-secondary grow">{label}</span>
+        <span className="text-xs text-text-tertiary font-mono">{color.toUpperCase()}</span>
       </div>
       <Slider
         label={`${label} ${opacity}%`}
@@ -116,11 +127,13 @@ export default function PortraitPanelSwitcher() {
   const {
     adjustments,
     isBlemishModeActive,
+    brushSettings,
     setEditor,
   } = useEditorStore(
     useShallow((state) => ({
       adjustments: state.adjustments,
       isBlemishModeActive: state.isBlemishModeActive,
+      brushSettings: state.brushSettings,
       setEditor: state.setEditor,
     })),
   );
@@ -162,7 +175,11 @@ export default function PortraitPanelSwitcher() {
     });
   };
 
+  const [beautyClicked, setBeautyClicked] = React.useState(false);
+
   const handleOneClickBeauty = useCallback(() => {
+    setBeautyClicked(true);
+    setTimeout(() => setBeautyClicked(false), 300);
     setAdjustments((prev: Adjustments) => ({
       ...prev,
       portrait: {
@@ -234,11 +251,27 @@ export default function PortraitPanelSwitcher() {
             </Text>
           )}
           {isBlemishModeActive && (
-            <div className="w-full py-2 px-3 bg-accent/10 rounded-md border border-dashed border-accent/50">
-              <Text variant={TextVariants.small} className="text-accent">
-                {t('editor.portraitPanel.blemishHint')}
-              </Text>
-            </div>
+            <>
+              <div className="w-full py-2 px-3 bg-accent/10 rounded-md border border-dashed border-accent/50">
+                <Text variant={TextVariants.small} className="text-accent">
+                  {t('editor.portraitPanel.blemishHint')}
+                </Text>
+              </div>
+              <div className="flex items-center gap-2 px-1">
+                <Text variant={TextVariants.small} color={TextColors.secondary}>
+                  {t('editor.portraitPanel.brushSize') || '画笔大小'}
+                </Text>
+                <div className="flex-1 h-1.5 bg-surface rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent rounded-full transition-all"
+                    style={{ width: `${Math.min(100, ((brushSettings?.size || 20) / 200) * 100)}%` }}
+                  />
+                </div>
+                <Text variant={TextVariants.small} color={TextColors.primary} className="font-mono w-8 text-right">
+                  {brushSettings?.size || 20}
+                </Text>
+              </div>
+            </>
           )}
         </div>
       ),
@@ -492,9 +525,11 @@ export default function PortraitPanelSwitcher() {
         </div>
         <button
           onClick={handleOneClickBeauty}
-          className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-accent/10 border border-accent/30 text-accent text-sm font-medium hover:bg-accent/20 transition-colors"
+          className={`mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-accent/10 border border-accent/30 text-accent text-sm font-medium hover:bg-accent/20 transition-all ${
+            beautyClicked ? 'scale-[0.96] bg-accent/30' : 'scale-100'
+          }`}
         >
-          <Sparkles size={14} />
+          <Sparkles size={14} className={beautyClicked ? 'animate-pulse' : ''} />
           {t('editor.portraitPanel.oneClickBeauty')}
         </button>
       </div>
