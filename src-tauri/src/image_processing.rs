@@ -1478,7 +1478,7 @@ pub fn is_geometry_identity(params: &GeometryParams) -> bool {
         && vig_identity
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct AutoAdjustmentResults {
     pub exposure: f64,
     pub brightness: f64,
@@ -2127,7 +2127,10 @@ pub fn is_image_edited(
     if let Some(crop_val) = adj.get("crop")
         && !crop_val.is_null()
         && let Ok(crop) = serde_json::from_value::<Crop>(crop_val.clone())
-        && (crop.x.abs() > 0.1 || crop.y.abs() > 0.1 || crop.width.abs() > 0.1 || crop.height.abs() > 0.1)
+        && (crop.x.abs() > 0.1
+            || crop.y.abs() > 0.1
+            || crop.width.abs() > 0.1
+            || crop.height.abs() > 0.1)
     {
         return true;
     }

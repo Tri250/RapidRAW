@@ -87,11 +87,7 @@ fn develop_internal(
 
     // Average white/black levels across all channels to avoid color bias
     // when individual channels differ (e.g. some Canon/Sony sensors).
-    let original_white_level = raw_image
-        .whitelevel
-        .0
-        .iter()
-        .sum::<u32>() as f32
+    let original_white_level = raw_image.whitelevel.0.iter().sum::<u32>() as f32
         / raw_image.whitelevel.0.len().max(1) as f32;
     let original_black_level = raw_image
         .blacklevel

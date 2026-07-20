@@ -46,7 +46,12 @@ impl DisplayTransform {
     pub fn from_payload(payload: &crate::WgpuTransformPayload) -> Self {
         Self {
             rect: [payload.x, payload.y, payload.width, payload.height],
-            clip: [payload.clip_x, payload.clip_y, payload.clip_width, payload.clip_height],
+            clip: [
+                payload.clip_x,
+                payload.clip_y,
+                payload.clip_width,
+                payload.clip_height,
+            ],
             window: [payload.window_width, payload.window_height],
             image_size: [0.0, 0.0],
             texture_size: [0.0, 0.0],

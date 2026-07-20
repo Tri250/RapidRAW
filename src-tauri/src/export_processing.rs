@@ -680,10 +680,18 @@ fn export_adjustments_as_lut(
     let mut clean_json = js_adjustments.clone();
     if let Some(obj) = clean_json.as_object_mut() {
         for key in [
-            "crop", "rotation", "orientationSteps", "straighten",
-            "transformDistortion", "transformVertical", "transformHorizontal",
-            "transformRotate", "transformAspect", "transformScale",
-            "transformXOffset", "transformYOffset",
+            "crop",
+            "rotation",
+            "orientationSteps",
+            "straighten",
+            "transformDistortion",
+            "transformVertical",
+            "transformHorizontal",
+            "transformRotate",
+            "transformAspect",
+            "transformScale",
+            "transformXOffset",
+            "transformYOffset",
         ] {
             obj.remove(key);
         }
@@ -729,9 +737,11 @@ fn export_adjustments_as_lut(
     let expected_h = lut_size * lut_size;
     if processed_lut.width() != lut_size || processed_lut.height() != expected_h {
         return Err(format!(
-            "LUT export produced unexpected dimensions: {}x{} (expected {}x{}). "
-            "A geometric transform may still have been applied.",
-            processed_lut.width(), processed_lut.height(), lut_size, expected_h
+            "LUT export produced unexpected dimensions: {}x{} (expected {}x{}). A geometric transform may still have been applied.",
+            processed_lut.width(),
+            processed_lut.height(),
+            lut_size,
+            expected_h
         ));
     }
 

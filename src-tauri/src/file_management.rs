@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fs;
 use std::hash::{Hash, Hasher};
-use std::io::Cursor;
+use std::io::{Cursor, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
@@ -2829,9 +2829,8 @@ pub fn handle_import_legacy_presets_from_file(
     }
 
     let xmp_content = if lower.ends_with(".lrtemplate") {
-        let re = Regex::new(r#"(?s)s\.xmp\s*=\s*"(.*)""#).map_err(|e| {
-            format!("Failed to compile lrtemplate regex: {}", e)
-        })?;
+        let re = Regex::new(r#"(?s)s\.xmp\s*=\s*"(.*)""#)
+            .map_err(|e| format!("Failed to compile lrtemplate regex: {}", e))?;
         if let Some(caps) = re.captures(&content) {
             caps.get(1)
                 .map(|m| m.as_str().replace(r#"\""#, r#"""#).replace(r#"\\"#, r#"\"#))

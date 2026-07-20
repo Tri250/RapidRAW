@@ -133,7 +133,11 @@ fn run_pipeline(
     let y0 = 1.0 / (1.0 + (k * x0).exp());
     let y1 = 1.0 / (1.0 + (-k * (1.0 - x0)).exp());
     // Avoid division by zero when y1 equals y0 (extreme contrast values)
-    let scale = if (y1 - y0).abs() < 1e-9 { 1.0 } else { 1.0 / (y1 - y0) };
+    let scale = if (y1 - y0).abs() < 1e-9 {
+        1.0
+    } else {
+        1.0 / (y1 - y0)
+    };
 
     out_buffer
         .par_chunks_mut(3)

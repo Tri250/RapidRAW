@@ -387,8 +387,8 @@ pub fn convert_xmp_to_preset(xmp_content: &str) -> Result<Preset, String> {
     let include_crop_transform = Some(has_crop);
 
     // Infer include_masks from mask-related keys (Lightroom uses RangeMask)
-    let has_masks = attrs.contains_key("RangeMaskType")
-        || attrs.contains_key("RangeMaskRangeAmount");
+    let has_masks =
+        attrs.contains_key("RangeMaskType") || attrs.contains_key("RangeMaskRangeAmount");
 
     let include_masks = Some(has_masks);
 

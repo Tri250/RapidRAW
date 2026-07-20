@@ -557,7 +557,11 @@ pub async fn invoke_generative_replace_with_mask_def(
                 );
             } else {
                 let source_pixel = source_image.get_pixel(px_x, px_y);
-                color_image.put_pixel(out_x, out_y, Rgb([source_pixel[0], source_pixel[1], source_pixel[2]]));
+                color_image.put_pixel(
+                    out_x,
+                    out_y,
+                    Rgb([source_pixel[0], source_pixel[1], source_pixel[2]]),
+                );
             }
         }
     }

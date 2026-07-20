@@ -172,9 +172,15 @@ fn apply_skin_smoothing_rgba(
                 let smooth_g = (sum_g * inv).round().clamp(0.0, 255.0) as u8;
                 let smooth_b = (sum_b * inv).round().clamp(0.0, 255.0) as u8;
 
-                pixel[0] = ((smooth_r as f32) * mask_val + (src_raw[center_offset] as f32) * (1.0 - mask_val)).round() as u8;
-                pixel[1] = ((smooth_g as f32) * mask_val + (src_raw[center_offset + 1] as f32) * (1.0 - mask_val)).round() as u8;
-                pixel[2] = ((smooth_b as f32) * mask_val + (src_raw[center_offset + 2] as f32) * (1.0 - mask_val)).round() as u8;
+                pixel[0] = ((smooth_r as f32) * mask_val
+                    + (src_raw[center_offset] as f32) * (1.0 - mask_val))
+                    .round() as u8;
+                pixel[1] = ((smooth_g as f32) * mask_val
+                    + (src_raw[center_offset + 1] as f32) * (1.0 - mask_val))
+                    .round() as u8;
+                pixel[2] = ((smooth_b as f32) * mask_val
+                    + (src_raw[center_offset + 2] as f32) * (1.0 - mask_val))
+                    .round() as u8;
                 pixel[3] = src_raw[center_offset + 3];
             } else {
                 pixel[0] = src_raw[center_offset];
@@ -226,11 +232,7 @@ fn build_feathered_skin_mask(
                 let norm_y = dy / ry.max(1.0);
                 let dist_sq = norm_x * norm_x + norm_y * norm_y;
 
-                let elliptic_weight = if dist_sq < 1.0 {
-                    1.0 - dist_sq
-                } else {
-                    0.0
-                };
+                let elliptic_weight = if dist_sq < 1.0 { 1.0 - dist_sq } else { 0.0 };
 
                 let idx = (y * w + x) as usize;
                 mask[idx] = mask[idx].max(elliptic_weight);
@@ -1149,7 +1151,9 @@ fn verify_facial_features(rgba: &RgbaImage, w: u32, h: u32, comp: &Component) ->
     );
 
     // Eyes should be darker than forehead/cheeks
-    let eye_contrast = ((cheek_bright - (left_eye_dark + right_eye_dark) * 0.5) / 0.5).max(0.0).min(1.0);
+    let eye_contrast = ((cheek_bright - (left_eye_dark + right_eye_dark) * 0.5) / 0.5)
+        .max(0.0)
+        .min(1.0);
     let eye_symmetry = 1.0 - (left_eye_dark - right_eye_dark).abs();
     let eye_score = (eye_contrast * 0.7 + eye_symmetry * 0.3).min(1.0);
 
@@ -1215,7 +1219,8 @@ fn verify_facial_features(rgba: &RgbaImage, w: u32, h: u32, comp: &Component) ->
     .max(0.0);
 
     // ---- Weighted fusion ----
-    let total = 0.35 * eye_score + 0.25 * mouth_score + 0.25 * symmetry_score + 0.15 * proportion_score;
+    let total =
+        0.35 * eye_score + 0.25 * mouth_score + 0.25 * symmetry_score + 0.15 * proportion_score;
     total.clamp(0.0, 1.0)
 }
 
@@ -1264,7 +1269,11 @@ fn region_redness(rgba: &RgbaImage, w: u32, h: u32, x: u32, y: u32, rw: u32, rh:
             count += 1;
         }
     }
-    if count == 0 { 0.0 } else { (sum / count as f32).clamp(0.0, 1.0) }
+    if count == 0 {
+        0.0
+    } else {
+        (sum / count as f32).clamp(0.0, 1.0)
+    }
 }
 
 /// Compute left-right symmetry of a component's skin pixels.
@@ -1358,12 +1367,8 @@ pub fn detect_face_regions_onnx(
                 //
                 // We also pull from the eyebrow region (87..92 and 92..97) as
                 // supplementary anchors if the eye contours are sparse.
-                let left_eye_pts: Vec<_> = (33..39)
-                    .filter_map(|i| pts.get(i).copied())
-                    .collect();
-                let right_eye_pts: Vec<_> = (39..51)
-                    .filter_map(|i| pts.get(i).copied())
-                    .collect();
+                let left_eye_pts: Vec<_> = (33..39).filter_map(|i| pts.get(i).copied()).collect();
+                let right_eye_pts: Vec<_> = (39..51).filter_map(|i| pts.get(i).copied()).collect();
                 let (le_cx, le_cy, le_r) = compute_center_radius(&left_eye_pts);
                 let (re_cx, re_cy, re_r) = compute_center_radius(&right_eye_pts);
 
@@ -1575,10 +1580,7 @@ fn skin_confidence(r: u8, g: u8, b: u8) -> f32 {
     // Model 1: Extended YCbCr (Kovac et al. + extended for dark skin)
     let (y_val, cb, cr) = rgb_to_ycbcr(r, g, b);
     // Wider ranges: Cb 70-140, Cr 105-180, covers light → dark skin tones
-    let ycbcr_score = if y_val > 20.0
-        && cb >= 70.0 && cb <= 140.0
-        && cr >= 105.0 && cr <= 180.0
-    {
+    let ycbcr_score = if y_val > 20.0 && cb >= 70.0 && cb <= 140.0 && cr >= 105.0 && cr <= 180.0 {
         // Score peaks in the middle of the range, falls off at edges
         let cb_center = 105.0;
         let cr_center = 142.0;
@@ -1590,18 +1592,15 @@ fn skin_confidence(r: u8, g: u8, b: u8) -> f32 {
     };
 
     // Model 2: Normalized RGB ratio (Kovac et al.)
-    let rgb_score = if rf > 0.2 && gf > 0.15 && bf > 0.1
-        && rf > gf
-        && rf > bf
-        && (rf - gf).abs() > 0.02
-    {
-        // R > G > B is typical for skin; weight by how well it fits
-        let rg = rf - gf;
-        let rb = rf - bf;
-        (rg.min(rb) * 3.0).min(1.0).max(0.0)
-    } else {
-        0.0
-    };
+    let rgb_score =
+        if rf > 0.2 && gf > 0.15 && bf > 0.1 && rf > gf && rf > bf && (rf - gf).abs() > 0.02 {
+            // R > G > B is typical for skin; weight by how well it fits
+            let rg = rf - gf;
+            let rb = rf - bf;
+            (rg.min(rb) * 3.0).min(1.0).max(0.0)
+        } else {
+            0.0
+        };
 
     // Model 3: HSV-based (hue in warm range, moderate saturation)
     let (hue, sat, lum) = rgb_to_hsl(rf, gf, bf);
@@ -2274,10 +2273,7 @@ pub fn apply_portrait_adjustments(
                             // Also: if face is significantly smaller than the
                             // average face (for multi-person photos)
                             let is_small_absolute = face.face_rect.2 < img_w / 4;
-                            let avg_width = face_regions
-                                .iter()
-                                .map(|f| f.face_rect.2)
-                                .sum::<u32>()
+                            let avg_width = face_regions.iter().map(|f| f.face_rect.2).sum::<u32>()
                                 / face_regions.len().max(1) as u32;
                             let is_small_relative = face.face_rect.2 < avg_width / 2;
                             let is_smallest = face.face_rect.2
@@ -2286,7 +2282,8 @@ pub fn apply_portrait_adjustments(
                                     .map(|f| f.face_rect.2)
                                     .min()
                                     .unwrap_or(u32::MAX);
-                            is_small_absolute || (face_regions.len() > 1 && (is_small_relative && is_smallest))
+                            is_small_absolute
+                                || (face_regions.len() > 1 && (is_small_relative && is_smallest))
                         } // Heuristic: smaller faces
                         _ => true,
                     }
@@ -2344,9 +2341,12 @@ pub fn apply_portrait_adjustments(
                     let x = spot.get("x")?.as_f64()? as f32;
                     let y = spot.get("y")?.as_f64()? as f32;
                     let r = spot.get("radius")?.as_f64()? as f32;
-                    let px_x = ((x * img_w as f32).round() as i32).clamp(0, img_w as i32 - 1) as u32;
-                    let px_y = ((y * img_h as f32).round() as i32).clamp(0, img_h as i32 - 1) as u32;
-                    let px_r = ((r * img_w as f32).max(3.0).round() as i32).clamp(1, (img_w / 2) as i32) as u32;
+                    let px_x =
+                        ((x * img_w as f32).round() as i32).clamp(0, img_w as i32 - 1) as u32;
+                    let px_y =
+                        ((y * img_h as f32).round() as i32).clamp(0, img_h as i32 - 1) as u32;
+                    let px_r = ((r * img_w as f32).max(3.0).round() as i32)
+                        .clamp(1, (img_w / 2) as i32) as u32;
                     Some((px_x, px_y, px_r))
                 })
                 .collect()
@@ -2360,7 +2360,12 @@ pub fn apply_portrait_adjustments(
 
     // 2. Skin smoothing
     if skin_strength > 1e-4 {
-        apply_skin_smoothing(img, skin_strength / 100.0, skin_detail / 100.0, &filtered_faces)?;
+        apply_skin_smoothing(
+            img,
+            skin_strength / 100.0,
+            skin_detail / 100.0,
+            &filtered_faces,
+        )?;
     }
 
     // 3. Face reshape

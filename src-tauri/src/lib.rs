@@ -286,7 +286,8 @@ async fn update_wgpu_transform(
     tokio::task::spawn_blocking(move || {
         let mut display_lock = context.display.lock().unwrap();
         if let Some(display) = display_lock.as_mut() {
-            display.latest_transform = crate::gpu_processing::DisplayTransform::from_payload(&payload);
+            display.latest_transform =
+                crate::gpu_processing::DisplayTransform::from_payload(&payload);
 
             context.queue.write_buffer(
                 &display.transform_buffer,
