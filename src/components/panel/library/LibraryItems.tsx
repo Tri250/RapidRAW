@@ -850,6 +850,7 @@ const RowComponent = ({
       {row.images.map((imageFile: ImageFile) => (
         <div
           key={imageFile.path}
+          data-image-path={imageFile.path}
           style={{
             width: isListView ? '100%' : itemWidth,
             height: itemHeight,

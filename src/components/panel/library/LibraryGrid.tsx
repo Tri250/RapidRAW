@@ -215,7 +215,11 @@ export default function LibraryGrid(props: any) {
         preventDefault: () => {},
         stopPropagation: () => {},
       } as any;
-      onContextMenu?.(simulatedEvent, '');
+      // Find the actual image path from the touched element
+      const target = e.target as HTMLElement;
+      const imageEl = target.closest('[data-image-path]') as HTMLElement | null;
+      const path = imageEl?.dataset.imagePath || '';
+      onContextMenu?.(simulatedEvent, path);
       longPressStartRef.current = null;
     }, LONG_PRESS_DURATION);
   }, [isAndroid, onContextMenu, clearLongPress]);

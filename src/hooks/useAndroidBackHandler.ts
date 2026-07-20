@@ -6,8 +6,9 @@ import { useEditorStore } from '../store/useEditorStore';
 import { Invokes } from '../components/ui/AppProperties';
 
 export function useAndroidBackHandler() {
+  const osPlatform = useSettingsStore((s) => s.osPlatform);
+
   useEffect(() => {
-    const osPlatform = useSettingsStore.getState().osPlatform;
     if (osPlatform !== 'android') return;
 
     (window as any).__handleAndroidBack = () => {
@@ -141,5 +142,5 @@ export function useAndroidBackHandler() {
       delete (window as any).__handleLowMemory;
       delete (window as any).__handleAppBackground;
     };
-  }, []);
+  }, [osPlatform]);
 }

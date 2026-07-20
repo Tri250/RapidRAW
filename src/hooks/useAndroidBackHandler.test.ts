@@ -5,9 +5,15 @@ import { useSettingsStore } from '../store/useSettingsStore';
 import { useUIStore } from '../store/useUIStore';
 
 vi.mock('../store/useSettingsStore', () => ({
-  useSettingsStore: Object.assign(vi.fn(), {
-    getState: vi.fn(() => ({ osPlatform: 'android' })),
-  }),
+  useSettingsStore: Object.assign(
+    vi.fn((selector?: (s: any) => any) => {
+      const state = { osPlatform: 'android' };
+      return selector ? selector(state) : state;
+    }),
+    {
+      getState: vi.fn(() => ({ osPlatform: 'android' })),
+    },
+  ),
 }));
 
 vi.mock('../store/useUIStore', () => ({
@@ -36,6 +42,10 @@ vi.mock('../store/useUIStore', () => ({
 describe('useAndroidBackHandler', () => {
   beforeEach(() => {
     delete (window as any).__handleAndroidBack;
+    (useSettingsStore as any).mockImplementation((selector?: (s: any) => any) => {
+      const state = { osPlatform: 'android' };
+      return selector ? selector(state) : state;
+    });
     (useSettingsStore.getState as any).mockReturnValue({ osPlatform: 'android' });
     (useUIStore.getState as any).mockReturnValue({
       confirmModalState: { isOpen: false },
@@ -69,7 +79,10 @@ describe('useAndroidBackHandler', () => {
   });
 
   it('does not register on non-Android', async () => {
-    (useSettingsStore.getState as any).mockReturnValue({ osPlatform: 'windows' });
+    (useSettingsStore as any).mockImplementation((selector?: (s: any) => any) => {
+      const state = { osPlatform: 'windows' };
+      return selector ? selector(state) : state;
+    });
     renderHook(() => useAndroidBackHandler());
     await new Promise((r) => setTimeout(r, 10));
     expect((window as any).__handleAndroidBack).toBeUndefined();

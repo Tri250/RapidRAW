@@ -63,6 +63,7 @@ export function usePinchZoom(
       }
       const ratio = currentDistance / initialDistanceRef.current;
       const newScale = Math.min(maxScale, Math.max(minScale, currentScaleRef.current * ratio));
+      currentScaleRef.current = newScale;
       onScaleChange?.(newScale);
     },
     [minScale, maxScale, onScaleChange],
@@ -131,6 +132,7 @@ export function useTwoFingerRotate(
       const currentAngle = getAngle(p1, p2);
       const delta = currentAngle - initialAngleRef.current;
       const newRotation = currentRotationRef.current + delta;
+      currentRotationRef.current = newRotation;
       onRotationChange?.(newRotation);
     },
     [onRotationChange],
@@ -187,6 +189,7 @@ export function useCanvasPan(
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
+      e.preventDefault();
       const point = getTouchPoint(e.touches[0]);
       startPointRef.current = point;
       isPanningRef.current = true;
