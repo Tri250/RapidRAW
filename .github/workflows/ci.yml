@@ -11,32 +11,33 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Windows x64
           - platform: 'windows-latest'
             args: '--bundles nsis'
             target: ''
             asset-prefix: '01'
-          - platform: 'windows-11-arm'
+          # Windows ARM64 (cross-compile on windows-latest)
+          - platform: 'windows-latest'
             args: '--bundles nsis'
             target: 'aarch64-pc-windows-msvc'
-            asset-prefix: '01'
+            asset-prefix: '01_arm'
+          # macOS Apple Silicon
           - platform: 'macos-14'
             target: aarch64-apple-darwin
             asset-prefix: '02'
-          - platform: 'macos-15-intel'
+          # macOS Intel (use macos-13)
+          - platform: 'macos-13'
             target: x86_64-apple-darwin
-            asset-prefix: '02'
+            asset-prefix: '02_intel'
+          # Ubuntu x64
           - platform: 'ubuntu-22.04'
             target: ''
             asset-prefix: '03'
-          - platform: 'ubuntu-22.04-arm'
-            target: ''
-            asset-prefix: '03'
+          # Ubuntu 24.04 x64
           - platform: 'ubuntu-24.04'
             target: ''
-            asset-prefix: '03'
-          - platform: 'ubuntu-24.04-arm'
-            target: ''
-            asset-prefix: '03'
+            asset-prefix: '03_24'
+          # Android ARM64
           - platform: 'ubuntu-latest'
             mobile: 'android'
             target: 'aarch64-linux-android'

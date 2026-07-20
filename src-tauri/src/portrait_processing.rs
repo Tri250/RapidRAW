@@ -1880,7 +1880,10 @@ fn build_body_mask(
     }
 
     // Find the main anchor face (highest one) for body center
-    let anchor_face = face_regions.iter().min_by_key(|f| f.face_rect.1).unwrap();
+    let anchor_face = match face_regions.iter().min_by_key(|f| f.face_rect.1) {
+        Some(f) => f,
+        None => return mask, // No face regions, return empty mask
+    };
     let face_cx = anchor_face.face_rect.0 as f32 + anchor_face.face_rect.2 as f32 / 2.0;
     let face_width = anchor_face.face_rect.2 as f32;
 
