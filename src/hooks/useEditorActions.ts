@@ -138,7 +138,9 @@ export function useEditorActions() {
       if (pathsToReset.length === 0) return;
 
       pathsToReset.forEach((p) => globalImageCache.delete(p));
+      // Cancel both debounced functions to prevent stale state updates
       debouncedSetHistory.cancel();
+      debouncedSave.cancel();
 
       invoke(Invokes.ResetAdjustmentsForPaths, { paths: pathsToReset })
         .then(() => {

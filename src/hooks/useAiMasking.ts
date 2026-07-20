@@ -461,10 +461,33 @@ export function useAiMasking() {
   const activeMaskId = useEditorStore((state) => state.activeMaskId);
   const activeAiSubMaskId = useEditorStore((state) => state.activeAiSubMaskId);
   const selectedImagePath = useEditorStore((state) => state.selectedImage?.path);
-  const adjustmentsForPrecompute = useEditorStore((state) => state.adjustments);
+  // Only track geometry adjustments for precompute, not the full adjustments object
+  // which changes on every slider move and would cause excessive precompute requests
+  const geometricKey = useEditorStore((state) => {
+    const adj = state.adjustments;
+    return JSON.stringify({
+      transformDistortion: adj.transformDistortion,
+      transformVertical: adj.transformVertical,
+      transformHorizontal: adj.transformHorizontal,
+      transformRotate: adj.transformRotate,
+      transformAspect: adj.transformAspect,
+      transformScale: adj.transformScale,
+      transformXOffset: adj.transformXOffset,
+      transformYOffset: adj.transformYOffset,
+      lensDistortionAmount: adj.lensDistortionAmount,
+      lensVignetteAmount: adj.lensVignetteAmount,
+      lensTcaAmount: adj.lensTcaAmount,
+      rotation: adj.rotation,
+      flipHorizontal: adj.flipHorizontal,
+      flipVertical: adj.flipVertical,
+      orientationSteps: adj.orientationSteps,
+      crop: adj.crop,
+    });
+  });
 
   useEffect(() => {
     let cancelled = false;
+    const adjustmentsForPrecompute = useEditorStore.getState().adjustments;
     const activeSubMask =
       adjustmentsForPrecompute?.masks?.flatMap((m: MaskContainer) => m.subMasks).find((sm: SubMask) => sm.id === activeMaskId) ||
       adjustmentsForPrecompute?.aiPatches?.flatMap((p: AiPatch) => p.subMasks).find((sm: SubMask) => sm.id === activeAiSubMaskId);
@@ -488,7 +511,7 @@ export function useAiMasking() {
     return () => {
       cancelled = true;
     };
-  }, [activeMaskId, activeAiSubMaskId, selectedImagePath, adjustmentsForPrecompute]);
+  }, [activeMaskId, activeAiSubMaskId, selectedImagePath, geometricKey]);
 
   return {
     updateSubMask,

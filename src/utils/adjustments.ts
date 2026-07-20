@@ -623,24 +623,25 @@ export const INITIAL_ADJUSTMENTS: Adjustments = {
   whites: 0,
 };
 
-const deepCloneCurves = (curves: any): Curves => ({
-  blue: curves?.blue?.map((p: Coord) => ({ ...p })) || [
+const deepCloneCurves = (curves: any): Curves => {
+  const defaultCurve = [
     { x: 0, y: 0 },
     { x: 255, y: 255 },
-  ],
-  green: curves?.green?.map((p: Coord) => ({ ...p })) || [
-    { x: 0, y: 0 },
-    { x: 255, y: 255 },
-  ],
-  luma: curves?.luma?.map((p: Coord) => ({ ...p })) || [
-    { x: 0, y: 0 },
-    { x: 255, y: 255 },
-  ],
-  red: curves?.red?.map((p: Coord) => ({ ...p })) || [
-    { x: 0, y: 0 },
-    { x: 255, y: 255 },
-  ],
-});
+  ];
+  const cloneChannel = (channel: any): Array<Coord> => {
+    if (!channel || !Array.isArray(channel)) return defaultCurve;
+    return channel.map((p: any) => {
+      if (!p || typeof p !== 'object') return { x: 0, y: 0 };
+      return { x: typeof p.x === 'number' ? p.x : 0, y: typeof p.y === 'number' ? p.y : 0 };
+    });
+  };
+  return {
+    blue: cloneChannel(curves?.blue),
+    green: cloneChannel(curves?.green),
+    luma: cloneChannel(curves?.luma),
+    red: cloneChannel(curves?.red),
+  };
+};
 
 const deepCloneParametric = (pCurve: any): ParametricCurve => ({
   luma: { ...DEFAULT_PARAMETRIC_CURVE_SETTINGS, ...(pCurve?.luma || {}) },

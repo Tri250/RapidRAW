@@ -136,7 +136,9 @@ export const useEditorStore = create<EditorState>((set) => ({
 
   pushHistory: (newAdj) =>
     set((state) => {
-      const newHistory = state.history.slice(0, state.historyIndex + 1);
+      // Ensure historyIndex is within valid bounds before slicing
+      const safeIndex = Math.max(0, Math.min(state.historyIndex, state.history.length - 1));
+      const newHistory = state.history.slice(0, safeIndex + 1);
       newHistory.push(newAdj);
       // Cap at 30 entries (reduced from 50) to limit memory usage since
       // Adjustments can contain large base64 mask data strings
@@ -146,18 +148,22 @@ export const useEditorStore = create<EditorState>((set) => ({
 
   undo: () =>
     set((state) => {
-      if (state.historyIndex > 0) {
+      if (state.historyIndex > 0 && state.history.length > 1) {
         const newIndex = state.historyIndex - 1;
-        return { historyIndex: newIndex, adjustments: state.history[newIndex] };
+        if (newIndex < state.history.length) {
+          return { historyIndex: newIndex, adjustments: state.history[newIndex] };
+        }
       }
       return state;
     }),
 
   redo: () =>
     set((state) => {
-      if (state.historyIndex < state.history.length - 1) {
+      if (state.historyIndex < state.history.length - 1 && state.history.length > 0) {
         const newIndex = state.historyIndex + 1;
-        return { historyIndex: newIndex, adjustments: state.history[newIndex] };
+        if (newIndex < state.history.length) {
+          return { historyIndex: newIndex, adjustments: state.history[newIndex] };
+        }
       }
       return state;
     }),

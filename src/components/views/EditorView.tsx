@@ -225,7 +225,9 @@ export default function EditorView({
           {renderedRightPanel === Panel.Presets && (
             <PresetsPanel
               onNavigateToCommunity={() => {
-                handleBackToLibrary();
+                if (selectedImage) {
+                  handleBackToLibrary();
+                }
                 setUI({ activeView: 'community' });
               }}
             />

@@ -186,21 +186,26 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         const fieldValue = (() => {
           switch (condition.field) {
             case 'rating':
-              return img.rating;
+              return img.rating ?? 0;
             case 'colorLabel': {
-              const colorTag = img.tags?.find((t: string) => t.startsWith('color:'))?.substring(6);
+              const tags = img.tags;
+              if (!tags || !Array.isArray(tags)) return null;
+              const colorTag = tags.find((t: string) => t.startsWith('color:'))?.substring(6);
               return colorTag || null;
             }
-            case 'tag':
-              return img.tags?.filter((t: string) => !t.startsWith('color:')) || [];
+            case 'tag': {
+              const tags = img.tags;
+              if (!tags || !Array.isArray(tags)) return [];
+              return tags.filter((t: string) => !t.startsWith('color:'));
+            }
             case 'dateModified':
-              return img.modified;
+              return img.modified ?? null;
             case 'dateTaken':
               return img.exif?.DateTimeOriginal || null;
             case 'cameraModel':
               return img.exif?.Model || null;
             case 'isEdited':
-              return img.is_edited;
+              return img.is_edited ?? false;
             default:
               return null;
           }
@@ -210,21 +215,25 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
           case 'equals':
             return fieldValue === condition.value;
           case 'greaterThan':
-            return typeof fieldValue === 'number' && fieldValue > condition.value;
+            return typeof fieldValue === 'number' && typeof condition.value === 'number' && fieldValue > condition.value;
           case 'lessThan':
-            return typeof fieldValue === 'number' && fieldValue < condition.value;
+            return typeof fieldValue === 'number' && typeof condition.value === 'number' && fieldValue < condition.value;
           case 'contains':
             if (Array.isArray(fieldValue)) return fieldValue.includes(condition.value);
-            if (typeof fieldValue === 'string') return fieldValue.toLowerCase().includes(String(condition.value).toLowerCase());
+            if (typeof fieldValue === 'string' && condition.value != null)
+              return fieldValue.toLowerCase().includes(String(condition.value).toLowerCase());
             return false;
-          case 'between':
-            if (typeof fieldValue === 'number') {
+          case 'between': {
+            if (typeof fieldValue === 'number' && Array.isArray(condition.value) && condition.value.length >= 2) {
               const [min, max] = condition.value;
-              return fieldValue >= min && fieldValue <= max;
+              if (typeof min === 'number' && typeof max === 'number') {
+                return fieldValue >= min && fieldValue <= max;
+              }
             }
             return false;
+          }
           default:
-            return true;
+            return false;
         }
       }),
     );
