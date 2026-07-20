@@ -892,18 +892,23 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
         if (dx > 5 || dy > 5) return;
       }
 
+      const currentScale = transformStateRef.current.scale;
+
       // Android double-tap to compare before/after
       if (isAndroid) {
         const now = Date.now();
         const timeSinceLastTap = now - lastTapTime.current;
         lastTapTime.current = now;
         if (timeSinceLastTap < 300) {
-          toggleShowOriginal();
+          if (currentScale > 1.01) {
+            animateTransform(0, 0, 1, clickAnimationTime);
+          } else {
+            toggleShowOriginal();
+          }
+          lastTapTime.current = 0;
           return;
         }
       }
-
-      const currentScale = transformStateRef.current.scale;
 
       if (isClickAnimating.current || currentScale > 1.01) {
         if (!isClickAnimating.current && currentScale > 1.01) {

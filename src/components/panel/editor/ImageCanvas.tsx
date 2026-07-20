@@ -1202,6 +1202,7 @@ const ImageCanvas = memo(
     const previewBoxRef = useRef<{ start: Coord; end: Coord } | null>(null);
     const [previewBox, setPreviewBox] = useState<{ start: Coord; end: Coord } | null>(null);
     const activeStrokeIndex = useRef<number | null>(null);
+    const maskTouchCountRef = useRef(0);
 
     const [cursorPreview, setCursorPreview] = useState<CursorPreview>({ x: 0, y: 0, visible: false });
     const [straightenLine, setStraightenLine] = useState<any>(null);
@@ -1553,12 +1554,15 @@ const ImageCanvas = memo(
     useEffect(() => {
       if (!isMasking && !isAiEditing) {
         setIsMaskInteractionActive(false);
+        maskTouchCountRef.current = 0;
       }
     }, [isMasking, isAiEditing]);
 
     useEffect(() => {
-      const clearTouchInteraction = () => {
-        setIsMaskTouchInteracting(false);
+      const clearTouchInteraction = (e: TouchEvent) => {
+        if (e.touches.length === 0) {
+          setIsMaskTouchInteracting(false);
+        }
       };
 
       window.addEventListener('touchend', clearTouchInteraction);
@@ -2416,11 +2420,13 @@ const ImageCanvas = memo(
       window.addEventListener('mousemove', onGlobalMove, { passive: false });
       window.addEventListener('mouseup', onGlobalUp);
       window.addEventListener('touchmove', onGlobalMove, { passive: false });
+      window.addEventListener('touchend', onGlobalUp);
       window.addEventListener('touchcancel', onGlobalUp);
       return () => {
         window.removeEventListener('mousemove', onGlobalMove);
         window.removeEventListener('mouseup', onGlobalUp);
         window.removeEventListener('touchmove', onGlobalMove);
+        window.removeEventListener('touchend', onGlobalUp);
         window.removeEventListener('touchcancel', onGlobalUp);
       };
     }, [isToolActive, handleMove, handleUp]);
@@ -2648,6 +2654,7 @@ const ImageCanvas = memo(
         setIsMaskInteractionActive(true);
         const eventType = e?.evt?.type;
         if (eventType === 'touchstart') {
+          maskTouchCountRef.current += 1;
           setIsMaskTouchInteracting(true);
         }
       },
@@ -2655,8 +2662,11 @@ const ImageCanvas = memo(
     );
 
     const handleMaskInteractionEnd = useCallback(() => {
+      maskTouchCountRef.current = Math.max(0, maskTouchCountRef.current - 1);
       setIsMaskInteractionActive(false);
-      setIsMaskTouchInteracting(false);
+      if (maskTouchCountRef.current === 0) {
+        setIsMaskTouchInteracting(false);
+      }
     }, [setIsMaskTouchInteracting]);
 
     const currentActiveSubMaskId = activeAiSubMaskId || activeMaskId;
