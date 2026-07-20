@@ -28,7 +28,9 @@ interface SliderProps {
 const DOUBLE_CLICK_THRESHOLD_MS = 300;
 const FINE_ADJUSTMENT_MULTIPLIER = 0.2;
 const TOUCH_DRAG_THRESHOLD_PX = 10;
-const TOUCH_THUMB_HIT_RADIUS_PX = 24;
+// Larger hit radius on touch devices so users can grab the thumb easily.
+// 32px radius (64px diameter) aligns better with mobile touch target guidelines.
+const TOUCH_THUMB_HIT_RADIUS_PX = 32;
 
 const hasFineAdjustmentModifier = (event: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent) =>
   'shiftKey' in event && (event.shiftKey || event.altKey);
@@ -335,7 +337,6 @@ const Slider = ({
     if (e.touches.length === 0) return;
 
     const touch = e.touches[0];
-    suppressTouchChangeRef.current = true;
 
     const inputEl = rangeInputRef.current;
     if (!inputEl) return;
@@ -344,16 +345,34 @@ const Slider = ({
     const fraction = max !== min ? (displayValue - min) / (max - min) : 0;
     const thumbX = rect.left + Math.max(0, Math.min(1, fraction)) * rect.width;
 
+    // Always suppress native change events - we manage value updates manually
+    // so the native range input doesn't fight with our drag logic. This is
+    // important on Android where unsuppressed native events caused value
+    // flicker and broken interaction.
+    suppressTouchChangeRef.current = true;
+
+    // Determine the starting value for the pending drag. If the touch lands
+    // on the track (away from the thumb), jump the value to the touch
+    // position just like the mouse handler does - this lets the user drag
+    // from anywhere on the slider and immediately see live preview updates.
+    let startValue = displayValue;
     if (Math.abs(touch.clientX - thumbX) > TOUCH_THUMB_HIT_RADIUS_PX) {
-      pendingTouchRef.current = null;
-      return;
+      const tapFraction = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+      startValue = snapToStep(min + tapFraction * (max - min));
+      accumulatedValueRef.current = startValue;
+      setDisplayValue(startValue);
+      onChange({ target: { value: startValue } });
     }
 
+    // Always prepare for a potential drag (pendingTouchRef). handleTouchMove
+    // will only promote this into an actual drag once the finger moves
+    // beyond TOUCH_DRAG_THRESHOLD_PX horizontally, so a quick tap still
+    // behaves as a value jump rather than a drag.
     pendingTouchRef.current = {
       startX: touch.clientX,
       startY: touch.clientY,
       latestX: touch.clientX,
-      startValue: displayValue,
+      startValue,
     };
   };
 
