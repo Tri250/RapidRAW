@@ -286,17 +286,7 @@ async fn update_wgpu_transform(
     tokio::task::spawn_blocking(move || {
         let mut display_lock = context.display.lock().unwrap();
         if let Some(display) = display_lock.as_mut() {
-            display.latest_transform.rect = [payload.x, payload.y, payload.width, payload.height];
-            display.latest_transform.clip = [
-                payload.clip_x,
-                payload.clip_y,
-                payload.clip_width,
-                payload.clip_height,
-            ];
-            display.latest_transform.window = [payload.window_width, payload.window_height];
-            display.latest_transform.bg_primary = payload.bg_primary;
-            display.latest_transform.bg_secondary = payload.bg_secondary;
-            display.latest_transform.pixelated = if payload.pixelated { 1.0 } else { 0.0 };
+            display.latest_transform = crate::gpu_processing::DisplayTransform::from_payload(&payload);
 
             context.queue.write_buffer(
                 &display.transform_buffer,

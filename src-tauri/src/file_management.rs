@@ -43,7 +43,23 @@ use crate::mask_generation::MaskDefinition;
 use crate::preset_converter;
 use crate::tagging::COLOR_TAG_PREFIX;
 
+fn is_flatpak_env() -> bool {
+    std::env::var("FLATPAK_ID").is_ok() || std::path::Path::new("/.flatpak-info").exists()
+}
+
 fn resolve_thumbnail_cache_dir(app_handle: &AppHandle) -> std::result::Result<PathBuf, String> {
+    if is_flatpak_env() {
+        let local_data = app_handle
+            .path()
+            .app_local_data_dir()
+            .map_err(|e| e.to_string())?;
+        let thumb_cache_dir = local_data.join("thumbnails");
+        if !thumb_cache_dir.exists() {
+            fs::create_dir_all(&thumb_cache_dir).map_err(|e| e.to_string())?;
+        }
+        return Ok(thumb_cache_dir);
+    }
+
     let cache_dir = app_handle
         .path()
         .app_cache_dir()
@@ -53,6 +69,15 @@ fn resolve_thumbnail_cache_dir(app_handle: &AppHandle) -> std::result::Result<Pa
         fs::create_dir_all(&thumb_cache_dir).map_err(|e| e.to_string())?;
     }
     Ok(thumb_cache_dir)
+}
+
+fn atomic_write_file(path: &Path, content: &str) -> std::io::Result<()> {
+    let dir = path.parent().unwrap_or_else(|| Path::new("."));
+    let mut temp_file = tempfile::NamedTempFile::new_in(dir)?;
+    temp_file.write_all(content.as_bytes())?;
+    temp_file.flush()?;
+    temp_file.persist(path)?;
+    Ok(())
 }
 
 fn emit_thumbnail_cache_setup_error(app_handle: &AppHandle, path: &str, reason: &str) {
@@ -2228,7 +2253,7 @@ pub fn save_metadata_and_update_thumbnail(
     metadata.adjustments = final_adjustments;
 
     let json_string = serde_json::to_string_pretty(&metadata).map_err(|e| e.to_string())?;
-    std::fs::write(&sidecar_path, json_string).map_err(|e| e.to_string())?;
+    atomic_write_file(&sidecar_path, &json_string).map_err(|e| e.to_string())?;
 
     if let Ok(settings) = load_settings(app_handle.clone())
         && settings.enable_xmp_sync.unwrap_or(false)
@@ -2347,7 +2372,7 @@ pub async fn apply_adjustments_to_paths(
             existing_metadata.adjustments = new_adjustments;
 
             if let Ok(json_string) = serde_json::to_string_pretty(&existing_metadata) {
-                let _ = std::fs::write(&sidecar_path, json_string);
+                let _ = atomic_write_file(&sidecar_path, &json_string);
             }
 
             if enable_xmp_sync {
@@ -2416,7 +2441,7 @@ pub async fn reset_adjustments_for_paths(
             existing_metadata.adjustments = serde_json::json!({});
 
             if let Ok(json_string) = serde_json::to_string_pretty(&existing_metadata) {
-                let _ = std::fs::write(&sidecar_path, json_string);
+                let _ = atomic_write_file(&sidecar_path, &json_string);
             }
 
             if enable_xmp_sync {
@@ -2542,7 +2567,7 @@ pub async fn apply_auto_adjustments_to_paths(
                 }
 
                 if let Ok(json_string) = serde_json::to_string_pretty(&existing_metadata) {
-                    let _ = std::fs::write(&sidecar_path, json_string);
+                    let _ = atomic_write_file(&sidecar_path, &json_string);
                 }
 
                 if enable_xmp_sync {
@@ -2605,7 +2630,7 @@ pub fn set_color_label_for_paths(
         }
 
         if let Ok(json_string) = serde_json::to_string_pretty(&metadata) {
-            let _ = std::fs::write(&sidecar_path, json_string);
+            let _ = atomic_write_file(&sidecar_path, &json_string);
         }
 
         if enable_xmp_sync {
@@ -2635,7 +2660,7 @@ pub fn set_rating_for_paths(
         metadata.rating = rating;
 
         if let Ok(json_string) = serde_json::to_string_pretty(&metadata) {
-            let _ = std::fs::write(&sidecar_path, json_string);
+            let _ = atomic_write_file(&sidecar_path, &json_string);
         }
 
         if enable_xmp_sync {
@@ -2659,7 +2684,7 @@ pub fn load_metadata(path: String, app_handle: AppHandle) -> Result<ImageMetadat
         && sync_metadata_from_xmp(&source_path, &mut metadata)
         && let Ok(json) = serde_json::to_string_pretty(&metadata)
     {
-        let _ = fs::write(&sidecar_path, json);
+        let _ = atomic_write_file(&sidecar_path, &json);
     }
 
     Ok(metadata)

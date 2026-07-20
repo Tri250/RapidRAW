@@ -41,7 +41,7 @@ fn srgb_to_linear(value: f32) -> f32 {
     if value <= 0.04045 {
         value / 12.92
     } else {
-        ((value + 0.055) / 1.055).powf(3.0)
+        ((value + 0.055) / 1.055).powf(2.4)
     }
 }
 
@@ -114,6 +114,11 @@ fn develop_internal(
         developer.demosaic_algorithm = DemosaicAlgorithm::Speed;
         developer.steps.retain(|&step| step != ProcessingStep::SRgb);
     } else {
+        if raw_image.cfa.is_xtrans() {
+            developer.demosaic_algorithm = DemosaicAlgorithm::PixelShift;
+        } else {
+            developer.demosaic_algorithm = DemosaicAlgorithm::SuperPixel;
+        }
         developer.steps.retain(|&step| step != ProcessingStep::SRgb);
     }
 

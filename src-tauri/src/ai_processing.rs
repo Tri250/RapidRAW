@@ -11,6 +11,31 @@ use image::{
 use ndarray::{Array, Array4, IxDyn};
 use ort::session::Session;
 use ort::value::Tensor;
+
+fn get_execution_providers() -> Vec<ort::execution_providers::ExecutionProviderDispatch> {
+    use ort::execution_providers::*;
+    let mut eps = Vec::new();
+
+    #[cfg(target_os = "windows")]
+    {
+        eps.push(DirectMLExecutionProvider::default().build());
+        eps.push(CUDAExecutionProvider::default().build());
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        eps.push(CoreMLExecutionProvider::default().build());
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        eps.push(CUDAExecutionProvider::default().build());
+        eps.push(ROCmExecutionProvider::default().build());
+    }
+
+    eps.push(CPUExecutionProvider::default().build());
+    eps
+}
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tauri::Emitter;
@@ -478,21 +503,31 @@ pub async fn get_or_init_ai_models(
 
     let sam_encoder = Session::builder()
         .map_err(|e| anyhow::Error::msg(format_oom_error("SAM Encoder", &e)))?
+        .with_execution_providers(get_execution_providers())
+        .map_err(|e| anyhow::Error::msg(format_oom_error("SAM Encoder", &e)))?
         .commit_from_file(encoder_path)
         .map_err(|e| anyhow::Error::msg(format_oom_error("SAM Encoder", &e)))?;
     let sam_decoder = Session::builder()
+        .map_err(|e| anyhow::Error::msg(format_oom_error("SAM Decoder", &e)))?
+        .with_execution_providers(get_execution_providers())
         .map_err(|e| anyhow::Error::msg(format_oom_error("SAM Decoder", &e)))?
         .commit_from_file(decoder_path)
         .map_err(|e| anyhow::Error::msg(format_oom_error("SAM Decoder", &e)))?;
     let u2netp = Session::builder()
         .map_err(|e| anyhow::Error::msg(format_oom_error("Foreground Model", &e)))?
+        .with_execution_providers(get_execution_providers())
+        .map_err(|e| anyhow::Error::msg(format_oom_error("Foreground Model", &e)))?
         .commit_from_file(u2netp_path)
         .map_err(|e| anyhow::Error::msg(format_oom_error("Foreground Model", &e)))?;
     let sky_seg = Session::builder()
         .map_err(|e| anyhow::Error::msg(format_oom_error("Sky Model", &e)))?
+        .with_execution_providers(get_execution_providers())
+        .map_err(|e| anyhow::Error::msg(format_oom_error("Sky Model", &e)))?
         .commit_from_file(sky_seg_path)
         .map_err(|e| anyhow::Error::msg(format_oom_error("Sky Model", &e)))?;
     let depth_anything = Session::builder()
+        .map_err(|e| anyhow::Error::msg(format_oom_error("Depth Model", &e)))?
+        .with_execution_providers(get_execution_providers())
         .map_err(|e| anyhow::Error::msg(format_oom_error("Depth Model", &e)))?
         .commit_from_file(depth_path)
         .map_err(|e| anyhow::Error::msg(format_oom_error("Depth Model", &e)))?;
@@ -567,6 +602,8 @@ pub async fn get_or_init_denoise_model(
 
     let model_path = models_dir.join(DENOISE_FILENAME);
     let session = Session::builder()
+        .map_err(|e| anyhow::Error::msg(format_oom_error("Denoise Model", &e)))?
+        .with_execution_providers(get_execution_providers())
         .map_err(|e| anyhow::Error::msg(format_oom_error("Denoise Model", &e)))?
         .commit_from_file(model_path)
         .map_err(|e| anyhow::Error::msg(format_oom_error("Denoise Model", &e)))?;
@@ -645,6 +682,8 @@ pub async fn get_or_init_clip_models(
     let model = Mutex::new(
         Session::builder()
             .map_err(|e| anyhow::Error::msg(format_oom_error("CLIP Model", &e)))?
+            .with_execution_providers(get_execution_providers())
+            .map_err(|e| anyhow::Error::msg(format_oom_error("CLIP Model", &e)))?
             .commit_from_file(clip_model_path)
             .map_err(|e| anyhow::Error::msg(format_oom_error("CLIP Model", &e)))?,
     );
@@ -716,6 +755,8 @@ pub async fn get_or_init_lama_model(
 
     let model_path = models_dir.join(LAMA_FILENAME);
     let session = Session::builder()
+        .map_err(|e| anyhow::Error::msg(format_oom_error("Inpainting Model", &e)))?
+        .with_execution_providers(get_execution_providers())
         .map_err(|e| anyhow::Error::msg(format_oom_error("Inpainting Model", &e)))?
         .commit_from_file(model_path)
         .map_err(|e| anyhow::Error::msg(format_oom_error("Inpainting Model", &e)))?;

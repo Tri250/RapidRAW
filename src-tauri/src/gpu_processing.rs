@@ -42,6 +42,22 @@ pub struct DisplayTransform {
     pub bg_secondary: [f32; 4],
 }
 
+impl DisplayTransform {
+    pub fn from_payload(payload: &crate::WgpuTransformPayload) -> Self {
+        Self {
+            rect: [payload.x, payload.y, payload.width, payload.height],
+            clip: [payload.clip_x, payload.clip_y, payload.clip_width, payload.clip_height],
+            window: [payload.window_width, payload.window_height],
+            image_size: [0.0, 0.0],
+            texture_size: [0.0, 0.0],
+            pixelated: if payload.pixelated { 1.0 } else { 0.0 },
+            _pad: 0.0,
+            bg_primary: payload.bg_primary,
+            bg_secondary: payload.bg_secondary,
+        }
+    }
+}
+
 pub struct WgpuDisplay {
     pub surface: wgpu::Surface<'static>,
     pub config: wgpu::SurfaceConfiguration,
@@ -153,6 +169,11 @@ pub fn get_or_init_gpu_context(
     #[cfg(target_os = "windows")]
     if std::env::var("WGPU_BACKEND").is_err() {
         instance_desc.backends = wgpu::Backends::PRIMARY;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        instance_desc.backends = wgpu::Backends::VULKAN;
     }
 
     let flag_path = state.gpu_crash_flag_path.lock().unwrap().clone();

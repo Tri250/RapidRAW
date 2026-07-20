@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { homeDir } from '@tauri-apps/api/path';
@@ -40,6 +40,9 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
     currentResRef,
     prevAdjustmentsRef,
   } = refs;
+
+  const imageSelectGenerationRef = useRef(0);
+  const folderSelectGenerationRef = useRef(0);
 
   const handleGoHome = useCallback(() => {
     useLibraryStore.getState().setLibrary({
@@ -106,6 +109,9 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
 
   const handleImageSelect = useCallback(
     async (path: string) => {
+      imageSelectGenerationRef.current += 1;
+      const generation = imageSelectGenerationRef.current;
+
       const editorState = useEditorStore.getState();
       const { selectedImage, isSliderDragging, resetHistory, setEditor } = editorState;
       const { setLibrary } = useLibraryStore.getState();
@@ -126,6 +132,8 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
       const isCachedInBackend = isFrontendCached
         ? await invoke<boolean>('is_image_cached', { path }).catch(() => false)
         : false;
+
+      if (imageSelectGenerationRef.current !== generation) return;
 
       const hasDifferentResolution =
         cached &&
@@ -180,12 +188,14 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
 
         invoke(Invokes.LoadImage, { path })
           .then((_result: any) => {
+            if (imageSelectGenerationRef.current !== generation) return;
             if (selectedImagePathRef.current !== path) return;
             isBackendReadyRef.current = true;
             currentResRef.current = 0;
             setEditor({ originalSize: { width: _result.width, height: _result.height } });
           })
           .catch((err: any) => {
+            if (imageSelectGenerationRef.current !== generation) return;
             if (String(err).includes('cancelled')) return;
             console.error('Background load_image failed on cache hit:', err);
             isBackendReadyRef.current = true;
@@ -194,6 +204,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
 
         invoke(Invokes.LoadMetadata, { path })
           .then((metadata: any) => {
+            if (imageSelectGenerationRef.current !== generation) return;
             if (selectedImagePathRef.current !== path) return;
             let freshAdjustments: any;
             if (metadata.adjustments && !metadata.adjustments.is_null) {
@@ -264,6 +275,9 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
       expandParents = true,
       preserveEditor = false,
     ) => {
+      folderSelectGenerationRef.current += 1;
+      const generation = folderSelectGenerationRef.current;
+
       const { appSettings, handleSettingsChange } = useSettingsStore.getState();
       const { pinnedFolders } = appSettings || { pinnedFolders: [] };
       const { setLibrary, sortCriteria } = useLibraryStore.getState();
@@ -388,7 +402,9 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
         console.error('Failed to load folder contents:', err);
         toast.error('Failed to load images from the selected folder.');
       } finally {
-        useLibraryStore.getState().setLibrary({ isViewLoading: false });
+        if (folderSelectGenerationRef.current === generation) {
+          useLibraryStore.getState().setLibrary({ isViewLoading: false });
+        }
       }
     },
     [clearThumbnailQueue, refs],

@@ -617,7 +617,7 @@ fn apply_creative_color(color: vec3<f32>, sat: f32, vib: f32) -> vec3<f32> {
         let hue_dist = min(abs(hue - skin_center), 360.0 - abs(hue - skin_center));
         let is_skin = smoothstep(35.0, 10.0, hue_dist);
         let skin_dampener = mix(1.0, 0.6, is_skin);
-        let amount = vib * sat_mask * skin_dampener * 3.0;
+        let amount = vib * sat_mask * skin_dampener;
         processed = mix(vec3<f32>(luma), processed, 1.0 + amount);
     } else {
         let desat_mask = 1.0 - smoothstep(0.2, 0.8, current_sat);

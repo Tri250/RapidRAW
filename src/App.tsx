@@ -211,8 +211,8 @@ function App() {
   // Compact mode for narrow viewports in either orientation (phones in landscape)
   const isCompactViewport =
     viewportSize.width > 0 &&
-    ((viewportSize.width <= COMPACT_EDITOR_MAX_WIDTH && isPortraitViewport) ||
-      (viewportSize.width <= COMPACT_EDITOR_MAX_WIDTH && viewportSize.height <= 500));
+    (Math.min(viewportSize.width, viewportSize.height) <= COMPACT_EDITOR_MAX_WIDTH ||
+      viewportSize.height <= 500);
   const isCompactPortrait = isCompactViewport;
 
   const compactEditorPanelMinHeight = 220;

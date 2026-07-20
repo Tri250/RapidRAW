@@ -448,6 +448,9 @@ impl Default for AppSettings {
             #[cfg(not(target_os = "android"))]
             editor_preview_resolution: Some(1920),
             enable_zoom_hifi: Some(true),
+            #[cfg(target_os = "macos")]
+            use_full_dpi_rendering: Some(true),
+            #[cfg(not(target_os = "macos"))]
             use_full_dpi_rendering: Some(false),
             enable_live_previews: Some(true),
             live_preview_quality: Some("high".to_string()),
@@ -469,7 +472,7 @@ impl Default for AppSettings {
             #[cfg(not(target_os = "android"))]
             thumbnail_size: Some("medium".to_string()),
             thumbnail_aspect_ratio: Some("cover".to_string()),
-            ai_provider: Some("cpu".to_string()),
+            ai_provider: Some("auto".to_string()),
             adjustment_visibility: default_adjustment_visibility(),
             open_tree_sections: default_open_tree_sections(),
             copy_paste_settings: CopyPasteSettings::default(),
@@ -518,7 +521,7 @@ impl Default for AppSettings {
             raw_preprocessing_sharpening: Some(0.35),
             apply_preprocessing_to_non_raws: Some(false),
             exif_overlay: Some("off".to_string()),
-            language: Some("en".to_string()),
+            language: Some("zh-CN".to_string()),
             folder_tree_sort: Some(FolderTreeSort::default()),
         }
     }
