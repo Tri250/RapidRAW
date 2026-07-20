@@ -60,13 +60,17 @@ android {
         }
         getByName("release") {
             signingConfig = signingConfigs.getByName("release")
-            
+
             isMinifyEnabled = true
             proguardFiles(
                 *fileTree(".") { include("**/*.pro") }
                     .plus(getDefaultProguardFile("proguard-android-optimize.txt"))
                     .toList().toTypedArray()
             )
+            // Keep .so files uncompressed in APK for direct mmap loading (matches extractNativeLibs="false")
+            packaging {
+                jniLibs.useLegacyPackaging = false
+            }
         }
     }
     kotlinOptions {

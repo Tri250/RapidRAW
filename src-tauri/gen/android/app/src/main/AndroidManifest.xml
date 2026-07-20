@@ -32,7 +32,7 @@
         android:allowBackup="true"
         android:fullBackupContent="@xml/backup_rules"
         android:supportsRtl="true"
-        android:extractNativeLibs="true"
+        android:extractNativeLibs="false"
         android:pageSizeCompat="enabled"
         android:resizeableActivity="true"
         android:localeConfig="@xml/locales_config">
