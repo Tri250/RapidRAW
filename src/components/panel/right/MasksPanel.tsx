@@ -765,25 +765,14 @@ export default function MasksPanel() {
       subMask.parameters.range = Math.min(imgW, imgH) * 0.1;
     }
 
-    if (type === Mask.Linear || type === Mask.Radial || type === Mask.Color || type === Mask.Luminance) {
+    if (type === Mask.Color || type === Mask.Luminance) {
       if (!subMask.parameters) subMask.parameters = {};
       const params = subMask.parameters as any;
       params.isInitialDraw = true;
-      if (type === Mask.Linear || type === Mask.Radial) {
-        params.startX = -10000;
-        params.startY = -10000;
-        params.endX = -10000;
-        params.endY = -10000;
-        params.centerX = -10000;
-        params.centerY = -10000;
-        params.radiusX = 0;
-        params.radiusY = 0;
-      } else {
-        params.targetX = -10000;
-        params.targetY = -10000;
-        params.tolerance = 20;
-        params.feather = 35;
-      }
+      params.targetX = -10000;
+      params.targetY = -10000;
+      params.tolerance = 20;
+      params.feather = 35;
     }
 
     if (type === Mask.AiDepth) {

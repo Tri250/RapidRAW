@@ -903,9 +903,12 @@ pub fn generate_ai_background_remove(state: tauri::State<AppState>) -> Result<Ve
 
 /// Apply 2x super-resolution using Lanczos3 upsampling followed by
 /// sharpening enhancement. No deep learning model is used.
+///
+/// Runs on a blocking thread to avoid freezing the UI.
 #[tauri::command]
-pub fn apply_super_resolution(
-    state: tauri::State<AppState>,
+pub async fn apply_super_resolution(
+    state: tauri::State<'_, AppState>,
+    app_handle: tauri::AppHandle,
     scale: f32,
 ) -> Result<Vec<u8>, String> {
     let loaded_image = state
@@ -915,7 +918,24 @@ pub fn apply_super_resolution(
         .clone()
         .ok_or("No original image loaded")?;
 
-    let (w, h) = loaded_image.image.as_ref().dimensions();
+    let _ = app_handle.emit("super-resolution-progress", serde_json::json!({ "stage": "starting", "progress": 0 }));
+
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        run_super_resolution(loaded_image.image, scale)
+    })
+    .await
+    .map_err(|e| format!("Task panicked: {}", e))?;
+
+    let _ = app_handle.emit("super-resolution-progress", serde_json::json!({ "stage": "done", "progress": 100 }));
+
+    result
+}
+
+fn run_super_resolution(
+    source_image: image::DynamicImage,
+    scale: f32,
+) -> Result<Vec<u8>, String> {
+    let (w, h) = source_image.dimensions();
     if w == 0 || h == 0 {
         return Err("Image has zero dimensions".to_string());
     }
@@ -925,8 +945,7 @@ pub fn apply_super_resolution(
     let new_h = (h as f32 * effective_scale).round() as u32;
 
     // Step 1: Lanczos3 upsampling
-    let mut upscaled = loaded_image
-        .image
+    let mut upscaled = source_image
         .resize_exact(new_w, new_h, image::imageops::FilterType::Lanczos3)
         .to_rgba8();
 

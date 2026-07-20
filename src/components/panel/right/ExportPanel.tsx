@@ -623,15 +623,15 @@ export default function ExportPanel({
             />
 
             <Section title={t('export.sections.fileSettings')}>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-1.5">
                 {FILE_FORMATS.map((format: FileFormat) => (
                   <button
-                    className={`px-2 py-1.5 rounded-md transition-colors ${fileFormat === format.id ? 'bg-accent' : 'bg-surface hover:bg-card-active'} disabled:opacity-50`}
+                    className={`px-1.5 py-1.5 rounded-md transition-colors text-center ${fileFormat === format.id ? 'bg-accent' : 'bg-surface hover:bg-card-active'} disabled:opacity-50`}
                     disabled={isExporting}
                     key={format.id}
                     onClick={() => setFileFormat(format.id)}
                   >
-                    <Text color={fileFormat === format.id ? TextColors.button : TextColors.secondary}>
+                    <Text color={fileFormat === format.id ? TextColors.button : TextColors.secondary} className="text-xs">
                       {format.name}
                     </Text>
                   </button>
@@ -736,7 +736,7 @@ export default function ExportPanel({
                   )}
                 </Section>
 
-                {fileFormat == FileFormats.Jpeg && (
+                {fileFormat !== FileFormats.Cube && (
                   <Section title={t('export.sections.metadata')}>
                     <Switch
                       checked={keepMetadata}
@@ -947,6 +947,11 @@ export default function ExportPanel({
                 {progress.total > 1
                   ? t('export.status.exportingProgress', { current: progress.current, total: progress.total })
                   : t('export.status.exporting')}
+                {progress.total > 0 && progress.current != null && (
+                  <span className="ml-2 text-xs opacity-70">
+                    {Math.round((progress.current / progress.total) * 100)}%
+                  </span>
+                )}
               </span>
               <span className="hidden items-center group-hover:flex">
                 <Ban size={18} className="mr-2" />

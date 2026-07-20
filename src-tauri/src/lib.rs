@@ -343,6 +343,14 @@ fn process_preview_job(
         "performance" => (if has_roi { 1.8_f32 } else { 1.5_f32 }, 65_u8),
         _ => (if has_roi { 1.4_f32 } else { 1.0_f32 }, 75_u8),
     };
+    // On Android, use more aggressive downscaling during interactive mode
+    // because there is no WGPU display surface and JPEG encoding adds latency.
+    #[cfg(target_os = "android")]
+    let interactive_divisor = if is_interactive {
+        interactive_divisor.max(if has_roi { 2.5_f32 } else { 2.0_f32 })
+    } else {
+        interactive_divisor
+    };
 
     let mut cached_preview_lock = state.cached_preview.lock().unwrap();
 
@@ -505,7 +513,33 @@ fn process_preview_job(
         );
 
     if let Ok(final_processed_image) = final_processed_image_result {
-        if use_wgpu_renderer {
+        // Check if portrait adjustments are active (any non-zero numeric parameter)
+        let has_active_portrait = adjustments_clone.get("portrait")
+            .and_then(|p| p.as_object())
+            .map(|obj| {
+                let numeric_keys = [
+                    "skinSmoothingStrength", "skinSmoothingDetailPreserve",
+                    "faceSlimAmount", "jawAmount", "foreheadAmount",
+                    "eyeEnlargeAmount", "eyeBrightenAmount",
+                    "teethWhitenBrightness", "teethWhitenDesaturate",
+                    "lipstickOpacity", "blushOpacity", "eyebrowOpacity",
+                    "hairHueShift", "hairBrightness",
+                    "bodySlimAmount", "bodyHeightAmount", "legLengthAmount",
+                ];
+                numeric_keys.iter().any(|k| {
+                    obj.get(*k).and_then(|v| v.as_f64()).unwrap_or(0.0).abs() > 1e-4
+                }) || obj.get("blemishSpots")
+                    .and_then(|v| v.as_array())
+                    .map(|a| !a.is_empty())
+                    .unwrap_or(false)
+            })
+            .unwrap_or(false);
+
+        // When WGPU renderer is active and no portrait adjustments need CPU post-processing,
+        // return the WGPU-rendered frame directly for optimal performance.
+        // When portrait adjustments are active, we must fall through to CPU-based
+        // portrait processing before encoding.
+        if use_wgpu_renderer && !has_active_portrait {
             let _ = context.device.poll(wgpu::PollType::Wait {
                 submission_index: None,
                 timeout: Some(std::time::Duration::from_millis(500)),

@@ -1265,6 +1265,74 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
     return BUILT_IN_PRESETS.filter((p) => p.type === activeFilter);
   }, [activeGroup, activeFilter]);
 
+  const builtInPreviews = useRef<Record<string, string | null>>({});
+  const [builtInPreviewUrls, setBuiltInPreviewUrls] = useState<Record<string, string>>({});
+  const builtInQueue = useRef<Array<BuiltInPreset>>([]);
+  const isProcessingBuiltInQueue = useRef(false);
+
+  const processBuiltInPreviewQueue = useCallback(async () => {
+    if (isProcessingBuiltInQueue.current || builtInQueue.current.length === 0) return;
+    isProcessingBuiltInQueue.current = true;
+
+    const pathAtStart = currentImagePathRef.current;
+
+    while (builtInQueue.current.length > 0) {
+      if (pathAtStart !== currentImagePathRef.current) {
+        builtInQueue.current = [];
+        break;
+      }
+
+      const builtIn = builtInQueue.current.shift();
+      if (!builtIn) break;
+
+      if (builtInPreviews.current[builtIn.id]) continue;
+
+      try {
+        const fullPresetAdjustments = { ...INITIAL_ADJUSTMENTS, ...builtIn.adjustments };
+        const imageData: Uint8Array = await invoke(Invokes.GeneratePresetPreview, {
+          jsAdjustments: fullPresetAdjustments,
+        });
+
+        if (pathAtStart !== currentImagePathRef.current) {
+          builtInQueue.current = [];
+          break;
+        }
+
+        const blob = new Blob([imageData as BlobPart], { type: 'image/jpeg' });
+        const url = URL.createObjectURL(blob);
+        builtInPreviews.current[builtIn.id] = url;
+        setBuiltInPreviewUrls((prev) => ({ ...prev, [builtIn.id]: url }));
+      } catch (error) {
+        console.error(`Failed to generate preview for built-in preset ${builtIn.name}:`, error);
+        builtInPreviews.current[builtIn.id] = null;
+      }
+    }
+
+    isProcessingBuiltInQueue.current = false;
+  }, []);
+
+  useEffect(() => {
+    if (activeGroup === 'recommended' && selectedImage?.isReady && builtInPresetsFiltered.length > 0) {
+      const toGenerate = builtInPresetsFiltered.filter(
+        (p) => !builtInPreviews.current[p.id] && !builtInQueue.current.some((q) => q.id === p.id)
+      );
+      if (toGenerate.length > 0) {
+        builtInQueue.current.push(...toGenerate);
+        processBuiltInPreviewQueue();
+      }
+    }
+  }, [activeGroup, selectedImage?.isReady, builtInPresetsFiltered, processBuiltInPreviewQueue]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(builtInPreviews.current).forEach((url) => {
+        if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
+      });
+      builtInQueue.current = [];
+      isProcessingBuiltInQueue.current = false;
+    };
+  }, []);
+
   const handleApplyBuiltInPreset = useCallback(
     (builtIn: BuiltInPreset) => {
       setAdjustments((prev: Adjustments) => ({
@@ -1418,8 +1486,16 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
                           className="flex flex-col p-2 rounded-lg bg-surface cursor-pointer hover:bg-card-active transition-colors"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-20 h-14 bg-bg-tertiary rounded-md flex items-center justify-center shrink-0">
-                              <Palette size={20} className="text-text-secondary" />
+                            <div className="w-20 h-14 bg-bg-tertiary rounded-md flex items-center justify-center shrink-0 overflow-hidden">
+                              {builtInPreviewUrls[builtIn.id] ? (
+                                <img
+                                  src={builtInPreviewUrls[builtIn.id]}
+                                  alt={`${builtIn.name} preview`}
+                                  className="w-full h-full object-cover rounded-md pointer-events-none"
+                                />
+                              ) : (
+                                <Loader2 size={20} className="animate-spin text-text-secondary" />
+                              )}
                             </div>
                             <div className="grow min-w-0 flex flex-col justify-center">
                               <div className="flex items-center gap-1.5">
