@@ -113,14 +113,20 @@ const itemVariants = {
 
 const evaluateCurveY = (curve: Array<{ x: number; y: number }>, targetX: number): number => {
   const len = curve.length;
+  if (len === 0) return targetX;
   if (len === 1) return curve[0].y;
-  if (targetX <= curve[0].x) return curve[0].y;
-  if (targetX >= curve[len - 1].x) return curve[len - 1].y;
+  const first = curve[0];
+  const last = curve[len - 1];
+  if (!first || !last) return targetX;
+  if (targetX <= first.x) return first.y;
+  if (targetX >= last.x) return last.y;
 
   for (let i = 0; i < len - 1; i++) {
     const p2 = curve[i + 1];
+    if (!p2) continue;
     if (targetX <= p2.x) {
       const p1 = curve[i];
+      if (!p1) continue;
       const range = p2.x - p1.x;
       return range === 0 ? p1.y : p1.y + ((targetX - p1.x) / range) * (p2.y - p1.y);
     }
@@ -130,36 +136,41 @@ const evaluateCurveY = (curve: Array<{ x: number; y: number }>, targetX: number)
 
 const mixAdjustments = (presetObj: any, intensity: number, initialObj: any = INITIAL_ADJUSTMENTS, currentObj?: any): any => {
   const fraction = intensity / 100;
+  // Use the live current state when provided (tool preset semantics), so that
+  // the intensity slider blends between the existing state and the preset
+  // rather than always blending from INITIAL_ADJUSTMENTS.
+  const baselineObj = currentObj !== undefined ? currentObj : initialObj;
 
   if (fraction === 1) return { ...presetObj };
-  if (fraction === 0) return { ...initialObj };
+  if (fraction === 0) return { ...baselineObj };
 
-  const result: any = { ...initialObj };
+  const result: any = { ...baselineObj };
   const keys = Object.keys(presetObj);
 
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
     const presetVal = presetObj[key];
-    const initialVal = initialObj[key] !== undefined ? initialObj[key] : (INITIAL_ADJUSTMENTS as any)[key];
+    const baseVal = baselineObj[key] !== undefined ? baselineObj[key] : initialObj[key];
 
     if (typeof presetVal === 'number') {
-      result[key] = typeof initialVal === 'number' ? initialVal + (presetVal - initialVal) * fraction : presetVal;
+      result[key] = typeof baseVal === 'number' ? baseVal + (presetVal - baseVal) * fraction : presetVal;
     } else if (Array.isArray(presetVal)) {
-      if (!Array.isArray(initialVal)) {
-        result[key] = fraction > 0 ? presetVal : initialVal;
+      if (!Array.isArray(baseVal)) {
+        result[key] = fraction > 0 ? presetVal : baseVal;
         continue;
       }
 
-      if (presetVal.length > 0 && presetVal[0].x !== undefined && presetVal[0].y !== undefined) {
+      if (presetVal.length > 0 && presetVal[0]?.x !== undefined && presetVal[0]?.y !== undefined) {
         const xVals: number[] = [];
         let p1 = 0,
           p2 = 0;
-        const len1 = initialVal.length,
+        const len1 = baseVal.length,
           len2 = presetVal.length;
 
         while (p1 < len1 && p2 < len2) {
-          const x1 = initialVal[p1].x,
-            x2 = presetVal[p2].x;
+          const x1 = baseVal[p1]?.x,
+            x2 = presetVal[p2]?.x;
+          if (x1 === undefined || x2 === undefined) break;
           if (x1 < x2) {
             xVals.push(x1);
             p1++;
@@ -172,16 +183,22 @@ const mixAdjustments = (presetObj: any, intensity: number, initialObj: any = INI
             p2++;
           }
         }
-        while (p1 < len1) xVals.push(initialVal[p1++].x);
-        while (p2 < len2) xVals.push(presetVal[p2++].x);
+        while (p1 < len1) {
+          const remainingX = baseVal[p1++]?.x;
+          if (remainingX !== undefined) xVals.push(remainingX);
+        }
+        while (p2 < len2) {
+          const remainingX = presetVal[p2++]?.x;
+          if (remainingX !== undefined) xVals.push(remainingX);
+        }
 
         const newCurve = new Array(xVals.length);
 
         for (let j = 0; j < xVals.length; j++) {
           const x = xVals[j];
-          const yInit = evaluateCurveY(initialVal, x);
+          const yBase = evaluateCurveY(baseVal, x);
           const yPreset = evaluateCurveY(presetVal, x);
-          const yInterp = yInit + (yPreset - yInit) * fraction;
+          const yInterp = yBase + (yPreset - yBase) * fraction;
 
           newCurve[j] = {
             x,
@@ -190,12 +207,12 @@ const mixAdjustments = (presetObj: any, intensity: number, initialObj: any = INI
         }
         result[key] = newCurve;
       } else {
-        result[key] = fraction > 0 ? presetVal : initialVal;
+        result[key] = fraction > 0 ? presetVal : baseVal;
       }
     } else if (presetVal !== null && typeof presetVal === 'object') {
-      result[key] = mixAdjustments(presetVal, intensity, initialVal || {}, currentObj?.[key]);
+      result[key] = mixAdjustments(presetVal, intensity, initialObj[key] || {}, currentObj?.[key]);
     } else {
-      result[key] = fraction > 0 ? presetVal : initialVal;
+      result[key] = fraction > 0 ? presetVal : baseVal;
     }
   }
   return result;
@@ -704,8 +721,14 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
 
   const enqueuePreviews = useCallback(
     (presetsToGenerate: Array<UserPreset>, folderId: string | null = null) => {
+      if (!presetsToGenerate || presetsToGenerate.length === 0) return;
+      // Track ids that are already in the queue to avoid duplicate generation.
+      const queuedIds = new Set<string>();
+      for (const queued of previewQueue.current) {
+        if (queued?.preset?.id) queuedIds.add(queued.preset.id);
+      }
       const newItems = presetsToGenerate
-        .filter((p: any) => !previewsRef.current[p?.id])
+        .filter((p: any) => p && p.id && !previewsRef.current[p.id] && !queuedIds.has(p.id))
         .map((p: UserPreset) => ({ preset: p, folderId }));
       if (newItems.length > 0) {
         previewQueue.current.push(...newItems);
@@ -851,9 +874,11 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
         setAdjustments(baseAdjustments);
       }
       setBaseAdjustments(null);
+      setPresetIntensity(100);
       return;
     }
 
+    // Capture the existing adjustments as the baseline for intensity mixing.
     setBaseAdjustments(adjustments);
     setActivePresetId(preset.id);
     setPresetIntensity(100);
@@ -875,19 +900,26 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
 
   const handleIntensityChange = useCallback(
     (preset: Preset, intensity: number) => {
-      setPresetIntensity(intensity);
+      const clamped = Math.max(0, Math.min(200, Math.round(intensity)));
+      setPresetIntensity(clamped);
       setAdjustments((prev: Adjustments) => {
         if (preset.presetType === 'style') {
-          // Style: interpolate between INITIAL and preset (full overwrite semantics)
-          const mixed = mixAdjustments(preset.adjustments, intensity, INITIAL_ADJUSTMENTS, INITIAL_ADJUSTMENTS);
+          // Style: interpolate between INITIAL and preset (full overwrite semantics).
+          // The baseline is INITIAL_ADJUSTMENTS so the slider always moves from
+          // a clean default state to the full preset.
+          const mixed = mixAdjustments(preset.adjustments, clamped, INITIAL_ADJUSTMENTS, INITIAL_ADJUSTMENTS);
           return { ...INITIAL_ADJUSTMENTS, ...mixed };
         }
-        // Tool: interpolate between current and preset (additive semantics)
-        const mixed = mixAdjustments(preset.adjustments, intensity, INITIAL_ADJUSTMENTS, prev);
+        // Tool: interpolate between the state captured before the preset was
+        // applied (baseAdjustments) and the preset values. This avoids drift
+        // when the user moves the slider repeatedly.
+        const baseline = baseAdjustments ?? prev;
+        const mixed = mixAdjustments(preset.adjustments, clamped, baseline, baseline);
+        // Preserve unrelated settings (e.g. masks, crop) by merging with current.
         return { ...prev, ...mixed };
       });
     },
-    [setAdjustments],
+    [setAdjustments, baseAdjustments],
   );
 
   const handleSaveConfiguredPreset = async (
@@ -928,11 +960,39 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
     setRenameFolderState({ isOpen: false, folder: null });
   };
 
+  const collectIdsToDelete = useCallback(
+    (id: string): string[] => {
+      const ids = new Set<string>([id]);
+      const folder = presets.find((p: UserPreset) => p.folder?.id === id)?.folder;
+      if (folder) {
+        for (const child of folder.children) {
+          ids.add(child.id);
+        }
+      }
+      return Array.from(ids);
+    },
+    [presets],
+  );
+
   const handleDeleteItem = (id: string | null, isFolder = false) => {
     setDeletingItemId(id);
     if (!id) {
       return;
     }
+
+    // Collect all preview URLs that need to be released immediately.
+    const idsToCleanup = collectIdsToDelete(id);
+    setPreviews((prev: Record<string, string | null>) => {
+      const next = { ...prev };
+      for (const cleanupId of idsToCleanup) {
+        const url = next[cleanupId];
+        if (url && url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+        delete next[cleanupId];
+      }
+      return next;
+    });
 
     setTimeout(() => {
       deleteItem(id);
@@ -1016,19 +1076,31 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
         title: t('editor.presets.dialog.importPresetsTitle'),
       });
 
-      if (typeof selectedPath === 'string') {
-        const isLegacy =
-          selectedPath.toLowerCase().endsWith('.xmp') || selectedPath.toLowerCase().endsWith('.lrtemplate');
-
-        if (isLegacy) {
-          await importLegacyPresetsFromFile(selectedPath);
-        } else {
-          await importPresetsFromFile(selectedPath);
-        }
-
-        setFolderPreviewsGenerated(new Set<string>());
-        setPreviews({});
+      // The dialog may return null (cancelled) or a string (selected path).
+      if (typeof selectedPath !== 'string' || !selectedPath) {
+        return;
       }
+
+      const isLegacy =
+        selectedPath.toLowerCase().endsWith('.xmp') || selectedPath.toLowerCase().endsWith('.lrtemplate');
+
+      if (isLegacy) {
+        await importLegacyPresetsFromFile(selectedPath);
+      } else {
+        await importPresetsFromFile(selectedPath);
+      }
+
+      // Existing previews are now stale (preset list was mutated) so reset
+      // both the cached URLs and the per-folder generation markers.
+      setPreviews((prev) => {
+        Object.values(prev).forEach((url) => {
+          if (url && url.startsWith('blob:')) {
+            URL.revokeObjectURL(url);
+          }
+        });
+        return {};
+      });
+      setFolderPreviewsGenerated(new Set<string>());
     } catch (error) {
       console.error('Failed to import presets:', error);
     }

@@ -54,6 +54,22 @@ export function usePresets(currentAdjustments: Adjustments) {
     loadPresets();
   }, [loadPresets]);
 
+  const safeUuid = (): string => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      try {
+        return crypto.randomUUID();
+      } catch {
+        // fall through to the fallback below
+      }
+    }
+    // RFC4122 v4 fallback when crypto.randomUUID is unavailable.
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  };
+
   const addPreset = (
     name: string,
     folderId: string | null = null,
@@ -61,6 +77,11 @@ export function usePresets(currentAdjustments: Adjustments) {
     includeCropTransform: boolean = false,
     presetType: Preset['presetType'] = 'style',
   ) => {
+    const trimmedName = (name || '').trim();
+    if (!trimmedName) {
+      return null;
+    }
+
     const GEOMETRY_KEYS = ADJUSTMENT_GROUPS.geometry.flatMap((group) => group.keys);
     const MASK_KEYS = ADJUSTMENT_GROUPS.masks.flatMap((group) => group.keys);
 
@@ -84,10 +105,30 @@ export function usePresets(currentAdjustments: Adjustments) {
       }
     }
 
+    // Generate a unique preset name within the destination folder (or root).
+    const targetNames = new Set<string>();
+    for (const item of presets) {
+      if (folderId && item.folder?.id === folderId) {
+        for (const child of item.folder.children) targetNames.add(child.name);
+      } else if (item.preset) {
+        targetNames.add(item.preset.name);
+      } else if (item.folder) {
+        for (const child of item.folder.children) targetNames.add(child.name);
+      }
+    }
+    let finalName = trimmedName;
+    if (targetNames.has(finalName)) {
+      let counter = 2;
+      while (targetNames.has(`${finalName} (${counter})`)) {
+        counter += 1;
+      }
+      finalName = `${finalName} (${counter})`;
+    }
+
     const newPresetData: Preset = {
       adjustments: presetAdjustments,
-      id: crypto.randomUUID(),
-      name,
+      id: safeUuid(),
+      name: finalName,
       includeMasks,
       includeCropTransform,
       presetType,
@@ -108,8 +149,8 @@ export function usePresets(currentAdjustments: Adjustments) {
         }
         return item;
       });
-      // Bug fix: if folderId was specified but no matching folder exists,
-      // fallback to adding at root instead of silently dropping the preset.
+      // If folderId was specified but no matching folder exists, fall back
+      // to adding at the root rather than silently dropping the preset.
       if (!folderFound) {
         updatedPresets = [...updatedPresets, { preset: newPresetData }];
       }
@@ -123,15 +164,36 @@ export function usePresets(currentAdjustments: Adjustments) {
   };
 
   const addFolder = (name: string) => {
-    const newFolder = {
-      folder: {
-        id: crypto.randomUUID(),
-        name,
-        children: [],
-      },
-    };
+    const trimmed = (name || '').trim();
+    if (!trimmed) {
+      return;
+    }
 
     setPresets((currentPresets: Array<any>) => {
+      // Ensure folder names are unique. If a folder with the same name (case
+      // insensitive) already exists, append " (n)" to keep the list usable.
+      const usedNames = new Set(
+        currentPresets
+          .filter((p: UserPreset) => !!p.folder)
+          .map((p: UserPreset) => (p.folder?.name || '').toLowerCase()),
+      );
+      let finalName = trimmed;
+      if (usedNames.has(finalName.toLowerCase())) {
+        let counter = 2;
+        while (usedNames.has(`${finalName} (${counter})`.toLowerCase())) {
+          counter += 1;
+        }
+        finalName = `${finalName} (${counter})`;
+      }
+
+      const newFolder = {
+        folder: {
+          id: safeUuid(),
+          name: finalName,
+          children: [],
+        },
+      };
+
       const updatedPresets = [...currentPresets];
       const firstPresetIndex = updatedPresets.findIndex((p: UserPreset) => p.preset);
 
@@ -163,19 +225,71 @@ export function usePresets(currentAdjustments: Adjustments) {
     savePresetsToBackend(updatedPresets);
   };
 
+  const deleteItems = (ids: string[]) => {
+    const idSet = new Set(ids.filter(Boolean));
+    if (idSet.size === 0) {
+      return;
+    }
+    let updatedPresets = presets.filter(
+      (item: UserPreset) => item.preset?.id === undefined || !idSet.has(item.preset.id),
+    );
+    updatedPresets = updatedPresets
+      .map((item: UserPreset) => {
+        if (!item.folder) return item;
+        if (idSet.has(item.folder.id)) return null;
+        return {
+          folder: {
+            ...item.folder,
+            children: item.folder.children.filter((child: any) => !idSet.has(child.id)),
+          },
+        };
+      })
+      .filter((item): item is UserPreset => item !== null);
+    setPresets(updatedPresets);
+    savePresetsToBackend(updatedPresets);
+  };
+
   const renameItem = (id: string | null, newName: string) => {
+    if (!id) return;
+    const trimmed = (newName || '').trim();
+    if (!trimmed) return;
+
+    // Check if anything actually changes; if not, skip the save to avoid
+    // spamming the backend with no-op writes.
+    let didChange = false;
+    for (const item of presets) {
+      if (item.preset?.id === id && item.preset.name !== trimmed) {
+        didChange = true;
+        break;
+      }
+      if (item.folder?.id === id && item.folder.name !== trimmed) {
+        didChange = true;
+        break;
+      }
+      if (item.folder) {
+        const child = item.folder.children.find((c: any) => c.id === id);
+        if (child && child.name !== trimmed) {
+          didChange = true;
+          break;
+        }
+      }
+    }
+    if (!didChange) return;
+
     const updatedPresets = presets.map((item: UserPreset) => {
       if (item.preset?.id === id) {
-        return { preset: { ...item.preset, name: newName } };
+        return { preset: { ...item.preset, name: trimmed } };
       }
       if (item.folder?.id === id) {
-        return { folder: { ...item.folder, name: newName } };
+        return { folder: { ...item.folder, name: trimmed } };
       }
       if (item.folder) {
         return {
           folder: {
             ...item.folder,
-            children: item.folder.children.map((child: any) => (child.id === id ? { ...child, name: newName } : child)),
+            children: item.folder.children.map((child: any) =>
+              child.id === id ? { ...child, name: trimmed } : child,
+            ),
           },
         };
       }
@@ -375,6 +489,10 @@ export function usePresets(currentAdjustments: Adjustments) {
 
   const duplicatePreset = useCallback(
     (presetId: string | null) => {
+      if (!presetId) {
+        return null;
+      }
+
       let presetToDuplicate: Preset | null = null;
       let sourceFolderId = null;
 
@@ -397,10 +515,28 @@ export function usePresets(currentAdjustments: Adjustments) {
         return null;
       }
 
+      // Generate a unique name to avoid collisions with existing presets.
+      const existingNames = new Set<string>();
+      for (const item of presets) {
+        if (item.preset) existingNames.add(item.preset.name);
+        if (item.folder) {
+          existingNames.add(item.folder.name);
+          for (const c of item.folder.children) existingNames.add(c.name);
+        }
+      }
+
+      const baseName = presetToDuplicate.name || 'Preset';
+      let candidate = `${baseName} Copy`;
+      let counter = 2;
+      while (existingNames.has(candidate)) {
+        candidate = `${baseName} Copy ${counter}`;
+        counter += 1;
+      }
+
       const newPreset: Preset = {
-        adjustments: JSON.parse(JSON.stringify(presetToDuplicate.adjustments)),
-        id: crypto.randomUUID(),
-        name: `${presetToDuplicate.name} Copy`,
+        adjustments: JSON.parse(JSON.stringify(presetToDuplicate.adjustments || {})),
+        id: safeUuid(),
+        name: candidate,
         includeMasks: presetToDuplicate.includeMasks,
         includeCropTransform: presetToDuplicate.includeCropTransform,
         presetType: presetToDuplicate.presetType || 'style',
@@ -412,15 +548,19 @@ export function usePresets(currentAdjustments: Adjustments) {
           if (item.folder?.id === sourceFolderId) {
             const originalIndex = item.folder.children.findIndex((p: any) => p.id === presetId);
             const newChildren = [...item.folder.children];
-            newChildren.splice(originalIndex + 1, 0, newPreset);
+            // Insert right after the original if found, otherwise append.
+            const insertAt = originalIndex >= 0 ? originalIndex + 1 : newChildren.length;
+            newChildren.splice(insertAt, 0, newPreset);
             return { folder: { ...item.folder, children: newChildren } };
           }
           return item;
         });
       } else {
         const originalIndex = presets.findIndex((item: UserPreset) => item.preset?.id === presetId);
-        updatedPresets = [...presets];
-        updatedPresets.splice(originalIndex + 1, 0, { preset: newPreset });
+        const updatedList = [...presets];
+        const insertAt = originalIndex >= 0 ? originalIndex + 1 : updatedList.length;
+        updatedList.splice(insertAt, 0, { preset: newPreset });
+        updatedPresets = updatedList;
       }
 
       setPresets(updatedPresets);
@@ -432,8 +572,11 @@ export function usePresets(currentAdjustments: Adjustments) {
 
   const movePreset = useCallback(
     (presetId: string, targetFolderId: string | null, overId = null) => {
+      // Determine the source item – it may be either a top-level preset, a
+      // preset inside a folder, or a top-level folder.
       let presetToMove: Preset | null = null;
-      let sourceFolderId = null;
+      let folderToMove: { id: string; name: string; children: Preset[] } | null = null;
+      let sourceFolderId: string | null = null;
 
       for (const item of presets) {
         if (item.preset?.id === presetId) {
@@ -447,11 +590,33 @@ export function usePresets(currentAdjustments: Adjustments) {
             sourceFolderId = item.folder.id;
             break;
           }
+          if (item.folder.id === presetId) {
+            folderToMove = { ...item.folder, children: [...item.folder.children] };
+            break;
+          }
         }
       }
 
-      if (!presetToMove) {
+      if (!presetToMove && !folderToMove) {
         return;
+      }
+
+      // Prevent moving a folder into itself or one of its descendants.
+      if (folderToMove) {
+        if (targetFolderId === folderToMove.id) {
+          return;
+        }
+        if (targetFolderId) {
+          const isDescendant = (folderId: string): boolean => {
+            const folder = presets.find((p) => p.folder?.id === folderId)?.folder;
+            if (!folder) return false;
+            if (folder.children.some((c) => c.id === folderToMove!.id)) return true;
+            return false;
+          };
+          if (isDescendant(targetFolderId)) {
+            return;
+          }
+        }
       }
 
       let updatedPresets = [...presets];
@@ -462,6 +627,8 @@ export function usePresets(currentAdjustments: Adjustments) {
             ? { folder: { ...item.folder, children: item.folder.children.filter((p: any) => p.id !== presetId) } }
             : item,
         );
+      } else if (folderToMove) {
+        updatedPresets = updatedPresets.filter((item: UserPreset) => item.folder?.id !== presetId);
       } else {
         updatedPresets = updatedPresets.filter((item: UserPreset) => item.preset?.id !== presetId);
       }
@@ -473,29 +640,64 @@ export function usePresets(currentAdjustments: Adjustments) {
             if (overId) {
               const overIndex = newChildren.findIndex((p) => p.id === overId);
               if (overIndex !== -1) {
-                newChildren.splice(overIndex, 0, presetToMove!);
-              } else {
-                newChildren.push(presetToMove!);
+                if (presetToMove) {
+                  newChildren.splice(overIndex, 0, presetToMove);
+                } else if (folderToMove) {
+                  // Folders cannot be nested inside other folders; fall back to
+                  // appending at the root level below the target folder.
+                  return item;
+                }
+              } else if (presetToMove) {
+                newChildren.push(presetToMove);
               }
-            } else {
-              newChildren.push(presetToMove!);
+            } else if (presetToMove) {
+              newChildren.push(presetToMove);
             }
             return { folder: { ...item.folder, children: newChildren } };
           }
           return item;
         });
+
+        // If the drop target folder was not found (or moving a folder onto
+        // a folder), ensure the moved item still appears somewhere.
+        const stillMissing =
+          (presetToMove &&
+            !updatedPresets.some(
+              (p) =>
+                p.preset?.id === presetToMove!.id ||
+                p.folder?.children.some((c) => c.id === presetToMove!.id),
+            )) ||
+          (folderToMove && !updatedPresets.some((p) => p.folder?.id === folderToMove!.id));
+        if (stillMissing) {
+          if (folderToMove) {
+            const insertIndex = updatedPresets.findIndex((p) => p.folder?.id === targetFolderId);
+            if (insertIndex >= 0) {
+              updatedPresets.splice(insertIndex + 1, 0, { folder: folderToMove });
+            } else {
+              updatedPresets.push({ folder: folderToMove });
+            }
+          } else if (presetToMove) {
+            updatedPresets.push({ preset: presetToMove });
+          }
+        }
       } else {
         if (overId) {
           const overIndex = updatedPresets.findIndex(
             (item) => item.preset?.id === overId || item.folder?.id === overId,
           );
           if (overIndex !== -1) {
-            updatedPresets.splice(overIndex, 0, { preset: presetToMove });
+            if (presetToMove) {
+              updatedPresets.splice(overIndex, 0, { preset: presetToMove });
+            } else if (folderToMove) {
+              updatedPresets.splice(overIndex, 0, { folder: folderToMove });
+            }
           } else {
-            updatedPresets.push({ preset: presetToMove });
+            if (presetToMove) updatedPresets.push({ preset: presetToMove });
+            else if (folderToMove) updatedPresets.push({ folder: folderToMove });
           }
         } else {
-          updatedPresets.push({ preset: presetToMove });
+          if (presetToMove) updatedPresets.push({ preset: presetToMove });
+          else if (folderToMove) updatedPresets.push({ folder: folderToMove });
         }
       }
 
@@ -638,6 +840,7 @@ export function usePresets(currentAdjustments: Adjustments) {
     addPreset,
     configurePreset,
     deleteItem,
+    deleteItems,
     duplicatePreset,
     exportPresetsToFile,
     importPresetsFromFile,

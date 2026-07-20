@@ -35,11 +35,47 @@ fn get_attr_as_f64(attrs: &HashMap<String, String>, key: &str) -> Option<f64> {
 }
 
 fn extract_xmp_name(xmp_content: &str) -> Option<String> {
-    let re =
-        Regex::new(r#"(?s)<crs:Name>.*?<rdf:Alt>.*?<rdf:li[^>]*>([^<]+)</rdf:li>.*?</crs:Name>"#)
+    // Primary pattern: name wrapped in <rdf:Alt><rdf:li>…</rdf:li></rdf:Alt>
+    // (the form produced by Adobe Camera Raw / Lightroom).
+    let alt_re = Regex::new(
+        r#"(?s)<crs:Name>\s*<rdf:Alt>\s*<rdf:li[^>]*>([^<]+)</rdf:li>\s*</rdf:Alt>\s*</crs:Name>"#,
+    )
+    .ok()?;
+    if let Some(cap) = alt_re.captures(xmp_content) {
+        if let Some(m) = cap.get(1) {
+            let name = m.as_str().trim().to_string();
+            if !name.is_empty() {
+                return Some(name);
+            }
+        }
+    }
+
+    // Fallback pattern: direct text inside <crs:Name>…</crs:Name>.
+    let simple_re = Regex::new(r#"(?s)<crs:Name>\s*([^<]+?)\s*</crs:Name>"#).ok()?;
+    if let Some(cap) = simple_re.captures(xmp_content) {
+        if let Some(m) = cap.get(1) {
+            let name = m.as_str().trim().to_string();
+            if !name.is_empty() {
+                return Some(name);
+            }
+        }
+    }
+
+    // Some Lightroom exports wrap the name in a localized form using
+    // <rdf:li xml:lang="x-default">…</rdf:li>. Try that before giving up.
+    let default_re =
+        Regex::new(r#"(?s)<crs:Name>.*?<rdf:li[^>]*xml:lang=["']x-default["'][^>]*>([^<]+)</rdf:li>.*?</crs:Name>"#)
             .ok()?;
-    re.captures(xmp_content)
-        .and_then(|c| c.get(1).map(|m| m.as_str().trim().to_string()))
+    if let Some(cap) = default_re.captures(xmp_content) {
+        if let Some(m) = cap.get(1) {
+            let name = m.as_str().trim().to_string();
+            if !name.is_empty() {
+                return Some(name);
+            }
+        }
+    }
+
+    None
 }
 
 fn extract_tone_curve_points(xmp_str: &str, curve_name: &str) -> Option<Vec<Value>> {

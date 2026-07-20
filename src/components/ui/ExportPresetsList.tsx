@@ -37,11 +37,24 @@ export default function ExportPresetsList({
   };
 
   const handleSavePreset = () => {
-    if (!newPresetName.trim() || !appSettings) return;
+    const trimmedName = newPresetName.trim();
+    if (!trimmedName || !appSettings) return;
+
+    // Avoid duplicates: if a preset with the same name already exists, append
+    // a numeric suffix instead of creating a second entry with the same name.
+    let finalName = trimmedName;
+    const existingNames = new Set(presets.map((p) => p.name));
+    if (existingNames.has(finalName)) {
+      let counter = 2;
+      while (existingNames.has(`${finalName} (${counter})`)) {
+        counter += 1;
+      }
+      finalName = `${finalName} (${counter})`;
+    }
 
     const newPreset: ExportPreset = {
       id: uuidv4(),
-      name: newPresetName.trim(),
+      name: finalName,
       ...currentSettings,
     };
 
@@ -55,7 +68,7 @@ export default function ExportPresetsList({
     setNewPresetName('');
   };
 
-  const isDefault = selectedPresetId.startsWith('default-');
+  const isDefault = selectedPresetId === '__last_used__' || selectedPresetId.startsWith('default-');
 
   const handleOverwritePreset = () => {
     if (!selectedPresetId || isDefault || !appSettings) return;
@@ -80,7 +93,7 @@ export default function ExportPresetsList({
   };
 
   const handleDeletePreset = () => {
-    if (!selectedPresetId || !appSettings) return;
+    if (!selectedPresetId || isDefault || !appSettings) return;
 
     const updatedPresets = presets.filter((p) => p.id !== selectedPresetId);
     const updatedSettings = { ...appSettings, exportPresets: updatedPresets };

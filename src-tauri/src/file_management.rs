@@ -2808,21 +2808,57 @@ pub fn handle_import_legacy_presets_from_file(
     file_path: String,
     app_handle: AppHandle,
 ) -> Result<Vec<PresetItem>, String> {
-    let content = fs::read_to_string(&file_path)
-        .map_err(|e| format!("Failed to read legacy preset file: {}", e))?;
+    // Validate the file extension up front to give the user a clear error
+    // before reading the file.
+    let lower = file_path.to_lowercase();
+    if !lower.ends_with(".xmp") && !lower.ends_with(".lrtemplate") {
+        return Err(format!(
+            "Unsupported legacy preset format: '{}'. Expected .xmp or .lrtemplate.",
+            file_path
+        ));
+    }
 
-    let xmp_content = if file_path.to_lowercase().ends_with(".lrtemplate") {
-        let re = Regex::new(r#"(?s)s.xmp = "(.*)""#).unwrap();
+    let content = fs::read_to_string(&file_path)
+        .map_err(|e| format!("Failed to read legacy preset file '{}': {}", file_path, e))?;
+
+    if content.trim().is_empty() {
+        return Err(format!(
+            "Legacy preset file '{}' is empty or unreadable.",
+            file_path
+        ));
+    }
+
+    let xmp_content = if lower.ends_with(".lrtemplate") {
+        let re = Regex::new(r#"(?s)s\.xmp\s*=\s*"(.*)""#).map_err(|e| {
+            format!("Failed to compile lrtemplate regex: {}", e)
+        })?;
         if let Some(caps) = re.captures(&content) {
             caps.get(1)
-                .map(|m| m.as_str().replace(r#"\""#, r#"""#))
+                .map(|m| m.as_str().replace(r#"\""#, r#"""#).replace(r#"\\"#, r#"\"#))
                 .unwrap_or(content)
         } else {
-            content
+            // Some lrtemplate files store the XMP without a "s.xmp =" wrapper.
+            // Try to detect XMP markers before falling back to the raw content.
+            if content.contains("<x:xmpmeta") || content.contains("<crs:") {
+                content
+            } else {
+                return Err(format!(
+                    "Could not locate XMP data inside lrtemplate file '{}'.",
+                    file_path
+                ));
+            }
         }
     } else {
         content
     };
+
+    // Reject obviously invalid XMP up front so we don't write empty presets.
+    if !xmp_content.contains("<crs:") && !xmp_content.contains("crs:") {
+        return Err(format!(
+            "File '{}' does not appear to contain Camera Raw settings.",
+            file_path
+        ));
+    }
 
     let converted_preset = preset_converter::convert_xmp_to_preset(&xmp_content)?;
 
