@@ -52,12 +52,13 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           rustflags: ''
+          target: ${{ inputs.target }}
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          key: ${{ inputs.mobile != '' && format('{0}-{1}', inputs.platform, inputs.mobile) || inputs.platform }}
+          key: ${{ inputs.mobile != '' && format('{0}-{1}', inputs.platform, inputs.mobile) || inputs.platform }}${{ inputs.target != '' && format('-{0}', inputs.target) || '' }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -118,10 +119,6 @@ jobs:
           echo "keyAlias=rapidraw" > keystore.properties
           echo "password=android123" >> keystore.properties
           echo "storeFile=$RUNNER_TEMP/rapidraw-release.jks" >> keystore.properties
-
-      - name: rustup install target
-        if: inputs.target != ''
-        run: rustup target add ${{ inputs.target }}
 
       - id: patch-release-name
         shell: bash
