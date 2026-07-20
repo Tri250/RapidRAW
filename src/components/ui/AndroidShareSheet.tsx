@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { toast } from 'react-toastify';
 import { Share2, X, MessageCircle, Send, MoreHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -70,6 +71,7 @@ export default function AndroidShareSheet({
         });
       } catch (err) {
         console.error('Share failed:', err);
+        toast.error(`Share failed: ${err}`);
       } finally {
         setSharing(false);
         onClose();

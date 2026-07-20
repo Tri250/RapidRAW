@@ -265,11 +265,13 @@ export function useSwipeNavigation(
     threshold?: number;
     onSwipeLeft?: () => void;
     onSwipeRight?: () => void;
+    onSwipeMove?: (deltaX: number, deltaY: number) => void;
   },
 ) {
   const threshold = options?.threshold ?? 50;
   const onSwipeLeft = options?.onSwipeLeft;
   const onSwipeRight = options?.onSwipeRight;
+  const onSwipeMove = options?.onSwipeMove;
 
   const startPointRef = useRef<Point | null>(null);
   const startTimeRef = useRef(0);
@@ -282,9 +284,13 @@ export function useSwipeNavigation(
 
   const handleTouchMove = useCallback(
     (e: TouchEvent) => {
-      // Optional: could add real-time visual feedback here
+      if (!startPointRef.current || e.touches.length !== 1) return;
+      const currentPoint = getTouchPoint(e.touches[0]);
+      const deltaX = currentPoint.x - startPointRef.current.x;
+      const deltaY = currentPoint.y - startPointRef.current.y;
+      onSwipeMove?.(deltaX, deltaY);
     },
-    [],
+    [onSwipeMove],
   );
 
   const handleTouchEnd = useCallback(

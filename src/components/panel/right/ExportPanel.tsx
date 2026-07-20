@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { save, open } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
+import { toast } from 'react-toastify';
 import { FileInput, CheckCircle, XCircle, Loader, Ban, ChevronDown, ChevronRight, Settings, X, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -531,7 +532,17 @@ export default function ExportPanel({
         // On Android, save the exported file to the system gallery
         if (isAndroid && exportResult) {
           const exportedPaths: string[] = Array.isArray(exportResult) ? exportResult : [exportResult];
-          const mimeType = selectedFormat.extensions[0] === 'png' ? 'image/png' : 'image/jpeg';
+          const getMimeType = (fmt: string) => {
+            switch (fmt) {
+              case 'png': return 'image/png';
+              case 'webp': return 'image/webp';
+              case 'avif': return 'image/avif';
+              case 'tiff': return 'image/tiff';
+              case 'jxl': return 'image/jxl';
+              default: return 'image/jpeg';
+            }
+          };
+          const mimeType = getMimeType(selectedFormat.extensions[0]);
           for (const exportedPath of exportedPaths) {
             try {
               await invoke('save_to_android_gallery', {
@@ -540,6 +551,7 @@ export default function ExportPanel({
               });
             } catch (err) {
               console.error('Failed to save to Android gallery:', err);
+              toast.error(`Failed to save to gallery: ${err}`);
             }
           }
           if (exportedPaths.length > 0) {
@@ -1000,6 +1012,7 @@ export default function ExportPanel({
                 });
               } catch (err) {
                 console.error('Failed to share image:', err);
+                toast.error(`Failed to share image: ${err}`);
               }
             }}
           >

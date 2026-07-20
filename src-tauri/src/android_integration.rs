@@ -363,7 +363,9 @@ pub fn read_android_content_uri(uri_str: &str) -> Result<Vec<u8>, String> {
             }
 
             if read_count == 0 {
-                continue;
+                // InputStream.read(byte[]) returns 0 only for zero-length buffers,
+                // which should not happen here. Break to prevent infinite loop.
+                break;
             }
 
             let read_len = read_count as usize;
@@ -529,6 +531,8 @@ pub fn save_bytes_to_android_media_store(
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
             env.call_method(&output_stream, "write", "([B)V", &[(&byte_array).into()])
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
+            // Explicitly delete local reference to prevent accumulation in large file writes
+            let _ = env.delete_local_ref(&byte_array);
             offset = end;
         }
         env.call_method(&output_stream, "flush", "()V", &[])
@@ -793,17 +797,16 @@ pub fn share_image(file_path: String, mime_type: String, title: String, target_p
             let pkg_jstring = env
                 .new_string(&pkg)
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
-            env.call_method(
+            let set_pkg_result = env.call_method(
                 &intent,
                 "setPackage",
                 "(Ljava/lang/String;)Landroid/content/Intent;",
                 &[(&pkg_jstring).into()],
-            )
-            .map_err(|e| {
+            );
+            if set_pkg_result.is_err() {
                 clear_pending_android_exception(&mut env);
                 log::warn!("Failed to set package '{}' on share intent, falling back to chooser", pkg);
-                map_android_jni_error(&mut env, e)
-            })?;
+            }
         }
 
         // Create chooser intent

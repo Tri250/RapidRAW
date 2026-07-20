@@ -284,7 +284,9 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
     [setAdjustments],
   );
 
-  const handleWbPicked = useCallback(() => {}, []);
+  const handleWbPicked = useCallback(() => {
+    setEditor({ isWbPickerActive: false });
+  }, [setEditor]);
 
   useEffect(() => {
     if (isFullScreen) {

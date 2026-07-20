@@ -137,10 +137,21 @@ export function useAndroidBackHandler() {
       }
     };
 
+    // Android keyboard visibility handler - adjust viewport for soft keyboard
+    (window as any).__handleKeyboardChange = (visible: boolean, keyboardHeight: number) => {
+      const root = document.documentElement;
+      if (visible && keyboardHeight > 0) {
+        root.style.setProperty('--android-keyboard-height', `${keyboardHeight}px`);
+      } else {
+        root.style.removeProperty('--android-keyboard-height');
+      }
+    };
+
     return () => {
       delete (window as any).__handleAndroidBack;
       delete (window as any).__handleLowMemory;
       delete (window as any).__handleAppBackground;
+      delete (window as any).__handleKeyboardChange;
     };
   }, [osPlatform]);
 }
