@@ -1423,7 +1423,7 @@ pub fn run_sam_decoder(
         let w = mask_dims[3];
         let area = h * w;
 
-        let mask_slice = mask_tensor.as_slice().unwrap();
+        let mask_slice = mask_tensor.as_slice().ok_or_else(|| "Failed to extract mask tensor data - tensor may not be contiguous")?;
         let first_mask_slice = &mask_slice[0..area];
 
         if i == iters - 1 {
@@ -1530,9 +1530,9 @@ pub fn run_sam_decoder(
             .collect();
 
         let img_mask_f32 =
-            ImageBuffer::<Luma<f32>, Vec<f32>>::from_raw(w as u32, h as u32, mask_f32_vec).unwrap();
+            ImageBuffer::<Luma<f32>, Vec<f32>>::from_raw(w as u32, h as u32, mask_f32_vec).ok_or_else(|| "Failed to create mask image buffer - dimension mismatch")?;
         let img_gaus_f32 =
-            ImageBuffer::<Luma<f32>, Vec<f32>>::from_raw(w as u32, h as u32, gaus_dt).unwrap();
+            ImageBuffer::<Luma<f32>, Vec<f32>>::from_raw(w as u32, h as u32, gaus_dt).ok_or_else(|| "Failed to create gaussian image buffer - dimension mismatch")?;
 
         let resized_mask = imageops::resize(&img_mask_f32, 256, 256, FilterType::Triangle);
         let resized_gaus = imageops::resize(&img_gaus_f32, 256, 256, FilterType::Triangle);
@@ -1608,7 +1608,7 @@ pub fn run_sky_seg_model(
     let mut session = sky_seg_session.lock().unwrap();
     let outputs = session.run(ort::inputs![t_input])?;
     let output_tensor = outputs[0].try_extract_array::<f32>()?.to_owned();
-    let out_slice = output_tensor.as_slice().unwrap();
+    let out_slice = output_tensor.as_slice().ok_or_else(|| "Failed to extract output tensor data - tensor may not be contiguous")?;
 
     let mut min_val = f32::MAX;
     let mut max_val = f32::MIN;
@@ -1689,7 +1689,7 @@ pub fn run_u2netp_model(
     let mut session = u2netp_session.lock().unwrap();
     let outputs = session.run(ort::inputs![t_input])?;
     let output_tensor = outputs[0].try_extract_array::<f32>()?.to_owned();
-    let out_slice = output_tensor.as_slice().unwrap();
+    let out_slice = output_tensor.as_slice().ok_or_else(|| "Failed to extract output tensor data - tensor may not be contiguous")?;
 
     let mut min_val = f32::MAX;
     let mut max_val = f32::MIN;
@@ -1773,7 +1773,7 @@ pub fn run_depth_anything_model(
     let mut session = depth_session.lock().unwrap();
     let outputs = session.run(ort::inputs![t_input])?;
     let output_tensor = outputs[0].try_extract_array::<f32>()?.to_owned();
-    let out_slice = output_tensor.as_slice().unwrap();
+    let out_slice = output_tensor.as_slice().ok_or_else(|| "Failed to extract output tensor data - tensor may not be contiguous")?;
 
     let usize_size = DEPTH_INPUT_SIZE as usize;
 

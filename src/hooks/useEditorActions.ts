@@ -256,6 +256,8 @@ export function useEditorActions() {
                   lensDistortionParams: meta.adjustments.lensDistortionParams,
                 }));
               }
+            }).catch((err: any) => {
+              console.error('Failed to load metadata after paste:', err);
             });
           }
         })

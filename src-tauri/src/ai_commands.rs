@@ -904,8 +904,8 @@ pub fn generate_ai_background_remove(state: tauri::State<AppState>) -> Result<Ve
 /// Apply 2x super-resolution using Lanczos3 upsampling followed by
 /// sharpening enhancement. No deep learning model is used.
 #[tauri::command]
-pub fn apply_super_resolution(
-    state: tauri::State<AppState>,
+pub async fn apply_super_resolution(
+    state: tauri::State<'_, AppState>,
     scale: f32,
 ) -> Result<Vec<u8>, String> {
     let loaded_image = state
@@ -920,9 +920,10 @@ pub fn apply_super_resolution(
         return Err("Image has zero dimensions".to_string());
     }
 
-    let effective_scale = scale.clamp(1.0, 4.0);
-    let new_w = (w as f32 * effective_scale).round() as u32;
-    let new_h = (h as f32 * effective_scale).round() as u32;
+    tokio::task::spawn_blocking(move || {
+        let effective_scale = scale.clamp(1.0, 4.0);
+        let new_w = (w as f32 * effective_scale).round() as u32;
+        let new_h = (h as f32 * effective_scale).round() as u32;
 
     // Step 1: Lanczos3 upsampling
     let mut upscaled = loaded_image
@@ -1022,4 +1023,5 @@ pub fn apply_super_resolution(
         .map_err(|e| format!("Failed to encode result: {}", e))?;
 
     Ok(buf.into_inner())
+    }).await.map_err(|e| format!("Super resolution task failed: {}", e))?
 }

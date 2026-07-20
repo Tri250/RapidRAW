@@ -86,7 +86,7 @@ fn analyze_bounds(log_data: &[f32], width: usize, height: usize) -> [ChannelBoun
             return ChannelBounds { min: 0.0, max: 1.0 };
         }
 
-        vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
+        vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| if a.is_nan() { Ordering::Greater } else { Ordering::Less }));
 
         let len = vals.len() as f32;
 
@@ -108,7 +108,7 @@ fn run_pipeline(
     input: &DynamicImage,
     params: &NegativeConversionParams,
     override_bounds: Option<[ChannelBounds; 3]>,
-) -> DynamicImage {
+) -> Result<DynamicImage, String> {
     let rgb = input.to_rgb32f();
     let (width, height) = rgb.dimensions();
     let raw_pixels = rgb.as_raw();
@@ -186,8 +186,8 @@ fn run_pipeline(
         });
 
     let out_img = Rgb32FImage::from_vec(width, height, out_buffer)
-        .expect("Failed to reconstruct image buffer - dimension mismatch");
-    DynamicImage::ImageRgb32F(out_img)
+        .ok_or_else(|| "Failed to reconstruct image buffer - dimension mismatch".to_string())?;
+    Ok(DynamicImage::ImageRgb32F(out_img))
 }
 
 #[tauri::command]
@@ -279,7 +279,7 @@ pub async fn preview_negative_conversion(
         }
     };
 
-    let processed = run_pipeline(&base_image_for_processing, &params, None);
+    let processed = run_pipeline(&base_image_for_processing, &params, None)?;
 
     let mut buf = Cursor::new(Vec::new());
     processed
@@ -318,7 +318,7 @@ pub async fn convert_negatives(
             let img = match read_file_mapped(Path::new(&real_path)) {
                 Ok(mmap) => load_base_image_from_bytes(&mmap, &real_path, false, &settings, None),
                 Err(_) => {
-                    let bytes = fs::read(&real_path).unwrap_or_default();
+                    let bytes = fs::read(&real_path).map_err(|e| format!("Failed to read file {}: {}", real_path, e))?;
                     load_base_image_from_bytes(&bytes, &real_path, false, &settings, None)
                 }
             }
@@ -334,7 +334,7 @@ pub async fn convert_negatives(
                 .collect();
             let bounds = analyze_bounds(&log_pixels, ref_w as usize, ref_h as usize);
 
-            let processed = run_pipeline(&img, &params, Some(bounds));
+            let processed = run_pipeline(&img, &params, Some(bounds))?;
 
             let p = Path::new(&real_path);
             let parent = p.parent().unwrap_or(Path::new(""));

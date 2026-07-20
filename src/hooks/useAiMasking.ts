@@ -74,7 +74,7 @@ export function useAiMasking() {
       )?.id;
       if (!patchId) return;
 
-      setAdjustments((prev: Partial<Adjustments>) => ({
+      setAdjustments((prev: Adjustments) => ({
         ...prev,
         aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: true } : p)),
       }));
@@ -91,7 +91,7 @@ export function useAiMasking() {
         const newPatchData = JSON.parse(newPatchDataJson);
         patchesSentToBackend.delete(patchId);
 
-        setAdjustments((prev: Partial<Adjustments>) => ({
+        setAdjustments((prev: Adjustments) => ({
           ...prev,
           aiPatches: prev.aiPatches?.map((p: AiPatch) =>
             p.id === patchId ? { ...p, patchData: newPatchData, isLoading: false } : p,
@@ -99,7 +99,7 @@ export function useAiMasking() {
         }));
       } catch (err: any) {
         toast.error(`Cleanup Failed: ${err.message || String(err)}`);
-        setAdjustments((prev: Partial<Adjustments>) => ({
+        setAdjustments((prev: Adjustments) => ({
           ...prev,
           aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
         }));
@@ -203,7 +203,7 @@ export function useAiMasking() {
       if (!patchId) return;
 
       setEditor({ isGeneratingAi: true });
-      setAdjustments((prev: Partial<Adjustments>) => ({
+      setAdjustments((prev: Adjustments) => ({
         ...prev,
         aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: true } : p)),
       }));
@@ -251,7 +251,7 @@ export function useAiMasking() {
         const newPatchData = JSON.parse(newPatchDataJson);
         patchesSentToBackend.delete(patchId);
 
-        setAdjustments((prev: Partial<Adjustments>) => ({
+        setAdjustments((prev: Adjustments) => ({
           ...prev,
           aiPatches: prev.aiPatches?.map((p: AiPatch) =>
             p.id === patchId
@@ -273,7 +273,7 @@ export function useAiMasking() {
           return;
         }
         toast.error(`Quick Erase Failed: ${err.message || String(err)}`);
-        setAdjustments((prev: Partial<Adjustments>) => ({
+        setAdjustments((prev: Adjustments) => ({
           ...prev,
           aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
         }));
@@ -340,7 +340,7 @@ export function useAiMasking() {
         startPoint: [startPoint.x, startPoint.y],
       }) as Record<string, any>;
 
-      const subMask = findSubMask(adjustments, subMaskId);
+      const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
       const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
@@ -372,7 +372,7 @@ export function useAiMasking() {
         rotation: adjustments.rotation,
       }) as Record<string, any>;
 
-      const subMask = findSubMask(adjustments, subMaskId);
+      const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
       const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
@@ -398,7 +398,7 @@ export function useAiMasking() {
         rotation: adjustments.rotation,
       }) as Record<string, any>;
 
-      const subMask = findSubMask(adjustments, subMaskId);
+      const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
       const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
@@ -424,7 +424,7 @@ export function useAiMasking() {
         rotation: adjustments.rotation,
       }) as Record<string, any>;
 
-      const subMask = findSubMask(adjustments, subMaskId);
+      const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
       const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
@@ -465,28 +465,35 @@ export function useAiMasking() {
 
   useEffect(() => {
     let cancelled = false;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
     const activeSubMask =
       adjustmentsForPrecompute?.masks?.flatMap((m: MaskContainer) => m.subMasks).find((sm: SubMask) => sm.id === activeMaskId) ||
       adjustmentsForPrecompute?.aiPatches?.flatMap((p: AiPatch) => p.subMasks).find((sm: SubMask) => sm.id === activeAiSubMaskId);
 
     if (activeSubMask?.type === 'ai-subject' && selectedImagePath) {
-      const transformAdjustments = getTransformAdjustments(adjustmentsForPrecompute);
-      invoke(Invokes.PrecomputeAiSubjectMask, {
-        jsAdjustments: transformAdjustments,
-        path: selectedImagePath,
-      })
-        .then(() => {
-          if (cancelled) return;
-          // Precompute completed successfully; no state update needed.
+      // Debounce to avoid excessive precompute requests when adjustments change rapidly
+      debounceTimer = setTimeout(() => {
+        if (cancelled) return;
+        const transformAdjustments = getTransformAdjustments(adjustmentsForPrecompute);
+        invoke(Invokes.PrecomputeAiSubjectMask, {
+          jsAdjustments: transformAdjustments,
+          path: selectedImagePath,
         })
-        .catch((err) => {
-          if (cancelled) return;
-          console.error('Failed to precompute AI subject mask:', err);
-        });
+          .then(() => {
+            if (cancelled) return;
+            // Precompute completed successfully; no state update needed.
+          })
+          .catch((err) => {
+            if (cancelled) return;
+            console.error('Failed to precompute AI subject mask:', err);
+          });
+      }, 200);
     }
 
     return () => {
       cancelled = true;
+      if (debounceTimer) clearTimeout(debounceTimer);
     };
   }, [activeMaskId, activeAiSubMaskId, selectedImagePath, adjustmentsForPrecompute]);
 

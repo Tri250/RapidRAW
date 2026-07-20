@@ -723,7 +723,7 @@ function App() {
                     if (albumTree.length === 0) {
                       setUI({ isCreateAlbumModalOpen: true });
                     } else {
-                      setUI({ isCreateAlbumModalOpen: true });
+                      setUI({ isAddToAlbumModalOpen: true });
                     }
                   }}
                 />

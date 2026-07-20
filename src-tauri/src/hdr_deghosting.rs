@@ -25,7 +25,7 @@ const DEGHOST_IDENTITY_MAX_DISPLACEMENT: f64 = 1.0;
 static BRIEF_PAIRS: OnceLock<Vec<(Point2<i32>, Point2<i32>)>> = OnceLock::new();
 
 fn get_brief_pairs() -> &'static [(Point2<i32>, Point2<i32>)] {
-    BRIEF_PAIRS.get_or_init(processing::generate_brief_pairs)
+    BRIEF_PAIRS.get_or_init(|| processing::generate_brief_pairs().unwrap_or_else(|_| Vec::new()))
 }
 
 enum AlignmentOutcome {
@@ -261,8 +261,8 @@ fn estimate_rigid_transform(
     }
     let covariance = Matrix2::new(h00, h01, h10, h11);
     let svd = covariance.svd(true, true);
-    let u = svd.u.expect("svd failed to produce u");
-    let v = svd.v_t.expect("svd failed to produce v_t").transpose();
+    let u = svd.u.ok_or_else(|| "SVD failed to produce U matrix - covariance matrix may be degenerate".to_string())?;
+    let v = svd.v_t.ok_or_else(|| "SVD failed to produce V^T matrix - covariance matrix may be degenerate".to_string())?.transpose();
     let mut rotation = v * u.transpose();
     if rotation.determinant() < 0.0 {
         let mut corrected = v;
@@ -371,9 +371,9 @@ fn deghost_aligned_frames(frames: &mut [HdrFrame], reference_index: usize) {
             vals_b.push(p[2] / norm);
         }
 
-        vals_r.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-        vals_g.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-        vals_b.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        vals_r.sort_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| if a.is_nan() { std::cmp::Ordering::Greater } else { std::cmp::Ordering::Less }));
+        vals_g.sort_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| if a.is_nan() { std::cmp::Ordering::Greater } else { std::cmp::Ordering::Less }));
+        vals_b.sort_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| if a.is_nan() { std::cmp::Ordering::Greater } else { std::cmp::Ordering::Less }));
 
         let mid = num_frames / 2;
         median_r[pix_idx] = if num_frames % 2 == 0 && mid > 0 {

@@ -72,7 +72,6 @@ export const useProcessStore = create<ProcessState>((set, get) => ({
     const state = get();
     if (state.isCopied) {
       clearTimeout(copyTimeout);
-      copyTimeoutValid = false;
       copyTimeoutValid = true;
       copyTimeout = setTimeout(() => {
         if (copyTimeoutValid) set({ isCopied: false });
@@ -80,7 +79,6 @@ export const useProcessStore = create<ProcessState>((set, get) => ({
     }
     if (state.isPasted) {
       clearTimeout(pasteTimeout);
-      pasteTimeoutValid = false;
       pasteTimeoutValid = true;
       pasteTimeout = setTimeout(() => {
         if (pasteTimeoutValid) set({ isPasted: false });

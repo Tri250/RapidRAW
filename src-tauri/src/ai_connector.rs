@@ -31,7 +31,7 @@ pub fn generate_source_id(path_str: &str) -> Result<String> {
     let metadata = fs::metadata(path)?;
     let mod_time = metadata
         .modified()
-        .unwrap_or(SystemTime::UNIX_EPOCH)
+        .map_err(|_| anyhow!("Cannot determine modification time for: {}", path_str))?
         .duration_since(SystemTime::UNIX_EPOCH)?
         .as_secs();
 
@@ -112,7 +112,10 @@ pub async fn check_status(address: &str) -> Result<bool> {
         .get(format!("http://{}/health", address))
         .send()
         .await;
-    Ok(res.is_ok())
+    match res {
+        Ok(response) => Ok(response.status().is_success()),
+        Err(_) => Ok(false),
+    }
 }
 
 pub async fn process_inpainting(
@@ -128,12 +131,17 @@ pub async fn process_inpainting(
     let mask_b64 = image_to_base64(mask_image)?;
     let (w, h) = full_source_image.dimensions();
 
+    let seed: u64 = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
     let payload = InpaintRequest {
         source_id: source_id.clone(),
         prompt,
         negative_prompt: "blur, low quality, distortion, watermark".to_string(),
         mask_image_base64: mask_b64,
-        seed: 0,
+        seed,
     };
 
     let url = format!("{}/inpaint", base_url);

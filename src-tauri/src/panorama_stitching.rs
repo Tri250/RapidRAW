@@ -189,7 +189,7 @@ fn stitch_images(image_paths: Vec<String>, app_handle: AppHandle) -> Result<Dyna
     let start_time = Instant::now();
     let _ = app_handle.emit("panorama-progress", "Loading and preparing images...");
     println!("Loading and preparing images (in parallel)...");
-    let brief_pairs = processing::generate_brief_pairs();
+    let brief_pairs = processing::generate_brief_pairs()?;
 
     let image_data_results: Vec<Result<ImageInfo, String>> = image_paths
         .par_iter()
@@ -506,9 +506,9 @@ fn build_stitching_order(
                     } else if let Some(m) = matches.get(&(u, v)) {
                         m.homography
                             .try_inverse()
-                            .expect("Failed to invert homography for MST edge")
+                            .ok_or_else(|| format!("Failed to invert homography for MST edge between {} and {}", v, u))?
                     } else {
-                        panic!("Match not found for MST edge between {} and {}", u, v);
+                        return Err(format!("Match not found for MST edge between {} and {}", u, v));
                     };
 
                     let h_v_global = h_u_global * h_vu;

@@ -125,22 +125,20 @@ fn non_maximal_suppression(corners: &[Corner], radius: f32) -> Vec<KeyPoint> {
     result
 }
 
-pub fn generate_brief_pairs() -> Vec<(Point2<i32>, Point2<i32>)> {
+pub fn generate_brief_pairs() -> Result<Vec<(Point2<i32>, Point2<i32>)>, String> {
     let mut rng = StdRng::seed_from_u64(12345);
     let half_patch = BRIEF_PATCH_SIZE as i32 / 2;
-    let distribution = match rand::distr::Uniform::new(-half_patch, half_patch) {
-        Ok(dist) => dist,
-        Err(e) => panic!("Failed to create uniform distribution: {}", e),
-    };
+    let distribution = rand::distr::Uniform::new(-half_patch, half_patch)
+        .map_err(|e| format!("Failed to create uniform distribution: {}", e))?;
 
-    (0..BRIEF_DESCRIPTOR_SIZE)
+    Ok((0..BRIEF_DESCRIPTOR_SIZE)
         .map(|_| {
             (
                 Point2::new(distribution.sample(&mut rng), distribution.sample(&mut rng)),
                 Point2::new(distribution.sample(&mut rng), distribution.sample(&mut rng)),
             )
         })
-        .collect()
+        .collect())
 }
 
 fn compute_brief_descriptor(

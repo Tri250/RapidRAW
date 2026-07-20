@@ -266,7 +266,10 @@ fn grayscale_dilate(image: &GrayImage, k: u8) -> GrayImage {
         }
     }
 
-    GrayImage::from_raw(width, height, out).unwrap_or_else(|| GrayImage::new(1, 1))
+    GrayImage::from_raw(width, height, out).unwrap_or_else(|| {
+        eprintln!("Warning: Failed to create GrayImage of size {}x{}, creating empty mask", width, height);
+        GrayImage::new(width, height)
+    })
 }
 
 fn grayscale_erode(image: &GrayImage, k: u8) -> GrayImage {
@@ -307,7 +310,10 @@ fn grayscale_erode(image: &GrayImage, k: u8) -> GrayImage {
         }
     }
 
-    GrayImage::from_raw(width, height, out).unwrap_or_else(|| GrayImage::new(1, 1))
+    GrayImage::from_raw(width, height, out).unwrap_or_else(|| {
+        eprintln!("Warning: Failed to create GrayImage of size {}x{}, creating empty mask", width, height);
+        GrayImage::new(width, height)
+    })
 }
 
 fn apply_grow_and_feather(mask: &mut GrayImage, grow: f32, feather: f32, width: u32, height: u32) {
@@ -395,7 +401,10 @@ fn render_stroke_layer_parallel(
 ) -> GrayImage {
     let mut out_pixels = vec![0u8; (bb_w * bb_h) as usize];
     if points.is_empty() || radius <= 0.0 {
-        return GrayImage::from_raw(bb_w, bb_h, out_pixels).unwrap_or_else(|| GrayImage::new(1, 1));
+        return GrayImage::from_raw(bb_w, bb_h, out_pixels).unwrap_or_else(|| {
+            eprintln!("Warning: Failed to create GrayImage of size {}x{}, creating empty mask", bb_w, bb_h);
+            GrayImage::new(bb_w, bb_h)
+        });
     }
 
     struct Segment {
@@ -533,7 +542,10 @@ fn render_stroke_layer_parallel(
             }
         });
 
-    GrayImage::from_raw(bb_w, bb_h, out_pixels).unwrap_or_else(|| GrayImage::new(1, 1))
+    GrayImage::from_raw(bb_w, bb_h, out_pixels).unwrap_or_else(|| {
+        eprintln!("Warning: Failed to create GrayImage of size {}x{}, creating empty mask", bb_w, bb_h);
+        GrayImage::new(bb_w, bb_h)
+    })
 }
 
 fn generate_radial_bitmap(
@@ -1510,7 +1522,11 @@ pub fn get_cached_or_generate_mask(
     if let Some(img) = &generated {
         let mut cache = state.mask_cache.lock().unwrap();
         if cache.len() > 50 {
-            cache.clear();
+            // Remove oldest half of entries instead of clearing all
+            let keys: Vec<_> = cache.keys().take(cache.len() / 2).cloned().collect();
+            for k in keys {
+                cache.remove(&k);
+            }
         }
         cache.insert(key, img.clone());
     }

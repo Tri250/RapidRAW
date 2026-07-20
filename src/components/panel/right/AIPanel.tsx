@@ -570,7 +570,10 @@ export default function AIPanel() {
       selectBrushToolForNewMask();
     }
 
-    if (type === Mask.AiForeground) handleGenerateAiForegroundMask(subMask.id);
+    if (type === Mask.AiForeground) {
+      // Use setTimeout to ensure state has been committed to the store before generating
+      setTimeout(() => handleGenerateAiForegroundMask(subMask.id), 0);
+    }
   };
 
   const handleAddSubMask = (
@@ -599,7 +602,9 @@ export default function AIPanel() {
     if (type === Mask.Brush || type === Mask.Clone || type === Mask.Heal) {
       selectBrushToolForNewMask();
     }
-    if (type === Mask.AiForeground) handleGenerateAiForegroundMask(subMask.id);
+    if (type === Mask.AiForeground) {
+      setTimeout(() => handleGenerateAiForegroundMask(subMask.id), 0);
+    }
   };
 
   const handleAddAiContextMenu = (event: React.MouseEvent, targetContainerId?: string | null) => {

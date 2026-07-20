@@ -346,10 +346,13 @@ export default function ExportPanel({
     [t],
   );
 
+  const isVisibleRef = useRef(isVisible);
+  isVisibleRef.current = isVisible;
+
   const debouncedEstimateSize = useMemo(
     () =>
       debounce(async (paths, currentAdj, currentPath, exportSettings, format) => {
-        if (paths.length === 0 || !isVisible) {
+        if (paths.length === 0 || !isVisibleRef.current) {
           setEstimatedSize(null);
           return;
         }
@@ -748,7 +751,7 @@ export default function ExportPanel({
                   )}
                 </Section>
 
-                {fileFormat == FileFormats.Jpeg && (
+                {fileFormat === FileFormats.Jpeg && (
                   <Section title={t('export.sections.metadata')}>
                     <Switch
                       checked={keepMetadata}

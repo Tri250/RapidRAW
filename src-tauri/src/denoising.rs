@@ -75,18 +75,20 @@ pub async fn apply_denoising(
 
     let denoise_result_handle = state.denoise_result.clone();
 
-    tokio::task::spawn_blocking(move || {
-        match denoise_image(path_str, intensity, method, app_handle.clone(), ai_session) {
-            Ok((image, _)) => {
+    let result = tokio::task::spawn_blocking(move || {
+        denoise_image(path_str, intensity, method, app_handle.clone(), ai_session)
+            .map(|(image, _)| {
                 *denoise_result_handle.lock().unwrap() = Some(image);
-            }
-            Err(e) => {
-                let _ = app_handle.emit("denoise-error", e);
-            }
-        }
+            })
+            .map_err(|e| {
+                let _ = app_handle.emit("denoise-error", e.clone());
+                e
+            })
     })
     .await
-    .map_err(|e| format!("Denoising task failed: {}", e))
+    .map_err(|e| format!("Denoising task failed: {}", e))?;
+
+    result
 }
 
 #[tauri::command]
@@ -692,7 +694,7 @@ fn block_matching_joint(
     }
 
     let valid_slice = &mut candidates[0..cand_count];
-    valid_slice.sort_unstable_by(|a, b| a.dist.partial_cmp(&b.dist).unwrap_or(Ordering::Equal));
+    valid_slice.sort_unstable_by(|a, b| a.dist.partial_cmp(&b.dist).unwrap_or_else(|| if a.dist.is_nan() { Ordering::Greater } else { Ordering::Less }));
 
     let limit = MAX_GROUP_SIZE.min(cand_count);
     let p2_limit = prev_power_of_two(limit);

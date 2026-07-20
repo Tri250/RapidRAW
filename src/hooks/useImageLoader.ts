@@ -56,6 +56,7 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
       };
 
       const loadFullImageData = async () => {
+        setLibrary({ isViewLoading: true });
         try {
           const loadImageResult: any = await invoke(Invokes.LoadImage, { path: selectedImage.path });
           if (!isEffectActive) return;

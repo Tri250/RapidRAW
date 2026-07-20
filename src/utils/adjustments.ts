@@ -649,7 +649,7 @@ const deepCloneParametric = (pCurve: any): ParametricCurve => ({
   blue: { ...DEFAULT_PARAMETRIC_CURVE_SETTINGS, ...(pCurve?.blue || {}) },
 });
 
-export const normalizeLoadedAdjustments = (loadedAdjustments: Adjustments): any => {
+export const normalizeLoadedAdjustments = (loadedAdjustments: Adjustments): Adjustments => {
   if (!loadedAdjustments) {
     return INITIAL_ADJUSTMENTS;
   }
@@ -664,7 +664,7 @@ export const normalizeLoadedAdjustments = (loadedAdjustments: Adjustments): any 
     }));
   };
 
-  const normalizedMasks = (loadedAdjustments.masks || []).map((maskContainer: MaskContainer) => {
+  const normalizedMasks: MaskContainer[] = (loadedAdjustments.masks || []).map((maskContainer: MaskContainer) => {
     const containerAdjustments = maskContainer.adjustments || {};
     const normalizedSubMasks = normalizeSubMasks(maskContainer.subMasks);
 
@@ -696,7 +696,7 @@ export const normalizeLoadedAdjustments = (loadedAdjustments: Adjustments): any 
         sharpnessThreshold: containerAdjustments.sharpnessThreshold ?? INITIAL_MASK_ADJUSTMENTS.sharpnessThreshold,
       },
       subMasks: normalizedSubMasks,
-    };
+    } as MaskContainer;
   });
 
   const normalizedAiPatches = (loadedAdjustments.aiPatches || []).map((patch: any) => ({

@@ -425,8 +425,7 @@ export function useImageProcessing(
     return () => {
       requestHiFiZoom.cancel();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
+    }, [
     displaySize.width,
     displaySize.height,
     calculateTargetRes,
@@ -434,6 +433,7 @@ export function useImageProcessing(
     isSliderDragging,
     requestHiFiZoom,
     originalSize,
+    adjustments,
   ]);
 
   useEffect(() => {
@@ -486,7 +486,6 @@ export function useImageProcessing(
     return () => {
       if (dragIdleTimer.current) clearTimeout(dragIdleTimer.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     adjustments,
     previewOverride,
@@ -497,6 +496,10 @@ export function useImageProcessing(
     appSettings?.enableLivePreviews,
     appSettings?.copyPasteSettings?.includedAdjustments,
     isWaveformVisible,
+    applyAdjustments,
+    calculateTargetRes,
+    debouncedSave,
+    originalSize,
   ]);
 
   useEffect(() => {

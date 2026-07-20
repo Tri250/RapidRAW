@@ -1384,7 +1384,11 @@ pub fn generate_thumbnail_data(
 
             let mut cache = state.thumbnail_geometry_cache.lock().unwrap();
             if cache.len() > 30 {
-                cache.clear();
+                // Remove oldest half of entries instead of clearing all
+                let keys: Vec<_> = cache.keys().take(cache.len() / 2).cloned().collect();
+                for k in keys {
+                    cache.remove(&k);
+                }
             }
             cache.insert(
                 path_str.to_string(),

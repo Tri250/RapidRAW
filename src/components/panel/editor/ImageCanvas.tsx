@@ -1347,7 +1347,7 @@ const ImageCanvas = memo(
           setIsFadingIn(false);
         }
       }
-    }, [finalPreviewUrl, selectedImage.thumbnailUrl, isSliderDragging]);
+    }, [finalPreviewUrl, selectedImage.thumbnailUrl, isSliderDragging, displayState.base]);
 
     useEffect(() => {
       setBaseTool(brushSettings?.tool ?? ToolType.Brush);
@@ -2249,10 +2249,12 @@ const ImageCanvas = memo(
         } else if (activeSubMask.type === Mask.Linear) {
           if (!newParams.range || newParams.range < 10) {
             const handleDist = Math.min(effectiveImageDimensions.width, effectiveImageDimensions.height) * 0.2;
-            newParams.startX = dragStartPointer.current!.x + handleDist;
-            newParams.startY = dragStartPointer.current!.y;
-            newParams.endX = dragStartPointer.current!.x - handleDist;
-            newParams.endY = dragStartPointer.current!.y;
+            const startPointer = dragStartPointer.current;
+            if (!startPointer) return;
+            newParams.startX = startPointer.x + handleDist;
+            newParams.startY = startPointer.y;
+            newParams.endX = startPointer.x - handleDist;
+            newParams.endY = startPointer.y;
             newParams.range = 100;
           }
         }
@@ -2458,7 +2460,7 @@ const ImageCanvas = memo(
       isStraightening.current = false;
       if (
         !straightenLine ||
-        (straightenLine.start.x === straightenLine.end.x && straightenLine.start.y === straightenLine.start.y)
+        (straightenLine.start.x === straightenLine.end.x && straightenLine.start.y === straightenLine.end.y)
       ) {
         setStraightenLine(null);
         return;
@@ -2469,8 +2471,12 @@ const ImageCanvas = memo(
       const theta_rad = (rotation * Math.PI) / 180;
       const cos_t = Math.cos(theta_rad);
       const sin_t = Math.sin(theta_rad);
-      const width = uncroppedImageRenderSize?.width ?? 0;
-      const height = uncroppedImageRenderSize?.height ?? 0;
+      if (!uncroppedImageRenderSize) {
+        setStraightenLine(null);
+        return;
+      }
+      const width = uncroppedImageRenderSize.width ?? 0;
+      const height = uncroppedImageRenderSize.height ?? 0;
       const cx = width / 2;
       const cy = height / 2;
 

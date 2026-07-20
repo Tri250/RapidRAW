@@ -112,6 +112,7 @@ interface UIState {
 
   // Album Modals
   isCreateAlbumModalOpen: boolean;
+  isAddToAlbumModalOpen: boolean;
   isCreateAlbumGroupModalOpen: boolean;
   isRenameAlbumModalOpen: boolean;
   isSmartAlbumModalOpen: boolean;
@@ -163,6 +164,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   folderActionTarget: null,
 
   isCreateAlbumModalOpen: false,
+  isAddToAlbumModalOpen: false,
   isCreateAlbumGroupModalOpen: false,
   isRenameAlbumModalOpen: false,
   isSmartAlbumModalOpen: false,

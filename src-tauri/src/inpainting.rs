@@ -153,7 +153,10 @@ pub async fn generate_manual_cleanup_patch(
     let crop_w = (max_x - min_x + 1) as u32;
     let crop_h = (max_y - min_y + 1) as u32;
 
-    let sub_masks_val = serde_json::to_value(&patch_definition.sub_masks).unwrap_or(Value::Null);
+    let sub_masks_val = serde_json::to_value(&patch_definition.sub_masks).map_err(|e| {
+        log::error!("Failed to serialize sub_masks: {}", e);
+        format!("Failed to serialize sub_masks: {}", e)
+    })?;
     let mut is_heal = false;
     if let Some(arr) = sub_masks_val.as_array() {
         for sm in arr {
@@ -287,7 +290,7 @@ pub async fn generate_manual_cleanup_patch(
         }
     }
 
-    let quality = 100;
+    let quality = 92;
 
     let output_mask =
         image::imageops::crop_imm(&mask_bitmap, min_x_u32, min_y_u32, crop_w, crop_h).to_image();

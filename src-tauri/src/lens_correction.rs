@@ -307,7 +307,7 @@ impl Lens {
         let (k1, k2, k3, model) = if distortions.is_empty() {
             (0.0, 0.0, 0.0, 0)
         } else {
-            distortions.sort_by(|a, b| a.focal.partial_cmp(&b.focal).unwrap_or(Ordering::Equal));
+            distortions.sort_by(|a, b| a.focal.partial_cmp(&b.focal).unwrap_or_else(|| if a.focal.is_nan() { Ordering::Greater } else { Ordering::Less }));
 
             if let Some(exact) = distortions
                 .iter()
@@ -349,7 +349,7 @@ impl Lens {
         let (tca_vr, tca_vb) = if tcas.is_empty() {
             (1.0, 1.0)
         } else {
-            tcas.sort_by(|a, b| a.focal.partial_cmp(&b.focal).unwrap_or(Ordering::Equal));
+            tcas.sort_by(|a, b| a.focal.partial_cmp(&b.focal).unwrap_or_else(|| if a.focal.is_nan() { Ordering::Greater } else { Ordering::Less }));
 
             if let Some(exact) = tcas.iter().find(|d| (d.focal - focal_length).abs() < 1e-5) {
                 extract_tca_params(exact)
@@ -388,7 +388,7 @@ impl Lens {
             let target_aperture = aperture.unwrap_or(3.5);
             let target_distance = distance.unwrap_or(1000.0);
 
-            vignettings.sort_by(|a, b| a.focal.partial_cmp(&b.focal).unwrap_or(Ordering::Equal));
+            vignettings.sort_by(|a, b| a.focal.partial_cmp(&b.focal).unwrap_or_else(|| if a.focal.is_nan() { Ordering::Greater } else { Ordering::Less }));
 
             let find_best_vig = |items: &[&Vignetting]| -> (f64, f64, f64) {
                 let best_aperture_item = items.iter().min_by(|a, b| {
@@ -435,7 +435,7 @@ impl Lens {
                 let mut res = (0.0, 0.0, 0.0);
                 let unique_focals: Vec<f32> = {
                     let mut f: Vec<f32> = vignettings.iter().map(|v| v.focal).collect();
-                    f.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
+                    f.sort_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| if a.is_nan() { Ordering::Greater } else { Ordering::Less }));
                     f.dedup_by(|a, b| (*a - *b).abs() < 0.01);
                     f
                 };
@@ -560,10 +560,16 @@ pub fn load_lensfun_db(app_handle: &tauri::AppHandle) -> LensDatabase {
     }
     #[cfg(not(target_os = "android"))]
     {
-        let resource_path = app_handle
+        let resource_path = match app_handle
             .path()
             .resolve("lensfun_db", tauri::path::BaseDirectory::Resource)
-            .expect("failed to resolve lensfun_db directory");
+        {
+            Ok(path) => path,
+            Err(e) => {
+                log::error!("Failed to resolve lensfun_db directory: {}", e);
+                return combined_db;
+            }
+        };
 
         if !resource_path.exists() {
             log::error!("Lensfun DB directory not found at: {:?}", resource_path);
