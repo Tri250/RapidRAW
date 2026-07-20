@@ -329,7 +329,7 @@ fn apply_grow_and_feather(mask: &mut GrayImage, grow: f32, feather: f32, width: 
     }
 
     if feather > 0.0 {
-        const MAX_FEATHER_SIGMA_PERCENTAGE: f32 = 0.005;
+        const MAX_FEATHER_SIGMA_PERCENTAGE: f32 = 0.02;
         let sigma = (feather / 100.0) * base_dimension * MAX_FEATHER_SIGMA_PERCENTAGE;
 
         if sigma > 0.01 {

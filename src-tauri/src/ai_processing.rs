@@ -1130,6 +1130,10 @@ pub fn run_lama_inpainting(
 ) -> Result<RgbaImage> {
     let (w, h) = image.dimensions();
 
+    if w == 0 || h == 0 {
+        return Ok(RgbaImage::new(0, 0));
+    }
+
     let (mut min_x, mut min_y) = (w, h);
     let (mut max_x, mut max_y) = (0u32, 0u32);
     let mut has_mask = false;
@@ -1161,6 +1165,10 @@ pub fn run_lama_inpainting(
 
     let crop_w = x1 - x0 + 1;
     let crop_h = y1 - y0 + 1;
+
+    if crop_w == 0 || crop_h == 0 {
+        return Ok(image.to_rgba8());
+    }
 
     let rgba = image.to_rgba8();
 

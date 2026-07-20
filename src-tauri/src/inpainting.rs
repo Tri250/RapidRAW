@@ -176,20 +176,27 @@ pub async fn generate_manual_cleanup_patch(
             for x in min_x..=max_x {
                 let px_x = x as u32;
                 let px_y = y as u32;
+                let dest_x = px_x - min_x_u32;
+                let dest_y = px_y - min_y_u32;
+
                 if mask_bitmap.get_pixel(px_x, px_y)[0] > 0 {
                     let src_x = (px_x as i32 + offset_x).clamp(0, img_w as i32 - 1) as u32;
                     let src_y = (px_y as i32 + offset_y).clamp(0, img_h as i32 - 1) as u32;
                     let src_px = source_image.get_pixel(src_x, src_y);
-
-                    let dest_x = px_x - min_x_u32;
-                    let dest_y = px_y - min_y_u32;
+                    color_image.put_pixel(dest_x, dest_y, Rgb([src_px[0], src_px[1], src_px[2]]));
+                } else {
+                    let src_px = source_image.get_pixel(px_x, px_y);
                     color_image.put_pixel(dest_x, dest_y, Rgb([src_px[0], src_px[1], src_px[2]]));
                 }
             }
         }
     } else {
-        let bw = max_x - min_x + 3;
-        let bh = max_y - min_y + 3;
+        let bw = (max_x - min_x + 3).min(img_w_usize);
+        let bh = (max_y - min_y + 3).min(img_h_usize);
+
+        if bw < 3 || bh < 3 {
+            return Err("Heal region too small to process.".to_string());
+        }
 
         let mut v_r = vec![0.0f32; bw * bh];
         let mut v_g = vec![0.0f32; bw * bh];
@@ -549,7 +556,8 @@ pub async fn invoke_generative_replace_with_mask_def(
                     Rgb([patch_pixel[0], patch_pixel[1], patch_pixel[2]]),
                 );
             } else {
-                color_image.put_pixel(out_x, out_y, Rgb([0, 0, 0]));
+                let source_pixel = source_image.get_pixel(px_x, px_y);
+                color_image.put_pixel(out_x, out_y, Rgb([source_pixel[0], source_pixel[1], source_pixel[2]]));
             }
         }
     }
