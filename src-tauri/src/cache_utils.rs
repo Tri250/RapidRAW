@@ -28,11 +28,17 @@ pub const GEOMETRY_KEYS: &[&str] = &[
 pub fn calculate_geometry_hash(adjustments: &serde_json::Value) -> u64 {
     let mut hasher = DefaultHasher::new();
 
+    if adjustments.is_null() {
+        return hasher.finish();
+    }
+
     if let Some(patches) = adjustments.get("aiPatches") {
         patches.to_string().hash(&mut hasher);
     }
 
-    adjustments["orientationSteps"].as_u64().hash(&mut hasher);
+    if let Some(orientation) = adjustments.get("orientationSteps").and_then(|v| v.as_u64()) {
+        orientation.hash(&mut hasher);
+    }
 
     for key in GEOMETRY_KEYS {
         if let Some(val) = adjustments.get(key) {

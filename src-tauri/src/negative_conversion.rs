@@ -108,7 +108,7 @@ fn run_pipeline(
     input: &DynamicImage,
     params: &NegativeConversionParams,
     override_bounds: Option<[ChannelBounds; 3]>,
-) -> DynamicImage {
+) -> Result<DynamicImage, String> {
     let rgb = input.to_rgb32f();
     let (width, height) = rgb.dimensions();
     let raw_pixels = rgb.as_raw();
@@ -185,9 +185,22 @@ fn run_pipeline(
             out_pixel[2] = b.clamp(0.0, 1.0).powf(gamma_inv);
         });
 
-    let out_img = Rgb32FImage::from_vec(width, height, out_buffer)
-        .expect("Failed to reconstruct image buffer - dimension mismatch");
-    DynamicImage::ImageRgb32F(out_img)
+    match Rgb32FImage::from_vec(width, height, out_buffer) {
+        Some(img) => Ok(DynamicImage::ImageRgb32F(img)),
+        None => {
+            log::error!(
+                "Failed to reconstruct negative conversion buffer {}x{}: dimension mismatch (expected {} pixels, got {})",
+                width,
+                height,
+                (width * height * 3) as usize,
+                out_buffer.len()
+            );
+            Err(format!(
+                "Buffer reconstruction failed: dimension mismatch for {}x{} buffer with {} elements",
+                width, height, out_buffer.len()
+            ))
+        }
+    }
 }
 
 #[tauri::command]
@@ -279,7 +292,7 @@ pub async fn preview_negative_conversion(
         }
     };
 
-    let processed = run_pipeline(&base_image_for_processing, &params, None);
+    let processed = run_pipeline(&base_image_for_processing, &params, None)?;
 
     let mut buf = Cursor::new(Vec::new());
     processed
@@ -334,7 +347,7 @@ pub async fn convert_negatives(
                 .collect();
             let bounds = analyze_bounds(&log_pixels, ref_w as usize, ref_h as usize);
 
-            let processed = run_pipeline(&img, &params, Some(bounds));
+            let processed = run_pipeline(&img, &params, Some(bounds))?;
 
             let p = Path::new(&real_path);
             let parent = p.parent().unwrap_or(Path::new(""));

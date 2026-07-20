@@ -104,7 +104,8 @@ pub fn load_base_image_from_bytes(
     );
 
     if is_raw_file(path_for_ext_check) {
-        match panic::catch_unwind(move || {
+        use std::panic::AssertUnwindSafe;
+        match panic::catch_unwind(AssertUnwindSafe(move || {
             crate::raw_processing::develop_raw_image(
                 bytes,
                 use_fast_raw_dev,
@@ -112,7 +113,7 @@ pub fn load_base_image_from_bytes(
                 linear_mode,
                 cancel_token,
             )
-        }) {
+        })) {
             Ok(Ok(mut image)) => {
                 // OOM protection: check dimensions before further processing
                 let (w, h) = image.dimensions();
@@ -417,7 +418,16 @@ pub fn load_image_with_orientation(
         // The decode finished within the timeout
         decode_handle
             .join()
-            .map_err(|_| anyhow!("Image decode thread panicked"))?
+            .map_err(|e| {
+                let panic_info = if let Some(s) = e.downcast_ref::<String>() {
+                    s.clone()
+                } else if let Some(s) = e.downcast_ref::<&str>() {
+                    s.to_string()
+                } else {
+                    "Unknown panic".to_string()
+                };
+                anyhow!("Image decode thread panicked: {}", panic_info)
+            })?
             .context("Failed to decode image")?
     };
 
@@ -457,6 +467,8 @@ pub fn load_image_with_orientation(
         }
     };
 
+    // Safe: dimensions were validated against MAX_PIXEL_COUNT earlier,
+    // so the RGB32F conversion will not unexpectedly OOM.
     Ok(DynamicImage::ImageRgb32F(oriented_image.to_rgb32f()))
 }
 

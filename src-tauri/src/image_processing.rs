@@ -425,12 +425,20 @@ pub fn downscale_f32_image(image: &DynamicImage, nwidth: u32, nheight: u32) -> D
             }
         });
 
-    let out = Rgb32FImage::from_raw(new_w, new_h, out_buf).expect("buffer size mismatch");
-    let result = DynamicImage::ImageRgb32F(out);
-
-    log::info!("downscale_f32_image took {:.2?}", start.elapsed());
-
-    result
+    match Rgb32FImage::from_raw(new_w, new_h, out_buf) {
+        Ok(out) => {
+            let result = DynamicImage::ImageRgb32F(out);
+            log::info!("downscale_f32_image took {:.2?}", start.elapsed());
+            result
+        }
+        Err(e) => {
+            log::error!(
+                "Failed to reconstruct downscaled image {}x{}: {:?}",
+                new_w, new_h, e
+            );
+            image.clone()
+        }
+    }
 }
 
 #[inline(always)]
@@ -464,6 +472,12 @@ fn interpolate_pixel(
     let idx_row0 = y0 * stride;
     let idx_row1 = idx_row0 + stride;
     let idx_p00 = idx_row0 + x0 * 3;
+
+    debug_assert!(idx_p00 + 5 < src_raw.len(), "interpolate_pixel: p11 would be out of bounds");
+    debug_assert!(
+        idx_row1 + x0 * 3 + 5 < src_raw.len(),
+        "interpolate_pixel: row1 bounds check"
+    );
 
     unsafe {
         let p00 = src_raw.get_unchecked(idx_p00..idx_p00 + 3);

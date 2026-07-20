@@ -365,7 +365,7 @@ pub async fn read_exif_for_paths(
         Ok(exif_data)
     })
     .await
-    .unwrap_or_else(|e| Err(format!("Task failed: {}", e)))
+    .map_err(|e| format!("EXIF batch read task panicked: {}", e))?
 }
 
 #[tauri::command]

@@ -9,6 +9,7 @@ import { useProcessStore } from '../store/useProcessStore';
 import { THEMES, DEFAULT_THEME_ID, ThemeProps } from '../utils/themes';
 import { COPYABLE_ADJUSTMENT_KEYS } from '../utils/adjustments';
 import {
+  AppSettings,
   FilterCriteria,
   Invokes,
   LibraryViewMode,
@@ -19,9 +20,10 @@ import {
   ThumbnailAspectRatio,
 } from '../components/ui/AppProperties';
 import { useTranslation } from 'react-i18next';
+import type { i18n } from 'i18next';
 
 interface UseAppInitializationProps {
-  preloadedDataRef: React.RefObject<any>;
+  preloadedDataRef: React.RefObject<unknown>;
   thumbnailSize: ThumbnailSize;
   setThumbnailSize: (size: ThumbnailSize) => void;
   thumbnailAspectRatio: ThumbnailAspectRatio;
@@ -30,9 +32,15 @@ interface UseAppInitializationProps {
   setLibraryViewMode: (mode: LibraryViewMode) => void;
 }
 
-const getDefaultLanguage = (_i18nInstance: any): string => {
-  // Default to Simplified Chinese for first-time installation
-  return 'zh-CN';
+const getDefaultLanguage = (i18nInstance: i18n): string => {
+  const browserLang = typeof navigator !== 'undefined' ? navigator.language : 'zh-CN';
+  const supportedLanguages = i18nInstance.options.supportedLngs || ['zh-CN', 'en'];
+  if (supportedLanguages.includes(browserLang)) {
+    return browserLang;
+  }
+  const langPrefix = browserLang.split('-')[0];
+  const matchedPrefix = supportedLanguages.find((lang: string) => lang.startsWith(langPrefix));
+  return matchedPrefix || 'zh-CN';
 };
 
 export const useAppInitialization = ({
@@ -117,16 +125,16 @@ export const useAppInitialization = ({
 
   useEffect(() => {
     invoke(Invokes.GetSupportedFileTypes)
-      .then((types: any) => setSupportedTypes(types))
+      .then((types: { extensions: string[]; mimeTypes: string[] }) => setSupportedTypes(types))
       .catch((err) => {
         console.error('Failed to load supported file types:', err);
-        setSupportedTypes({ extensions: [], mimeTypes: [] } as any);
+        setSupportedTypes({ extensions: [], mimeTypes: [] });
       });
   }, [setSupportedTypes]);
 
   useEffect(() => {
     invoke(Invokes.LoadSettings)
-      .then(async (settings: any) => {
+      .then(async (settings: AppSettings) => {
         if (
           !settings.copyPasteSettings ||
           !settings.copyPasteSettings.includedAdjustments ||
@@ -174,7 +182,7 @@ export const useAppInitialization = ({
               paths: settings.pinnedFolders,
               expandedFolders: settings.lastFolderState?.expandedFolders || [],
               showImageCounts: settings.enableFolderImageCounts || settings.folderTreeSort?.key === 'imageCount',
-            }) as any[];
+            }) as unknown[];
             setLibrary({ pinnedFolderTrees: trees });
           } catch (err) {
             console.error('Failed to load pinned folder trees:', err);
@@ -215,7 +223,7 @@ export const useAppInitialization = ({
         }
 
         try {
-          const launch: any = await invoke('frontend_ready');
+          const launch: { editSession?: unknown; openWithFile?: string } = await invoke('frontend_ready');
           if (launch?.editSession) {
             useProcessStore.getState().setProcess({ externalEditSession: launch.editSession });
           } else if (launch?.openWithFile) {
@@ -370,7 +378,7 @@ export const useAppInitialization = ({
             paths: pinnedFolders,
             expandedFolders: currentExpanded,
             showImageCounts: needsImageCounts,
-          }).then((trees: any) => ({ type: 'pinned', trees })),
+          }).then((trees: unknown[]) => ({ type: 'pinned', trees })),
         );
       }
 
@@ -380,14 +388,14 @@ export const useAppInitialization = ({
             paths: rootFolders,
             expandedFolders: currentExpanded,
             showImageCounts: needsImageCounts,
-          }).then((trees: any) => ({ type: 'root', trees })),
+          }).then((trees: unknown[]) => ({ type: 'root', trees })),
         );
       }
 
       Promise.all(promises)
         .then((results) => {
           useLibraryStore.getState().setLibrary((_state) => {
-            const updates: any = { isTreeLoading: false };
+            const updates: Record<string, unknown> = { isTreeLoading: false };
             results.forEach((res) => {
               if (res.type === 'pinned') updates.pinnedFolderTrees = res.trees;
               if (res.type === 'root') updates.folderTrees = res.trees;

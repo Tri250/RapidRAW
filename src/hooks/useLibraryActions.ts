@@ -9,6 +9,18 @@ import { globalImageCache } from '../utils/ImageLRUCache';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { computeSortedLibrary } from './useSortedLibrary';
 
+interface SelectionEvent {
+  ctrlKey: boolean;
+  metaKey: boolean;
+  shiftKey: boolean;
+}
+
+interface MultiSelectOptions {
+  onSimpleClick(p: string): void;
+  updateLibraryActivePath: boolean;
+  shiftAnchor: string | null;
+}
+
 export function useLibraryActions(handleImageSelect?: (path: string) => void) {
   const handleRate = useCallback((newRating: number, paths?: string[]) => {
     const { multiSelectedPaths, imageRatings, setLibrary } = useLibraryStore.getState();
@@ -83,7 +95,7 @@ export function useLibraryActions(handleImageSelect?: (path: string) => void) {
     }));
   }, []);
 
-  const handleUpdateExif = useCallback(async (paths: Array<string> | undefined, updates: Record<string, string>) => {
+  const handleUpdateExif = useCallback(async (paths: string[] | undefined, updates: Record<string, string>) => {
     const { multiSelectedPaths, imageList, setLibrary } = useLibraryStore.getState();
     const { selectedImage, setEditor } = useEditorStore.getState();
 
@@ -143,8 +155,8 @@ export function useLibraryActions(handleImageSelect?: (path: string) => void) {
   const handleMultiSelectClick = useCallback(
     (
       path: string,
-      event: any,
-      options: { onSimpleClick(p: any): void; updateLibraryActivePath: boolean; shiftAnchor: string | null },
+      event: SelectionEvent,
+      options: MultiSelectOptions,
     ) => {
       const libraryState = useLibraryStore.getState();
       const { multiSelectedPaths, setLibrary } = libraryState;
@@ -190,12 +202,12 @@ export function useLibraryActions(handleImageSelect?: (path: string) => void) {
   );
 
   const handleLibraryImageSingleClick = useCallback(
-    (path: string, event: any) => {
+    (path: string, event: SelectionEvent) => {
       const { selectionAnchorPath, libraryActivePath, setLibrary } = useLibraryStore.getState();
       handleMultiSelectClick(path, event, {
         shiftAnchor: selectionAnchorPath ?? libraryActivePath,
         updateLibraryActivePath: true,
-        onSimpleClick: (p: any) =>
+        onSimpleClick: (p: string) =>
           setLibrary({ multiSelectedPaths: [p], libraryActivePath: p, selectionAnchorPath: p }),
       });
     },
@@ -203,7 +215,7 @@ export function useLibraryActions(handleImageSelect?: (path: string) => void) {
   );
 
   const handleImageClick = useCallback(
-    (path: string, event: any) => {
+    (path: string, event: SelectionEvent) => {
       const { selectionAnchorPath, libraryActivePath, setLibrary } = useLibraryStore.getState();
       const { selectedImage } = useEditorStore.getState();
       const inEditor = !!selectedImage;
@@ -229,14 +241,14 @@ export function useLibraryActions(handleImageSelect?: (path: string) => void) {
     const expandedArray = Array.from(expandedFolders);
 
     try {
-      const updates: any = {};
+      const updates: Record<string, unknown> = {};
 
       if (rootPaths && rootPaths.length > 0) {
         const treesData = await invoke(Invokes.GetPinnedFolderTrees, {
           paths: rootPaths,
           expandedFolders: expandedArray,
           showImageCounts,
-        }) as any[];
+        }) as unknown[];
         updates.folderTrees = treesData;
       } else {
         updates.folderTrees = [];
@@ -247,7 +259,7 @@ export function useLibraryActions(handleImageSelect?: (path: string) => void) {
           paths: pinnedFolders,
           expandedFolders: expandedArray,
           showImageCounts,
-        }) as any[];
+        }) as unknown[];
         updates.pinnedFolderTrees = pinnedTreesData;
       } else {
         updates.pinnedFolderTrees = [];
@@ -279,7 +291,7 @@ export function useLibraryActions(handleImageSelect?: (path: string) => void) {
         paths: newPins,
         expandedFolders: Array.from(expandedFolders),
         showImageCounts: appSettings.enableFolderImageCounts ?? false,
-      }) as any[];
+      }) as unknown[];
       setLibrary({ pinnedFolderTrees: trees });
     } catch (err) {
       toast.error(`Failed to refresh pinned folders: ${err}`);

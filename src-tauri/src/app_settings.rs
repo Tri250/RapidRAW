@@ -546,7 +546,13 @@ pub fn load_settings(app_handle: AppHandle) -> Result<AppSettings, String> {
 
     let mut settings: AppSettings = if path.exists() {
         let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-        serde_json::from_str(&content).unwrap_or_default()
+        match serde_json::from_str(&content) {
+            Ok(s) => s,
+            Err(e) => {
+                log::warn!("Failed to parse settings, using defaults: {}", e);
+                AppSettings::default()
+            }
+        }
     } else {
         AppSettings::default()
     };
@@ -606,10 +612,12 @@ pub fn save_settings(settings: AppSettings, app_handle: AppHandle) -> Result<(),
 
     let state = app_handle.state::<AppState>();
     let cache_size = settings.image_cache_size.unwrap_or(5) as usize;
-    state
-        .decoded_image_cache
-        .lock()
-        .unwrap()
-        .set_capacity(cache_size);
+    match state.decoded_image_cache.lock() {
+        Ok(cache) => cache.set_capacity(cache_size),
+        Err(poisoned) => {
+            log::warn!("Decoded image cache mutex poisoned, recovering");
+            poisoned.into_inner().set_capacity(cache_size)
+        }
+    }
     Ok(())
 }

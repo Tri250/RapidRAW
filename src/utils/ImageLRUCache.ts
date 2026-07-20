@@ -22,15 +22,15 @@ export class ImageLRUCache {
 
   get(key: string): ImageCacheEntry | undefined {
     const entry = this.cache.get(key);
-    if (!entry) return undefined;
-
-    this.cache.delete(key);
-    this.cache.set(key, entry);
-
-    if (entry.finalPreviewUrl) this.protectedBlobUrls.delete(entry.finalPreviewUrl);
-    if (entry.uncroppedPreviewUrl) this.protectedBlobUrls.delete(entry.uncroppedPreviewUrl);
-
+    if (entry) {
+      this.cache.delete(key);
+      this.cache.set(key, entry);
+    }
     return entry;
+  }
+
+  unprotect(key: string): void {
+    this.protectedBlobUrls.delete(key);
   }
 
   set(key: string, entry: ImageCacheEntry): void {

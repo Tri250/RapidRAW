@@ -78,7 +78,10 @@ pub async fn apply_denoising(
     tokio::task::spawn_blocking(move || {
         match denoise_image(path_str, intensity, method, app_handle.clone(), ai_session) {
             Ok((image, _)) => {
-                *denoise_result_handle.lock().unwrap() = Some(image);
+                match denoise_result_handle.lock() {
+                    Ok(mut guard) => *guard = Some(image),
+                    Err(e) => log::error!("Failed to lock denoise result: {}", e),
+                }
             }
             Err(e) => {
                 let _ = app_handle.emit("denoise-error", e);
