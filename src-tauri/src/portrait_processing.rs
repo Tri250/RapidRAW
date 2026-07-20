@@ -719,13 +719,19 @@ fn apply_eye_brighten_rgba(
 
                 let pixel = rgba.get_pixel(x, y);
                 let (rf, gf, bf) = rgb_to_f32(pixel[0], pixel[1], pixel[2]);
+                let lum = luminance(rf, gf, bf);
 
-                let boost = bright * weight;
+                // Dark-region protection: pupil and very dark pixels should not
+                // be brightened, otherwise the pupil turns gray/unnatural.
+                let dark_protection = (lum / 0.20).clamp(0.0, 1.0);
+                let effective_weight = weight * dark_protection;
+
+                let boost = bright * effective_weight;
                 let new_r = rf + (1.0 - rf) * boost;
                 let new_g = gf + (1.0 - gf) * boost;
                 let new_b = bf + (1.0 - bf) * boost;
 
-                let contrast_boost = 1.0 + weight * bright * 0.5;
+                let contrast_boost = 1.0 + effective_weight * bright * 0.5;
                 let mid = 0.5;
                 let cr = mid + (new_r - mid) * contrast_boost;
                 let cg = mid + (new_g - mid) * contrast_boost;
@@ -811,18 +817,22 @@ pub fn apply_makeup(
                 let weight = weight * weight;
                 let effective_alpha = alpha * weight;
 
-                // Blend: overlay the makeup color, preserving some original luminance
+                // Blend: overlay the makeup color, preserving some original luminance.
+                // Use a perceptual luminance blend instead of a raw ratio to avoid
+                // blowing out dark makeup on bright skin (e.g. dark lipstick on
+                // light lips becoming white due to ratio > 1.0).
                 let orig_lum = luminance(rf, gf, bf);
                 let makeup_lum = luminance(mr, mg, mb);
-                let lum_ratio = if makeup_lum > 0.01 {
-                    orig_lum / makeup_lum
+                let target_lum = orig_lum * 0.65 + makeup_lum * 0.35;
+                let lum_scale = if makeup_lum > 0.001 {
+                    target_lum / makeup_lum
                 } else {
                     1.0
                 };
 
-                let adj_mr = (mr * lum_ratio).min(1.0);
-                let adj_mg = (mg * lum_ratio).min(1.0);
-                let adj_mb = (mb * lum_ratio).min(1.0);
+                let adj_mr = (mr * lum_scale).clamp(0.0, 1.0);
+                let adj_mg = (mg * lum_scale).clamp(0.0, 1.0);
+                let adj_mb = (mb * lum_scale).clamp(0.0, 1.0);
 
                 let nr = rf * (1.0 - effective_alpha) + adj_mr * effective_alpha;
                 let ng = gf * (1.0 - effective_alpha) + adj_mg * effective_alpha;
@@ -1685,11 +1695,15 @@ pub fn apply_hair_adjust(
                 // New: tighter constraints that better isolate hair.
                 let is_dark = lum < 0.40;
                 let is_low_sat = sat < 0.30 && lum < 0.55;
+                // Light hair: blonde / gold (warm yellow, medium-high luminance)
+                let is_light_hair = lum > 0.45 && sat < 0.45 && hue > 35.0 && hue < 70.0;
+                // White / silver / gray hair (high luminance, very low saturation)
+                let is_white_hair = lum > 0.55 && sat < 0.15;
                 // Hair typically has R ≈ G ≈ B (neutral dark) or warm brown tint.
                 // Exclude obvious skin tones and strong colors.
                 let is_not_skin = !(hue < 40.0 && sat > 0.15 && lum > 0.25);
                 let is_not_strong_color = sat < 0.55;
-                let is_hair = (is_dark || is_low_sat)
+                let is_hair = (is_dark || is_low_sat || is_light_hair || is_white_hair)
                     && is_not_skin
                     && is_not_strong_color;
 
@@ -2238,22 +2252,21 @@ pub fn apply_portrait_adjustments(
                 .filter(|face| {
                     match person_attribute.as_str() {
                         "single" => true, // Process only the largest/dominant face
-                        "male" | "elderMale" => face.face_rect.2 > face.face_rect.3 / 2, // Heuristic: wider faces tend to be male
-                        "female" | "elderFemale" => face.face_rect.2 <= face.face_rect.3 / 2, // Heuristic: narrower faces tend to be female
+                        "male" | "elderMale" => {
+                            let aspect = face.face_rect.2 as f32 / face.face_rect.3.max(1) as f32;
+                            aspect > 0.85 // Wider / squarer jaw tends to be male
+                        }
+                        "female" | "elderFemale" => {
+                            let aspect = face.face_rect.2 as f32 / face.face_rect.3.max(1) as f32;
+                            aspect <= 0.85 // Narrower / oval face tends to be female
+                        }
                         "child" => {
-                            // Use absolute face width relative to image width as a
-                            // size heuristic, NOT relative to the largest face.
-                            // This fixes the bug where a single child face is never
-                            // detected because max == itself and width < width/2
-                            // is always false.
+                            // Use absolute face width relative to actual image width
+                            // as a size heuristic, NOT relative to the largest face.
                             //
                             // Typical child face width on a portrait photo is
                             // < 30% of image width (adults are ~35-50%).
-                            let img_w = face_regions
-                                .iter()
-                                .map(|f| f.face_rect.0 + f.face_rect.2)
-                                .max()
-                                .unwrap_or(1);
+                            let (img_w, _) = img.dimensions();
                             // Face width < 28% of image width → likely child
                             // Also: if face is significantly smaller than the
                             // average face (for multi-person photos)
@@ -2444,10 +2457,10 @@ pub fn apply_portrait_adjustments(
     }
 
     // 9. Skin tone unify (subtle, applied last)
-    if !filtered_faces.is_empty() {
-        // Use skin_smoothing_strength as a proxy for overall portrait intensity;
-        // always apply a subtle unification to ensure consistent skin tones.
-        let unify_strength = if skin_strength > 1e-4 { skin_strength / 100.0 * 0.1 } else { 0.05 };
+    // Only apply when skin smoothing is active so we don't force an unwanted
+    // color shift when the user has not enabled any portrait adjustments.
+    if skin_strength > 1e-4 && !filtered_faces.is_empty() {
+        let unify_strength = skin_strength / 100.0 * 0.1;
         apply_skin_tone_unify(img, &filtered_faces, 0.0, 0.0, unify_strength)?;
     }
 
