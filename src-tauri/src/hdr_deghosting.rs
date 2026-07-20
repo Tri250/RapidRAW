@@ -65,26 +65,30 @@ pub fn load_hdr_frames(
                 load_base_image_from_bytes(&file_bytes, path, false, settings, None)
                     .map_err(|e| format!("Failed to load image {}: {}", path, e))?;
             if !is_raw_file(path) {
-                dynamic_image = apply_srgb_to_linear(dynamic_image);
+                // Avoid re-applying sRGB→Linear if the image is already linear
+                // (e.g. EXR / HDR / linear TIFF).
+                let lower = path.to_lowercase();
+                let is_already_linear = lower.ends_with(".exr") || lower.ends_with(".hdr");
+                if !is_already_linear {
+                    dynamic_image = apply_srgb_to_linear(dynamic_image);
+                }
             }
-            let gains = match read_iso(path, &file_bytes) {
-                None => return Err(format!("Image {} is missing ISO/Sensitivity data", path)),
-                Some(gains) => gains as f32,
-            };
-            let exposure = match read_exposure_time_secs(path, &file_bytes) {
-                None => return Err(format!("Image {} is missing ExposureTime data", path)),
-                Some(exp) => Duration::from_secs_f32(exp),
-            };
+            // Use default EV 0.0 / ISO 100 when EXIF is missing so HDR merge
+            // does not fail on synthetic images, scanned negatives, or PNG/TIFF
+            // files without camera metadata.
+            let gains = read_iso(path, &file_bytes).unwrap_or(100) as f32;
+            let exposure = read_exposure_time_secs(path, &file_bytes)
+                .map(|exp| Duration::from_secs_f32(exp))
+                .unwrap_or(Duration::from_secs_f32(1.0 / 125.0));
             Ok((path.clone(), dynamic_image, exposure, gains))
         })
         .collect()
 }
 
 pub fn assert_uniform_dimensions(frames: &[HdrFrame]) -> Result<(), String> {
-    assert!(
-        !frames.is_empty(),
-        "dimension check requires at least one frame"
-    );
+    if frames.is_empty() {
+        return Err("HDR merge requires at least one frame".to_string());
+    }
     let (first_path, first_image, _, _) = &frames[0];
     let width = first_image.width();
     let height = first_image.height();

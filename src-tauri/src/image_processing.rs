@@ -408,20 +408,20 @@ pub fn downscale_f32_image(image: &DynamicImage, nwidth: u32, nheight: u32) -> D
                     for (&w_x, chunk) in x_wts.iter().zip(src_slice.chunks_exact(3)) {
                         let w = w_x * w_y;
 
-                        let r = chunk[0].max(0.0);
-                        let g = chunk[1].max(0.0);
-                        let b = chunk[2].max(0.0);
+                        let r = chunk[0];
+                        let g = chunk[1];
+                        let b = chunk[2];
 
-                        r_sum += r * r * w;
-                        g_sum += g * g * w;
-                        b_sum += b * b * w;
+                        r_sum += r * w;
+                        g_sum += g * w;
+                        b_sum += b * w;
                     }
                 }
 
                 let out_idx = x_out * 3;
-                row[out_idx] = r_sum.sqrt();
-                row[out_idx + 1] = g_sum.sqrt();
-                row[out_idx + 2] = b_sum.sqrt();
+                row[out_idx] = r_sum;
+                row[out_idx + 1] = g_sum;
+                row[out_idx + 2] = b_sum;
             }
         });
 
@@ -570,16 +570,19 @@ fn interpolate_pixel_with_tca(
             return 0.0;
         }
 
+        if src_width == 0 || src_height == 0 {
+            return 0.0;
+        }
         let x_clamped = target_x.clamp(0.0, src_width as f32 - 1.0);
         let y_clamped = target_y.clamp(0.0, src_height as f32 - 1.0);
 
         let mut x0 = x_clamped.floor() as usize;
         let mut y0 = y_clamped.floor() as usize;
 
-        if x0 >= src_width - 1 {
+        if src_width >= 2 && x0 >= src_width - 1 {
             x0 = src_width.saturating_sub(2);
         }
-        if y0 >= src_height - 1 {
+        if src_height >= 2 && y0 >= src_height - 1 {
             y0 = src_height.saturating_sub(2);
         }
 
@@ -1249,9 +1252,14 @@ pub fn apply_cpu_default_raw_processing(image: &mut DynamicImage) {
     const CONTRAST: f32 = 1.28;
 
     f32_image.par_chunks_mut(3).for_each(|pixel_chunk| {
-        let r_gamma = pixel_chunk[0].powf(INV_GAMMA);
-        let g_gamma = pixel_chunk[1].powf(INV_GAMMA);
-        let b_gamma = pixel_chunk[2].powf(INV_GAMMA);
+        // Clamp to non-negative before powf to avoid NaN on negative values.
+        let r = pixel_chunk[0].max(0.0);
+        let g = pixel_chunk[1].max(0.0);
+        let b = pixel_chunk[2].max(0.0);
+
+        let r_gamma = r.powf(INV_GAMMA);
+        let g_gamma = g.powf(INV_GAMMA);
+        let b_gamma = b.powf(INV_GAMMA);
 
         let r_contrast = (r_gamma - 0.5) * CONTRAST + 0.5;
         let g_contrast = (g_gamma - 0.5) * CONTRAST + 0.5;
@@ -2119,7 +2127,7 @@ pub fn is_image_edited(
     if let Some(crop_val) = adj.get("crop")
         && !crop_val.is_null()
         && let Ok(crop) = serde_json::from_value::<Crop>(crop_val.clone())
-        && (crop.x.abs() > 0.1 || crop.y.abs() > 0.1)
+        && (crop.x.abs() > 0.1 || crop.y.abs() > 0.1 || crop.width.abs() > 0.1 || crop.height.abs() > 0.1)
     {
         return true;
     }
@@ -2436,10 +2444,10 @@ fn get_global_adjustments_from_json(
         red_curve: convert_points_to_aligned(red_points.clone()),
         green_curve: convert_points_to_aligned(green_points.clone()),
         blue_curve: convert_points_to_aligned(blue_points.clone()),
-        luma_curve_count: luma_points.len() as u32,
-        red_curve_count: red_points.len() as u32,
-        green_curve_count: green_points.len() as u32,
-        blue_curve_count: blue_points.len() as u32,
+        luma_curve_count: luma_points.len().min(16) as u32,
+        red_curve_count: red_points.len().min(16) as u32,
+        green_curve_count: green_points.len().min(16) as u32,
+        blue_curve_count: blue_points.len().min(16) as u32,
         _pad_end1: 0.0,
         _pad_end2: 0.0,
         _pad_end3: 0.0,
@@ -2577,10 +2585,10 @@ fn get_mask_adjustments_from_json(adj: &serde_json::Value) -> MaskAdjustments {
         red_curve: convert_points_to_aligned(red_points.clone()),
         green_curve: convert_points_to_aligned(green_points.clone()),
         blue_curve: convert_points_to_aligned(blue_points.clone()),
-        luma_curve_count: luma_points.len() as u32,
-        red_curve_count: red_points.len() as u32,
-        green_curve_count: green_points.len() as u32,
-        blue_curve_count: blue_points.len() as u32,
+        luma_curve_count: luma_points.len().min(16) as u32,
+        red_curve_count: red_points.len().min(16) as u32,
+        green_curve_count: green_points.len().min(16) as u32,
+        blue_curve_count: blue_points.len().min(16) as u32,
         _pad_end4: 0.0,
         _pad_end5: 0.0,
         _pad_end6: 0.0,
@@ -3365,6 +3373,9 @@ pub fn perform_auto_analysis(image: &DynamicImage) -> AutoAdjustmentResults {
     let analysis_preview = downscale_f32_image(image, ANALYSIS_MAX_DIM, ANALYSIS_MAX_DIM);
     let rgb_image = analysis_preview.to_rgb8();
     let total_pixels = (rgb_image.width() * rgb_image.height()) as f64;
+    if total_pixels == 0.0 {
+        return AutoAdjustmentResults::default();
+    }
 
     let (width, height) = rgb_image.dimensions();
     let cx0 = (width as f32 * VIGNETTE_CENTER_LOW) as u32;

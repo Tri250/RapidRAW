@@ -673,7 +673,23 @@ fn export_adjustments_as_lut(
     let identity_image = generate_identity_lut_image(lut_size);
 
     let tm_override = resolve_tonemapper_override_from_handle(app_handle, false);
-    let mut all_adjustments = get_all_adjustments_from_json(js_adjustments, false, tm_override);
+
+    // Strip geometric transforms from the JSON so the LUT is only color-based.
+    // Geometric ops (crop, rotate, lens correction) would alter the identity
+    // image dimensions and cause get_pixel out-of-bounds in convert_image_to_cube_lut.
+    let mut clean_json = js_adjustments.clone();
+    if let Some(obj) = clean_json.as_object_mut() {
+        for key in [
+            "crop", "rotation", "orientationSteps", "straighten",
+            "transformDistortion", "transformVertical", "transformHorizontal",
+            "transformRotate", "transformAspect", "transformScale",
+            "transformXOffset", "transformYOffset",
+        ] {
+            obj.remove(key);
+        }
+    }
+
+    let mut all_adjustments = get_all_adjustments_from_json(&clean_json, false, tm_override);
 
     all_adjustments.global.show_clipping = 0;
     all_adjustments.global.vignette_amount = 0.0;
@@ -693,7 +709,7 @@ fn export_adjustments_as_lut(
 
     let lut_path = js_adjustments["lutPath"].as_str();
     let lut = lut_path.and_then(|p| get_or_load_lut(state, p).ok());
-    let unique_hash = calculate_full_job_hash(source_path_str, js_adjustments);
+    let unique_hash = calculate_full_job_hash(source_path_str, &clean_json);
 
     let processed_lut = process_and_get_dynamic_image(
         context,
@@ -708,6 +724,16 @@ fn export_adjustments_as_lut(
         },
         "export_lut",
     )?;
+
+    // Defensive check: ensure output dimensions match the expected LUT grid.
+    let expected_h = lut_size * lut_size;
+    if processed_lut.width() != lut_size || processed_lut.height() != expected_h {
+        return Err(format!(
+            "LUT export produced unexpected dimensions: {}x{} (expected {}x{}). "
+            "A geometric transform may still have been applied.",
+            processed_lut.width(), processed_lut.height(), lut_size, expected_h
+        ));
+    }
 
     convert_image_to_cube_lut(&processed_lut, lut_size)
 }

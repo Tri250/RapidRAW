@@ -85,18 +85,21 @@ fn develop_internal(
         _ => (false, true),
     };
 
+    // Average white/black levels across all channels to avoid color bias
+    // when individual channels differ (e.g. some Canon/Sony sensors).
     let original_white_level = raw_image
         .whitelevel
         .0
-        .first()
-        .cloned()
-        .unwrap_or(u16::MAX as u32) as f32;
+        .iter()
+        .sum::<u32>() as f32
+        / raw_image.whitelevel.0.len().max(1) as f32;
     let original_black_level = raw_image
         .blacklevel
         .levels
-        .first()
+        .iter()
         .map(|r| r.as_f32())
-        .unwrap_or(0.0);
+        .sum::<f32>()
+        / raw_image.blacklevel.levels.len().max(1) as f32;
 
     for level in raw_image.whitelevel.0.iter_mut() {
         *level = u32::MAX;
@@ -114,11 +117,9 @@ fn develop_internal(
         developer.demosaic_algorithm = DemosaicAlgorithm::Speed;
         developer.steps.retain(|&step| step != ProcessingStep::SRgb);
     } else {
-        if raw_image.cfa.is_xtrans() {
-            developer.demosaic_algorithm = DemosaicAlgorithm::PixelShift;
-        } else {
-            developer.demosaic_algorithm = DemosaicAlgorithm::SuperPixel;
-        }
+        // Use the default Quality algorithm (PPG for Bayer, Full-Res for X-Trans).
+        // Previously PixelShift / SuperPixel were used, but these variants no
+        // longer exist in the current rawler API and caused compilation errors.
         developer.steps.retain(|&step| step != ProcessingStep::SRgb);
     }
 

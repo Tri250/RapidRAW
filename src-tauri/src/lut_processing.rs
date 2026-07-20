@@ -376,18 +376,19 @@ pub fn parse_lut_file(path_str: &str) -> anyhow::Result<Lut> {
 }
 
 pub fn generate_identity_lut_image(size: u32) -> DynamicImage {
-    let width = size;
-    let height = size * size;
+    let width = size.max(2);
+    let height = width * width;
     let mut img = Rgb32FImage::new(width, height);
+    let denom = (width - 1) as f32;
 
-    for z in 0..size {
-        for y in 0..size {
-            for x in 0..size {
-                let r = x as f32 / (size - 1) as f32;
-                let g = y as f32 / (size - 1) as f32;
-                let b = z as f32 / (size - 1) as f32;
+    for z in 0..width {
+        for y in 0..width {
+            for x in 0..width {
+                let r = x as f32 / denom;
+                let g = y as f32 / denom;
+                let b = z as f32 / denom;
 
-                img.put_pixel(x, z * size + y, Rgb([r, g, b]));
+                img.put_pixel(x, z * width + y, Rgb([r, g, b]));
             }
         }
     }
