@@ -127,7 +127,7 @@ jobs:
           if [[ "${{ inputs.mobile }}" == "android" ]]; then
             replacement="android"
           else
-            replacement="$(echo ${platform} | sed -E 's/-latest//')"
+            replacement="$(echo "${platform}" | sed -E 's/-latest//')"
           fi
           if [[ -n "${{ inputs.asset-name-pattern }}" ]]; then
             patched_platform=$(echo '${{ inputs.asset-name-pattern }}' | sed -E "s/\[platform\]/${replacement}/")
@@ -137,7 +137,7 @@ jobs:
           if [[ -n "${{ inputs.asset-prefix }}" ]]; then
             patched_platform="${{ inputs.asset-prefix }}_${patched_platform}"
           fi
-          echo "platform=${patched_platform}" >> $GITHUB_OUTPUT
+          echo "platform=${patched_platform}" >> "$GITHUB_OUTPUT"
 
       - id: tauri-build
         name: Build with tauri-action
