@@ -351,6 +351,45 @@ export function useAiMasking() {
     }
   };
 
+  const handleGenerateAiSubjectMask = async (subMaskId: string) => {
+    const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
+    if (!selectedImage?.path) return;
+    setEditor({ isGeneratingAiMask: true });
+
+    try {
+      const steps = adjustments?.orientationSteps || 0;
+      const isRotated = steps === 1 || steps === 3;
+      const imgW = isRotated ? (selectedImage.height || 1000) : (selectedImage.width || 1000);
+      const imgH = isRotated ? (selectedImage.width || 1000) : (selectedImage.height || 1000);
+
+      // Use center 90% of image as default ROI for auto subject detection
+      const margin = 0.05;
+      const startPoint = { x: imgW * margin, y: imgH * margin };
+      const endPoint = { x: imgW * (1 - margin), y: imgH * (1 - margin) };
+
+      const transformAdjustments = getTransformAdjustments(adjustments);
+      const newParameters = await invoke(Invokes.GenerateAiSubjectMask, {
+        jsAdjustments: transformAdjustments,
+        endPoint: [endPoint.x, endPoint.y],
+        flipHorizontal: adjustments.flipHorizontal,
+        flipVertical: adjustments.flipVertical,
+        orientationSteps: adjustments.orientationSteps,
+        path: selectedImage.path,
+        rotation: adjustments.rotation,
+        startPoint: [startPoint.x, startPoint.y],
+      }) as Record<string, any>;
+
+      const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
+      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
+      patchesSentToBackend.delete(subMaskId);
+      updateSubMask(subMaskId, { parameters: mergedParameters });
+    } catch (error) {
+      toast.error(`AI Subject Mask Failed: ${error}`);
+    } finally {
+      setEditor({ isGeneratingAiMask: false });
+    }
+  };
+
   const handleGenerateAiDepthMask = async (subMaskId: string, parameters: any) => {
     const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
     if (!selectedImage?.path) return;
@@ -506,6 +545,7 @@ export function useAiMasking() {
     handleDeleteAiPatch,
     handleToggleAiPatchVisibility,
     handleGenerateAiMask,
+    handleGenerateAiSubjectMask,
     handleGenerateAiDepthMask,
     handleGenerateAiForegroundMask,
     handleGenerateAiSkyMask,
