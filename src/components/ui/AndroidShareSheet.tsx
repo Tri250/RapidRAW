@@ -17,6 +17,7 @@ interface ShareTarget {
   key: string;
   icon: React.ReactNode;
   labelKey: string;
+  packageName?: string;
 }
 
 export default function AndroidShareSheet({
@@ -33,16 +34,19 @@ export default function AndroidShareSheet({
       key: 'wechat',
       icon: <MessageCircle size={20} />,
       labelKey: 'androidShare.wechat',
+      packageName: 'com.tencent.mm',
     },
     {
       key: 'qq',
       icon: <Send size={20} />,
       labelKey: 'androidShare.qq',
+      packageName: 'com.tencent.mobileqq',
     },
     {
       key: 'weibo',
       icon: <Share2 size={20} />,
       labelKey: 'androidShare.weibo',
+      packageName: 'com.sina.weibo',
     },
     {
       key: 'more',
@@ -52,7 +56,7 @@ export default function AndroidShareSheet({
   ];
 
   const handleShare = useCallback(
-    async (target?: string) => {
+    async (target?: ShareTarget) => {
       if (sharing) return;
       setSharing(true);
       try {
@@ -60,8 +64,9 @@ export default function AndroidShareSheet({
           filePath,
           mimeType,
           title: target
-            ? t(`androidShare.${target}` as any)
+            ? t(`androidShare.${target.key}` as any)
             : t('androidShare.systemShareTitle' as any),
+          targetPackage: target?.packageName ?? null,
         });
       } catch (err) {
         console.error('Share failed:', err);
@@ -106,7 +111,7 @@ export default function AndroidShareSheet({
                 {shareTargets.map((target) => (
                   <button
                     key={target.key}
-                    onClick={() => handleShare(target.key)}
+                    onClick={() => handleShare(target)}
                     disabled={sharing}
                     className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-surface transition-colors disabled:opacity-50"
                   >

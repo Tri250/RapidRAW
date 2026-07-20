@@ -117,9 +117,21 @@ pub fn get_android_cached_lut_path(uri: &str, extension: &str) -> anyhow::Result
     }
 
     let dirs_array: jni::objects::JObjectArray = dirs_array_obj.into();
+    let array_length = env
+        .get_array_length(&dirs_array)
+        .map_err(|e| anyhow::anyhow!(map_android_jni_error(&mut env, e)))?;
+
+    if array_length == 0 {
+        return Err(anyhow::anyhow!("No external media directories available on this device"));
+    }
+
     let dir_file = env
         .get_object_array_element(&dirs_array, 0)
         .map_err(|e| anyhow::anyhow!(map_android_jni_error(&mut env, e)))?;
+
+    if dir_file.is_null() {
+        return Err(anyhow::anyhow!("Primary external media directory is null"));
+    }
 
     let path_jstring = env
         .call_method(&dir_file, "getAbsolutePath", "()Ljava/lang/String;", &[])
@@ -506,11 +518,19 @@ pub fn save_bytes_to_android_media_store(
     }
 
     let write_result = (|| -> Result<(), String> {
-        let byte_array = env
-            .byte_array_from_slice(bytes)
-            .map_err(|e| map_android_jni_error(&mut env, e))?;
-        env.call_method(&output_stream, "write", "([B)V", &[(&byte_array).into()])
-            .map_err(|e| map_android_jni_error(&mut env, e))?;
+        // Write in chunks to avoid OOM on large files (e.g. RAW images)
+        const CHUNK_SIZE: usize = 1024 * 1024; // 1 MB
+        let mut offset = 0;
+        while offset < bytes.len() {
+            let end = std::cmp::min(offset + CHUNK_SIZE, bytes.len());
+            let chunk = &bytes[offset..end];
+            let byte_array = env
+                .byte_array_from_slice(chunk)
+                .map_err(|e| map_android_jni_error(&mut env, e))?;
+            env.call_method(&output_stream, "write", "([B)V", &[(&byte_array).into()])
+                .map_err(|e| map_android_jni_error(&mut env, e))?;
+            offset = end;
+        }
         env.call_method(&output_stream, "flush", "()V", &[])
             .map_err(|e| map_android_jni_error(&mut env, e))?;
         Ok(())
@@ -599,6 +619,14 @@ pub fn get_android_internal_library_root() -> Result<PathBuf, String> {
 
     let dirs_array: jni::objects::JObjectArray = dirs_array_obj.into();
 
+    let array_length = env
+        .get_array_length(&dirs_array)
+        .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+    if array_length == 0 {
+        return Err("No external media directories available on this device".to_string());
+    }
+
     let dir_file = env
         .get_object_array_element(&dirs_array, 0)
         .map_err(|e| map_android_jni_error(&mut env, e))?;
@@ -646,7 +674,7 @@ pub fn save_to_android_gallery(file_path: String, mime_type: String) -> Result<(
 }
 
 #[tauri::command]
-pub fn share_image(file_path: String, mime_type: String, title: String) -> Result<(), String> {
+pub fn share_image(file_path: String, mime_type: String, title: String, target_package: Option<String>) -> Result<(), String> {
     #[cfg(target_os = "android")]
     {
         let vm = unsafe { JavaVM::from_raw(android_context().vm().cast()) }
@@ -734,6 +762,11 @@ pub fn share_image(file_path: String, mime_type: String, title: String) -> Resul
                 map_android_jni_error(&mut env, e)
             })?;
 
+        if uri.is_null() {
+            clear_pending_android_exception(&mut env);
+            return Err("FileProvider.getUriForFile returned null URI. Check file_paths.xml configuration.".to_string());
+        }
+
         let stream_key = env
             .new_string("android.intent.extra.STREAM")
             .map_err(|e| map_android_jni_error(&mut env, e))?;
@@ -754,6 +787,24 @@ pub fn share_image(file_path: String, mime_type: String, title: String) -> Resul
             &[JValue::from(flag_value)],
         )
         .map_err(|e| map_android_jni_error(&mut env, e))?;
+
+        // If a specific target package is provided, set it on the intent
+        if let Some(pkg) = target_package {
+            let pkg_jstring = env
+                .new_string(&pkg)
+                .map_err(|e| map_android_jni_error(&mut env, e))?;
+            env.call_method(
+                &intent,
+                "setPackage",
+                "(Ljava/lang/String;)Landroid/content/Intent;",
+                &[(&pkg_jstring).into()],
+            )
+            .map_err(|e| {
+                clear_pending_android_exception(&mut env);
+                log::warn!("Failed to set package '{}' on share intent, falling back to chooser", pkg);
+                map_android_jni_error(&mut env, e)
+            })?;
+        }
 
         // Create chooser intent
         let title_jstring = env
@@ -782,7 +833,7 @@ pub fn share_image(file_path: String, mime_type: String, title: String) -> Resul
     }
     #[cfg(not(target_os = "android"))]
     {
-        let _ = (file_path, mime_type, title);
+        let _ = (file_path, mime_type, title, target_package);
         Err("share_image is only available on Android".to_string())
     }
 }

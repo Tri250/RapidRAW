@@ -103,15 +103,15 @@ export function useAndroidBackHandler() {
       const editor = useEditorStore.getState();
       // Release cached preview URLs to free memory
       if (level >= 10) { // TRIM_MEMORY_RUNNING_LOW or higher
-        if (editor.finalPreviewUrl) {
+        if (editor.finalPreviewUrl && typeof URL !== 'undefined' && URL.revokeObjectURL) {
           URL.revokeObjectURL(editor.finalPreviewUrl);
           editor.setEditor({ finalPreviewUrl: null });
         }
-        if (editor.uncroppedAdjustedPreviewUrl) {
+        if (editor.uncroppedAdjustedPreviewUrl && typeof URL !== 'undefined' && URL.revokeObjectURL) {
           URL.revokeObjectURL(editor.uncroppedAdjustedPreviewUrl);
           editor.setEditor({ uncroppedAdjustedPreviewUrl: null });
         }
-        if (editor.transformedOriginalUrl) {
+        if (editor.transformedOriginalUrl && typeof URL !== 'undefined' && URL.revokeObjectURL) {
           URL.revokeObjectURL(editor.transformedOriginalUrl);
           editor.setEditor({ transformedOriginalUrl: null });
         }
