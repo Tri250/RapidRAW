@@ -303,7 +303,7 @@ export default function AIPanel() {
   const setCustomEscapeHandler = useUIStore((s) => s.setCustomEscapeHandler);
 
   const { setAdjustments } = useEditorActions();
-  const { handleGenerativeReplace, handleDeleteAiPatch, handleToggleAiPatchVisibility, handleGenerateAiForegroundMask, handleApplySuperResolution } = useAiMasking();
+  const { handleGenerativeReplace, handleDeleteAiPatch, handleToggleAiPatchVisibility, handleGenerateAiForegroundMask, handleGenerateAiSubjectMask, handleApplySuperResolution } = useAiMasking();
   const appSettings = useSettingsStore((s) => s.appSettings);
   const aiProvider = appSettings?.aiProvider || 'cpu';
 
@@ -573,6 +573,8 @@ export default function AIPanel() {
     if (type === Mask.AiForeground) {
       // Use setTimeout to ensure state has been committed to the store before generating
       setTimeout(() => handleGenerateAiForegroundMask(subMask.id), 0);
+    } else if (type === Mask.AiSubject) {
+      setTimeout(() => handleGenerateAiSubjectMask(subMask.id), 0);
     }
   };
 
@@ -604,6 +606,8 @@ export default function AIPanel() {
     }
     if (type === Mask.AiForeground) {
       setTimeout(() => handleGenerateAiForegroundMask(subMask.id), 0);
+    } else if (type === Mask.AiSubject) {
+      setTimeout(() => handleGenerateAiSubjectMask(subMask.id), 0);
     }
   };
 
