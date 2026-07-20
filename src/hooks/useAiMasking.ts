@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'react-toastify';
 import { useEditorStore } from '../store/useEditorStore';
@@ -43,6 +43,9 @@ export function useAiMasking() {
   const { setAdjustments } = useEditorActions();
   const setEditor = useEditorStore((state) => state.setEditor);
   const { getToken } = useAuth();
+
+  // Track in-flight requests for cancellation on unmount or re-trigger.
+  const quickEraseAbortRef = useRef<AbortController | null>(null);
 
   const updateSubMask = useCallback(
     (subMaskId: string, updatedData: any) => {
@@ -175,6 +178,14 @@ export function useAiMasking() {
     async (subMaskId: string | null, startPoint: Coord, endPoint: Coord) => {
       const { selectedImage, adjustments, isGeneratingAi, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path || isGeneratingAi) return;
+
+      // Cancel any previous quick erase request.
+      if (quickEraseAbortRef.current) {
+        quickEraseAbortRef.current.abort();
+      }
+      const abortController = new AbortController();
+      quickEraseAbortRef.current = abortController;
+
       // Device-side fix: for local/cpu mode, token is not needed. Only fetch for cloud mode.
       const aiProvider = useSettingsStore.getState().appSettings?.aiProvider || 'cpu';
       let token: string | null = null;
@@ -257,6 +268,10 @@ export function useAiMasking() {
         }));
         setEditor({ activeAiPatchContainerId: null, activeAiSubMaskId: null });
       } catch (err: any) {
+        if (err.name === 'AbortError') {
+          // Request was cancelled due to a new request; don't show error toast.
+          return;
+        }
         toast.error(`Quick Erase Failed: ${err.message || String(err)}`);
         setAdjustments((prev: Partial<Adjustments>) => ({
           ...prev,
@@ -449,6 +464,7 @@ export function useAiMasking() {
   const adjustmentsForPrecompute = useEditorStore((state) => state.adjustments);
 
   useEffect(() => {
+    let cancelled = false;
     const activeSubMask =
       adjustmentsForPrecompute?.masks?.flatMap((m: MaskContainer) => m.subMasks).find((sm: SubMask) => sm.id === activeMaskId) ||
       adjustmentsForPrecompute?.aiPatches?.flatMap((p: AiPatch) => p.subMasks).find((sm: SubMask) => sm.id === activeAiSubMaskId);
@@ -458,8 +474,20 @@ export function useAiMasking() {
       invoke(Invokes.PrecomputeAiSubjectMask, {
         jsAdjustments: transformAdjustments,
         path: selectedImagePath,
-      }).catch((err) => console.error('Failed to precompute AI subject mask:', err));
+      })
+        .then(() => {
+          if (cancelled) return;
+          // Precompute completed successfully; no state update needed.
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          console.error('Failed to precompute AI subject mask:', err);
+        });
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [activeMaskId, activeAiSubMaskId, selectedImagePath, adjustmentsForPrecompute]);
 
   return {

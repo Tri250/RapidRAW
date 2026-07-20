@@ -257,8 +257,8 @@ function DepthRangePicker({
   const [isLabelHovered, setIsLabelHovered] = useState(false);
 
   const vals = dragValues ?? { minDepth, maxDepth, minFade, maxFade };
-  const fadeLeftEdge = Math.max(0, vals.minDepth - vals.minFade);
-  const fadeRightEdge = Math.min(100, vals.maxDepth + vals.maxFade);
+  const fadeLeftEdge = Math.max(0, Math.min(100, vals.minDepth - vals.minFade));
+  const fadeRightEdge = Math.max(0, Math.min(100, vals.maxDepth + vals.maxFade));
 
   useEffect(() => {
     return () => {
@@ -280,7 +280,7 @@ function DepthRangePicker({
     switch (handle) {
       case 'minDepth': {
         const v = Math.max(0, Math.min(val, init.maxDepth));
-        return { minDepth: v, maxDepth: init.maxDepth, minFade: Math.min(init.minFade, v), maxFade: init.maxFade };
+        return { minDepth: v, maxDepth: init.maxDepth, minFade: Math.max(0, Math.min(init.minFade, v)), maxFade: init.maxFade };
       }
       case 'maxDepth': {
         const v = Math.max(init.minDepth, Math.min(100, val));
@@ -288,7 +288,7 @@ function DepthRangePicker({
           minDepth: init.minDepth,
           maxDepth: v,
           minFade: init.minFade,
-          maxFade: Math.min(init.maxFade, 100 - v),
+          maxFade: Math.max(0, Math.min(init.maxFade, 100 - v)),
         };
       }
       case 'fadeLeft': {
@@ -296,7 +296,7 @@ function DepthRangePicker({
         return {
           minDepth: init.minDepth,
           maxDepth: init.maxDepth,
-          minFade: init.minDepth - edge,
+          minFade: Math.max(0, init.minDepth - edge),
           maxFade: init.maxFade,
         };
       }
@@ -306,7 +306,7 @@ function DepthRangePicker({
           minDepth: init.minDepth,
           maxDepth: init.maxDepth,
           minFade: init.minFade,
-          maxFade: edge - init.maxDepth,
+          maxFade: Math.max(0, edge - init.maxDepth),
         };
       }
       case 'range': {

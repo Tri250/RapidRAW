@@ -1448,9 +1448,9 @@ const ImageCanvas = memo(
         : activeCrop.y
       : 0;
 
-    const effectiveZoomScale = transformState.scale > 0 ? transformState.scale : 1;
+    const effectiveZoomScale = Math.max(0.001, transformState.scale || 1);
     const brushStageSize = (brushSettings?.size ?? 0) / effectiveZoomScale;
-    const brushImageSpaceSize = brushStageSize / (imageRenderSize.scale || 1);
+    const brushImageSpaceSize = brushStageSize / Math.max(0.001, imageRenderSize.scale || 1);
 
     const isBrushActive =
       (isMasking || isAiEditing) &&
@@ -2051,7 +2051,10 @@ const ImageCanvas = memo(
           const distX = x - dragStartPointer.current.x;
           const distY = y - dragStartPointer.current.y;
           const screenThreshold = 15;
-          if (Math.sqrt(distX * distX + distY * distY) < screenThreshold / scale) {
+          // Convert screen threshold to image space for accurate distance comparison.
+          // distX/distY are already in image coordinates, so we scale the threshold.
+          const imageThreshold = screenThreshold / Math.max(0.001, scale);
+          if (Math.sqrt(distX * distX + distY * distY) < imageThreshold) {
             return;
           }
 
