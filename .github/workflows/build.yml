@@ -162,7 +162,11 @@ jobs:
           ORT_LIB_LOCATION: ${{ format('{0}/src-tauri/libs/arm64-v8a', github.workspace) }}
           ORT_STRATEGY: manual
         run: |
-          npx tauri android build --verbose${{ inputs.build-args && format(' {0}', inputs.build-args) || '' }}
+          target_arg=""
+          if [[ -n "${{ inputs.target }}" ]]; then
+            target_arg="--target ${{ inputs.target }}"
+          fi
+          npx tauri android build --verbose ${target_arg}${{ inputs.build-args && format(' {0}', inputs.build-args) || '' }}
 
       - name: Prepare Android Release Assets
         if: inputs.mobile == 'android' && inputs.release-id != ''

@@ -17,7 +17,7 @@ describe('AndroidBottomNav', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders 5 nav items on Android', () => {
+  it('renders all 10 nav items on Android', () => {
     (useUIStore as any).mockReturnValue({ activeRightPanel: null });
     (useUIStore as any).mockImplementation((selector: any) => {
       const state = { activeRightPanel: null, setRightPanel };
@@ -29,6 +29,11 @@ describe('AndroidBottomNav', () => {
     expect(screen.getByText('editor.android.bottomNav.basic')).toBeInTheDocument();
     expect(screen.getByText('editor.android.bottomNav.color')).toBeInTheDocument();
     expect(screen.getByText('editor.android.bottomNav.portrait')).toBeInTheDocument();
+    expect(screen.getByText('editor.android.bottomNav.crop')).toBeInTheDocument();
+    expect(screen.getByText('editor.android.bottomNav.masks')).toBeInTheDocument();
+    expect(screen.getByText('editor.android.bottomNav.ai')).toBeInTheDocument();
+    expect(screen.getByText('editor.android.bottomNav.metadata')).toBeInTheDocument();
+    expect(screen.getByText('editor.android.bottomNav.presets')).toBeInTheDocument();
     expect(screen.getByText('editor.android.bottomNav.export')).toBeInTheDocument();
   });
 
