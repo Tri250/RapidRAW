@@ -1,0 +1,1963 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RapidRAW — 极致 RAW 图像编辑器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   CSS RESET & VARIABLES
+   ═══════════════════════════════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  /* Hasselblad Orange System */
+  --h-orange-900: #8B3A00;
+  --h-orange-800: #B34A00;
+  --h-orange-700: #CC5500;
+  --h-orange-600: #E06000;
+  --h-orange-500: #F47920;
+  --h-orange-400: #F7923E;
+  --h-orange-300: #FAAB5C;
+  --h-orange-200: #FCC48A;
+  --h-orange-100: #FEDDB8;
+  --h-orange-50:  #FFF4E8;
+
+  /* Neutral System */
+  --n-950: #0A0A0B;
+  --n-900: #111113;
+  --n-850: #161618;
+  --n-800: #1C1C1F;
+  --n-750: #222225;
+  --n-700: #2A2A2E;
+  --n-600: #3A3A3F;
+  --n-500: #5A5A60;
+  --n-400: #8A8A90;
+  --n-300: #ABABAF;
+  --n-200: #CACACD;
+  --n-100: #E8E8EA;
+  --n-50:  #F5F5F6;
+
+  /* Typography */
+  --font-display: 'Playfair Display', 'Noto Sans SC', serif;
+  --font-body: 'Inter', 'Noto Sans SC', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+  --space-4xl: 6rem;
+  --space-5xl: 8rem;
+
+  /* Animation */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  --duration-fast: 0.3s;
+  --duration-normal: 0.6s;
+  --duration-slow: 1s;
+  --duration-slower: 1.4s;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--n-950);
+  color: var(--n-100);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--h-orange-500);
+  color: var(--n-950);
+}
+
+/* ═══════════════════════════════════════════
+   GLOBAL TYPOGRAPHY
+   ═══════════════════════════════════════════ */
+.display-xl {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.display-lg {
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 5vw, 4.5rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.display-md {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.5vw, 3rem);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.heading-lg {
+  font-family: var(--font-body);
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.body-lg {
+  font-size: 1.125rem;
+  line-height: 1.7;
+  color: var(--n-300);
+}
+
+.body-md {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--n-300);
+}
+
+.label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--h-orange-500);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--n-400);
+}
+
+/* ═══════════════════════════════════════════
+   REVEAL ANIMATION SYSTEM
+   ═══════════════════════════════════════════ */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity var(--duration-slow) var(--ease-out-expo),
+              transform var(--duration-slow) var(--ease-out-expo);
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+.reveal-delay-5 { transition-delay: 0.5s; }
+.reveal-delay-6 { transition-delay: 0.6s; }
+
+/* ═══════════════════════════════════════════
+   NAVIGATION
+   ═══════════════════════════════════════════ */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 1.25rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all var(--duration-normal) var(--ease-out-expo);
+  backdrop-filter: blur(0px);
+}
+
+.nav.scrolled {
+  padding: 0.75rem 2rem;
+  background: rgba(10, 10, 11, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(244, 121, 32, 0.08);
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: var(--n-50);
+}
+
+.nav-logo-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--h-orange-500);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.875rem;
+  color: var(--n-950);
+  transition: transform var(--duration-fast) var(--ease-out-expo);
+}
+
+.nav-logo:hover .nav-logo-icon {
+  transform: rotate(-5deg) scale(1.05);
+}
+
+.nav-logo-text {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  list-style: none;
+}
+
+.nav-links a {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--n-300);
+  text-decoration: none;
+  transition: color var(--duration-fast);
+  position: relative;
+}
+
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--h-orange-500);
+  transition: width var(--duration-fast) var(--ease-out-expo);
+}
+
+.nav-links a:hover { color: var(--n-50); }
+.nav-links a:hover::after { width: 100%; }
+
+.nav-cta {
+  padding: 0.5rem 1.25rem;
+  background: var(--h-orange-500);
+  color: var(--n-950) !important;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  transition: all var(--duration-fast) var(--ease-out-expo) !important;
+}
+
+.nav-cta:hover {
+  background: var(--h-orange-400) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(244, 121, 32, 0.3);
+}
+
+.nav-cta::after { display: none !important; }
+
+/* Mobile Nav Toggle */
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.nav-toggle span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: var(--n-200);
+  border-radius: 2px;
+  transition: all var(--duration-fast) var(--ease-out-expo);
+}
+
+/* ═══════════════════════════════════════════
+   HERO SECTION
+   ═══════════════════════════════════════════ */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5xl) var(--space-xl);
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.hero-bg::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140%;
+  height: 80%;
+  background: radial-gradient(ellipse, rgba(244, 121, 32, 0.08) 0%, rgba(244, 121, 32, 0.02) 40%, transparent 70%);
+  animation: heroGlow 8s ease-in-out infinite alternate;
+}
+
+.hero-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(1px 1px at 15% 25%, rgba(244, 121, 32, 0.3), transparent),
+    radial-gradient(1px 1px at 85% 15%, rgba(244, 121, 32, 0.2), transparent),
+    radial-gradient(1px 1px at 50% 80%, rgba(244, 121, 32, 0.15), transparent),
+    radial-gradient(1.5px 1.5px at 70% 45%, rgba(255, 255, 255, 0.1), transparent),
+    radial-gradient(1px 1px at 25% 65%, rgba(255, 255, 255, 0.08), transparent);
+}
+
+@keyframes heroGlow {
+  0% { opacity: 0.7; transform: translateX(-50%) scale(1); }
+  100% { opacity: 1; transform: translateX(-50%) scale(1.05); }
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 900px;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 1rem;
+  background: rgba(244, 121, 32, 0.1);
+  border: 1px solid rgba(244, 121, 32, 0.2);
+  border-radius: 100px;
+  margin-bottom: var(--space-xl);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--h-orange-400);
+}
+
+.hero-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--h-orange-500);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+
+.hero-title {
+  margin-bottom: var(--space-lg);
+}
+
+.hero-title .line {
+  display: block;
+  overflow: hidden;
+}
+
+.hero-title .line-inner {
+  display: block;
+  animation: slideUp 1s var(--ease-out-expo) both;
+}
+
+.hero-title .line:nth-child(2) .line-inner { animation-delay: 0.12s; }
+.hero-title .line:nth-child(3) .line-inner { animation-delay: 0.24s; }
+
+.hero-title .accent {
+  color: var(--h-orange-500);
+  position: relative;
+}
+
+.hero-title .accent::after {
+  content: '';
+  position: absolute;
+  bottom: 0.05em;
+  left: 0;
+  right: 0;
+  height: 0.08em;
+  background: var(--h-orange-500);
+  opacity: 0.3;
+  border-radius: 4px;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(110%); }
+  to { transform: translateY(0); }
+}
+
+.hero-desc {
+  max-width: 640px;
+  margin: 0 auto var(--space-2xl);
+  opacity: 0;
+  animation: fadeIn 1s var(--ease-out-expo) 0.5s both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: fadeIn 1s var(--ease-out-expo) 0.7s both;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  background: var(--h-orange-500);
+  color: var(--n-950);
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out-expo);
+  text-decoration: none;
+}
+
+.btn-primary:hover {
+  background: var(--h-orange-400);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(244, 121, 32, 0.35);
+}
+
+.btn-primary:active { transform: translateY(0); }
+
+.btn-primary svg {
+  width: 18px;
+  height: 18px;
+  transition: transform var(--duration-fast) var(--ease-out-expo);
+}
+
+.btn-primary:hover svg { transform: translateX(2px); }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  background: transparent;
+  color: var(--n-200);
+  border: 1px solid var(--n-600);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out-expo);
+  text-decoration: none;
+}
+
+.btn-secondary:hover {
+  border-color: var(--n-400);
+  color: var(--n-50);
+  transform: translateY(-2px);
+}
+
+.hero-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+  margin-top: var(--space-3xl);
+  opacity: 0;
+  animation: fadeIn 1s var(--ease-out-expo) 0.9s both;
+}
+
+.hero-stat {
+  text-align: center;
+}
+
+.hero-stat-value {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--n-50);
+  line-height: 1.2;
+}
+
+.hero-stat-value .unit {
+  font-size: 1rem;
+  color: var(--h-orange-500);
+  font-weight: 600;
+}
+
+.hero-stat-label {
+  font-size: 0.8125rem;
+  color: var(--n-500);
+  margin-top: 0.25rem;
+}
+
+.hero-stat-divider {
+  width: 1px;
+  height: 40px;
+  background: var(--n-700);
+}
+
+/* Scroll indicator */
+.scroll-indicator {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0;
+  animation: fadeIn 1s var(--ease-out-expo) 1.2s both;
+}
+
+.scroll-mouse {
+  width: 24px;
+  height: 38px;
+  border: 2px solid var(--n-600);
+  border-radius: 12px;
+  position: relative;
+}
+
+.scroll-mouse::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 8px;
+  background: var(--h-orange-500);
+  border-radius: 3px;
+  animation: scrollDown 2s ease-in-out infinite;
+}
+
+@keyframes scrollDown {
+  0% { transform: translateX(-50%) translateY(0); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(10px); opacity: 0; }
+}
+
+.scroll-text {
+  font-size: 0.6875rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--n-500);
+}
+
+/* ═══════════════════════════════════════════
+   SECTION COMMON
+   ═══════════════════════════════════════════ */
+.section {
+  padding: var(--space-5xl) var(--space-xl);
+  position: relative;
+}
+
+.section-contained {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: var(--space-4xl);
+}
+
+.section-header .label { margin-bottom: var(--space-md); }
+
+.section-header .display-md { margin-bottom: var(--space-lg); }
+
+.section-header .body-lg {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.section-divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--n-700), transparent);
+}
+
+/* ═══════════════════════════════════════════
+   FEATURES GRID
+   ═══════════════════════════════════════════ */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.feature-card {
+  position: relative;
+  padding: 2.5rem 2rem;
+  background: var(--n-900);
+  border: 1px solid var(--n-750);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all var(--duration-normal) var(--ease-out-expo);
+  cursor: default;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 0%), rgba(244, 121, 32, 0.06), transparent 60%);
+  opacity: 0;
+  transition: opacity var(--duration-normal);
+}
+
+.feature-card:hover {
+  border-color: rgba(244, 121, 32, 0.2);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.feature-card:hover::before { opacity: 1; }
+
+.feature-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(244, 121, 32, 0.1);
+  border: 1px solid rgba(244, 121, 32, 0.15);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  transition: all var(--duration-normal) var(--ease-out-expo);
+}
+
+.feature-card:hover .feature-icon {
+  background: rgba(244, 121, 32, 0.15);
+  border-color: rgba(244, 121, 32, 0.25);
+  transform: scale(1.05);
+}
+
+.feature-icon svg {
+  width: 22px;
+  height: 22px;
+  stroke: var(--h-orange-500);
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.feature-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--n-50);
+  margin-bottom: 0.75rem;
+}
+
+.feature-desc {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--n-400);
+}
+
+/* ═══════════════════════════════════════════
+   SHOWCASE / PREVIEW
+   ═══════════════════════════════════════════ */
+.showcase {
+  background: var(--n-900);
+  overflow: hidden;
+}
+
+.showcase-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-5xl) var(--space-xl);
+}
+
+.showcase-preview {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--n-750);
+  background: var(--n-850);
+  aspect-ratio: 16/10;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.4),
+              0 0 0 1px rgba(244, 121, 32, 0.05);
+}
+
+.showcase-preview-inner {
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(135deg, var(--n-800) 0%, var(--n-850) 50%, var(--n-800) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Simulated editor UI */
+.editor-mock {
+  width: 90%;
+  height: 85%;
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  grid-template-rows: 44px 1fr;
+  gap: 1px;
+  background: var(--n-750);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.editor-toolbar {
+  grid-column: 1 / -1;
+  background: var(--n-800);
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  gap: 0.75rem;
+}
+
+.editor-toolbar-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.editor-toolbar-dot:nth-child(1) { background: #FF5F57; }
+.editor-toolbar-dot:nth-child(2) { background: #FEBC2E; }
+.editor-toolbar-dot:nth-child(3) { background: #28C840; }
+
+.editor-toolbar-title {
+  font-size: 0.75rem;
+  color: var(--n-400);
+  margin-left: 1rem;
+}
+
+.editor-canvas {
+  background: var(--n-850);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.editor-image-placeholder {
+  width: 65%;
+  aspect-ratio: 3/2;
+  background: linear-gradient(145deg,
+    rgba(244, 121, 32, 0.15) 0%,
+    rgba(244, 121, 32, 0.05) 30%,
+    var(--n-800) 60%,
+    var(--n-750) 100%);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  animation: imageShimmer 3s ease-in-out infinite;
+}
+
+@keyframes imageShimmer {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+.editor-image-placeholder::after {
+  content: 'RAW';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: rgba(244, 121, 32, 0.3);
+  letter-spacing: 0.2em;
+}
+
+.editor-sidebar {
+  background: var(--n-800);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow: hidden;
+}
+
+.editor-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.editor-slider-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6875rem;
+  color: var(--n-400);
+}
+
+.editor-slider-track {
+  height: 4px;
+  background: var(--n-700);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.editor-slider-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--h-orange-500);
+}
+
+/* ═══════════════════════════════════════════
+   AI SECTION
+   ═══════════════════════════════════════════ */
+.ai-section {
+  background: var(--n-950);
+}
+
+.ai-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.ai-card {
+  position: relative;
+  padding: 2.5rem 2rem;
+  border-radius: 16px;
+  border: 1px solid var(--n-750);
+  overflow: hidden;
+  transition: all var(--duration-normal) var(--ease-out-expo);
+}
+
+.ai-card:nth-child(1) { background: linear-gradient(160deg, var(--n-900), var(--n-850)); }
+.ai-card:nth-child(2) { background: linear-gradient(160deg, rgba(244, 121, 32, 0.05), var(--n-850)); }
+.ai-card:nth-child(3) { background: linear-gradient(160deg, var(--n-850), var(--n-900)); }
+
+.ai-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(244, 121, 32, 0.15);
+}
+
+.ai-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 100px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 1.25rem;
+}
+
+.ai-card:nth-child(1) .ai-card-badge {
+  background: rgba(40, 200, 64, 0.1);
+  color: #28C840;
+  border: 1px solid rgba(40, 200, 64, 0.2);
+}
+
+.ai-card:nth-child(2) .ai-card-badge {
+  background: rgba(244, 121, 32, 0.1);
+  color: var(--h-orange-400);
+  border: 1px solid rgba(244, 121, 32, 0.2);
+}
+
+.ai-card:nth-child(3) .ai-card-badge {
+  background: rgba(88, 101, 242, 0.1);
+  color: #5865F2;
+  border: 1px solid rgba(88, 101, 242, 0.2);
+}
+
+.ai-card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--n-50);
+  margin-bottom: 0.75rem;
+}
+
+.ai-card-desc {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--n-400);
+  margin-bottom: 1.25rem;
+}
+
+.ai-card-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.ai-card-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  color: var(--n-300);
+  line-height: 1.5;
+}
+
+.ai-card-list li::before {
+  content: '';
+  flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--h-orange-500);
+  margin-top: 0.45em;
+}
+
+/* ═══════════════════════════════════════════
+   GUIDE / USAGE SECTION
+   ═══════════════════════════════════════════ */
+.guide-section {
+  background: var(--n-900);
+}
+
+.guide-timeline {
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.guide-timeline::before {
+  content: '';
+  position: absolute;
+  left: 28px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--h-orange-500), var(--n-700), transparent);
+}
+
+.guide-step {
+  display: flex;
+  gap: 2rem;
+  padding-bottom: 3rem;
+  position: relative;
+}
+
+.guide-step:last-child { padding-bottom: 0; }
+
+.guide-step-number {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  background: var(--n-850);
+  border: 2px solid var(--h-orange-500);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--h-orange-500);
+  z-index: 1;
+}
+
+.guide-step-content {
+  padding-top: 0.25rem;
+}
+
+.guide-step-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--n-50);
+  margin-bottom: 0.5rem;
+}
+
+.guide-step-desc {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--n-400);
+  margin-bottom: 0.75rem;
+}
+
+.guide-step-tip {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: rgba(244, 121, 32, 0.06);
+  border-left: 3px solid var(--h-orange-500);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--n-300);
+}
+
+.guide-step-tip strong {
+  color: var(--h-orange-400);
+}
+
+/* ═══════════════════════════════════════════
+   PLATFORMS
+   ═══════════════════════════════════════════ */
+.platforms-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.platform-card {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  background: var(--n-900);
+  border: 1px solid var(--n-750);
+  border-radius: 14px;
+  transition: all var(--duration-normal) var(--ease-out-expo);
+}
+
+.platform-card:hover {
+  border-color: rgba(244, 121, 32, 0.2);
+  transform: translateY(-3px);
+}
+
+.platform-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--h-orange-500);
+}
+
+.platform-icon svg {
+  width: 32px;
+  height: 32px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.platform-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--n-50);
+  margin-bottom: 0.25rem;
+}
+
+.platform-desc {
+  font-size: 0.8125rem;
+  color: var(--n-500);
+}
+
+/* ═══════════════════════════════════════════
+   TECH STACK
+   ═══════════════════════════════════════════ */
+.tech-marquee {
+  overflow: hidden;
+  padding: var(--space-2xl) 0;
+  position: relative;
+}
+
+.tech-marquee::before,
+.tech-marquee::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 120px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.tech-marquee::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--n-950), transparent);
+}
+
+.tech-marquee::after {
+  right: 0;
+  background: linear-gradient(270deg, var(--n-950), transparent);
+}
+
+.tech-track {
+  display: flex;
+  gap: 2rem;
+  animation: marquee 30s linear infinite;
+  width: max-content;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.tech-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--n-900);
+  border: 1px solid var(--n-750);
+  border-radius: 10px;
+  white-space: nowrap;
+  transition: border-color var(--duration-fast);
+}
+
+.tech-item:hover { border-color: var(--h-orange-500); }
+
+.tech-item-logo {
+  font-size: 1.25rem;
+}
+
+.tech-item-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--n-200);
+}
+
+.tech-item-tag {
+  font-size: 0.6875rem;
+  color: var(--h-orange-500);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* ═══════════════════════════════════════════
+   CTA SECTION
+   ═══════════════════════════════════════════ */
+.cta-section {
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-section::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(244, 121, 32, 0.08), transparent 70%);
+  pointer-events: none;
+}
+
+.cta-section .display-lg { margin-bottom: var(--space-lg); }
+.cta-section .body-lg { margin-bottom: var(--space-2xl); max-width: 520px; margin-left: auto; margin-right: auto; }
+
+.cta-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════════ */
+.footer {
+  border-top: 1px solid var(--n-800);
+  padding: var(--space-2xl) var(--space-xl);
+}
+
+.footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.footer-logo {
+  width: 28px;
+  height: 28px;
+  background: var(--h-orange-500);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.6875rem;
+  color: var(--n-950);
+}
+
+.footer-copy {
+  font-size: 0.8125rem;
+  color: var(--n-500);
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.footer-links a {
+  font-size: 0.8125rem;
+  color: var(--n-400);
+  text-decoration: none;
+  transition: color var(--duration-fast);
+}
+
+.footer-links a:hover { color: var(--h-orange-400); }
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .features-grid { grid-template-columns: repeat(2, 1fr); }
+  .ai-grid { grid-template-columns: repeat(2, 1fr); }
+  .platforms-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .nav-toggle { display: flex; }
+
+  .features-grid { grid-template-columns: 1fr; }
+  .ai-grid { grid-template-columns: 1fr; }
+  .platforms-grid { grid-template-columns: repeat(2, 1fr); }
+
+  .hero-stats { gap: 1.5rem; }
+  .hero-stat-value { font-size: 1.5rem; }
+
+  .section { padding: var(--space-3xl) var(--space-md); }
+
+  .guide-step { gap: 1rem; }
+  .guide-step-number { width: 44px; height: 44px; font-size: 1rem; }
+  .guide-timeline::before { left: 21px; }
+}
+
+@media (max-width: 480px) {
+  .platforms-grid { grid-template-columns: 1fr 1fr; }
+  .hero-stats { flex-direction: column; gap: 1rem; }
+  .hero-stat-divider { width: 40px; height: 1px; }
+}
+
+/* ═══════════════════════════════════════════
+   CURSOR GLOW (DESKTOP)
+   ═══════════════════════════════════════════ */
+.cursor-glow {
+  position: fixed;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 121, 32, 0.04), transparent 60%);
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.3s;
+  opacity: 0;
+}
+
+.cursor-glow.active { opacity: 1; }
+
+/* ═══════════════════════════════════════════
+   PARALLAX FLOATING ELEMENTS
+   ═══════════════════════════════════════════ */
+.float-element {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: floatElement 20s ease-in-out infinite;
+}
+
+@keyframes floatElement {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(30px, -20px) rotate(5deg); }
+  50% { transform: translate(-10px, 20px) rotate(-3deg); }
+  75% { transform: translate(-30px, -10px) rotate(2deg); }
+}
+
+/* Smooth number counter */
+.counter {
+  display: inline-block;
+}
+
+/* ═══════════════════════════════════════════
+   KEYBOARD SHORTCUT SHOWCASE
+   ═══════════════════════════════════════════ */
+.shortcut-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+  margin-top: var(--space-2xl);
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--n-850);
+  border: 1px solid var(--n-750);
+  border-radius: 10px;
+  transition: all var(--duration-fast);
+}
+
+.shortcut-item:hover {
+  border-color: rgba(244, 121, 32, 0.2);
+  background: var(--n-800);
+}
+
+.shortcut-name {
+  font-size: 0.8125rem;
+  color: var(--n-300);
+}
+
+.shortcut-key {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.shortcut-key kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 6px;
+  background: var(--n-750);
+  border: 1px solid var(--n-600);
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--n-200);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+</style>
+</head>
+<body>
+
+<!-- Cursor Glow -->
+<div class="cursor-glow" id="cursorGlow"></div>
+
+<!-- ═════════════════════ NAVIGATION ═════════════════════ -->
+<nav class="nav" id="nav">
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-icon">R</div>
+    <span class="nav-logo-text">RapidRAW</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features">核心特性</a></li>
+    <li><a href="#ai">AI 能力</a></li>
+    <li><a href="#guide">使用指南</a></li>
+    <li><a href="#platforms">平台</a></li>
+    <li><a href="https://github.com/Tri250/RapidRAW/releases/tag/v1.8.13" class="nav-cta" target="_blank">下载 v1.8.13</a></li>
+  </ul>
+  <button class="nav-toggle" id="navToggle" aria-label="菜单">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- ═════════════════════ HERO ═════════════════════ -->
+<section class="hero" id="hero">
+  <div class="hero-bg">
+    <div class="float-element" style="width:300px;height:300px;top:15%;left:5%;background:radial-gradient(circle,rgba(244,121,32,0.03),transparent 70%);animation-delay:-5s;"></div>
+    <div class="float-element" style="width:200px;height:200px;top:60%;right:8%;background:radial-gradient(circle,rgba(244,121,32,0.04),transparent 70%);animation-delay:-10s;animation-duration:25s;"></div>
+  </div>
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      v1.8.13 全新发布
+    </div>
+    <h1 class="hero-title display-xl">
+      <span class="line"><span class="line-inner">极致性能</span></span>
+      <span class="line"><span class="line-inner"><span class="accent">RAW</span> 图像编辑</span></span>
+      <span class="line"><span class="line-inner">全新体验</span></span>
+    </h1>
+    <p class="hero-desc body-lg">
+      一款美观、非破坏性、GPU 加速的 RAW 图像编辑器。<br>
+      不到 20MB 的轻量包，替代 Adobe Lightroom 的现代高性能选择。
+    </p>
+    <div class="hero-actions">
+      <a href="https://github.com/Tri250/RapidRAW/releases/tag/v1.8.13" class="btn-primary" target="_blank">
+        免费下载
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </a>
+      <a href="https://github.com/Tri250/RapidRAW" class="btn-secondary" target="_blank">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-value">< 20<span class="unit">MB</span></div>
+        <div class="hero-stat-label">安装体积</div>
+      </div>
+      <div class="hero-stat-divider"></div>
+      <div class="hero-stat">
+        <div class="hero-stat-value">GPU<span class="unit">加速</span></div>
+        <div class="hero-stat-label">渲染引擎</div>
+      </div>
+      <div class="hero-stat-divider"></div>
+      <div class="hero-stat">
+        <div class="hero-stat-value">4<span class="unit">平台</span></div>
+        <div class="hero-stat-label">全平台支持</div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-indicator">
+    <div class="scroll-mouse"></div>
+    <span class="scroll-text">向下探索</span>
+  </div>
+</section>
+
+<!-- ═════════════════════ SHOWCASE ═════════════════════ -->
+<section class="showcase">
+  <div class="showcase-inner">
+    <div class="showcase-preview reveal">
+      <div class="showcase-preview-inner">
+        <div class="editor-mock">
+          <div class="editor-toolbar">
+            <span class="editor-toolbar-dot"></span>
+            <span class="editor-toolbar-dot"></span>
+            <span class="editor-toolbar-dot"></span>
+            <span class="editor-toolbar-title">RapidRAW — sunset_landscape.NEF</span>
+          </div>
+          <div class="editor-canvas">
+            <div class="editor-image-placeholder"></div>
+          </div>
+          <div class="editor-sidebar">
+            <div class="editor-slider-group">
+              <div class="editor-slider-label"><span>曝光</span><span>+0.75</span></div>
+              <div class="editor-slider-track"><div class="editor-slider-fill" style="width:65%"></div></div>
+            </div>
+            <div class="editor-slider-group">
+              <div class="editor-slider-label"><span>对比度</span><span>+32</span></div>
+              <div class="editor-slider-track"><div class="editor-slider-fill" style="width:58%"></div></div>
+            </div>
+            <div class="editor-slider-group">
+              <div class="editor-slider-label"><span>高光</span><span>-45</span></div>
+              <div class="editor-slider-track"><div class="editor-slider-fill" style="width:35%"></div></div>
+            </div>
+            <div class="editor-slider-group">
+              <div class="editor-slider-label"><span>阴影</span><span>+28</span></div>
+              <div class="editor-slider-track"><div class="editor-slider-fill" style="width:55%"></div></div>
+            </div>
+            <div class="editor-slider-group">
+              <div class="editor-slider-label"><span>色温</span><span>5800K</span></div>
+              <div class="editor-slider-track"><div class="editor-slider-fill" style="width:72%"></div></div>
+            </div>
+            <div class="editor-slider-group">
+              <div class="editor-slider-label"><span>饱和度</span><span>+15</span></div>
+              <div class="editor-slider-track"><div class="editor-slider-fill" style="width:52%"></div></div>
+            </div>
+            <div class="editor-slider-group">
+              <div class="editor-slider-label"><span>清晰度</span><span>+20</span></div>
+              <div class="editor-slider-track"><div class="editor-slider-fill" style="width:48%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════ FEATURES ═════════════════════ -->
+<section class="section" id="features">
+  <div class="section-contained">
+    <div class="section-header reveal">
+      <div class="label">核心特性</div>
+      <h2 class="display-md">为专业摄影师<br>重新定义编辑体验</h2>
+      <p class="body-lg">从 GPU 渲染引擎到 AI 智能蒙版，RapidRAW 将现代技术融入每一个细节。</p>
+    </div>
+    <div class="features-grid">
+
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <h3 class="feature-title">GPU 加速引擎</h3>
+        <p class="feature-desc">所有图像调整均在 GPU 上实时处理，编辑反馈即时呈现，无延迟拖拽体验。</p>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <h3 class="feature-title">非破坏性编辑</h3>
+        <p class="feature-desc">所有编辑存储在独立的 sidecar 文件中，原始图像永远保持完整无损。</p>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        </div>
+        <h3 class="feature-title">AI 智能蒙版</h3>
+        <p class="feature-desc">AI 自动识别主体、天空与前景，结合 Flow Mask 实现精确的局部编辑。</p>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        </div>
+        <h3 class="feature-title">完整图片库</h3>
+        <p class="feature-desc">在一个精简的界面中管理整个照片集，支持智能标签和高效检索。</p>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="4"/></svg>
+        </div>
+        <h3 class="feature-title">专业调整面板</h3>
+        <p class="feature-desc">色调曲线、HSL 色彩混合器、细节增强、效果面板——一切尽在掌控。</p>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <h3 class="feature-title">批量操作</h3>
+        <p class="feature-desc">同时对多张图像应用调整，大幅节省后期处理时间。</p>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </div>
+        <h3 class="feature-title">预设系统</h3>
+        <p class="feature-desc">保存最爱的风格预设，一键应用到任何照片，构建个人视觉风格库。</p>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        </div>
+        <h3 class="feature-title">生成式 AI</h3>
+        <p class="feature-desc">通过文字提示移除或添加元素，支持内置、ComfyUI 自托管与云端三种模式。</p>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </div>
+        <h3 class="feature-title">WGSL 着色器</h3>
+        <p class="feature-desc">基于 WebGPU 着色语言编写核心渲染管线，绕过浏览器瓶颈，实现极致性能。</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════ AI SECTION ═════════════════════ -->
+<section class="section ai-section" id="ai">
+  <div class="section-contained">
+    <div class="section-header reveal">
+      <div class="label">AI 能力</div>
+      <h2 class="display-md">你的 AI，你做主</h2>
+      <p class="body-lg">RapidRAW 的 AI 设计为灵活可选，三种模式满足不同需求。</p>
+    </div>
+    <div class="ai-grid">
+
+      <div class="ai-card reveal reveal-delay-1">
+        <div class="ai-card-badge">内置免费</div>
+        <h3 class="ai-card-title">内置 AI 工具</h3>
+        <p class="ai-card-desc">直接集成在 RapidRAW 中，完全在你的电脑上本地运行。</p>
+        <ul class="ai-card-list">
+          <li>AI 蒙版（主体 / 天空 / 前景）</li>
+          <li>自动图像标签识别</li>
+          <li>简易生成式替换</li>
+        </ul>
+      </div>
+
+      <div class="ai-card reveal reveal-delay-2">
+        <div class="ai-card-badge">自托管</div>
+        <h3 class="ai-card-title">ComfyUI 本地部署</h3>
+        <p class="ai-card-desc">拥有高性能 GPU 的用户，连接本地 ComfyUI 服务器获取最大控制权。</p>
+        <ul class="ai-card-list">
+          <li>使用自己的硬件与模型</li>
+          <li>零成本的进阶生成式编辑</li>
+          <li>自定义工作流选择</li>
+        </ul>
+      </div>
+
+      <div class="ai-card reveal reveal-delay-3">
+        <div class="ai-card-badge">云端服务</div>
+        <h3 class="ai-card-title">云端订阅</h3>
+        <p class="ai-card-desc">无需任何配置，获得与自托管相同的高质量结果，同时支持项目发展。</p>
+        <ul class="ai-card-list">
+          <li>最大便捷性，零配置</li>
+          <li>与自托管等效的效果</li>
+          <li>支持 RapidRAW 持续开发</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════ GUIDE ═════════════════════ -->
+<section class="section guide-section" id="guide">
+  <div class="section-contained">
+    <div class="section-header reveal">
+      <div class="label">使用指南</div>
+      <h2 class="display-md">快速上手，精通创作</h2>
+      <p class="body-lg">从安装到高级工作流，几步即可掌握 RapidRAW 的完整能力。</p>
+    </div>
+    <div class="guide-timeline">
+
+      <div class="guide-step reveal reveal-delay-1">
+        <div class="guide-step-number">1</div>
+        <div class="guide-step-content">
+          <h3 class="guide-step-title">下载与安装</h3>
+          <p class="guide-step-desc">前往 GitHub Releases 页面，选择对应平台安装包。Windows 用户下载 <code>.msi</code>，macOS 用户下载 <code>.dmg</code>，Linux 用户下载 <code>.AppImage</code> 或 <code>.deb</code>。</p>
+          <div class="guide-step-tip"><strong>提示：</strong>安装包仅不到 20MB，无需联网即可完成安装，所有核心功能开箱即用。</div>
+        </div>
+      </div>
+
+      <div class="guide-step reveal reveal-delay-2">
+        <div class="guide-step-number">2</div>
+        <div class="guide-step-content">
+          <h3 class="guide-step-title">导入照片库</h3>
+          <p class="guide-step-desc">启动后，点击「导入」或将文件夹直接拖入窗口。RapidRAW 支持所有主流 RAW 格式（NEF、CR2、ARW、RAF、DNG 等），自动解析 EXIF 元数据。</p>
+          <div class="guide-step-tip"><strong>提示：</strong>首次导入后，缩略图会自动缓存，后续浏览更流畅。支持星级评分与颜色标记快速筛选。</div>
+        </div>
+      </div>
+
+      <div class="guide-step reveal reveal-delay-3">
+        <div class="guide-step-number">3</div>
+        <div class="guide-step-content">
+          <h3 class="guide-step-title">基础调色</h3>
+          <p class="guide-step-desc">在编辑面板中，从「基础」面板开始：调整曝光、对比度、高光、阴影、白色、黑色。实时预览由 GPU 渲染，拖拽滑块即时响应。</p>
+          <div class="guide-step-tip"><strong>快捷键：</strong>按 <kbd>E</kbd> 切换编辑模式，<kbd>L</kbd> 切换图库视图，<kbd>\\</kbd> 快速对比修改前后。</div>
+        </div>
+      </div>
+
+      <div class="guide-step reveal reveal-delay-4">
+        <div class="guide-step-number">4</div>
+        <div class="guide-step-content">
+          <h3 class="guide-step-title">AI 蒙版与局部编辑</h3>
+          <p class="guide-step-desc">切换到「蒙版」面板，使用 AI 一键选择主体、天空或前景。也可使用画笔、渐变等手动蒙版工具。多个蒙版可自由组合叠加。</p>
+          <div class="guide-step-tip"><strong>技巧：</strong>AI 蒙版在本地运行无需联网，结果可进一步用画笔精细修饰边缘。</div>
+        </div>
+      </div>
+
+      <div class="guide-step reveal reveal-delay-5">
+        <div class="guide-step-number">5</div>
+        <div class="guide-step-content">
+          <h3 class="guide-step-title">色调曲线与 HSL</h3>
+          <p class="guide-step-desc">在「色调曲线」面板拖拽曲线进行精确色调控制；「HSL」面板可单独调整红、橙、黄、绿等 8 个色相的色相、饱和度与明度——风光摄影调色利器。</p>
+          <div class="guide-step-tip"><strong>提示：</strong>HSL 橙色通道对肤色调整尤为关键，微调即可让人物肤色通透自然。</div>
+        </div>
+      </div>
+
+      <div class="guide-step reveal reveal-delay-6">
+        <div class="guide-step-number">6</div>
+        <div class="guide-step-content">
+          <h3 class="guide-step-title">导出与预设</h3>
+          <p class="guide-step-desc">编辑完成后，点击「导出」选择 JPEG / TIFF / PNG 格式和分辨率。将当前设置保存为预设，一键应用到其他照片，批量导出省时高效。</p>
+          <div class="guide-step-tip"><strong>提示：</strong>所有编辑均为非破坏性，sidecar 文件记录所有调整，原始 RAW 永不改变。</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Keyboard shortcuts -->
+    <div class="section-header reveal" style="margin-top: var(--space-4xl);">
+      <div class="label">快捷键</div>
+      <h2 class="display-md" style="font-size: clamp(1.5rem, 3vw, 2.25rem);">键盘快捷操作</h2>
+    </div>
+    <div class="shortcut-grid reveal">
+      <div class="shortcut-item"><span class="shortcut-name">编辑模式</span><span class="shortcut-key"><kbd>E</kbd></span></div>
+      <div class="shortcut-item"><span class="shortcut-name">图库视图</span><span class="shortcut-key"><kbd>L</kbd></span></div>
+      <div class="shortcut-item"><span class="shortcut-name">前后对比</span><span class="shortcut-key"><kbd>\\</kbd></span></div>
+      <div class="shortcut-item"><span class="shortcut-name">裁剪工具</span><span class="shortcut-key"><kbd>C</kbd></span></div>
+      <div class="shortcut-item"><span class="shortcut-name">撤销</span><span class="shortcut-key"><kbd>Ctrl</kbd><kbd>Z</kbd></span></div>
+      <div class="shortcut-item"><span class="shortcut-name">重做</span><span class="shortcut-key"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>Z</kbd></span></div>
+      <div class="shortcut-item"><span class="shortcut-name">全屏预览</span><span class="shortcut-key"><kbd>F</kbd></span></div>
+      <div class="shortcut-item"><span class="shortcut-name">放大/缩小</span><span class="shortcut-key"><kbd>+</kbd><kbd>-</kbd></span></div>
+      <div class="shortcut-item"><span class="shortcut-name">导出</span><span class="shortcut-key"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>E</kbd></span></div>
+      <div class="shortcut-item"><span class="shortcut-name">适应窗口</span><span class="shortcut-key"><kbd>0</kbd></span></div>
+      <div class="shortcut-item"><span class="shortcut-name">100% 缩放</span><span class="shortcut-key"><kbd>1</kbd></span></div>
+      <div class="shortcut-item"><span class="shortcut-name">星级评分</span><span class="shortcut-key"><kbd>1</kbd>-<kbd>5</kbd></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════ TECH MARQUEE ═════════════════════ -->
+<div class="section-divider"></div>
+<div class="tech-marquee">
+  <div class="tech-track">
+    <div class="tech-item"><span class="tech-item-logo">🦀</span><span class="tech-item-name">Rust</span><span class="tech-item-tag">后端</span></div>
+    <div class="tech-item"><span class="tech-item-logo">⚛️</span><span class="tech-item-name">React</span><span class="tech-item-tag">前端</span></div>
+    <div class="tech-item"><span class="tech-item-logo">🎮</span><span class="tech-item-name">wgpu</span><span class="tech-item-tag">渲染</span></div>
+    <div class="tech-item"><span class="tech-item-logo">📐</span><span class="tech-item-name">WGSL</span><span class="tech-item-tag">着色器</span></div>
+    <div class="tech-item"><span class="tech-item-logo">🖥️</span><span class="tech-item-name">Tauri</span><span class="tech-item-tag">框架</span></div>
+    <div class="tech-item"><span class="tech-item-logo">🎨</span><span class="tech-item-name">AgX</span><span class="tech-item-tag">色彩</span></div>
+    <div class="tech-item"><span class="tech-item-logo">📄</span><span class="tech-item-name">AGPL-3.0</span><span class="tech-item-tag">开源</span></div>
+    <!-- duplicate for seamless loop -->
+    <div class="tech-item"><span class="tech-item-logo">🦀</span><span class="tech-item-name">Rust</span><span class="tech-item-tag">后端</span></div>
+    <div class="tech-item"><span class="tech-item-logo">⚛️</span><span class="tech-item-name">React</span><span class="tech-item-tag">前端</span></div>
+    <div class="tech-item"><span class="tech-item-logo">🎮</span><span class="tech-item-name">wgpu</span><span class="tech-item-tag">渲染</span></div>
+    <div class="tech-item"><span class="tech-item-logo">📐</span><span class="tech-item-name">WGSL</span><span class="tech-item-tag">着色器</span></div>
+    <div class="tech-item"><span class="tech-item-logo">🖥️</span><span class="tech-item-name">Tauri</span><span class="tech-item-tag">框架</span></div>
+    <div class="tech-item"><span class="tech-item-logo">🎨</span><span class="tech-item-name">AgX</span><span class="tech-item-tag">色彩</span></div>
+    <div class="tech-item"><span class="tech-item-logo">📄</span><span class="tech-item-name">AGPL-3.0</span><span class="tech-item-tag">开源</span></div>
+  </div>
+</div>
+<div class="section-divider"></div>
+
+<!-- ═════════════════════ PLATFORMS ═════════════════════ -->
+<section class="section" id="platforms">
+  <div class="section-contained">
+    <div class="section-header reveal">
+      <div class="label">全平台支持</div>
+      <h2 class="display-md">随时随地，灵感不断</h2>
+      <p class="body-lg">RapidRAW 支持 Windows、macOS、Linux 和 Android，一套工具覆盖所有设备。</p>
+    </div>
+    <div class="platforms-grid">
+
+      <div class="platform-card reveal reveal-delay-1">
+        <div class="platform-icon">
+          <svg viewBox="0 0 24 24"><path d="M3 5.5h18v13H3z" stroke-width="1.5"/><path d="M3 5.5l9 7 9-7" stroke-width="1.5"/></svg>
+        </div>
+        <div class="platform-name">Windows</div>
+        <div class="platform-desc">Windows 10 / 11</div>
+      </div>
+
+      <div class="platform-card reveal reveal-delay-2">
+        <div class="platform-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z" stroke-width="1.5"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10" stroke-width="1.5"/><path d="M12 2a15.3 15.3 0 0 0-4 10 15.3 15.3 0 0 0 4 10" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke-width="1.5"/></svg>
+        </div>
+        <div class="platform-name">macOS</div>
+        <div class="platform-desc">Intel & Apple Silicon</div>
+      </div>
+
+      <div class="platform-card reveal reveal-delay-3">
+        <div class="platform-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="1.5"/><path d="M8 12l2 2 4-4" stroke-width="1.5"/></svg>
+        </div>
+        <div class="platform-name">Linux</div>
+        <div class="platform-desc">AppImage / .deb</div>
+      </div>
+
+      <div class="platform-card reveal reveal-delay-4">
+        <div class="platform-icon">
+          <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="3" stroke-width="1.5"/><line x1="12" y1="18" x2="12" y2="18.01" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <div class="platform-name">Android</div>
+        <div class="platform-desc">移动端编辑</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════ CTA ═════════════════════ -->
+<section class="section cta-section">
+  <div class="section-contained">
+    <div class="reveal">
+      <div class="label">开始使用</div>
+      <h2 class="display-lg">释放你的<span style="color:var(--h-orange-500)">创意潜能</span></h2>
+      <p class="body-lg">不到 20MB，免费开源，GPU 加速。现在就体验下一代 RAW 编辑器。</p>
+      <div class="cta-buttons">
+        <a href="https://github.com/Tri250/RapidRAW/releases/tag/v1.8.13" class="btn-primary" target="_blank">
+          下载 RapidRAW v1.8.13
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </a>
+        <a href="https://github.com/Tri250/RapidRAW" class="btn-secondary" target="_blank">
+          查看 GitHub 仓库
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════ FOOTER ═════════════════════ -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">R</div>
+      <span class="footer-copy">RapidRAW — 开源 RAW 图像编辑器</span>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/Tri250/RapidRAW" target="_blank">GitHub</a>
+      <a href="https://www.getrapidraw.com" target="_blank">官网</a>
+      <a href="https://discord.gg/cvFugZ2Hw8" target="_blank">Discord</a>
+      <a href="https://www.instagram.com/getrapidraw/" target="_blank">Instagram</a>
+    </div>
+  </div>
+</footer>
+
+<!-- ═════════════════════ JAVASCRIPT ═════════════════════ -->
+<script>
+(function() {
+  'use strict';
+
+  // ── Scroll Reveal ──
+  const reveals = document.querySelectorAll('.reveal');
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+  reveals.forEach(el => revealObserver.observe(el));
+
+  // ── Nav Scroll Effect ──
+  const nav = document.getElementById('nav');
+  let lastScroll = 0;
+  function onScroll() {
+    const y = window.scrollY;
+    nav.classList.toggle('scrolled', y > 60);
+    lastScroll = y;
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // ── Feature Card Mouse Glow ──
+  document.querySelectorAll('.feature-card').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const rect = card.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      card.style.setProperty('--mouse-x', x + '%');
+      card.style.setProperty('--mouse-y', y + '%');
+    });
+  });
+
+  // ── Cursor Glow (Desktop) ──
+  const cursorGlow = document.getElementById('cursorGlow');
+  let glowActive = false;
+  const isTouch = 'ontouchstart' in window;
+
+  if (!isTouch) {
+    document.addEventListener('mousemove', e => {
+      cursorGlow.style.left = e.clientX + 'px';
+      cursorGlow.style.top = e.clientY + 'px';
+      if (!glowActive) {
+        cursorGlow.classList.add('active');
+        glowActive = true;
+      }
+    });
+
+    document.addEventListener('mouseleave', () => {
+      cursorGlow.classList.remove('active');
+      glowActive = false;
+    });
+  }
+
+  // ── Smooth Scroll for Anchor Links ──
+  document.querySelectorAll('a[href^="#"]').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(link.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+  // ── Mobile Nav Toggle ──
+  const navToggle = document.getElementById('navToggle');
+  const navLinks = document.querySelector('.nav-links');
+  let mobileOpen = false;
+
+  navToggle.addEventListener('click', () => {
+    mobileOpen = !mobileOpen;
+    if (mobileOpen) {
+      navLinks.style.display = 'flex';
+      navLinks.style.flexDirection = 'column';
+      navLinks.style.position = 'absolute';
+      navLinks.style.top = '100%';
+      navLinks.style.left = '0';
+      navLinks.style.right = '0';
+      navLinks.style.background = 'rgba(10,10,11,0.95)';
+      navLinks.style.backdropFilter = 'blur(20px)';
+      navLinks.style.padding = '1rem 2rem';
+      navLinks.style.gap = '1rem';
+      navLinks.style.borderBottom = '1px solid rgba(244,121,32,0.1)';
+    } else {
+      navLinks.style.display = '';
+      navLinks.style.flexDirection = '';
+      navLinks.style.position = '';
+      navLinks.style.top = '';
+      navLinks.style.left = '';
+      navLinks.style.right = '';
+      navLinks.style.background = '';
+      navLinks.style.backdropFilter = '';
+      navLinks.style.padding = '';
+      navLinks.style.gap = '';
+      navLinks.style.borderBottom = '';
+    }
+  });
+
+  // ── Animate Editor Sliders ──
+  const sliderFills = document.querySelectorAll('.editor-slider-fill');
+  const sliderObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        sliderFills.forEach((fill, i) => {
+          const targetWidth = fill.style.width;
+          fill.style.width = '0%';
+          fill.style.transition = `width 1.2s ${i * 0.1}s cubic-bezier(0.16, 1, 0.3, 1)`;
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              fill.style.width = targetWidth;
+            });
+          });
+        });
+        sliderObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.3 });
+
+  const showcasePreview = document.querySelector('.showcase-preview');
+  if (showcasePreview) sliderObserver.observe(showcasePreview);
+
+})();
+</script>
+
+</body>
+</html>
