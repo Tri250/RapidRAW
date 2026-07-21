@@ -141,7 +141,7 @@ pub async fn process_inpainting(
         prompt,
         negative_prompt: "blur, low quality, distortion, watermark".to_string(),
         mask_image_base64: mask_b64,
-        seed,
+        seed: seed as i64,
     };
 
     let url = format!("{}/inpaint", base_url);
