@@ -801,16 +801,20 @@ export default function MasksPanel() {
   const handleAddMaskContainer = (type: Mask) => {
     const subMask = createMaskLogic(type);
     const count = (adjustments.masks?.length || 0) + 1;
+    const newContainerId = uuidv4();
     const newContainer = {
       ...INITIAL_MASK_CONTAINER,
-      id: uuidv4(),
+      id: newContainerId,
       name: t('editor.masks.patches.maskName', { count }),
       subMasks: [subMask],
     };
-    setAdjustments((prev: Adjustments) => ({ ...prev, masks: [...(prev.masks || []), newContainer] }));
-    onSelectContainer(newContainer.id);
+    setAdjustments((prev: Adjustments) => {
+      const updatedMasks = [...(prev.masks || []), newContainer];
+      return { ...prev, masks: updatedMasks };
+    });
+    onSelectContainer(newContainerId);
     onSelectMask(subMask.id);
-    setExpandedContainers((prev) => new Set(prev).add(newContainer.id));
+    setExpandedContainers((prev) => new Set(prev).add(newContainerId));
     if (type === Mask.Brush || type === Mask.Flow) selectBrushToolForNewMask();
     if (type === Mask.AiForeground) handleGenerateAiForegroundMask(subMask.id);
     else if (type === Mask.AiSky) handleGenerateAiSkyMask(subMask.id);
@@ -1486,6 +1490,7 @@ export default function MasksPanel() {
                   setSettingsSectionOpen={setSettingsSectionOpen}
                   presets={presets}
                   handleGenerateAiDepthMask={handleGenerateAiDepthMask}
+                  activeMaskContainerId={activeMaskContainerId}
                 />
               </motion.div>
             )}
@@ -2191,11 +2196,12 @@ function SettingsPanel({
   setSettingsSectionOpen,
   presets,
   handleGenerateAiDepthMask,
+  activeMaskContainerId,
 }: any) {
   const { t } = useTranslation();
   const { showContextMenu } = useContextMenu();
   const { theme } = useSettingsStore((state) => ({ theme: state.theme }));
-  const isActive = !!container;
+  const isActive = !!container || !!activeMaskContainerId;
   const presetButtonRef = useRef<HTMLButtonElement>(null);
 
   const placeholderContainer = {

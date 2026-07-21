@@ -26,6 +26,7 @@ export const Text = forwardRef<HTMLElement, TextProps>(
         ref={ref}
         className={clsx(
           variant.size,
+          variant.lineHeight,
           TEXT_WEIGHT_KEYS[weight ?? variant.defaultWeight],
           TEXT_COLOR_KEYS[color ?? variant.defaultColor],
           variant.extraClasses,

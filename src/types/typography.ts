@@ -42,6 +42,7 @@ export interface VariantConfig {
   defaultWeight: TextWeight;
   defaultColor: TextColor;
   defaultElement: React.ElementType;
+  lineHeight: string;
   extraClasses?: string;
 }
 
@@ -51,6 +52,7 @@ export const TextVariants: Record<TextVariant, VariantConfig> = {
     defaultWeight: 'bold',
     defaultColor: 'primary',
     defaultElement: 'h1',
+    lineHeight: 'leading-tight',
     extraClasses: 'text-shadow-shiny mb-4',
   },
   display: {
@@ -58,6 +60,7 @@ export const TextVariants: Record<TextVariant, VariantConfig> = {
     defaultWeight: 'bold',
     defaultColor: 'primary',
     defaultElement: 'h1',
+    lineHeight: 'leading-tight',
     extraClasses: 'text-shadow-shiny',
   },
   headline: {
@@ -65,6 +68,7 @@ export const TextVariants: Record<TextVariant, VariantConfig> = {
     defaultWeight: 'bold',
     defaultColor: 'primary',
     defaultElement: 'h1',
+    lineHeight: 'leading-snug',
     extraClasses: 'text-shadow-shiny',
   },
   title: {
@@ -72,36 +76,42 @@ export const TextVariants: Record<TextVariant, VariantConfig> = {
     defaultWeight: 'bold',
     defaultColor: 'primary',
     defaultElement: 'h2',
+    lineHeight: 'leading-snug',
     extraClasses: 'text-shadow-shiny',
   },
   heading: {
-    size: 'text-base',
+    size: 'text-sm',
     defaultWeight: 'semibold',
     defaultColor: 'primary',
     defaultElement: 'h3',
+    lineHeight: 'leading-normal',
   },
   body: {
     size: 'text-sm',
     defaultWeight: 'normal',
     defaultColor: 'secondary',
     defaultElement: 'p',
+    lineHeight: 'leading-relaxed',
   },
   label: {
     size: 'text-sm',
     defaultWeight: 'medium',
     defaultColor: 'secondary',
     defaultElement: 'span',
+    lineHeight: 'leading-normal',
   },
   small: {
     size: 'text-xs',
     defaultWeight: 'normal',
     defaultColor: 'secondary',
     defaultElement: 'p',
+    lineHeight: 'leading-tight',
   },
   caption: {
     size: 'text-xs',
     defaultWeight: 'normal',
     defaultColor: 'secondary',
     defaultElement: 'span',
+    lineHeight: 'leading-tight',
   },
 };
