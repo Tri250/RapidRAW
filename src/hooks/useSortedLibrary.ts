@@ -36,7 +36,7 @@ export const parseFocalLength = (val: string | undefined): number => {
 
 export function computeSortedLibrary(libraryState: any, settingsState: any): ImageFile[] {
   const { imageList, imageRatings, filterCriteria, searchCriteria, sortCriteria } = libraryState;
-  const { appSettings, supportedTypes } = settingsState;
+  const { appSettings: _appSettings, supportedTypes } = settingsState;
 
   const getParentDir = (filePath: string): string => {
     const separator = filePath.includes('/') ? '/' : '\\';

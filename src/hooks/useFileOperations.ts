@@ -230,6 +230,7 @@ export function useFileOperations(
         return;
       }
 
+      // eslint-disable-next-line no-control-regex
       const invalidFilenameChars = /[<>:"/\\|?*\x00-\x1f]/;
       if (invalidFilenameChars.test(trimmedTemplate)) {
         toast.error('Filename template contains invalid characters. Characters < > : " / \\ | ? * and control characters are not allowed.');

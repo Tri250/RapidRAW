@@ -19,7 +19,7 @@ function getAngle(p1: Point, p2: Point): number {
   return Math.atan2(p2.y - p1.y, p2.x - p1.x);
 }
 
-function getMidpoint(p1: Point, p2: Point): Point {
+function _getMidpoint(p1: Point, p2: Point): Point {
   return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
 }
 

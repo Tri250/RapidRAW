@@ -1,6 +1,7 @@
 const js = require('@eslint/js');
 const tseslint = require('typescript-eslint');
 const react = require('eslint-plugin-react');
+const reactHooks = require('eslint-plugin-react-hooks');
 const i18next = require('eslint-plugin-i18next');
 
 const tsFiles = ['**/*.{ts,tsx}'];
@@ -23,6 +24,7 @@ module.exports = [
       'src-tauri/gen/**',
       'src-tauri/rawler/**',
       'data/**',
+      'coverage/**',
     ],
   },
   jsRecommendedForTs,
@@ -31,6 +33,7 @@ module.exports = [
     files: tsFiles,
     plugins: {
       react,
+      'react-hooks': reactHooks,
       i18next,
     },
     languageOptions: {
@@ -49,10 +52,14 @@ module.exports = [
     },
     rules: {
       'no-unused-vars': 'off',
+      'react-hooks/exhaustive-deps': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
       ],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unsafe-function-type': 'warn',
+      '@typescript-eslint/ban-ts-comment': 'warn',
       'i18next/no-literal-string': [
         'warn',
         {
