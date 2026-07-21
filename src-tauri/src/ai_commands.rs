@@ -7,7 +7,6 @@ use std::io::Cursor;
 use base64::{Engine as _, engine::general_purpose};
 use image::{GenericImageView, GrayImage, ImageFormat, Rgba};
 
-use crate::ai_connector;
 use crate::ai_processing::{
     AiDepthMaskParameters, AiForegroundMaskParameters, AiSkyMaskParameters,
     AiSubjectMaskParameters, CachedDepthMap, generate_image_embeddings, get_or_init_ai_models,
@@ -377,30 +376,6 @@ pub async fn precompute_ai_subject_mask(
     Ok(())
 }
 
-#[tauri::command]
-pub async fn check_ai_connector_status(app_handle: tauri::AppHandle) {
-    let settings = load_settings(app_handle.clone()).unwrap_or_default();
-    let is_connected = if let Some(address) = settings.ai_connector_address {
-        ai_connector::check_status(&address).await.unwrap_or(false)
-    } else {
-        false
-    };
-    use tauri::Emitter;
-    let _ = app_handle.emit(
-        "ai-connector-status-update",
-        serde_json::json!({ "connected": is_connected }),
-    );
-}
-
-#[tauri::command]
-pub async fn test_ai_connector_connection(address: String) -> Result<(), String> {
-    match ai_connector::check_status(&address).await {
-        Ok(true) => Ok(()),
-        Ok(false) => Err("Server reachable but returned bad health status".to_string()),
-        Err(e) => Err(e.to_string()),
-    }
-}
-
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AiRatingResult {
@@ -567,27 +542,27 @@ fn compute_rating_from_features(image: &image::DynamicImage) -> (u8, String) {
     // Generate description
     let desc = if rating >= 4 {
         if avg_sat > 0.4 {
-            "Rich colors, good composition".to_string()
+            "色彩丰富，构图良好".to_string()
         } else if dynamic_range > 0.7 {
-            "Excellent dynamic range, balanced exposure".to_string()
+            "动态范围出色，曝光均衡".to_string()
         } else {
-            "Overall good quality".to_string()
+            "整体质量良好".to_string()
         }
     } else if rating == 3 {
         if clipped_shadows > 0.1 {
-            "Shadow detail loss".to_string()
+            "阴影细节丢失".to_string()
         } else if clipped_highlights > 0.1 {
-            "Highlights clipped".to_string()
+            "高光溢出".to_string()
         } else {
-            "Average quality".to_string()
+            "质量一般".to_string()
         }
     } else {
         if var_lum < 0.02 {
-            "Low contrast".to_string()
+            "对比度不足".to_string()
         } else if avg_sat < 0.1 {
-            "Flat colors".to_string()
+            "色彩平淡".to_string()
         } else {
-            "Consider adjustments".to_string()
+            "建议调整".to_string()
         }
     };
 

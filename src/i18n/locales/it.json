@@ -299,7 +299,7 @@
       "tooltips": {
         "autoAdjust": "Regolazione Automatica Immagine",
         "resetAdjustments": "Ripristina Regolazioni",
-        "toggleAnalytics": "Attiva/Disattiva Visualizzazione Analitiche"
+        "toggleAnalytics": "Attiva/Disattiva Visualizzazione Forma d'Onda"
       }
     },
     "colorPanel": {
@@ -599,7 +599,7 @@
         "select": "Seleziona",
         "selectPresetTooltip": "Seleziona un predefinito da applicare"
       },
-      "toggleAnalyticsTooltip": "Attiva/Disattiva Visualizzazione Analitiche",
+      "toggleAnalyticsTooltip": "Attiva/Disattiva Visualizzazione Forma d'Onda",
       "tooltips": {
         "addToCurrent": "Aggiungi {{name}} alla Maschera Attuale o Crea Nuova (Tasto Destro)",
         "createNew": "Crea Nuova Maschera {{name}}",

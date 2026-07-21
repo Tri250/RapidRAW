@@ -299,7 +299,7 @@
       "tooltips": {
         "autoAdjust": "自動調整影像",
         "resetAdjustments": "重置調整",
-        "toggleAnalytics": "切換分析顯示"
+        "toggleAnalytics": "切換波形顯示"
       }
     },
     "colorPanel": {
@@ -599,7 +599,7 @@
         "select": "選擇",
         "selectPresetTooltip": "選擇一個預設以應用"
       },
-      "toggleAnalyticsTooltip": "切換分析顯示",
+      "toggleAnalyticsTooltip": "切換波形顯示",
       "tooltips": {
         "addToCurrent": "將 {{name}} 新增到當前遮色片或建立新遮色片（右鍵單擊）",
         "createNew": "建立新 {{name}} 遮色片",

@@ -944,21 +944,17 @@ export default function MetadataPanel() {
                       marginHeight={0}
                       marginWidth={0}
                       scrolling="no"
-                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${gpsData.lon - 0.01}%2C${
-                        gpsData.lat - 0.01
-                      }%2C${gpsData.lon + 0.01}%2C${gpsData.lat + 0.01}&layer=mapnik&marker=${gpsData.lat}%2C${
-                        gpsData.lon
-                      }`}
+                      src={`https://uri.amap.com/marker?position=${gpsData.lon},${gpsData.lat}&name=&coordinate=gaode&callnative=0&src=mypage&innersrc=mypage`}
                       width="100%"
                       onError={(e) => {
-                        // Hide iframe on error (offline scenario), show fallback coordinates
+                        // Hide iframe on error (offline or network issue), show fallback coordinates
                         const target = e.currentTarget as HTMLIFrameElement;
                         target.style.display = 'none';
                         const fallback = target.nextElementSibling as HTMLElement;
                         if (fallback) fallback.style.display = 'flex';
                       }}
                     ></iframe>
-                    {/* Offline fallback: show coordinates text when map tiles can't load */}
+                    {/* Offline/network fallback: show coordinates text when map can't load */}
                     <div
                       className="hidden flex-col items-center justify-center bg-card-active rounded-md"
                       style={{ height: '180px' }}
@@ -972,7 +968,7 @@ export default function MetadataPanel() {
                     </div>
                     <a
                       className="absolute inset-0 cursor-pointer bg-black/0 hover:bg-black/10 transition-colors opacity-0 group-hover/map:opacity-100 flex items-center justify-center"
-                      href={`https://www.openstreetmap.org/?mlat=${gpsData.lat}&mlon=${gpsData.lon}#map=15/${gpsData.lat}/${gpsData.lon}`}
+                      href={`https://uri.amap.com/marker?position=${gpsData.lon},${gpsData.lat}&coordinate=gaode&callnative=1`}
                       rel="noopener noreferrer"
                       target="_blank"
                       data-tooltip={t('editor.metadata.gps.clickToOpenTooltip')}

@@ -44,9 +44,9 @@ use tokenizers::Tokenizer;
 use tokio::sync::Mutex as TokioMutex;
 
 /// Default mirror base URL for HuggingFace model downloads.
-/// For Chinese users, set to "https://hf-mirror.com" or other domestic CDN.
-/// Leave empty to use the default HuggingFace URLs directly.
-const DEFAULT_HF_MIRROR_BASE: &str = "";
+/// Defaults to hf-mirror.com for better accessibility in mainland China.
+/// Set RAPIDRAW_HF_MIRROR environment variable to override, or clear via settings.
+const DEFAULT_HF_MIRROR_BASE: &str = "https://hf-mirror.com";
 
 /// Environment variable to override the HuggingFace mirror base URL at runtime.
 const HF_MIRROR_ENV_VAR: &str = "RAPIDRAW_HF_MIRROR";
@@ -61,10 +61,18 @@ fn resolve_model_url(original_url: &str) -> String {
         return original_url.to_string();
     }
 
-    // Replace huggingface.co with the mirror domain
+    let base = format!("{}/", mirror_base.trim_end_matches('/'));
+    // Replace both huggingface.co/ and huggingface.co/datasets/ paths
+    let result = original_url.replace(
+        "https://huggingface.co/datasets/",
+        &format!("{}datasets/", base),
+    );
+    if result != original_url {
+        return result;
+    }
     original_url.replace(
         "https://huggingface.co/",
-        &format!("{}/", mirror_base.trim_end_matches('/')),
+        &base,
     )
 }
 

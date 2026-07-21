@@ -299,7 +299,7 @@
       "tooltips": {
         "autoAdjust": "이미지 자동 조정",
         "resetAdjustments": "조정값 초기화",
-        "toggleAnalytics": "분석 표시 전환"
+        "toggleAnalytics": "파형 표시 전환"
       }
     },
     "colorPanel": {
@@ -599,7 +599,7 @@
         "select": "선택",
         "selectPresetTooltip": "적용할 프리셋 선택"
       },
-      "toggleAnalyticsTooltip": "분석 표시 전환",
+      "toggleAnalyticsTooltip": "파형 표시 전환",
       "tooltips": {
         "addToCurrent": "{{name}}을(를) 현재 마스크에 추가하거나 새로 만들기 (우클릭)",
         "createNew": "새 {{name}} 마스크 만들기",

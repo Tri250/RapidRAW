@@ -326,7 +326,7 @@
       "tooltips": {
         "autoAdjust": "Auto Adjust Image",
         "resetAdjustments": "Reset Adjustments",
-        "toggleAnalytics": "Toggle Analytics Display"
+        "toggleAnalytics": "Toggle Waveform Display"
       }
     },
     "colorPanel": {
@@ -431,8 +431,8 @@
       "editsTitle": "Edits",
       "generativeEditTitle": "Generative Edit",
       "enhancementTitle": "AI Enhancement",
-      "superResolution": "Super Resolution",
-      "superResolutionTooltip": "Use AI super resolution to upscale image by 2x",
+      "superResolution": "Smart Upscale",
+      "superResolutionTooltip": "Use smart upscaling to enlarge image by 2x",
       "inpaintingTitle": "Inpainting",
       "manualCleanupTitle": "Manual Cleanup",
       "mode": {
@@ -670,7 +670,7 @@
         "select": "Select",
         "selectPresetTooltip": "Select a preset to apply"
       },
-      "toggleAnalyticsTooltip": "Toggle Analytics Display",
+      "toggleAnalyticsTooltip": "Toggle Waveform Display",
       "tooltips": {
         "addToCurrent": "Add {{name}} to Current Mask or Create New (Right-click)",
         "createNew": "Create New {{name}} Mask",

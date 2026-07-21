@@ -299,7 +299,7 @@
       "tooltips": {
         "autoAdjust": "Ajuste automático de imagen",
         "resetAdjustments": "Restablecer ajustes",
-        "toggleAnalytics": "Alternar vista de análisis"
+        "toggleAnalytics": "Alternar vista de forma de onda"
       }
     },
     "colorPanel": {
@@ -599,7 +599,7 @@
         "select": "Seleccionar",
         "selectPresetTooltip": "Selecciona un ajuste preestablecido para aplicar"
       },
-      "toggleAnalyticsTooltip": "Alternar vista de análisis",
+      "toggleAnalyticsTooltip": "Alternar vista de forma de onda",
       "tooltips": {
         "addToCurrent": "Añadir {{name}} a la máscara actual o crear nueva (Clic derecho)",
         "createNew": "Crear nueva máscara {{name}}",

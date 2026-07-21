@@ -58,7 +58,6 @@ import { OPTION_SEPARATOR } from '../../ui/AppProperties';
 import { createSubMask } from '../../../utils/maskUtils';
 import Text from '../../ui/Text';
 import { TEXT_COLOR_KEYS, TextColors, TextVariants, TextWeights } from '../../../types/typography';
-import { useUser, useAuth } from '@clerk/react';
 import { useOsPlatform } from '../../../hooks/useOsPlatform';
 import { useSettingsStore } from '../../../store/useSettingsStore';
 import { useEditorStore } from '../../../store/useEditorStore';
@@ -172,87 +171,19 @@ const BrushTools = ({ settings, onSettingsChange }: { settings: any; onSettingsC
 
 interface ConnectionStatusProps {
   aiProvider: string;
-  isAIConnectorConnected: boolean;
-  isSignedIn: boolean;
-  isPro: boolean;
-  cloudUsage: { requests: number; limit: number; month: string } | null;
 }
 
 const ConnectionStatus = ({
-  aiProvider,
-  isAIConnectorConnected,
-  isSignedIn,
-  isPro,
-  cloudUsage,
+  aiProvider: _aiProvider,
 }: ConnectionStatusProps) => {
   const { t } = useTranslation();
+
+  // Device-side mode: always show ready status for local AI backend
+  const statusColor = 'bg-green-500';
+  const statusText = t('editor.ai.connection.ready');
+  const titleText = t('editor.ai.connection.builtinLabel');
+  const hoverContent = <Text variant={TextVariants.small}>{t('editor.ai.connection.builtinDesc')}</Text>;
   const [isHovered, setIsHovered] = useState(false);
-
-  let statusColor = 'bg-green-500';
-  let statusText = t('editor.ai.connection.ready');
-  let titleText = t('editor.ai.connection.backendLabel');
-  let hoverContent: React.ReactNode = null;
-
-  if (aiProvider === 'cloud') {
-    titleText = t('editor.ai.connection.cloudLabel');
-    if (isSignedIn && isPro) {
-      statusColor = 'bg-green-500';
-      statusText = t('editor.ai.connection.ready');
-
-      const reqs = cloudUsage?.requests ?? 0;
-      const limit = cloudUsage?.limit ?? 500;
-      const percent = Math.min(100, (reqs / limit) * 100);
-
-      hoverContent = (
-        <div className="w-full mt-1">
-          <div className="flex justify-between items-center mb-1.5">
-            <Text variant={TextVariants.small}>{t('editor.ai.connection.monthlyUsage')}</Text>
-            <Text variant={TextVariants.small}>
-              {t('settings.processing.ai.cloud.signedIn.usageStats', { requests: reqs, limit: limit })}
-            </Text>
-          </div>
-          <div className="w-full bg-bg-tertiary rounded-full h-1.5 border border-border-color">
-            <div
-              className="bg-accent h-1.5 rounded-full transition-all duration-500"
-              style={{ width: `${percent}%` }}
-            />
-          </div>
-        </div>
-      );
-    } else if (isSignedIn && !isPro) {
-      statusColor = 'bg-red-500';
-      statusText = t('editor.ai.connection.upgradeRequired');
-      hoverContent = <Text variant={TextVariants.small}>{t('editor.ai.connection.proRequiredDesc')}</Text>;
-    } else {
-      statusColor = 'bg-red-500';
-      statusText = t('editor.ai.connection.notLoggedIn');
-      hoverContent = <Text variant={TextVariants.small}>{t('editor.ai.connection.loginRequiredDesc')}</Text>;
-    }
-  } else if (aiProvider === 'ai-connector') {
-    titleText = t('editor.ai.connection.connectorLabel');
-    if (isAIConnectorConnected) {
-      statusColor = 'bg-green-500';
-      statusText = t('editor.ai.connection.ready');
-      hoverContent = <Text variant={TextVariants.small}>{t('editor.ai.connection.connectorConnectedDesc')}</Text>;
-    } else {
-      statusColor = 'bg-red-500';
-      statusText = t('editor.ai.connection.notDetected');
-      hoverContent = <Text variant={TextVariants.small}>{t('editor.ai.connection.connectorDisconnectedDesc')}</Text>;
-    }
-  } else {
-    titleText = t('editor.ai.connection.builtinLabel');
-    statusColor = 'bg-green-500';
-    statusText = t('editor.ai.connection.ready');
-    hoverContent = <Text variant={TextVariants.small}>{t('editor.ai.connection.builtinDesc')}</Text>;
-  }
-
-  // For local/cpu mode, always show ready status regardless of cloud sign-in state
-  if (aiProvider === 'cpu') {
-    statusColor = 'bg-green-500';
-    statusText = t('editor.ai.connection.ready');
-    titleText = t('editor.ai.connection.builtinLabel');
-    hoverContent = <Text variant={TextVariants.small}>{t('editor.ai.connection.builtinDesc')}</Text>;
-  }
 
   return (
     <div
@@ -266,7 +197,7 @@ const ConnectionStatus = ({
         <Text
           variant={TextVariants.label}
           weight={TextWeights.bold}
-          className={statusColor === 'bg-green-500' ? 'text-green-500' : 'text-red-500'}
+          className="text-green-500"
         >
           {statusText}
         </Text>
@@ -293,7 +224,6 @@ export default function AIPanel() {
   const activeSubMaskId = useEditorStore((s) => s.activeAiSubMaskId);
   const adjustments = useEditorStore((s) => s.adjustments);
   const brushSettings = useEditorStore((s) => s.brushSettings);
-  const isAIConnectorConnected = useEditorStore((s) => s.isAIConnectorConnected);
   const isGeneratingAi = useEditorStore((s) => s.isGeneratingAi);
   const isGeneratingAiMask = useEditorStore((s) => s.isGeneratingAiMask);
   const selectedImage = useEditorStore((s) => s.selectedImage);
@@ -307,39 +237,11 @@ export default function AIPanel() {
   const appSettings = useSettingsStore((s) => s.appSettings);
   const aiProvider = appSettings?.aiProvider || 'cpu';
 
-  const { user, isSignedIn } = useUser();
-  const { getToken } = useAuth();
-  const isPro = user?.publicMetadata?.plan === 'pro';
-  const [cloudUsage, setCloudUsage] = useState<{ requests: number; limit: number; month: string } | null>(null);
+  // Device-side: local/builtin AI is always available for generative features.
+  // All generative features run on-device via LaMa inpainting.
+  const isGenerativeAvailable = true;
 
-  // Device-side fix: local/builtin AI (cpu) is always available for generative features.
-  // Cloud requires signedIn+isPro, ai-connector requires connection.
-  const isGenerativeAvailable =
-    aiProvider === 'cpu' ||
-    (aiProvider === 'cloud' && !!isSignedIn && !!isPro) ||
-    (aiProvider === 'ai-connector' && isAIConnectorConnected);
-
-  useEffect(() => {
-    if (aiProvider !== 'cloud' || !isSignedIn || !isPro) return;
-
-    const fetchUsage = async () => {
-      try {
-        const token = await getToken();
-        if (!token) return;
-
-        const res = await fetch('https://getrapidraw.com/api/usage', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          setCloudUsage(await res.json());
-        }
-      } catch (e) {
-        console.error('Failed to fetch cloud usage', e);
-      }
-    };
-
-    fetchUsage();
-  }, [aiProvider, isSignedIn, isPro, getToken]);
+  // Cloud usage and auth removed - device-side mode does not use cloud APIs
 
   const setBrushSettings = useCallback(
     (updater: any) =>
@@ -1074,10 +976,6 @@ export default function AIPanel() {
                   <>
                     <ConnectionStatus
                       aiProvider={aiProvider}
-                      isAIConnectorConnected={isAIConnectorConnected}
-                      isSignedIn={!!isSignedIn}
-                      isPro={!!isPro}
-                      cloudUsage={cloudUsage}
                     />
 
                     <Text variant={TextVariants.heading} className="mb-2 mt-6">

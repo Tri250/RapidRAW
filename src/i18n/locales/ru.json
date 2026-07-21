@@ -299,7 +299,7 @@
       "tooltips": {
         "autoAdjust": "Автонастройка изображения",
         "resetAdjustments": "Сбросить настройки",
-        "toggleAnalytics": "Показать/скрыть панель гистограммы"
+        "toggleAnalytics": "Показать/скрыть панель формы волны"
       }
     },
     "colorPanel": {
@@ -599,7 +599,7 @@
         "select": "Выбрать",
         "selectPresetTooltip": "Выберите пресет для применения"
       },
-      "toggleAnalyticsTooltip": "Показать/скрыть панель гистограммы",
+      "toggleAnalyticsTooltip": "Показать/скрыть панель формы волны",
       "tooltips": {
         "addToCurrent": "Добавить {{name}} к текущей маске или создать новую (правый клик)",
         "createNew": "Создать новую маску: {{name}}",

@@ -331,7 +331,7 @@
       "tooltips": {
         "autoAdjust": "Auto-korekta obrazu",
         "resetAdjustments": "Resetuj ustawienia",
-        "toggleAnalytics": "Przełącz widok analityki"
+        "toggleAnalytics": "Przełącz widok przebiegu"
       }
     },
     "colorPanel": {
@@ -637,7 +637,7 @@
         "select": "Wybierz",
         "selectPresetTooltip": "Wybierz preset do zastosowania"
       },
-      "toggleAnalyticsTooltip": "Przełącz widok analityki",
+      "toggleAnalyticsTooltip": "Przełącz widok przebiegu",
       "tooltips": {
         "addToCurrent": "Dodaj {{name}} do bieżącej maski lub utwórz nową (Prawy przycisk)",
         "createNew": "Utwórz nową maskę {{name}}",
