@@ -353,10 +353,15 @@ pub fn read_android_content_uri(uri_str: &str) -> Result<Vec<u8>, String> {
         let mut bytes = Vec::new();
 
         loop {
+            // Save raw pointer before converting JPrimitiveArray → JValue (which consumes java_buffer)
+            let java_buffer_raw = java_buffer.as_raw();
             let read_count = env
-                .call_method(&input_stream, "read", "([B)I", &[java_buffer.as_ref().into()])
+                .call_method(&input_stream, "read", "([B)I", &[java_buffer.into()])
                 .and_then(|value| value.i())
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
+            // Recreate JPrimitiveArray from saved raw pointer for get_byte_array_region
+            let java_buffer =
+                unsafe { jni::objects::JPrimitiveArray::<i8>::from_raw(java_buffer_raw) };
 
             if read_count < 0 {
                 break;
@@ -529,10 +534,12 @@ pub fn save_bytes_to_android_media_store(
             let byte_array = env
                 .byte_array_from_slice(chunk)
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
-            env.call_method(&output_stream, "write", "([B)V", &[byte_array.as_ref().into()])
+            // Save raw pointer for cleanup after call_method consumes byte_array
+            let byte_array_raw = byte_array.as_raw();
+            env.call_method(&output_stream, "write", "([B)V", &[byte_array.into()])
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
             // Explicitly delete local reference to prevent accumulation in large file writes
-            let _ = env.delete_local_ref(byte_array.as_ref());
+            let _ = env.delete_local_ref(unsafe { JObject::from_raw(byte_array_raw) });
             offset = end;
         }
         env.call_method(&output_stream, "flush", "()V", &[])
