@@ -82,7 +82,7 @@ function loadFromStorage(): PresetSubscription[] {
   } catch {
     // ignore
   }
-  return [DEFAULT_SUBSCRIPTION];
+  return DEFAULT_SUBSCRIPTIONS;
 }
 
 function saveToStorage(subs: PresetSubscription[]) {
@@ -105,8 +105,12 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
 
   initSubscriptions: async () => {
     const subs = get().subscriptions;
-    if (subs.length === 0) {
-      set({ subscriptions: [DEFAULT_SUBSCRIPTION] });
+    // Ensure all default subscriptions are present (merge new defaults into existing)
+    const existingIds = new Set(subs.map((s) => s.id));
+    const missingDefaults = DEFAULT_SUBSCRIPTIONS.filter((d) => !existingIds.has(d.id));
+    if (missingDefaults.length > 0) {
+      set({ subscriptions: [...subs, ...missingDefaults] });
+      saveToStorage([...subs, ...missingDefaults]);
     }
     await get().loadGalleryPresets();
   },
