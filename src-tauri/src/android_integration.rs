@@ -354,7 +354,7 @@ pub fn read_android_content_uri(uri_str: &str) -> Result<Vec<u8>, String> {
 
         loop {
             let read_count = env
-                .call_method(&input_stream, "read", "([B)I", &[JValueGen::from(java_buffer.as_ref())])
+                .call_method(&input_stream, "read", "([B)I", &[JValueGen::from(&*java_buffer as &JObject)])
                 .and_then(|value| value.i())
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
 
@@ -363,8 +363,6 @@ pub fn read_android_content_uri(uri_str: &str) -> Result<Vec<u8>, String> {
             }
 
             if read_count == 0 {
-                // InputStream.read(byte[]) returns 0 only for zero-length buffers,
-                // which should not happen here. Break to prevent infinite loop.
                 break;
             }
 
@@ -529,7 +527,7 @@ pub fn save_bytes_to_android_media_store(
             let byte_array = env
                 .byte_array_from_slice(chunk)
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
-            env.call_method(&output_stream, "write", "([B)V", &[JValueGen::from(byte_array.as_ref())])
+            env.call_method(&output_stream, "write", "([B)V", &[JValueGen::from(&*byte_array as &JObject)])
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
             // Explicitly delete local reference to prevent accumulation in large file writes
             let _ = env.delete_local_ref(JObject::from(byte_array));
