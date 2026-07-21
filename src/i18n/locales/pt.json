@@ -924,6 +924,7 @@
         "tooltipClearSearch": "Limpar pesquisa",
         "tooltipSearchFilter": "Pesquisar ou Filtrar"
       },
+      "photos": "fotos",
       "title": "Biblioteca",
       "viewOptions": {
         "currentFolder": "Pasta Atual",
@@ -983,7 +984,7 @@
     },
     "splash": {
       "addFolder": "Adicionar Pasta",
-      "brand": "RapidRAW",
+      "brand": "RAW Workshop",
       "creditLine": "Criado por '带娃的小陈工' para fotógrafos chineses",
       "continueSession": "Continuar Sessão",
       "contribute": "Contribuir no GitHub",

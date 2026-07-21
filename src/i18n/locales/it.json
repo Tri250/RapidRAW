@@ -924,6 +924,7 @@
         "tooltipClearSearch": "Cancella ricerca",
         "tooltipSearchFilter": "Cerca o Filtra"
       },
+      "photos": "foto",
       "title": "Libreria",
       "viewOptions": {
         "currentFolder": "Cartella Corrente",
@@ -983,7 +984,7 @@
     },
     "splash": {
       "addFolder": "Aggiungi Cartella",
-      "brand": "RapidRAW",
+      "brand": "RAW Workshop",
       "creditLine": "Creato da '带娃的小陈工' per fotografi cinesi",
       "continueSession": "Continua Sessione",
       "contribute": "Contribuisci su GitHub",

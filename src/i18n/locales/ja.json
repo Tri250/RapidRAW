@@ -923,6 +923,7 @@
         "tooltipClearSearch": "検索をクリア",
         "tooltipSearchFilter": "検索またはフィルター"
       },
+      "photos": "枚の写真",
       "title": "ライブラリ",
       "viewOptions": {
         "currentFolder": "現在のフォルダ",
@@ -982,7 +983,7 @@
     },
     "splash": {
       "addFolder": "フォルダを追加",
-      "brand": "RapidRAW",
+      "brand": "RAW Workshop",
       "creditLine": "中国人フォトグラファーのために「带娃的小陈工」が丁寧に作りました",
       "continueSession": "セッションを続行",
       "contribute": "GitHubで貢献する",

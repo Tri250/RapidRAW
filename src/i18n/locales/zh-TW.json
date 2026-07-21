@@ -669,7 +669,7 @@
         "importPresetsTitle": "匯入預設",
         "legacyPreset": "舊版預設",
         "presetFile": "預設檔案",
-        "rapidRawPreset": "RapidRAW 預設"
+        "rapidRawPreset": "RAW 工坊 預設"
       },
       "menu": {
         "configurePreset": "配置預設",
@@ -924,6 +924,7 @@
         "tooltipClearSearch": "清除搜尋",
         "tooltipSearchFilter": "搜尋或過濾"
       },
+      "photos": "張照片",
       "title": "相簿",
       "viewOptions": {
         "currentFolder": "當前資料夾",
@@ -983,7 +984,7 @@
     },
     "splash": {
       "addFolder": "新增資料夾",
-      "brand": "RAW工坊",
+      "brand": "RAW 工坊",
       "creditLine": "由「带娃的小陳工」為中國攝影者精心打造",
       "continueSession": "繼續會話",
       "contribute": "在 GitHub 上貢獻",

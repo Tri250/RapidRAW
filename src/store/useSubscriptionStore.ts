@@ -5,7 +5,7 @@ import { PresetSubscription, GalleryPreset, SubscriptionUpdateInfo } from '../ty
 const DEFAULT_SUBSCRIPTION: PresetSubscription = {
   id: 'default-github',
   url: 'https://raw.githubusercontent.com/CyberTimon/RapidRAW-Presets/main/presets.json',
-  name: 'RapidRAW Official',
+  name: 'RAW 工坊 Official',
   author: '@CyberTimon',
   build: 1,
   isEnabled: true,

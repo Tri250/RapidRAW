@@ -1213,7 +1213,7 @@ const ImageCanvas = memo(
       fade: null as string | null,
     });
     const [isFadingIn, setIsFadingIn] = useState(false);
-    const prevImageIdentityRef = useRef(selectedImage.thumbnailUrl);
+    const prevImageIdentityRef = useRef(selectedImage.path);
 
     const [baseTool, setBaseTool] = useState<ToolType>(brushSettings?.tool ?? ToolType.Brush);
     const [isAltPressed, setIsAltPressed] = useState(false);
@@ -1304,12 +1304,15 @@ const ImageCanvas = memo(
       }
     }, [interactivePatch]);
 
+    const displayStateBaseRef = useRef(displayState.base);
+    displayStateBaseRef.current = displayState.base;
+
     useEffect(() => {
       const newSrc = finalPreviewUrl || selectedImage.thumbnailUrl;
-      const isNewImage = prevImageIdentityRef.current !== selectedImage.thumbnailUrl;
+      const isNewImage = prevImageIdentityRef.current !== selectedImage.path;
 
       if (isNewImage) {
-        prevImageIdentityRef.current = selectedImage.thumbnailUrl;
+        prevImageIdentityRef.current = selectedImage.path;
         setDisplayState({ base: newSrc, fade: null });
         setIsFadingIn(false);
         return;
@@ -1319,7 +1322,8 @@ const ImageCanvas = memo(
         setDisplayState({ base: newSrc, fade: null });
         setIsFadingIn(false);
       } else {
-        if (displayState.base !== newSrc && displayState.base) {
+        const currentBase = displayStateBaseRef.current;
+        if (currentBase !== newSrc && currentBase) {
           setDisplayState((prev) => ({ base: prev.base, fade: newSrc }));
           setIsFadingIn(false);
 
@@ -1345,7 +1349,7 @@ const ImageCanvas = memo(
           setIsFadingIn(false);
         }
       }
-    }, [finalPreviewUrl, selectedImage.thumbnailUrl, isSliderDragging, displayState.base]);
+    }, [finalPreviewUrl, selectedImage.thumbnailUrl, isSliderDragging]);
 
     useEffect(() => {
       setBaseTool(brushSettings?.tool ?? ToolType.Brush);

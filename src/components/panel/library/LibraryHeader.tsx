@@ -876,8 +876,6 @@ export function AdvancedFilterPanel({ isAndroid }: { isAndroid: boolean }) {
     })),
   );
 
-  if (!isAndroid) return null;
-
   const isFilterActive =
     advancedFilter.dateFrom !== null ||
     advancedFilter.dateTo !== null ||

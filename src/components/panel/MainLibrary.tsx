@@ -361,7 +361,14 @@ export default function MainLibrary(props: MainLibraryProps) {
         onMouseLeave={() => setIsProgressHovered(false)}
       >
         <div className="min-w-0">
-          <Text variant={TextVariants.headline}>{t('library.header.title')}</Text>
+          <div className="flex items-center gap-3">
+            <Text variant={TextVariants.headline}>{t('library.header.title')}</Text>
+            {props.imageList.length > 0 && (
+              <Text variant={TextVariants.small} color={TextColors.secondary}>
+                {props.imageList.length} {t('library.header.photos', 'photos')}
+              </Text>
+            )}
+          </div>
           {!props.isAndroid && (
             <div className="flex items-center gap-2">
               {props.currentFolderPath ? (
@@ -429,16 +436,14 @@ export default function MainLibrary(props: MainLibraryProps) {
             editedStatusOptions={translatedEditedStatusOptions}
             sortOptions={translatedSortOptions}
           />
-          {props.isAndroid && (
-            <Button
-              className={`h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center relative ${showAdvancedFilter ? 'bg-card-active' : ''}`}
-              onClick={() => setShowAdvancedFilter(!showAdvancedFilter)}
-              data-tooltip={t('library.search.advancedFilter')}
-            >
-              <Filter className="w-5 h-5" />
-              {showAdvancedFilter && <div className="absolute -top-1 -right-1 bg-accent rounded-full w-3 h-3" />}
-            </Button>
-          )}
+          <Button
+            className={`h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center relative ${showAdvancedFilter ? 'bg-card-active' : ''}`}
+            onClick={() => setShowAdvancedFilter(!showAdvancedFilter)}
+            data-tooltip={t('library.search.advancedFilter')}
+          >
+            <Filter className="w-5 h-5" />
+            {showAdvancedFilter && <div className="absolute -top-1 -right-1 bg-accent rounded-full w-3 h-3" />}
+          </Button>
           {!props.isAndroid && (
             <>
               <Button
@@ -461,7 +466,7 @@ export default function MainLibrary(props: MainLibraryProps) {
       </header>
 
       <AnimatePresence>
-        {showAdvancedFilter && props.isAndroid && <AdvancedFilterPanel isAndroid={props.isAndroid} />}
+        {showAdvancedFilter && <AdvancedFilterPanel isAndroid={props.isAndroid} />}
       </AnimatePresence>
 
       {props.imageList.length > 0 ? (

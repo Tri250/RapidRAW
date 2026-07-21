@@ -751,7 +751,7 @@
         "importPresetsTitle": "Import Presets",
         "legacyPreset": "Legacy Preset",
         "presetFile": "Preset File",
-        "rapidRawPreset": "RapidRAW Preset"
+        "rapidRawPreset": "RAW Workshop Preset"
       },
       "menu": {
         "configurePreset": "Configure Preset",
@@ -1013,6 +1013,7 @@
         "tooltipClearSearch": "Clear search",
         "tooltipSearchFilter": "Search or Filter"
       },
+      "photos": "photos",
       "title": "Library",
       "viewOptions": {
         "currentFolder": "Current Folder",
@@ -1080,7 +1081,7 @@
     },
     "splash": {
       "addFolder": "Add Folder",
-      "brand": "RapidRAW",
+      "brand": "RAW Workshop",
       "continueSession": "Continue Session",
       "contribute": "Contribute on GitHub",
       "descriptionAndroid": "A blazingly fast, GPU-accelerated RAW image editor. Open the library to begin.",

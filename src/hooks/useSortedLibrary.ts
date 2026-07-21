@@ -35,7 +35,7 @@ export const parseFocalLength = (val: string | undefined): number => {
 };
 
 export function computeSortedLibrary(libraryState: any, settingsState: any): ImageFile[] {
-  const { imageList, imageRatings, filterCriteria, searchCriteria, sortCriteria } = libraryState;
+  const { imageList, imageRatings, filterCriteria, searchCriteria, sortCriteria, advancedFilter } = libraryState;
   const { appSettings: _appSettings, supportedTypes } = settingsState;
 
   const getParentDir = (filePath: string): string => {
@@ -219,7 +219,33 @@ export function computeSortedLibrary(libraryState: any, settingsState: any): Ima
           return tagsMatch && textMatch;
         });
 
-  const list = [...filteredBySearch];
+  let filteredByAdvanced = filteredBySearch;
+  if (advancedFilter) {
+    const { dateFrom, dateTo, cameraModel, focalLengthMin, focalLengthMax } = advancedFilter;
+    if (dateFrom || dateTo || cameraModel || focalLengthMin !== null || focalLengthMax !== null) {
+      filteredByAdvanced = filteredBySearch.filter((image: ImageFile) => {
+        const exifDate = image.exif?.DateTimeOriginal || image.exif?.DateTime || image.exif?.DateTimeDigitized;
+        if (dateFrom || dateTo) {
+          if (!exifDate) return false;
+          const imageDate = new Date(exifDate.replace(/:/g, '-').replace(' ', 'T'));
+          if (dateFrom && imageDate < new Date(dateFrom)) return false;
+          if (dateTo && imageDate > new Date(dateTo + 'T23:59:59')) return false;
+        }
+        if (cameraModel) {
+          const model = `${image.exif?.Make || ''} ${image.exif?.Model || ''}`.toLowerCase();
+          if (!model.includes(cameraModel.toLowerCase())) return false;
+        }
+        if (focalLengthMin !== null || focalLengthMax !== null) {
+          const focal = parseFocalLength(image.exif?.FocalLength);
+          if (focalLengthMin !== null && focal < focalLengthMin) return false;
+          if (focalLengthMax !== null && focal > focalLengthMax) return false;
+        }
+        return true;
+      });
+    }
+  }
+
+  const list = [...filteredByAdvanced];
 
   list.sort((a, b) => {
     const { key, order } = sortCriteria;
@@ -286,16 +312,17 @@ export function useSortedLibrary() {
   const filterCriteria = useLibraryStore((state) => state.filterCriteria);
   const searchCriteria = useLibraryStore((state) => state.searchCriteria);
   const sortCriteria = useLibraryStore((state) => state.sortCriteria);
+  const advancedFilter = useLibraryStore((state) => state.advancedFilter);
 
   const appSettings = useSettingsStore((state) => state.appSettings);
   const supportedTypes = useSettingsStore((state) => state.supportedTypes);
 
   const sortedImageList = useMemo(() => {
     return computeSortedLibrary(
-      { imageList, imageRatings, filterCriteria, searchCriteria, sortCriteria },
+      { imageList, imageRatings, filterCriteria, searchCriteria, sortCriteria, advancedFilter },
       { appSettings, supportedTypes },
     );
-  }, [imageList, sortCriteria, imageRatings, filterCriteria, supportedTypes, searchCriteria, appSettings]);
+  }, [imageList, sortCriteria, imageRatings, filterCriteria, supportedTypes, searchCriteria, appSettings, advancedFilter]);
 
   return sortedImageList;
 }
