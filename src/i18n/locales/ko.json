@@ -287,6 +287,7 @@
         "pasteSettings": "설정 붙여넣기",
         "resetSectionSettings": "{{section}} 설정 초기화"
       },
+      "confirmReset": "모든 조정을 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
       "sections": {
         "basic": "기본",
         "color": "색상",
@@ -305,7 +306,8 @@
       "title": "색상"
     },
     "portraitPanel": {
-      "title": "인물"
+      "title": "인물",
+      "brushSize": "브러시 크기"
     },
     "ai": {
       "actions": {
@@ -362,6 +364,11 @@
       "generativeEditTitle": "생성형 편집",
       "inpaintingTitle": "인페인팅",
       "manualCleanupTitle": "수동 정리",
+      "mode": {
+        "add": "추가",
+        "sub": "제거",
+        "inter": "교차"
+      },
       "noImageSelected": "선택된 이미지가 없습니다.",
       "params": {
         "feather": "페더",
@@ -638,6 +645,7 @@
         "clickToOpenTooltip": "클릭하여 새 탭에서 지도 열기",
         "latitude": "위도",
         "longitude": "경도",
+        "openExternal": "지도 열기",
         "title": "GPS 위치"
       },
       "organization": {
@@ -751,7 +759,8 @@
     },
     "file": {
       "quality": "품질",
-      "qualityLossless": "품질 (무손실)"
+      "qualityLossless": "품질 (무손실)",
+      "sequenceVariableRecommended": "파일 이름 충돌을 방지하려면 {sequence} 또는 {original_filename}을 사용하는 것이 좋습니다"
     },
     "labels": {
       "image": "이미지",

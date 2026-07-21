@@ -319,6 +319,7 @@
         "pasteSettings": "Wklej ustawienia",
         "resetSectionSettings": "Resetuj ustawienia sekcji {{section}}"
       },
+      "confirmReset": "Czy na pewno chcesz zresetować wszystkie dostosowania? Tej operacji nie można cofnąć.",
       "sections": {
         "basic": "Podstawowe",
         "color": "Kolor",
@@ -337,7 +338,8 @@
       "title": "Kolor"
     },
     "portraitPanel": {
-      "title": "Portret"
+      "title": "Portret",
+      "brushSize": "Rozmiar pędzla"
     },
     "ai": {
       "actions": {
@@ -394,6 +396,11 @@
       "generativeEditTitle": "Edycja generatywna",
       "inpaintingTitle": "Inpainting",
       "manualCleanupTitle": "Ręczne czyszczenie",
+      "mode": {
+        "add": "Dodaj",
+        "sub": "Odejmij",
+        "inter": "Przecięcie"
+      },
       "noImageSelected": "Brak zaznaczonego obrazu.",
       "params": {
         "feather": "Wtapianie",
@@ -676,6 +683,7 @@
         "clickToOpenTooltip": "Kliknij, aby otworzyć mapę w nowej karcie",
         "latitude": "Szerokość geograficzna",
         "longitude": "Długość geograficzna",
+        "openExternal": "Otwórz mapę",
         "title": "Lokalizacja GPS"
       },
       "organization": {
@@ -791,7 +799,8 @@
     },
     "file": {
       "quality": "Jakość",
-      "qualityLossless": "Jakość (Bezstratna)"
+      "qualityLossless": "Jakość (Bezstratna)",
+      "sequenceVariableRecommended": "Zaleca się użycie {sequence} lub {original_filename}, aby uniknąć konfliktów nazw plików"
     },
     "labels": {
       "image": "Obraz",

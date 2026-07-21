@@ -314,6 +314,7 @@
         "pasteSettings": "Paste Settings",
         "resetSectionSettings": "Reset {{section}} Settings"
       },
+      "confirmReset": "Are you sure you want to reset all adjustments? This action cannot be undone.",
       "sections": {
         "basic": "Basic",
         "color": "Color",
@@ -348,6 +349,7 @@
       "blemishUndo": "Undo Last",
       "blemishCount": "{{count}} spots marked",
       "blemishHint": "Tap image to mark blemish spots",
+      "brushSize": "Brush Size",
       "skinSmoothing": "Skin Smoothing",
       "skinSmoothingStrength": "Strength",
       "skinSmoothingDetailPreserve": "Detail Preserve",
@@ -433,6 +435,11 @@
       "superResolutionTooltip": "Use AI super resolution to upscale image by 2x",
       "inpaintingTitle": "Inpainting",
       "manualCleanupTitle": "Manual Cleanup",
+      "mode": {
+        "add": "Add",
+        "sub": "Sub",
+        "inter": "Inter"
+      },
       "noImageSelected": "No image selected.",
       "params": {
         "feather": "Feather",
@@ -710,6 +717,7 @@
         "latitude": "Latitude",
         "longitude": "Longitude",
         "offlineFallback": "Map unavailable (offline). Coordinates:",
+        "openExternal": "Open Map",
         "title": "GPS Location"
       },
       "organization": {
@@ -833,7 +841,8 @@
     },
     "file": {
       "quality": "Quality",
-      "qualityLossless": "Quality (Lossless)"
+      "qualityLossless": "Quality (Lossless)",
+      "sequenceVariableRecommended": "It is recommended to use {sequence} or {original_filename} to avoid filename conflicts"
     },
     "labels": {
       "image": "Image",

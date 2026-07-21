@@ -287,6 +287,7 @@
         "pasteSettings": "Pegar ajustes",
         "resetSectionSettings": "Restablecer ajustes de {{section}}"
       },
+      "confirmReset": "¿Estás seguro de que quieres restablecer todos los ajustes? Esta acción no se puede deshacer.",
       "sections": {
         "basic": "Básico",
         "color": "Color",
@@ -305,7 +306,8 @@
       "title": "Color"
     },
     "portraitPanel": {
-      "title": "Retrato"
+      "title": "Retrato",
+      "brushSize": "Tamaño del pincel"
     },
     "ai": {
       "actions": {
@@ -362,6 +364,11 @@
       "generativeEditTitle": "Edición generativa",
       "inpaintingTitle": "Inpainting",
       "manualCleanupTitle": "Limpieza manual",
+      "mode": {
+        "add": "Añadir",
+        "sub": "Restar",
+        "inter": "Intersección"
+      },
       "noImageSelected": "No hay imagen seleccionada.",
       "params": {
         "feather": "Desvanecimiento",
@@ -638,6 +645,7 @@
         "clickToOpenTooltip": "Haz clic para abrir el mapa en una nueva pestaña",
         "latitude": "Latitud",
         "longitude": "Longitud",
+        "openExternal": "Abrir mapa",
         "title": "Ubicación GPS"
       },
       "organization": {
@@ -751,7 +759,8 @@
     },
     "file": {
       "quality": "Calidad",
-      "qualityLossless": "Calidad (Sin pérdida)"
+      "qualityLossless": "Calidad (Sin pérdida)",
+      "sequenceVariableRecommended": "Se recomienda usar {sequence} o {original_filename} para evitar conflictos de nombres de archivo"
     },
     "labels": {
       "image": "Imagen",

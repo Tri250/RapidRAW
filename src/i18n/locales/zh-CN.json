@@ -314,6 +314,7 @@
         "pasteSettings": "粘贴设置",
         "resetSectionSettings": "重置 {{section}} 设置"
       },
+      "confirmReset": "确定要重置所有调整参数吗？此操作无法撤销。",
       "sections": {
         "basic": "基础",
         "color": "颜色",
@@ -348,6 +349,7 @@
       "blemishUndo": "撤销上一个",
       "blemishCount": "已标记 {{count}} 个瑕疵点",
       "blemishHint": "点击图片标记瑕疵点",
+      "brushSize": "画笔大小",
       "skinSmoothing": "美肤磨皮",
       "skinSmoothingStrength": "强度",
       "skinSmoothingDetailPreserve": "细节保留",
@@ -433,6 +435,11 @@
       "superResolutionTooltip": "使用 AI 超分辨率将图像放大 2 倍",
       "inpaintingTitle": "图像修复",
       "manualCleanupTitle": "手动清理",
+      "mode": {
+        "add": "添加",
+        "sub": "减去",
+        "inter": "相交"
+      },
       "noImageSelected": "未选择图像。",
       "params": {
         "feather": "羽化",
@@ -710,6 +717,7 @@
         "latitude": "纬度",
         "longitude": "经度",
         "offlineFallback": "地图不可用（离线状态）。坐标：",
+        "openExternal": "打开地图",
         "title": "GPS 位置"
       },
       "organization": {
@@ -848,7 +856,8 @@
     },
     "file": {
       "quality": "质量",
-      "qualityLossless": "质量（无损）"
+      "qualityLossless": "质量（无损）",
+      "sequenceVariableRecommended": "建议使用 {sequence} 或 {original_filename} 避免文件名冲突"
     },
     "labels": {
       "image": "图像",

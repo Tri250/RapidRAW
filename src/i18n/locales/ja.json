@@ -287,6 +287,7 @@
         "pasteSettings": "設定を貼り付け",
         "resetSectionSettings": "{{section}}設定をリセット"
       },
+      "confirmReset": "すべての調整をリセットしてもよろしいですか？この操作は元に戻せません。",
       "sections": {
         "basic": "基本",
         "color": "カラー",
@@ -305,7 +306,8 @@
       "title": "カラー"
     },
     "portraitPanel": {
-      "title": "ポートレート"
+      "title": "ポートレート",
+      "brushSize": "ブラシサイズ"
     },
     "ai": {
       "actions": {
@@ -362,6 +364,11 @@
       "generativeEditTitle": "生成編集",
       "inpaintingTitle": "インペインティング",
       "manualCleanupTitle": "手動クリーンアップ",
+      "mode": {
+        "add": "追加",
+        "sub": "削除",
+        "inter": "交差"
+      },
       "noImageSelected": "画像が選択されていません。",
       "params": {
         "feather": "ぼかし",
@@ -638,6 +645,7 @@
         "clickToOpenTooltip": "クリックして新しいタブで地図を表示",
         "latitude": "緯度",
         "longitude": "経度",
+        "openExternal": "地図を開く",
         "title": "GPS位置情報"
       },
       "organization": {
@@ -751,7 +759,8 @@
     },
     "file": {
       "quality": "画質",
-      "qualityLossless": "画質 (ロスレス)"
+      "qualityLossless": "画質 (ロスレス)",
+      "sequenceVariableRecommended": "ファイル名の競合を避けるため、{sequence} または {original_filename} を使用することをお勧めします"
     },
     "labels": {
       "image": "画像",

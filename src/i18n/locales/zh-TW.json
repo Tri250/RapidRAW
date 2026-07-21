@@ -287,6 +287,7 @@
         "pasteSettings": "貼上設定",
         "resetSectionSettings": "重置 {{section}} 設定"
       },
+      "confirmReset": "您確定要重置所有調整嗎？此操作無法復原。",
       "sections": {
         "basic": "基礎",
         "color": "顏色",
@@ -305,7 +306,8 @@
       "title": "色彩"
     },
     "portraitPanel": {
-      "title": "人像"
+      "title": "人像",
+      "brushSize": "筆刷大小"
     },
     "ai": {
       "actions": {
@@ -362,6 +364,11 @@
       "generativeEditTitle": "生成式編輯",
       "inpaintingTitle": "影像修復",
       "manualCleanupTitle": "手動清理",
+      "mode": {
+        "add": "新增",
+        "sub": "減去",
+        "inter": "相交"
+      },
       "noImageSelected": "未選擇影像。",
       "params": {
         "feather": "羽化",
@@ -638,6 +645,7 @@
         "clickToOpenTooltip": "點選在新標籤頁中開啟地圖",
         "latitude": "緯度",
         "longitude": "經度",
+        "openExternal": "開啟地圖",
         "title": "GPS 位置"
       },
       "organization": {
@@ -751,7 +759,8 @@
     },
     "file": {
       "quality": "品質",
-      "qualityLossless": "品質（無損）"
+      "qualityLossless": "品質（無損）",
+      "sequenceVariableRecommended": "建議使用 {sequence} 或 {original_filename} 以避免檔名衝突"
     },
     "labels": {
       "image": "影像",

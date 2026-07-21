@@ -236,7 +236,7 @@ export function usePresets(currentAdjustments: Adjustments) {
     updatedPresets = updatedPresets
       .map((item: UserPreset) => {
         if (!item.folder) return item;
-        if (idSet.has(item.folder.id)) return null;
+        if (item.folder.id && idSet.has(item.folder.id)) return null;
         return {
           folder: {
             ...item.folder,
@@ -520,7 +520,7 @@ export function usePresets(currentAdjustments: Adjustments) {
       for (const item of presets) {
         if (item.preset) existingNames.add(item.preset.name);
         if (item.folder) {
-          existingNames.add(item.folder.name);
+          if (item.folder.name) existingNames.add(item.folder.name);
           for (const c of item.folder.children) existingNames.add(c.name);
         }
       }
@@ -587,11 +587,15 @@ export function usePresets(currentAdjustments: Adjustments) {
           const found = item.folder.children.find((p: any) => p.id === presetId);
           if (found) {
             presetToMove = found;
-            sourceFolderId = item.folder.id;
+            sourceFolderId = item.folder.id ?? null;
             break;
           }
           if (item.folder.id === presetId) {
-            folderToMove = { ...item.folder, children: [...item.folder.children] };
+            folderToMove = {
+              id: item.folder.id ?? '',
+              name: item.folder.name ?? '',
+              children: [...item.folder.children],
+            };
             break;
           }
         }
@@ -610,7 +614,7 @@ export function usePresets(currentAdjustments: Adjustments) {
           const isDescendant = (folderId: string): boolean => {
             const folder = presets.find((p) => p.folder?.id === folderId)?.folder;
             if (!folder) return false;
-            if (folder.children.some((c) => c.id === folderToMove!.id)) return true;
+            if (folder.children.some((c: Preset) => c.id === folderToMove!.id)) return true;
             return false;
           };
           if (isDescendant(targetFolderId)) {
@@ -665,7 +669,7 @@ export function usePresets(currentAdjustments: Adjustments) {
             !updatedPresets.some(
               (p) =>
                 p.preset?.id === presetToMove!.id ||
-                p.folder?.children.some((c) => c.id === presetToMove!.id),
+                p.folder?.children.some((c: Preset) => c.id === presetToMove!.id),
             )) ||
           (folderToMove && !updatedPresets.some((p) => p.folder?.id === folderToMove!.id));
         if (stillMissing) {

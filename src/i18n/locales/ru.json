@@ -287,6 +287,7 @@
         "pasteSettings": "Вставить настройки",
         "resetSectionSettings": "Сбросить настройки раздела «{{section}}»"
       },
+      "confirmReset": "Вы уверены, что хотите сбросить все настройки коррекции? Это действие нельзя отменить.",
       "sections": {
         "basic": "Основные",
         "color": "Цвет",
@@ -305,7 +306,8 @@
       "title": "Цвет"
     },
     "portraitPanel": {
-      "title": "Портрет"
+      "title": "Портрет",
+      "brushSize": "Размер кисти"
     },
     "ai": {
       "actions": {
@@ -362,6 +364,11 @@
       "generativeEditTitle": "Генеративное редактирование",
       "inpaintingTitle": "Восстановление",
       "manualCleanupTitle": "Ручная очистка",
+      "mode": {
+        "add": "Добавить",
+        "sub": "Вычесть",
+        "inter": "Пересечение"
+      },
       "noImageSelected": "Изображение не выбрано.",
       "params": {
         "feather": "Растушевка",
@@ -638,6 +645,7 @@
         "clickToOpenTooltip": "Нажмите, чтобы открыть карту в новой вкладке",
         "latitude": "Широта",
         "longitude": "Долгота",
+        "openExternal": "Открыть карту",
         "title": "Координаты GPS"
       },
       "organization": {
@@ -751,7 +759,8 @@
     },
     "file": {
       "quality": "Качество",
-      "qualityLossless": "Качество (без потерь)"
+      "qualityLossless": "Качество (без потерь)",
+      "sequenceVariableRecommended": "Рекомендуется использовать {sequence} или {original_filename}, чтобы избежать конфликтов имен файлов"
     },
     "labels": {
       "image": "Изображение",
