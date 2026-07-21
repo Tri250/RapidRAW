@@ -1,45 +1,16 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { ArrowLeft, CheckCircle2, ChevronDown, Loader2, Search, Users, Layers, Crop } from 'lucide-react';
-import { siGithub } from 'simple-icons';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { ArrowLeft, Loader2, Search, Users, RefreshCw, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
-import { Invokes, SupportedTypes, ImageFile } from '../ui/AppProperties';
-import { INITIAL_ADJUSTMENTS } from '../../utils/adjustments';
+import { SupportedTypes, ImageFile } from '../ui/AppProperties';
 import Text from '../ui/Text';
-import { TextColors, TextVariants, TextWeights } from '../../types/typography';
-import Dropdown from '../ui/Dropdown';
-
-const DEFAULT_PREVIEW_IMAGE_URL = 'https://raw.githubusercontent.com/CyberTimon/RapidRAW-Presets/main/sample-image.jpg';
-
-interface CommunityPreset {
-  name: string;
-  creator: string;
-  adjustments: Record<string, any>;
-  includeMasks?: boolean;
-  includeCropTransform?: boolean;
-  presetType?: 'tool' | 'style';
-}
-
-const containerVariants = {
-  hidden: { opacity: 1 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.06,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-  },
-};
+import { TextVariants, TextColors } from '../../types/typography';
+import { PresetGalleryCard } from '../gallery/PresetGalleryCard';
+import { PresetDetailModal } from '../gallery/PresetDetailModal';
+import { SubscriptionPanel } from '../gallery/SubscriptionPanel';
+import { useSubscriptionStore } from '../../store/useSubscriptionStore';
+import type { GalleryPreset } from '../../types/subscription';
 
 interface CommunityPageProps {
   onBackToLibrary: () => void;
@@ -48,169 +19,98 @@ interface CommunityPageProps {
   currentFolderPath: string | null;
 }
 
-const shuffleArray = (array: any[]) => {
-  const newArray = [...array];
-  for (let i = newArray.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-  }
-  return newArray;
-};
+const TAB_ALL = 'all';
+const TAB_NEW = 'new';
+const TAB_DOWNLOADED = 'downloaded';
 
-const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: CommunityPageProps) => {
+const CommunityPage = ({ onBackToLibrary }: CommunityPageProps) => {
   const { t } = useTranslation();
-  const [presets, setPresets] = useState<CommunityPreset[]>([]);
-  const [previews, setPreviews] = useState<Record<string, string | null>>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [previewImagePaths, setPreviewImagePaths] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState(TAB_ALL);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('name');
-  const [downloadStatus, setDownloadStatus] = useState<Record<string, 'idle' | 'downloading' | 'success'>>({});
-  const [allPreviewsLoaded, setAllPreviewsLoaded] = useState(false);
+  const [_downloadStatus, setDownloadStatus] = useState<Record<string, 'idle' | 'downloading' | 'success'>>({});
+  const [selectedPreset, setSelectedPreset] = useState<GalleryPreset | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const sortMethods = useMemo(() => [{ value: 'name', label: t('library.community.sortMethods.name') }], [t]);
+  const {
+    galleryPresets,
+    isGalleryLoading,
+    initSubscriptions,
+    loadGalleryPresets,
+    downloadPreset,
+    setGalleryFilter,
+    getFilteredPresets,
+    galleryTag,
+    setGalleryTag,
+  } = useSubscriptionStore();
 
-  const previewsRef = useRef(previews);
-  previewsRef.current = previews;
+  // Initialize subscriptions on mount
+  useEffect(() => {
+    initSubscriptions();
+  }, [initSubscriptions]);
 
-  const fetchDefaultPreviewImage = useCallback(async (): Promise<string | null> => {
+  // Update filter when search changes
+  useEffect(() => {
+    setGalleryFilter(searchTerm);
+  }, [searchTerm, setGalleryFilter]);
+
+  const filteredPresets = useMemo(() => {
+    const base = getFilteredPresets();
+
+    switch (activeTab) {
+      case TAB_NEW:
+        return base.filter((p) => p.isNew);
+      case TAB_DOWNLOADED:
+        // Downloaded presets would need tracking; for now show all
+        return base;
+      default:
+        return base;
+    }
+  }, [getFilteredPresets, activeTab]);
+
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    galleryPresets.forEach((p) => p.tags?.forEach((t) => tagSet.add(t)));
+    return Array.from(tagSet).sort();
+  }, [galleryPresets]);
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await loadGalleryPresets();
+    setIsRefreshing(false);
+  }, [loadGalleryPresets]);
+
+  const handleDownload = useCallback(async (preset: GalleryPreset) => {
+    setDownloadStatus((prev) => ({ ...prev, [preset.id]: 'downloading' }));
     try {
-      const response = await fetch(DEFAULT_PREVIEW_IMAGE_URL);
-      const blob = await response.blob();
-      const tempPath: string = await invoke(Invokes.SaveTempFile, {
-        bytes: Array.from(new Uint8Array(await blob.arrayBuffer())),
-      });
-      return tempPath;
+      await downloadPreset(preset);
+      setDownloadStatus((prev) => ({ ...prev, [preset.id]: 'success' }));
+      setTimeout(() => {
+        setDownloadStatus((prev) => ({ ...prev, [preset.id]: 'idle' }));
+      }, 2000);
     } catch (error) {
-      console.error('Failed to fetch default preview image:', error);
-      return null;
+      console.error('Failed to download preset:', error);
+      setDownloadStatus((prev) => ({ ...prev, [preset.id]: 'idle' }));
     }
-  }, []);
+  }, [downloadPreset]);
 
-  useEffect(() => {
-    const fetchPresets = async () => {
-      setIsLoading(true);
-      try {
-        const communityPresets: CommunityPreset[] = await invoke(Invokes.FetchCommunityPresets);
-        setPresets(communityPresets);
-      } catch (error) {
-        console.error('Failed to fetch community presets:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const handleCardDownload = useCallback((e: React.MouseEvent, preset: GalleryPreset) => {
+    e.stopPropagation();
+    handleDownload(preset);
+  }, [handleDownload]);
 
-    fetchPresets();
-
-    return () => {
-      Object.values(previewsRef.current).forEach((url) => {
-        if (url && url.startsWith('blob:')) {
-          URL.revokeObjectURL(url);
-        }
-      });
-    };
-  }, []);
-
-  useEffect(() => {
-    const setupPreviewImages = async () => {
-      setPreviews({});
-
-      if (!currentFolderPath || imageList.length === 0) {
-        const defaultPath = await fetchDefaultPreviewImage();
-        if (defaultPath) {
-          setPreviewImagePaths([defaultPath]);
-        }
-        return;
-      }
-
-      const shuffled = shuffleArray(imageList);
-
-      if (imageList.length === 1) {
-        setPreviewImagePaths([imageList[0].path]);
-      } else if (imageList.length >= 2 && imageList.length <= 3) {
-        setPreviewImagePaths(shuffled.slice(0, 2).map((img) => img.path));
-      } else if (imageList.length >= 4) {
-        setPreviewImagePaths(shuffled.slice(0, 4).map((img) => img.path));
-      }
-    };
-
-    setupPreviewImages();
-  }, [imageList, currentFolderPath, fetchDefaultPreviewImage]);
-
-  useEffect(() => {
-    if (presets.length === 0 || previewImagePaths.length === 0) {
-      return;
-    }
-
-    const generateAllPreviews = async () => {
-      setAllPreviewsLoaded(false);
-      try {
-        const previewDataMap: Record<string, number[]> = await invoke(Invokes.GenerateAllCommunityPreviews, {
-          imagePaths: previewImagePaths,
-          presets: presets.map((p) => ({
-            ...p,
-            adjustments: { ...INITIAL_ADJUSTMENTS, ...p.adjustments },
-          })),
-        });
-
-        const newPreviews: Record<string, string | null> = {};
-        for (const [presetName, imageData] of Object.entries(previewDataMap)) {
-          const blob = new Blob([new Uint8Array(imageData)], { type: 'image/jpeg' });
-          newPreviews[presetName] = URL.createObjectURL(blob);
-        }
-
-        setPreviews((prev) => {
-          Object.values(prev).forEach((url) => url?.startsWith('blob:') && URL.revokeObjectURL(url));
-          return newPreviews;
-        });
-      } catch (error) {
-        console.error(`Failed to generate previews:`, error);
-      } finally {
-        setAllPreviewsLoaded(true);
-      }
-    };
-
-    generateAllPreviews();
-  }, [presets, previewImagePaths]);
-
-  const handleDownloadPreset = async (preset: CommunityPreset) => {
-    setDownloadStatus((prev) => ({ ...prev, [preset.name]: 'downloading' }));
-    try {
-      if (!preset.adjustments) {
-        throw new Error('Preset adjustments are missing.');
-      }
-
-      await invoke(Invokes.SaveCommunityPreset, {
-        name: preset.name,
-        adjustments: preset.adjustments,
-        includeMasks: preset.includeMasks,
-        includeCropTransform: preset.includeCropTransform,
-        presetType: preset.presetType || 'style',
-      });
-      setDownloadStatus((prev) => ({ ...prev, [preset.name]: 'success' }));
-    } catch (error) {
-      console.error(`Failed to download preset ${preset.name}:`, error);
-      setDownloadStatus((prev) => ({ ...prev, [preset.name]: 'idle' }));
-    }
-  };
-
-  const filteredAndSortedPresets = useMemo(() => {
-    return presets
-      .filter((p) => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
-      .sort((a, b) => {
-        if (sortBy === 'name') {
-          return a.name.localeCompare(b.name);
-        }
-        return 0;
-      });
-  }, [presets, searchTerm, sortBy]);
+  const tabs = [
+    { key: TAB_ALL, label: 'All' },
+    { key: TAB_NEW, label: 'New' },
+    { key: TAB_DOWNLOADED, label: 'Downloaded' },
+  ];
 
   return (
-    <div className="flex-1 flex flex-col h-full min-w-0 bg-bg-secondary rounded-lg overflow-hidden p-4">
-      <header className="shrink-0 flex items-center justify-between mb-4 flex-wrap gap-4">
-        <div className="flex items-center">
+    <div className="flex-1 flex flex-col h-full min-w-0 bg-bg-secondary rounded-lg overflow-hidden">
+      {/* Header */}
+      <header className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+        <div className="flex items-center gap-3">
           <Button
-            className="mr-4 hover:bg-surface text-text-primary rounded-full"
+            className="hover:bg-surface text-text-primary rounded-full"
             onClick={onBackToLibrary}
             size="icon"
             variant="ghost"
@@ -221,134 +121,127 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
             <Text variant={TextVariants.headline} className="flex items-center gap-2">
               <Users /> {t('library.community.headerTitle')}
             </Text>
-            <Text>{t('library.community.headerDesc')}</Text>
+            <Text className="text-xs text-zinc-500">
+              {galleryPresets.length} presets from subscriptions
+            </Text>
           </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors disabled:opacity-50"
+            title="Refresh presets"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </header>
 
-      <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
-        <div className="relative">
-          <Input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder={t('library.community.searchPlaceholder')}
-            className="pl-10 w-64"
-          />
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <Text variant={TextVariants.label}>{t('library.community.sortBy')}</Text>
-          <Dropdown options={sortMethods} value={sortBy} onChange={(value) => setSortBy(value)} />
-        </div>
-      </div>
+      <div className="flex flex-1 min-h-0">
+        {/* Sidebar - Subscription Management */}
+        <div className="w-72 shrink-0 border-r border-zinc-800 overflow-y-auto custom-scrollbar">
+          <SubscriptionPanel />
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 -mr-2">
-        {isLoading ? (
-          <Text
-            variant={TextVariants.heading}
-            color={TextColors.secondary}
-            weight={TextWeights.normal}
-            className="flex items-center justify-center h-full "
-          >
-            <Loader2 className="h-8 w-8 animate-spin mr-2" />
-            {t('library.community.fetchingPresets')}
-          </Text>
-        ) : (
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            <AnimatePresence>
-              {filteredAndSortedPresets.map((preset) => {
-                const previewUrl = previews[preset.name];
-                const status = downloadStatus[preset.name] || 'idle';
-
-                return (
-                  <motion.div
-                    key={preset.name}
-                    layout
-                    variants={itemVariants}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    className="bg-surface rounded-lg overflow-hidden group border border-border-color flex flex-col"
+          {/* Tag Filter */}
+          {allTags.length > 0 && (
+            <div className="px-4 py-3">
+              <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Tags</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {allTags.map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => setGalleryTag(galleryTag === tag ? null : tag)}
+                    className={`px-2 py-1 rounded-md text-xs transition-colors ${
+                      galleryTag === tag
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
+                    }`}
                   >
-                    <div className="relative w-full aspect-square bg-bg-primary flex items-center justify-center">
-                      {previewUrl ? (
-                        <img
-                          src={previewUrl}
-                          alt={preset.name}
-                          className="w-full h-full object-cover transition-all duration-300 group-hover:blur-xs group-hover:brightness-75"
-                        />
-                      ) : (
-                        <Loader2 className="h-8 w-8 animate-spin text-text-secondary" />
-                      )}
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => handleDownloadPreset(preset)}
-                          disabled={status !== 'idle'}
-                          className="shadow-lg"
-                        >
-                          {status === 'idle' && <>{t('library.community.actionSave')}</>}
-                          {status === 'downloading' && (
-                            <>
-                              <Loader2 size={14} className="mr-2 animate-spin" /> {t('library.community.actionSaving')}
-                            </>
-                          )}
-                          {status === 'success' && (
-                            <>
-                              <CheckCircle2 size={14} className="mr-2" /> {t('library.community.actionSaved')}
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="p-4 text-center">
-                      <Text variant={TextVariants.heading} className="truncate mb-1">
-                        {preset.name}
-                      </Text>
-                      <Text variant={TextVariants.small} className="font-['cursive'] italic">
-                        {t('library.community.presetBy', { creator: preset.creator })}
-                      </Text>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </motion.div>
-        )}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="text-center mt-8 py-4"
-        >
-          <Text>
-            {t('library.community.footerHeading')}
-            <br />
-            <a
-              href="https://github.com/CyberTimon/RapidRAW-Presets/issues/new?assignees=&labels=preset-submission&template=preset_submission.md&title=Preset+Submission%3A+%5BYour+Preset+Name%5D"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-accent hover:underline inline-flex items-center gap-2"
-            >
-              <span
-                dangerouslySetInnerHTML={{
-                  __html: siGithub.svg.replace(
-                    'xmlns="http://www.w3.org/2000/svg"',
-                    'xmlns="http://www.w3.org/2000/svg" fill="currentColor"',
-                  ),
-                }}
-                style={{ display: 'inline-block', width: 14, height: 14 }}
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Toolbar */}
+          <div className="shrink-0 flex items-center justify-between px-5 py-3 border-b border-zinc-800 gap-4">
+            {/* Tabs */}
+            <div className="flex items-center gap-1">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    activeTab === tab.key
+                      ? 'bg-zinc-800 text-white'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Search */}
+            <div className="relative w-64">
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={t('library.community.searchPlaceholder')}
+                className="pl-10 w-full"
               />
-              {t('library.community.footerLinkText')}
-            </a>
-          </Text>
-        </motion.div>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
+            </div>
+          </div>
+
+          {/* Gallery Grid */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-5">
+            {isGalleryLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-text-secondary mr-3" />
+                <Text variant={TextVariants.heading} color={TextColors.secondary}>
+                  Loading presets...
+                </Text>
+              </div>
+            ) : filteredPresets.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-zinc-500">
+                <Sparkles className="w-12 h-12 mb-3 opacity-30" />
+                <Text variant={TextVariants.heading} color={TextColors.secondary}>
+                  No presets found
+                </Text>
+                <Text className="text-sm mt-1">
+                  Try adjusting your search or add a subscription
+                </Text>
+              </div>
+            ) : (
+              <div className="columns-2 md:columns-3 lg:columns-4 gap-4">
+                {filteredPresets.map((preset, index) => (
+                  <PresetGalleryCard
+                    key={preset.id}
+                    preset={preset}
+                    index={index}
+                    onClick={() => setSelectedPreset(preset)}
+                    onDownload={(e) => handleCardDownload(e, preset)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Detail Modal */}
+      <PresetDetailModal
+        preset={selectedPreset}
+        onClose={() => setSelectedPreset(null)}
+        onDownload={handleDownload}
+      />
     </div>
   );
 };

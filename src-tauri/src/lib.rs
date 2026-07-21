@@ -34,6 +34,7 @@ mod panorama_utils;
 mod portrait_processing;
 mod preset_converter;
 mod raw_processing;
+mod subscription_manager;
 mod tagging;
 mod tagging_utils;
 mod window_customizer;
@@ -2479,6 +2480,11 @@ pub fn run() {
             android_integration::save_to_android_gallery,
             android_integration::share_image,
             set_ai_model_mirror,
+            subscription_manager::fetch_subscription_presets,
+            subscription_manager::check_subscription_update,
+            subscription_manager::download_subscription,
+            subscription_manager::load_all_subscription_presets,
+            subscription_manager::delete_subscription_file,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
