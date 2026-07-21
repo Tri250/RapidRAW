@@ -2,18 +2,44 @@ import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
 import { PresetSubscription, GalleryPreset, SubscriptionUpdateInfo } from '../types/subscription';
 
-const DEFAULT_SUBSCRIPTION: PresetSubscription = {
-  id: 'default-github',
-  url: 'https://raw.githubusercontent.com/CyberTimon/RapidRAW-Presets/main/presets.json',
-  name: 'RAW 工坊 Official',
-  author: '@CyberTimon',
-  build: 1,
-  isEnabled: true,
-  isDefault: true,
-  presetCount: 0,
-  lastUpdateTime: 0,
-  updateStatus: 'idle',
-};
+const DEFAULT_SUBSCRIPTIONS: PresetSubscription[] = [
+  {
+    id: 'default-github',
+    url: 'https://raw.githubusercontent.com/CyberTimon/RapidRAW-Presets/main/presets.json',
+    name: 'RAW 工坊 Official',
+    author: '@CyberTimon',
+    build: 1,
+    isEnabled: true,
+    isDefault: true,
+    presetCount: 0,
+    lastUpdateTime: 0,
+    updateStatus: 'idle',
+  },
+  {
+    id: 'default-omaster-realme',
+    url: 'https://cdn.jsdelivr.net/gh/fengyec2/OMaster-Community@main/presets/v2/realme.json',
+    name: 'Realme GR预设',
+    author: '@OMaster',
+    build: 2,
+    isEnabled: true,
+    isDefault: true,
+    presetCount: 0,
+    lastUpdateTime: 0,
+    updateStatus: 'idle',
+  },
+  {
+    id: 'default-omaster-oppo',
+    url: 'https://cdn.jsdelivr.net/gh/fengyec2/OMaster-Community@main/presets/v2/oppo.json',
+    name: 'OPPO / 一加 大师预设',
+    author: '@OMaster',
+    build: 6,
+    isEnabled: true,
+    isDefault: true,
+    presetCount: 0,
+    lastUpdateTime: 0,
+    updateStatus: 'idle',
+  },
+];
 
 interface SubscriptionState {
   subscriptions: PresetSubscription[];
