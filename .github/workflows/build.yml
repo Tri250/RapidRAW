@@ -183,7 +183,7 @@ jobs:
             tauri_target="${tauri_target%%-*}"
             target_arg="--target $tauri_target"
           fi
-          npx tauri android build --verbose ${target_arg}${{ inputs.build-args && format(' {0}', inputs.build-args) || '' }}
+          npx tauri android build --verbose ${{ inputs.release-id == '' && '--debug' || '' }} ${target_arg}${{ inputs.build-args && format(' {0}', inputs.build-args) || '' }}
 
       - name: Prepare Android Release Assets
         if: inputs.mobile == 'android' && inputs.release-id != ''
@@ -230,7 +230,7 @@ jobs:
             src-tauri/gen/android/app/build/outputs/**/*.aab
           retention-days: 7
           compression-level: 6
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: Upload Windows Artifacts
         if: startsWith(inputs.platform, 'windows') && inputs.release-id == '' && inputs.mobile == ''

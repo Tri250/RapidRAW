@@ -115,6 +115,10 @@ export function useAndroidBackHandler() {
           URL.revokeObjectURL(editor.transformedOriginalUrl);
           editor.setEditor({ transformedOriginalUrl: null });
         }
+        if (editor.interactivePatch?.url && typeof URL !== 'undefined' && URL.revokeObjectURL) {
+          URL.revokeObjectURL(editor.interactivePatch.url);
+          editor.setEditor({ interactivePatch: null });
+        }
       }
       // For critical level, also clear waveform/histogram caches
       if (level >= 15) { // TRIM_MEMORY_RUNNING_CRITICAL

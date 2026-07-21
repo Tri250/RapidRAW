@@ -391,6 +391,11 @@ fn save_image_with_metadata(
             mime_type_for_extension(&extension),
             &image_bytes,
         )?;
+        // Also write to disk so FileProvider can share the file.
+        if let Some(parent) = output_path.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
+        fs::write(output_path, &image_bytes).map_err(|e| e.to_string())?;
     }
 
     #[cfg(not(target_os = "android"))]

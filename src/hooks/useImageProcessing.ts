@@ -401,6 +401,7 @@ export function useImageProcessing(
   // count from the previous image doesn't block the new image's pipeline.
   useEffect(() => {
     inFlightCountRef.current = 0;
+    pendingApplyRef.current = null;
   }, [selectedImage?.path]);
 
   useEffect(() => {
