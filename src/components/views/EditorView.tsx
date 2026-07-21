@@ -283,14 +283,16 @@ export default function EditorView({
               />
             )}
             <div className="min-h-0 flex-1 overflow-hidden">{editorRightPanelContent}</div>
-            <div className="shrink-0 border-t border-surface">
-              <RightPanelSwitcher
-                activePanel={activeRightPanel}
-                onPanelSelect={handleRightPanelSelect}
-                isInstantTransition={isInstantTransition}
-                layout="horizontal"
-              />
-            </div>
+            {!isAndroid && (
+              <div className="shrink-0 border-t border-surface">
+                <RightPanelSwitcher
+                  activePanel={activeRightPanel}
+                  onPanelSelect={handleRightPanelSelect}
+                  isInstantTransition={isInstantTransition}
+                  layout="horizontal"
+                />
+              </div>
+            )}
             <div className="shrink-0 border-t border-surface">{editorBottomBarComponent}</div>
           </>
         ) : (

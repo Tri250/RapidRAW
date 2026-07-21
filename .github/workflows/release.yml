@@ -3,9 +3,6 @@ name: 'Release: Build & Package App'
 on:
   release:
     types: [created]
-  push:
-    tags:
-      - 'v*'
 
 jobs:
   release:
@@ -25,18 +22,22 @@ jobs:
             asset-prefix: '01_arm'
           # macOS Apple Silicon (M1/M2/M3)
           - platform: 'macos-14'
+            build-args: ''
             target: aarch64-apple-darwin
             asset-prefix: '02'
           # macOS Intel (use macos-13 for Intel)
           - platform: 'macos-13'
+            build-args: ''
             target: x86_64-apple-darwin
             asset-prefix: '02_intel'
           # Ubuntu x64
           - platform: 'ubuntu-22.04'
+            build-args: ''
             target: ''
             asset-prefix: '03'
           # Ubuntu 24.04 x64
           - platform: 'ubuntu-24.04'
+            build-args: ''
             target: ''
             asset-prefix: '03_24'
           # Android ARM64
@@ -47,7 +48,7 @@ jobs:
             asset-prefix: '04'
     uses: ./.github/workflows/build.yml
     with:
-      release-id: ${{ github.event.release.id || '' }}
+      release-id: ${{ github.event.release.id }}
       platform: ${{ matrix.platform }}
       target: ${{ matrix.target }}
       build-args: ${{ matrix.build-args }}
