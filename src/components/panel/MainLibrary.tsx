@@ -466,7 +466,7 @@ export default function MainLibrary(props: MainLibraryProps) {
       </header>
 
       <AnimatePresence>
-        {showAdvancedFilter && <AdvancedFilterPanel isAndroid={props.isAndroid} />}
+        {showAdvancedFilter && <AdvancedFilterPanel />}
       </AnimatePresence>
 
       {props.imageList.length > 0 ? (

@@ -864,7 +864,7 @@ const POPULAR_TAG_CHIPS: string[] = [
   '旅游', '风景', '人像', '夜景', '花卉', '建筑', '美食', '街拍',
 ];
 
-export function AdvancedFilterPanel({ isAndroid }: { isAndroid: boolean }) {
+export function AdvancedFilterPanel() {
   const { t } = useTranslation();
   const { advancedFilter, setAdvancedFilter, searchCriteria, setSearchCriteria, imageList } = useLibraryStore(
     useShallow((state) => ({

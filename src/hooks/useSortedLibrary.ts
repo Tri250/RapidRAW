@@ -227,7 +227,7 @@ export function computeSortedLibrary(libraryState: any, settingsState: any): Ima
         const exifDate = image.exif?.DateTimeOriginal || image.exif?.DateTime || image.exif?.DateTimeDigitized;
         if (dateFrom || dateTo) {
           if (!exifDate) return false;
-          const imageDate = new Date(exifDate.replace(/:/g, '-').replace(' ', 'T'));
+          const imageDate = new Date(exifDate.replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3').replace(' ', 'T'));
           if (dateFrom && imageDate < new Date(dateFrom)) return false;
           if (dateTo && imageDate > new Date(dateTo + 'T23:59:59')) return false;
         }
