@@ -121,16 +121,16 @@ jobs:
         run: |
           cd src-tauri/gen/android
           keytool -genkey -v \
-            -keystore "$RUNNER_TEMP/rapidraw-release.jks" \
+            -keystore "$RUNNER_TEMP/rawworkshop-release.jks" \
             -keyalg RSA -keysize 2048 -validity 36500 \
-            -alias rapidraw \
+            -alias rawworkshop \
             -storepass android123 \
             -keypass android123 \
             -dname "CN=RAW工坊, OU=Dev, O=RAW工坊, ST=China, C=CN" \
             -noprompt
-          echo "keyAlias=rapidraw" > keystore.properties
+          echo "keyAlias=rawworkshop" > keystore.properties
           echo "password=android123" >> keystore.properties
-          echo "storeFile=$RUNNER_TEMP/rapidraw-release.jks" >> keystore.properties
+          echo "storeFile=$RUNNER_TEMP/rawworkshop-release.jks" >> keystore.properties
 
       - id: patch-release-name
         shell: bash
@@ -162,6 +162,10 @@ jobs:
           args: --verbose${{ inputs.build-args && format(' {0}', inputs.build-args) || '' }}${{ inputs.target != '' && format(' --target {0}', inputs.target) || '' }}
           assetNamePattern: ${{ steps.patch-release-name.outputs.platform }}
           releaseId: ${{ inputs.release-id }}
+          tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+          releaseName: ${{ startsWith(github.ref, 'refs/tags/') && format('RAW 工坊 {0}', github.ref_name) || '' }}
+          releaseDraft: false
+          prerelease: false
           retryAttempts: 3
 
       - name: Build Android
@@ -186,7 +190,7 @@ jobs:
           npx tauri android build --verbose ${target_arg}${{ inputs.build-args && format(' {0}', inputs.build-args) || '' }}
 
       - name: Prepare Android Release Assets
-        if: inputs.mobile == 'android' && inputs.release-id != ''
+        if: inputs.mobile == 'android' && (inputs.release-id != '' || startsWith(github.ref, 'refs/tags/'))
         shell: bash
         run: |
           set -euo pipefail
@@ -194,7 +198,7 @@ jobs:
           stage_dir="$RUNNER_TEMP/android-release-assets"
           mkdir -p "$stage_dir"
 
-          app_name="RapidRAW"
+          app_name="RAW-Workshop"
           version="$(node -e "const fs=require('fs'); const conf=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8')); process.stdout.write(conf.version || '')")"
           arch="${{ inputs.target }}"
           arch="${arch%%-*}"
@@ -210,7 +214,7 @@ jobs:
           done
 
       - name: Upload Android Release Assets
-        if: inputs.mobile == 'android' && inputs.release-id != ''
+        if: inputs.mobile == 'android' && (inputs.release-id != '' || startsWith(github.ref, 'refs/tags/'))
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -221,7 +225,7 @@ jobs:
           gh release upload "$tag_name" "$RUNNER_TEMP"/android-release-assets/* --clobber
 
       - name: Upload Android Artifacts
-        if: inputs.mobile == 'android' && inputs.release-id == ''
+        if: inputs.mobile == 'android' && inputs.release-id == '' && !startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.asset-prefix }}_android${{ inputs.target && format('_{0}', inputs.target) || '' }}_artifacts

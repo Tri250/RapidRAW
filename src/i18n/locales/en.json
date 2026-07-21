@@ -152,6 +152,7 @@
       "confirmDeleteGroupEmpty": "Confirm Delete Album Group",
       "confirmDeleteGroupNested": "Confirm Delete Group & All Nested Albums",
       "deleteAlbum": "Delete Album",
+      "deleteSmartAlbum": "Delete Smart Album",
       "deleteGroup": "Delete Group",
       "moveHere": "Move Here",
       "moveTo": "Move To...",
@@ -655,6 +656,10 @@
       },
       "resetMaskingTooltip": "Reset Masking",
       "settings": {
+        "aiMaskGenerating": "Generating mask…",
+        "aiMaskNoData": "No mask data available.",
+        "aiMaskNoImage": "Open an image to generate this mask.",
+        "aiMaskRetry": "Retry",
         "aiModelDownloading": "AI Model Downloading: ",
         "applyPreset": "Apply Preset",
         "componentPropertiesTitle": "{{name}} Properties",
@@ -962,8 +967,10 @@
       "sections": {
         "albums": "Albums",
         "folders": "Folders",
-        "pinned": "Pinned"
+        "pinned": "Pinned",
+        "smartAlbums": "Smart Albums"
       },
+      "smartAlbumsEmpty": "No smart albums yet. Right-click an image to create one.",
       "sort": {
         "created": "Date Created",
         "imageCount": "Image Count",

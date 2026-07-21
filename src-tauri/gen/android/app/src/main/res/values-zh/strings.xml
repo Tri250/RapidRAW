@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">RapidRAW</string>
-    <string name="main_activity_title">RapidRAW</string>
+    <string name="app_name">RAW 工坊</string>
+    <string name="main_activity_title">RAW 工坊</string>
     <string name="permission_storage_title">需要存储权限</string>
-    <string name="permission_storage_message">RapidRAW 需要访问您的照片和文件以导入和编辑图像。</string>
+    <string name="permission_storage_message">RAW 工坊 需要访问您的照片和文件以导入和编辑图像。</string>
     <string name="permission_notification_title">需要通知权限</string>
     <string name="permission_notification_message">允许通知后，导出完成时将及时提醒您。</string>
     <string name="permission_denied">权限被拒绝，部分功能可能无法正常工作。</string>
     <string name="export_notification_title">导出完成</string>
     <string name="export_notification_message">%s 已保存到您的相册中。</string>
-    <string name="share_subject">来自 RapidRAW 的分享</string>
+    <string name="share_subject">来自 RAW 工坊 的分享</string>
 </resources>

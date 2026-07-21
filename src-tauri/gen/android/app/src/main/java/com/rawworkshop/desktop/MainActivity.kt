@@ -1,4 +1,4 @@
-package io.github.CyberTimon.RapidRAW
+package com.rawworkshop.desktop
 
 import android.Manifest
 import android.content.ComponentCallbacks2

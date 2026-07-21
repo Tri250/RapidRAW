@@ -4,7 +4,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { Minus, Square, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-const RestoreDownIcon = ({ size = 14, className = '' }) => (
+const RestoreDownIcon = ({ size = 14, className = '' }: { size?: number; className?: string }) => (
   <svg
     width={size}
     height={size}
@@ -15,6 +15,7 @@ const RestoreDownIcon = ({ size = 14, className = '' }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     className={className}
+    aria-hidden="true"
   >
     <rect x="3" y="6" width="8" height="8" rx="1.5" />
     <path d="M6 6V4.5A1.5 1.5 0 0 1 7.5 3h5A1.5 1.5 0 0 1 14 4.5v5A1.5 1.5 0 0 1 12.5 11H11" />

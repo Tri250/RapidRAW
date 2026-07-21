@@ -584,6 +584,10 @@
       },
       "resetMaskingTooltip": "Réinitialiser le masquage",
       "settings": {
+        "aiMaskGenerating": "Génération du masque…",
+        "aiMaskNoData": "Aucune donnée de masque disponible.",
+        "aiMaskNoImage": "Ouvrez une image pour générer ce masque.",
+        "aiMaskRetry": "Réessayer",
         "aiModelDownloading": "Téléchargement du modèle IA : ",
         "applyPreset": "Appliquer le paramètre prédéfini",
         "componentPropertiesTitle": "Propriétés de {{name}}",

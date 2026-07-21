@@ -597,7 +597,11 @@
         "pasteSettings": "Вставить настройки",
         "resetSectionSettings": "Сбросить настройки раздела {{section}}",
         "select": "Выбрать",
-        "selectPresetTooltip": "Выберите пресет для применения"
+        "selectPresetTooltip": "Выберите пресет для применения",
+        "aiMaskGenerating": "Создание маски…",
+        "aiMaskNoData": "Данные маски недоступны.",
+        "aiMaskNoImage": "Откройте изображение для создания маски.",
+        "aiMaskRetry": "Повторить"
       },
       "toggleAnalyticsTooltip": "Показать/скрыть панель гистограммы",
       "tooltips": {

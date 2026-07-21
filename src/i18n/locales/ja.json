@@ -584,6 +584,10 @@
       },
       "resetMaskingTooltip": "マスク処理をリセット",
       "settings": {
+        "aiMaskGenerating": "マスクを生成中…",
+        "aiMaskNoData": "マスクデータがありません。",
+        "aiMaskNoImage": "画像を開いてからマスクを生成してください。",
+        "aiMaskRetry": "再試行",
         "aiModelDownloading": "AIモデルをダウンロード中: ",
         "applyPreset": "プリセットを適用",
         "componentPropertiesTitle": "{{name}} のプロパティ",

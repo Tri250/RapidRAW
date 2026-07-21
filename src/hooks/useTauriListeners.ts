@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { listen } from '@tauri-apps/api/event';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { Status } from '../components/ui/ExportImportProperties';
 import { useProcessStore } from '../store/useProcessStore';
@@ -356,6 +357,26 @@ export function useTauriListeners({
         }));
       }
     }));
+
+    // Drag-and-drop file import
+    getCurrentWindow().onDragDropEvent((event: any) => {
+      if (!isEffectActive) return;
+      if (event.payload?.type === 'drop' && event.payload?.paths?.length > 0) {
+        const { rootPaths, currentFolderPath } = useLibraryStore.getState();
+        const targetFolder = currentFolderPath && !currentFolderPath.startsWith('Album:')
+          ? currentFolderPath
+          : rootPaths[0] || null;
+        if (targetFolder) {
+          useUIStore.getState().setUI({
+            importSourcePaths: event.payload.paths,
+            importTargetFolder: targetFolder,
+            isImportModalOpen: true,
+          });
+        }
+      }
+    }).then((unlisten: () => void) => {
+      unlistenFns.push(unlisten);
+    });
 
     return () => {
       isEffectActive = false;

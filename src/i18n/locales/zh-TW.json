@@ -584,6 +584,10 @@
       },
       "resetMaskingTooltip": "重置遮色片",
       "settings": {
+        "aiMaskGenerating": "正在產生遮色片…",
+        "aiMaskNoData": "暫無遮色片資料。",
+        "aiMaskNoImage": "請先開啟圖片以產生此遮色片。",
+        "aiMaskRetry": "重試",
         "aiModelDownloading": "AI 模型下載中：",
         "applyPreset": "應用預設",
         "componentPropertiesTitle": "{{name}} 屬性",

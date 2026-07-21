@@ -584,6 +584,10 @@
       },
       "resetMaskingTooltip": "마스킹 초기화",
       "settings": {
+        "aiMaskGenerating": "마스크 생성 중…",
+        "aiMaskNoData": "마스크 데이터가 없습니다.",
+        "aiMaskNoImage": "이미지를 열어 마스크를 생성하세요.",
+        "aiMaskRetry": "재시도",
         "aiModelDownloading": "AI 모델 다운로드 중: ",
         "applyPreset": "프리셋 적용",
         "componentPropertiesTitle": "{{name}} 속성",

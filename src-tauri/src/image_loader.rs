@@ -804,7 +804,7 @@ pub fn is_image_cached(path: String, state: tauri::State<'_, AppState>) -> bool 
     state
         .decoded_image_cache
         .lock()
-        .map(|guard| guard.get(&source_path_str).is_some())
+        .map(|mut guard| guard.get(&source_path_str).is_some())
         .unwrap_or(false)
 }
 

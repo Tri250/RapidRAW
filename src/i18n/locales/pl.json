@@ -635,7 +635,11 @@
         "pasteSettings": "Wklej ustawienia",
         "resetSectionSettings": "Resetuj ustawienia sekcji {{section}}",
         "select": "Wybierz",
-        "selectPresetTooltip": "Wybierz preset do zastosowania"
+        "selectPresetTooltip": "Wybierz preset do zastosowania",
+        "aiMaskGenerating": "Generowanie maski…",
+        "aiMaskNoData": "Brak danych maski.",
+        "aiMaskNoImage": "Otwórz obraz, aby wygenerować tę maskę.",
+        "aiMaskRetry": "Ponów"
       },
       "toggleAnalyticsTooltip": "Przełącz widok analityki",
       "tooltips": {

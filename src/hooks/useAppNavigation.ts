@@ -453,6 +453,72 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
     [clearThumbnailQueue],
   );
 
+  const handleSelectSmartAlbum = useCallback(
+    async (albumId: string, albumName: string, preserveEditor = false) => {
+      const { setLibrary, smartAlbums, getSmartAlbumImages, rootPaths } = useLibraryStore.getState();
+      const { setUI } = useUIStore.getState();
+
+      if (!preserveEditor) {
+        await invoke('cancel_thumbnail_generation');
+        clearThumbnailQueue();
+        useLibraryStore.getState().setSearchCriteria({ tags: [], text: '', mode: 'OR' });
+        setLibrary({ libraryScrollTop: 0 });
+        globalImageCache.clear();
+        setUI({ activeView: 'library' });
+      }
+
+      setLibrary({
+        isViewLoading: true,
+        currentFolderPath: `Album: ${albumName}`,
+        activeAlbumId: albumId,
+      });
+
+      try {
+        const smartAlbum = smartAlbums.find((a) => a.id === albumId);
+        if (!smartAlbum) {
+          toast.error('Smart album not found.');
+          setLibrary({ isViewLoading: false });
+          return;
+        }
+
+        const allImagePaths: string[] = [];
+        for (const root of rootPaths) {
+          try {
+            const files: ImageFile[] = await invoke(Invokes.ListImagesRecursive, { path: root });
+            allImagePaths.push(...files.map((f) => f.path));
+          } catch (err) {
+            console.error(`Failed to list images in ${root}:`, err);
+          }
+        }
+
+        const uniquePaths = [...new Set(allImagePaths)];
+        let allFiles: ImageFile[] = [];
+        if (uniquePaths.length > 0) {
+          allFiles = await invoke(Invokes.GetAlbumImages, { paths: uniquePaths });
+        }
+
+        const filteredFiles = getSmartAlbumImages(allFiles, smartAlbum);
+
+        const initialRatings: Record<string, number> = {};
+        filteredFiles.forEach((f) => {
+          if (f.rating !== undefined) initialRatings[f.path] = f.rating;
+        });
+
+        setLibrary({
+          imageList: filteredFiles,
+          imageRatings: initialRatings,
+          ...(preserveEditor ? {} : { multiSelectedPaths: [], libraryActivePath: null }),
+        });
+      } catch (err) {
+        console.error('Failed to load smart album images:', err);
+        toast.error(`Failed to load smart album: ${err}`);
+      } finally {
+        setLibrary({ isViewLoading: false });
+      }
+    },
+    [clearThumbnailQueue],
+  );
+
   const handleOpenFolder = async () => {
     const { osPlatform, appSettings, handleSettingsChange } = useSettingsStore.getState();
     const { rootPaths, folderTrees, setLibrary } = useLibraryStore.getState();
@@ -609,6 +675,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
     handleImageSelect,
     handleSelectSubfolder,
     handleSelectAlbum,
+    handleSelectSmartAlbum,
     handleOpenFolder,
     handleContinueSession,
   };

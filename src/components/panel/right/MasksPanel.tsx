@@ -1476,6 +1476,7 @@ export default function MasksPanel() {
                   histogram={histogram}
                   appSettings={appSettings}
                   isGeneratingAiMask={isGeneratingAiMask}
+                  hasSelectedImage={!!selectedImage?.path}
                   setIsMaskControlHovered={setIsMaskControlHovered}
                   collapsibleState={collapsibleState}
                   setCollapsibleState={setCollapsibleState}
@@ -1486,6 +1487,9 @@ export default function MasksPanel() {
                   setSettingsSectionOpen={setSettingsSectionOpen}
                   presets={presets}
                   handleGenerateAiDepthMask={handleGenerateAiDepthMask}
+                  handleGenerateAiSubjectMask={handleGenerateAiSubjectMask}
+                  handleGenerateAiForegroundMask={handleGenerateAiForegroundMask}
+                  handleGenerateAiSkyMask={handleGenerateAiSkyMask}
                 />
               </motion.div>
             )}
@@ -2180,7 +2184,8 @@ function SettingsPanel({
   updateSubMask,
   histogram,
   appSettings,
-  isGeneratingAiMask: _isGeneratingAiMask,
+  isGeneratingAiMask,
+  hasSelectedImage,
   setIsMaskControlHovered,
   collapsibleState,
   setCollapsibleState,
@@ -2191,6 +2196,9 @@ function SettingsPanel({
   setSettingsSectionOpen,
   presets,
   handleGenerateAiDepthMask,
+  handleGenerateAiSubjectMask,
+  handleGenerateAiForegroundMask,
+  handleGenerateAiSkyMask,
 }: any) {
   const { t } = useTranslation();
   const { showContextMenu } = useContextMenu();
@@ -2276,8 +2284,20 @@ function SettingsPanel({
   };
 
   const subMaskConfig = activeSubMask ? SUB_MASK_CONFIG[activeSubMask.type as Mask] || {} : {};
-  const isAiMask = activeSubMask && ['ai-subject', 'ai-foreground', 'ai-sky', 'ai-depth'].includes(activeSubMask.type);
+  const isAiMask = activeSubMask && [Mask.AiSubject, Mask.AiForeground, Mask.AiSky, Mask.AiDepth].includes(activeSubMask.type);
   const isComponentMode = !!activeSubMask;
+  const hasMaskData = isAiMask && activeSubMask?.parameters?.maskDataBase64;
+  const isAiSubjectType = activeSubMask?.type === Mask.AiSubject;
+  const isAiForegroundType = activeSubMask?.type === Mask.AiForeground;
+  const isAiSkyType = activeSubMask?.type === Mask.AiSky;
+
+  const handleRetryAiMask = () => {
+    if (!activeSubMask) return;
+    if (isAiSubjectType) handleGenerateAiSubjectMask(activeSubMask.id);
+    else if (isAiForegroundType) handleGenerateAiForegroundMask(activeSubMask.id);
+    else if (isAiSkyType) handleGenerateAiSkyMask(activeSubMask.id);
+    else if (activeSubMask.type === Mask.AiDepth) handleGenerateAiDepthMask(activeSubMask.id, activeSubMask.parameters);
+  };
 
   const setMaskContainerAdjustments = (updater: any) => {
     if (!isActive) return;
@@ -2470,6 +2490,42 @@ function SettingsPanel({
                     <span>{aiModelDownloadStatus}</span>
                   </div>
                 </Text>
+              )}
+
+              {isAiMask && !aiModelDownloadStatus && isGeneratingAiMask && (
+                <Text
+                  as="div"
+                  variant={TextVariants.small}
+                  color={TextColors.accent}
+                  weight={TextWeights.medium}
+                  className="p-3 bg-card-active rounded-md border border-surface flex items-center gap-3"
+                >
+                  <Loader2 size={16} className="animate-spin shrink-0" />
+                  <Text variant={TextVariants.small}>{t('editor.masks.settings.aiMaskGenerating')}</Text>
+                </Text>
+              )}
+
+              {isAiMask && !aiModelDownloadStatus && !isGeneratingAiMask && !hasMaskData && (
+                <div className="p-3 bg-card-active rounded-md border border-surface space-y-2">
+                  {!hasSelectedImage ? (
+                    <Text variant={TextVariants.small} color={TextColors.secondary}>
+                      {t('editor.masks.settings.aiMaskNoImage')}
+                    </Text>
+                  ) : (
+                    <>
+                      <Text variant={TextVariants.small} color={TextColors.secondary}>
+                        {t('editor.masks.settings.aiMaskNoData')}
+                      </Text>
+                      <button
+                        onClick={handleRetryAiMask}
+                        className="text-sm text-accent hover:text-accent/80 transition-colors cursor-pointer flex items-center gap-1.5"
+                      >
+                        <RotateCcw size={14} />
+                        {t('editor.masks.settings.aiMaskRetry')}
+                      </button>
+                    </>
+                  )}
+                </div>
               )}
 
               {activeSubMask.type === Mask.AiDepth && (

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use tauri::Manager;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PresetSubscriptionList {
@@ -99,7 +100,7 @@ pub async fn fetch_subscription_presets(url: String) -> Result<PresetSubscriptio
 
     let response = client
         .get(&url)
-        .header("User-Agent", "RapidRAW-App")
+        .header("User-Agent", "RAW-Workshop-App")
         .send()
         .await
         .map_err(|e| format!("Failed to fetch subscription: {}", e))?;

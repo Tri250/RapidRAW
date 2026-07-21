@@ -597,7 +597,11 @@
         "pasteSettings": "Incolla Impostazioni",
         "resetSectionSettings": "Ripristina Impostazioni {{section}}",
         "select": "Seleziona",
-        "selectPresetTooltip": "Seleziona un predefinito da applicare"
+        "selectPresetTooltip": "Seleziona un predefinito da applicare",
+        "aiMaskGenerating": "Generazione maschera…",
+        "aiMaskNoData": "Nessun dato di maschera disponibile.",
+        "aiMaskNoImage": "Apri un'immagine per generare questa maschera.",
+        "aiMaskRetry": "Riprova"
       },
       "toggleAnalyticsTooltip": "Attiva/Disattiva Visualizzazione Analitiche",
       "tooltips": {

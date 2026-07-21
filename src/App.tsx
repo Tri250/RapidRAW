@@ -274,6 +274,7 @@ function App() {
     handleImageSelect,
     handleSelectSubfolder,
     handleSelectAlbum,
+    handleSelectSmartAlbum,
     handleOpenFolder,
     handleContinueSession,
   } = useAppNavigation({
@@ -608,6 +609,7 @@ function App() {
           onContextMenu={handleFolderTreeContextMenu}
           onAlbumContextMenu={handleAlbumTreeContextMenu}
           onSelectAlbum={handleSelectAlbum}
+          onSelectSmartAlbum={handleSelectSmartAlbum}
           onFolderSelect={(path) => handleSelectSubfolder(path, false)}
           onToggleFolder={handleToggleFolder}
           onOpenFolder={handleOpenFolder}

@@ -2032,7 +2032,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
               isLoaderVisible ? 'opacity-100' : 'opacity-0 pointer-events-none',
             )}
           >
-            <Loader2 size={48} className="animate-spin text-accent" />
+            <Loader2 size={36} className="animate-spin text-accent" />
           </div>
         )}
 

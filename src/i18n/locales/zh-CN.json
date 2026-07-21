@@ -152,6 +152,7 @@
       "confirmDeleteGroupEmpty": "确认删除相册组",
       "confirmDeleteGroupNested": "确认删除组及所有嵌套相册",
       "deleteAlbum": "删除相册",
+      "deleteSmartAlbum": "删除智能相册",
       "deleteGroup": "删除组",
       "moveHere": "移动至此",
       "moveTo": "移动到...",
@@ -655,6 +656,10 @@
       },
       "resetMaskingTooltip": "重置蒙版",
       "settings": {
+        "aiMaskGenerating": "正在生成蒙版…",
+        "aiMaskNoData": "暂无蒙版数据。",
+        "aiMaskNoImage": "请先打开图片以生成此蒙版。",
+        "aiMaskRetry": "重试",
         "aiModelDownloading": "AI 模型下载中：",
         "applyPreset": "应用预设",
         "componentPropertiesTitle": "{{name}} 属性",
@@ -978,8 +983,10 @@
       "sections": {
         "albums": "相册",
         "folders": "文件夹",
-        "pinned": "已固定"
+        "pinned": "已固定",
+        "smartAlbums": "智能相册"
       },
+      "smartAlbumsEmpty": "暂无智能相册。右键点击图像可创建。",
       "sort": {
         "created": "创建日期",
         "imageCount": "图像数量",

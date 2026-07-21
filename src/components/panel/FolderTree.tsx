@@ -22,6 +22,7 @@ import {
   Briefcase,
   ArrowUpDown,
   Check,
+  Trash2,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -30,7 +31,8 @@ import { useTranslation } from 'react-i18next';
 import { invoke } from '@tauri-apps/api/core';
 import Text from '../ui/Text';
 import { TEXT_COLOR_KEYS, TextColors, TextVariants, TextWeights } from '../../types/typography';
-import { useLibraryStore } from '../../store/useLibraryStore';
+import { useLibraryStore, SmartAlbum } from '../../store/useLibraryStore';
+import { useContextMenu } from '../../context/ContextMenuContext';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { AlbumItem, AlbumGroup, Album, Invokes, FolderTreeSort, SortDirection } from '../ui/AppProperties';
 
@@ -52,6 +54,7 @@ interface FolderTreeProps {
   onAlbumContextMenu(event: any, item: AlbumItem | null): void;
   onFolderSelect(folder: string): void;
   onSelectAlbum(albumId: string, albumName: string, images: string[]): void;
+  onSelectSmartAlbum(albumId: string, albumName: string): void;
   onToggleFolder(folder: string): void;
   onOpenFolder(): void;
   setIsVisible(visible: boolean): void;
@@ -608,6 +611,7 @@ export default function FolderTree({
   onAlbumContextMenu,
   onFolderSelect,
   onSelectAlbum,
+  onSelectSmartAlbum,
   onToggleFolder,
   onOpenFolder,
   setIsVisible,
@@ -625,7 +629,11 @@ export default function FolderTree({
     albumTree,
     activeAlbumId,
     expandedAlbumGroups,
+    smartAlbums,
   } = useLibraryStore();
+
+  const removeSmartAlbum = useLibraryStore((s) => s.removeSmartAlbum);
+  const { showContextMenu } = useContextMenu();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isHovering, setIsHovering] = useState(false);
@@ -960,6 +968,83 @@ export default function FolderTree({
                           <motion.div layout="position">
                             <Text variant={TextVariants.small} className="p-2 text-center">
                               {t('library.folders.albumsEmpty')}
+                            </Text>
+                          </motion.div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            )}
+
+            {(smartAlbums.length > 0 || !isSearching) && (
+              <>
+                <div>
+                  <SectionHeader
+                    title={t('library.folders.sections.smartAlbums')}
+                    isOpen={openSections.includes('smartAlbums')}
+                    onToggle={() => toggleSection('smartAlbums')}
+                  />
+                </div>
+                <AnimatePresence>
+                  {openSections.includes('smartAlbums') && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-1 pb-2">
+                        <AnimatePresence>
+                          {smartAlbums.map((smartAlbum: SmartAlbum) => (
+                            <motion.div
+                              key={smartAlbum.id}
+                              initial={{ opacity: 0, height: 0, x: -15 }}
+                              animate={{ opacity: 1, height: 'auto', x: 0 }}
+                              exit={{ opacity: 0, height: 0, x: -15, overflow: 'hidden' }}
+                              transition={{ duration: 0.2 }}
+                              layout="position"
+                            >
+                              <Text as="div" color={TextColors.primary} weight={TextWeights.medium}>
+                                <div
+                                  className={clsx('flex items-center gap-2 p-1.5 rounded-md transition-colors cursor-pointer', {
+                                    'bg-surface': activeAlbumId === smartAlbum.id,
+                                    'hover:bg-card-active': activeAlbumId !== smartAlbum.id,
+                                  })}
+                                  onClick={() => onSelectSmartAlbum(smartAlbum.id, smartAlbum.name)}
+                                  onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    showContextMenu(e.clientX, e.clientY, [
+                                      {
+                                        label: t('contextMenus.albums.deleteSmartAlbum'),
+                                        icon: Trash2,
+                                        onClick: () => {
+                                          removeSmartAlbum(smartAlbum.id);
+                                          if (activeAlbumId === smartAlbum.id) {
+                                            useLibraryStore.getState().setLibrary({ activeAlbumId: null });
+                                          }
+                                        },
+                                      },
+                                    ]);
+                                  }}
+                                >
+                                  <div className="relative w-5 h-5 flex items-center justify-center p-0.5 rounded-sm text-text-secondary shrink-0">
+                                    <Search size={16} />
+                                  </div>
+                                  <span className="truncate select-none flex-1">
+                                    <span className="truncate">{smartAlbum.name}</span>
+                                  </span>
+                                </div>
+                              </Text>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                        {smartAlbums.length === 0 && !isSearching && (
+                          <motion.div layout="position">
+                            <Text variant={TextVariants.small} className="p-2 text-center">
+                              {t('library.folders.smartAlbumsEmpty')}
                             </Text>
                           </motion.div>
                         )}

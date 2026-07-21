@@ -836,7 +836,10 @@ pub async fn export_images(
         let mut join_handles = Vec::new();
 
         for (global_index, image_path_str, appearance_count, explicit_vc) in export_items {
-            let permit = semaphore.clone().acquire_owned().await.map_err(|e| format!("Semaphore acquire failed: {}", e))?;
+            let permit = match semaphore.clone().acquire_owned().await {
+                Ok(p) => p,
+                Err(e) => return Err(format!("Semaphore acquire failed: {}", e)),
+            };
 
             let app_handle_clone = app_handle.clone();
             let context_clone = Arc::clone(&context);
@@ -850,13 +853,12 @@ pub async fn export_images(
             let settings = settings.clone();
 
             let handle = tokio::task::spawn_blocking(move || {
-                if app_handle_clone
-                    .state::<AppState>()
-                    .export_task_handle
-                    .lock()
-                    .map_err(|e| format!("Export task lock failed: {}", e))?
-                    .is_none()
-                {
+                let state = app_handle_clone.state::<AppState>();
+                let export_task = match state.export_task_handle.lock() {
+                    Ok(g) => g,
+                    Err(e) => return Err(format!("Export task lock failed: {}", e)),
+                };
+                if export_task.is_none() {
                     return Err("Export cancelled".to_string());
                 }
 
@@ -1095,6 +1097,7 @@ pub async fn export_images(
         {
             *guard = None;
         }
+        Ok(())
     });
 
     *state.export_task_handle.lock().map_err(|e| format!("Export task lock failed: {}", e))? = Some(task);

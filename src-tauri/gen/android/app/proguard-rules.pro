@@ -1,4 +1,4 @@
-# RapidRAW ProGuard Rules for Android Release Builds
+# RAW 工坊 ProGuard Rules for Android Release Builds
 # Keep line numbers for debugging
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
@@ -61,7 +61,7 @@
 }
 
 # Keep the application class
--keep class io.github.CyberTimon.RapidRAW.** { *; }
+-keep class com.rawworkshop.desktop.** { *; }
 
 # Keep Parcelable implementations
 -keep class * implements android.os.Parcelable {

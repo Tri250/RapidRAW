@@ -584,6 +584,10 @@
       },
       "resetMaskingTooltip": "Maskierung zurücksetzen",
       "settings": {
+        "aiMaskGenerating": "Maske wird erstellt…",
+        "aiMaskNoData": "Keine Maskendaten verfügbar.",
+        "aiMaskNoImage": "Bitte ein Bild öffnen, um die Maske zu erstellen.",
+        "aiMaskRetry": "Erneut versuchen",
         "aiModelDownloading": "KI-Modell wird heruntergeladen: ",
         "applyPreset": "Vorgabe anwenden",
         "componentPropertiesTitle": "{{name}}-Eigenschaften",

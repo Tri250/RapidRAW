@@ -1074,7 +1074,7 @@ export default function SettingsPanel({
                 transition={{ duration: 0.2 }}
                 className="space-y-10"
               >
-                <div className="p-6 bg-surface rounded-xl shadow-md">
+                <div className="p-6 bg-surface rounded-lg shadow-md">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
                     {t('settings.general.title')}
                   </Text>
@@ -1222,7 +1222,7 @@ export default function SettingsPanel({
                   </div>
                 </div>
 
-                <div className="p-6 bg-surface rounded-xl shadow-md">
+                <div className="p-6 bg-surface rounded-lg shadow-md">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
                     {t('settings.adjustments.title')}
                   </Text>
@@ -1283,7 +1283,7 @@ export default function SettingsPanel({
                   </div>
                 </div>
 
-                <div className="p-6 bg-surface rounded-xl shadow-md">
+                <div className="p-6 bg-surface rounded-lg shadow-md">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
                     {t('settings.lenses.title')}
                   </Text>
@@ -1353,7 +1353,7 @@ export default function SettingsPanel({
                   </div>
                 </div>
 
-                <div className="p-6 bg-surface rounded-xl shadow-md">
+                <div className="p-6 bg-surface rounded-lg shadow-md">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
                     {t('settings.contact.title', { defaultValue: '联系我' })}
                   </Text>
@@ -1372,7 +1372,7 @@ export default function SettingsPanel({
                   </div>
                 </div>
 
-                <div className="p-6 bg-surface rounded-xl shadow-md">
+                <div className="p-6 bg-surface rounded-lg shadow-md">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
                     {t('settings.tagging.title')}
                   </Text>
@@ -1608,7 +1608,7 @@ export default function SettingsPanel({
                 transition={{ duration: 0.2 }}
                 className="space-y-10"
               >
-                <div className="sticky top-0 z-20 bg-bg-primary/90 backdrop-blur-sm p-3 rounded-xl border border-border-color shadow-sm flex flex-wrap gap-2">
+                <div className="sticky top-0 z-20 bg-bg-primary/90 backdrop-blur-sm p-3 rounded-lg border border-border-color shadow-sm flex flex-wrap gap-2">
                   <button onClick={() => document.getElementById('settings-engine')?.scrollIntoView({ behavior: 'smooth' })} className="px-3 py-1.5 text-xs font-medium bg-surface hover:bg-accent hover:text-button-text rounded-md transition-colors">
                     {t('settings.processing.title')}
                   </button>
@@ -1622,7 +1622,7 @@ export default function SettingsPanel({
                     {t('settings.data.title')}
                   </button>
                 </div>
-                <div id="settings-engine" className="p-6 bg-surface rounded-xl shadow-md scroll-mt-20">
+                <div id="settings-engine" className="p-6 bg-surface rounded-lg shadow-md scroll-mt-20">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
                     {t('settings.processing.title')}
                   </Text>
@@ -1901,7 +1901,7 @@ export default function SettingsPanel({
                   </div>
                 </div>
 
-                <div id="settings-preprocessing" className="p-6 bg-surface rounded-xl shadow-md scroll-mt-20">
+                <div id="settings-preprocessing" className="p-6 bg-surface rounded-lg shadow-md scroll-mt-20">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
                     {t('settings.processing.preprocessing.title')}
                   </Text>
@@ -2043,7 +2043,7 @@ export default function SettingsPanel({
                   </div>
                 </div>
 
-                <div id="settings-ai" className="p-6 bg-surface rounded-xl shadow-md scroll-mt-20">
+                <div id="settings-ai" className="p-6 bg-surface rounded-lg shadow-md scroll-mt-20">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
                     {t('settings.processing.ai.title')}
                   </Text>
@@ -2150,7 +2150,7 @@ export default function SettingsPanel({
 
                           <div className="mt-8">
                             <Show when="signed-in">
-                              <div className="p-6 bg-bg-primary rounded-xl border border-border-color shadow-inner">
+                              <div className="p-6 bg-bg-primary rounded-lg border border-border-color shadow-inner">
                                 <CloudDashboard />
                               </div>
                             </Show>
@@ -2222,7 +2222,7 @@ export default function SettingsPanel({
                   </div>
                 </div>
 
-                <div id="settings-data" className="p-6 bg-surface rounded-xl shadow-md scroll-mt-20">
+                <div id="settings-data" className="p-6 bg-surface rounded-lg shadow-md scroll-mt-20">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
                     {t('settings.data.title')}
                   </Text>
@@ -2298,7 +2298,7 @@ export default function SettingsPanel({
                 transition={{ duration: 0.2 }}
                 className="space-y-10"
               >
-                <div className="p-6 bg-surface rounded-xl shadow-md">
+                <div className="p-6 bg-surface rounded-lg shadow-md">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
                     {t('settings.controls.title')}
                   </Text>
@@ -2333,7 +2333,7 @@ export default function SettingsPanel({
                   </div>
                 </div>
 
-                <div className="p-6 bg-surface rounded-xl shadow-md">
+                <div className="p-6 bg-surface rounded-lg shadow-md">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
                     {t('settings.controls.keyboardTitle')}
                   </Text>

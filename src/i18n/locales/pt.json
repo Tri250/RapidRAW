@@ -597,7 +597,11 @@
         "pasteSettings": "Colar Configurações",
         "resetSectionSettings": "Redefinir Configurações de {{section}}",
         "select": "Selecionar",
-        "selectPresetTooltip": "Selecione uma predefinição para aplicar"
+        "selectPresetTooltip": "Selecione uma predefinição para aplicar",
+        "aiMaskGenerating": "Gerando máscara…",
+        "aiMaskNoData": "Sem dados de máscara disponíveis.",
+        "aiMaskNoImage": "Abra uma imagem para gerar esta máscara.",
+        "aiMaskRetry": "Tentar novamente"
       },
       "toggleAnalyticsTooltip": "Alternar Exibição de Análises",
       "tooltips": {
