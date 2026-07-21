@@ -1,5 +1,5 @@
 #[cfg(target_os = "android")]
-use jni::objects::{JObject, JString, JValue};
+use jni::objects::{JObject, JString, JValue, JValueGen};
 #[cfg(target_os = "android")]
 use jni::{JNIEnv, JavaVM};
 #[cfg(target_os = "android")]
@@ -353,15 +353,10 @@ pub fn read_android_content_uri(uri_str: &str) -> Result<Vec<u8>, String> {
         let mut bytes = Vec::new();
 
         loop {
-            // Save raw pointer before converting JPrimitiveArray → JValue (which consumes java_buffer)
-            let java_buffer_raw = java_buffer.as_raw();
             let read_count = env
-                .call_method(&input_stream, "read", "([B)I", &[JValue::from(JObject::from(java_buffer))])
+                .call_method(&input_stream, "read", "([B)I", &[JValueGen::from(java_buffer.as_ref())])
                 .and_then(|value| value.i())
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
-            // Recreate JPrimitiveArray from saved raw pointer for get_byte_array_region
-            let java_buffer =
-                unsafe { jni::objects::JPrimitiveArray::<i8>::from_raw(java_buffer_raw) };
 
             if read_count < 0 {
                 break;
@@ -534,12 +529,10 @@ pub fn save_bytes_to_android_media_store(
             let byte_array = env
                 .byte_array_from_slice(chunk)
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
-            // Save raw pointer for cleanup after call_method consumes byte_array
-            let byte_array_raw = byte_array.as_raw();
-            env.call_method(&output_stream, "write", "([B)V", &[JValue::from(JObject::from(byte_array))])
+            env.call_method(&output_stream, "write", "([B)V", &[JValueGen::from(byte_array.as_ref())])
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
             // Explicitly delete local reference to prevent accumulation in large file writes
-            let _ = env.delete_local_ref(unsafe { JObject::from_raw(byte_array_raw) });
+            let _ = env.delete_local_ref(JObject::from(byte_array));
             offset = end;
         }
         env.call_method(&output_stream, "flush", "()V", &[])
