@@ -81,6 +81,18 @@ jobs:
             librsvg2-dev \
             patchelf
 
+      - name: Install LLVM and Clang (Windows)
+        if: runner.os == 'Windows'
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "19"
+          directory: ${{ runner.temp }}/llvm
+
+      - name: Set LIBCLANG_PATH (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo "LIBCLANG_PATH=${{ runner.temp }}/llvm/bin" >> $GITHUB_ENV
+
       # ------------- Android Setup -------------
       - name: Set up JDK
         if: inputs.mobile == 'android'
@@ -127,7 +139,7 @@ jobs:
           if [[ "${{ inputs.mobile }}" == "android" ]]; then
             replacement="android"
           else
-            replacement="$(echo "${platform}" | sed -E 's/-latest//')"
+            replacement="$(echo "${platform}" | sed -E 's/-latest//' | sed -E 's/windows-11-arm/windows-arm64/' | sed -E 's/windows$/windows-x64/')"
           fi
           if [[ -n "${{ inputs.asset-name-pattern }}" ]]; then
             patched_platform=$(echo '${{ inputs.asset-name-pattern }}' | sed -E "s/\[platform\]/${replacement}/")
@@ -226,8 +238,10 @@ jobs:
         with:
           name: ${{ inputs.asset-prefix }}_${{ inputs.platform }}${{ inputs.target && format('_{0}', inputs.target) || '' }}_artifacts
           path: |
-            src-tauri/target/${{ inputs.target || 'release' }}/bundle/**/*.exe
-            src-tauri/target/${{ inputs.target || 'release' }}/release/bundle/**/*.exe
+            src-tauri/target/${{ inputs.target }}/release/bundle/nsis/*.exe
+            src-tauri/target/${{ inputs.target }}/release/bundle/nsis/*.nsis.zip
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/nsis/*.nsis.zip
           retention-days: 7
           compression-level: 6
           if-no-files-found: warn

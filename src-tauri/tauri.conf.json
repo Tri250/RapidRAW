@@ -88,8 +88,28 @@
       }
     ],
     "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
       "nsis": {
-        "installerIcon": "icons/icon.ico"
+        "installerIcon": "icons/icon.ico",
+        "headerImage": null,
+        "sidebarImage": null,
+        "installMode": "currentUser",
+        "languages": [
+          "English",
+          "SimpChinese",
+          "TradChinese",
+          "French",
+          "German",
+          "Italian",
+          "Japanese",
+          "Korean",
+          "Polish",
+          "Portuguese",
+          "Russian",
+          "Spanish"
+        ]
       }
     }
   },

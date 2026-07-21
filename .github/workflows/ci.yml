@@ -16,10 +16,10 @@ jobs:
             args: '--bundles nsis'
             target: ''
             asset-prefix: '01'
-          # Windows ARM64 (cross-compile on windows-latest)
-          - platform: 'windows-latest'
+          # Windows ARM64 (native build on ARM runner)
+          - platform: 'windows-11-arm'
             args: '--bundles nsis'
-            target: 'aarch64-pc-windows-msvc'
+            target: ''
             asset-prefix: '01_arm'
           # macOS Apple Silicon
           - platform: 'macos-14'

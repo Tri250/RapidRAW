@@ -3018,7 +3018,7 @@ pub fn show_in_finder(path: String) -> Result<(), String> {
     {
         let source_path_str = source_path.to_string_lossy().to_string();
         Command::new("explorer")
-            .args(["/select,", &source_path_str])
+            .arg(format!("/select,{}", source_path_str))
             .spawn()
             .map_err(|e| e.to_string())?;
     }
