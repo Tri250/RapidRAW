@@ -213,7 +213,10 @@ fn align_frame_to_reference(
             return AlignmentOutcome::Failed;
         }
     };
-    let rigid_full = estimate_rigid_transform(&inliers, reference, frame);
+    let rigid_full = match estimate_rigid_transform(&inliers, reference, frame) {
+        Ok(m) => m,
+        Err(_) => return AlignmentOutcome::Failed,
+    };
     let (width, height) = frame_image.dimensions();
     let displacement = max_corner_displacement(&rigid_full, width, height);
     if displacement < DEGHOST_IDENTITY_MAX_DISPLACEMENT {
@@ -232,7 +235,7 @@ fn estimate_rigid_transform(
     inliers: &[Match],
     reference: &FrameDetection,
     frame: &FrameDetection,
-) -> Matrix3<f64> {
+) -> Result<Matrix3<f64>, String> {
     assert!(
         inliers.len() >= 2,
         "rigid estimate requires at least two inliers"
@@ -274,7 +277,7 @@ fn estimate_rigid_transform(
         - (rotation[(0, 0)] * reference_centroid.0 + rotation[(0, 1)] * reference_centroid.1);
     let ty = frame_centroid.1
         - (rotation[(1, 0)] * reference_centroid.0 + rotation[(1, 1)] * reference_centroid.1);
-    Matrix3::new(
+    Ok(Matrix3::new(
         rotation[(0, 0)],
         rotation[(0, 1)],
         tx * frame.scale_factor,
@@ -284,7 +287,7 @@ fn estimate_rigid_transform(
         0.0,
         0.0,
         1.0,
-    )
+    ))
 }
 
 fn centroid(points: impl Iterator<Item = (f64, f64)>, count: f64) -> (f64, f64) {

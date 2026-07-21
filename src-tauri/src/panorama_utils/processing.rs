@@ -340,7 +340,7 @@ pub fn compute_homography(points: &[(Point2<f64>, Point2<f64>)]) -> Option<Matri
     }
     let a = nalgebra::DMatrix::from_rows(&a_rows);
     let svd = SVD::new(a, true, true);
-    let v_t = svd.v_t.expect("SVD failed to compute V_t");
+    let v_t = svd.v_t?;
     let h_vec = v_t.row(v_t.nrows() - 1).transpose();
     Some(Matrix3::from_iterator(h_vec.iter().cloned()).transpose())
 }
