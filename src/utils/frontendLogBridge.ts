@@ -198,7 +198,7 @@ function serializeValue(
   }
 
   if (typeof value === 'function') {
-    return `[Function ${(value as Function).name || 'anonymous'}]`;
+    return `[Function ${(value as (...args: unknown[]) => unknown).name || 'anonymous'}]`;
   }
 
   if (typeof value === 'bigint') {
@@ -289,7 +289,7 @@ export function installFrontendLogBridge(): void {
     sendToBackend('error', ['Unhandled promise rejection', event.reason]);
   });
 
-  // @ts-ignore - import.meta.hot is Vite-specific
+  // @ts-expect-error - import.meta.hot is Vite-specific
   const hot = (import.meta as ImportMeta & { hot?: { on: (event: string, cb: (payload: unknown) => void) => void } })
     .hot;
   if (hot?.on) {

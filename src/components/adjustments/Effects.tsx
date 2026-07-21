@@ -29,6 +29,7 @@ export default function EffectsPanel({
 
   const handleAdjustmentChange = (key: string, value: string) => {
     const numericValue = parseInt(value, 10);
+    if (isNaN(numericValue)) return;
     setAdjustments((prev: Partial<Adjustments>) => ({ ...prev, [key]: numericValue }));
   };
 
@@ -98,7 +99,7 @@ export default function EffectsPanel({
             <LUTControl
               lutPath={adjustments.lutPath || null}
               lutName={adjustments.lutName || null}
-              lutIntensity={adjustments.lutIntensity || 100}
+              lutIntensity={adjustments.lutIntensity ?? 100}
               onLutSelect={handleLutSelect}
               onLutHover={onLutHover}
               onIntensityChange={handleLutIntensityChange}

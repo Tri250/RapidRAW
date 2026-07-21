@@ -876,8 +876,6 @@ export function AdvancedFilterPanel({ isAndroid }: { isAndroid: boolean }) {
     })),
   );
 
-  if (!isAndroid) return null;
-
   const isFilterActive =
     advancedFilter.dateFrom !== null ||
     advancedFilter.dateTo !== null ||
@@ -900,6 +898,8 @@ export function AdvancedFilterPanel({ isAndroid }: { isAndroid: boolean }) {
       .map(([tag]) => tag)
       .slice(0, 12);
   }, [imageList]);
+
+  if (!isAndroid) return null;
 
   const tagChips = popularAiTags.length > 0 ? popularAiTags : POPULAR_TAG_CHIPS;
 

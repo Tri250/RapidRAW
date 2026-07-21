@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#0C0C12"/>
+  <!-- Outer ring -->
+  <circle cx="256" cy="256" r="220" fill="none" stroke="#3EA88A" stroke-width="12"/>
+  <!-- Aperture blades -->
+  <g transform="translate(256,256)">
+    <!-- Blade 1 -->
+    <polygon points="0,-180 62,-52 -62,-52" fill="#3EA88A" opacity="0.9" transform="rotate(0)"/>
+    <!-- Blade 2 -->
+    <polygon points="0,-180 62,-52 -62,-52" fill="#3EA88A" opacity="0.85" transform="rotate(60)"/>
+    <!-- Blade 3 -->
+    <polygon points="0,-180 62,-52 -62,-52" fill="#3EA88A" opacity="0.8" transform="rotate(120)"/>
+    <!-- Blade 4 -->
+    <polygon points="0,-180 62,-52 -62,-52" fill="#3EA88A" opacity="0.9" transform="rotate(180)"/>
+    <!-- Blade 5 -->
+    <polygon points="0,-180 62,-52 -62,-52" fill="#3EA88A" opacity="0.85" transform="rotate(240)"/>
+    <!-- Blade 6 -->
+    <polygon points="0,-180 62,-52 -62,-52" fill="#3EA88A" opacity="0.8" transform="rotate(300)"/>
+  </g>
+  <!-- Center lens circle -->
+  <circle cx="256" cy="256" r="56" fill="#0C0C12"/>
+  <circle cx="256" cy="256" r="56" fill="none" stroke="#3EA88A" stroke-width="8"/>
+  <!-- Lens highlight -->
+  <circle cx="240" cy="240" r="18" fill="rgba(255,255,255,0.15)"/>
+  <!-- Inner accent ring -->
+  <circle cx="256" cy="256" r="130" fill="none" stroke="#3EA88A" stroke-width="3" opacity="0.4"/>
+</svg>

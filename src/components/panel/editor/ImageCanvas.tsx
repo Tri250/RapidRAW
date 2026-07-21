@@ -1323,10 +1323,8 @@ const ImageCanvas = memo(
           setDisplayState((prev) => ({ base: prev.base, fade: newSrc }));
           setIsFadingIn(false);
 
-          let frame1: number;
-          let frame2: number;
-
-          frame1 = requestAnimationFrame(() => {
+          let frame2 = 0;
+          const frame1 = requestAnimationFrame(() => {
             frame2 = requestAnimationFrame(() => {
               setIsFadingIn(true);
             });
@@ -1791,7 +1789,7 @@ const ImageCanvas = memo(
           const x = pos.x / scale + cropX;
           const y = pos.y / scale + cropY;
 
-          let newParams = { ...activeSubMask.parameters };
+          const newParams = { ...activeSubMask.parameters };
           newParams.targetX = x;
           newParams.targetY = y;
           newParams.rotation = adjustments.rotation || 0;
@@ -2062,7 +2060,7 @@ const ImageCanvas = memo(
             return;
           }
 
-          let updatedParams = { ...localInitialDrawParams };
+          const updatedParams = { ...localInitialDrawParams };
 
           if (activeSubMask.type === Mask.Radial) {
             updatedParams.radiusX = Math.max(1, Math.abs(x - dragStartPointer.current.x));
@@ -2284,7 +2282,7 @@ const ImageCanvas = memo(
         const { scale } = imageRenderSize;
         const activeId = isMasking ? activeMaskId : activeAiSubMaskId;
 
-        let startPoint = { x: box.start.x / scale + cropX, y: box.start.y / scale + cropY };
+        const startPoint = { x: box.start.x / scale + cropX, y: box.start.y / scale + cropY };
         let endPoint = { x: box.end.x / scale + cropX, y: box.end.y / scale + cropY };
 
         const dx = box.end.x - box.start.x;
@@ -2727,7 +2725,7 @@ const ImageCanvas = memo(
                 }
                 preserveAspectRatio={imageRenderSize.width > 0 && imageRenderSize.height > 0 ? 'none' : 'xMidYMid meet'}
               >
-                {displayState.base && !isWgpuActive && (
+                {displayState.base && (!isWgpuActive || !hasRenderedFirstFrame) && (
                   <image
                     href={displayState.base}
                     x="0"
@@ -2738,7 +2736,7 @@ const ImageCanvas = memo(
                   />
                 )}
 
-                {displayState.fade && !isWgpuActive && (
+                {displayState.fade && (!isWgpuActive || !hasRenderedFirstFrame) && (
                   <image
                     href={displayState.fade}
                     x="0"
@@ -2753,7 +2751,7 @@ const ImageCanvas = memo(
                   />
                 )}
 
-                {visiblePatch && !isWgpuActive && (
+                {visiblePatch && (!isWgpuActive || !hasRenderedFirstFrame) && (
                   <image
                     href={visiblePatch.url}
                     x={`${visiblePatch.normX * 100}%`}

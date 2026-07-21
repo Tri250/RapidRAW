@@ -142,7 +142,7 @@ const ToneMapperSwitch = ({
             label={t('adjustments.basic.evShift')}
             max={5}
             min={-5}
-            onChange={(e: any) => onEvShiftChange(parseFloat(e.target.value))}
+            onChange={(e: any) => { const v = parseFloat(e.target.value); if (!isNaN(v)) onEvShiftChange(v); }}
             step={0.01}
             value={evShiftValue}
             trackClassName="bg-surface"
@@ -165,6 +165,7 @@ export default function BasicAdjustments({
 
   const handleAdjustmentChange = (key: BasicAdjustment, value: any) => {
     const numericValue = parseFloat(value);
+    if (isNaN(numericValue)) return;
     setAdjustments((prev: Partial<Adjustments>) => ({ ...prev, [key]: numericValue }));
   };
 

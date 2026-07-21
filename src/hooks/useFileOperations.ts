@@ -230,7 +230,8 @@ export function useFileOperations(
         return;
       }
 
-      const invalidFilenameChars = /[<>:"/\\|?*\x00-\x1f]/;
+      // eslint-disable-next-line no-control-regex
+      const invalidFilenameChars = /[<>:"/\\|?*\u0000-\u001f]/;
       if (invalidFilenameChars.test(trimmedTemplate)) {
         toast.error('Filename template contains invalid characters. Characters < > : " / \\ | ? * and control characters are not allowed.');
         setUI({ renameTargetPaths: [] });

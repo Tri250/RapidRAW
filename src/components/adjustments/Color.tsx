@@ -455,24 +455,28 @@ export default function ColorPanel({
 
   useEffect(() => {
     const normalizedHue = ((effectiveHue % 360) + 360) % 360;
-    const effectiveSaturation = (currentHsl.saturation + 100) / 2;
+    const effectiveSaturation = ((currentHsl.saturation ?? 0) + 100) / 2;
 
     document.documentElement.style.setProperty(`--hsl-mixer-hue-${activeColor}`, normalizedHue.toString());
     document.documentElement.style.setProperty(`--hsl-mixer-sat-${activeColor}`, `${effectiveSaturation}%`);
   }, [effectiveHue, currentHsl.saturation, activeColor]);
 
   const handleAdjustmentChange = (key: ColorAdjustment, value: string) => {
-    setAdjustments((prev: Partial<Adjustments>) => ({ ...prev, [key]: parseFloat(value) }));
+    const numericValue = parseFloat(value);
+    if (isNaN(numericValue)) return;
+    setAdjustments((prev: Partial<Adjustments>) => ({ ...prev, [key]: numericValue }));
   };
 
   const handleHslChange = (key: ColorAdjustment, value: string) => {
+    const numericValue = parseFloat(value);
+    if (isNaN(numericValue)) return;
     setAdjustments((prev: Partial<Adjustments>) => ({
       ...prev,
       hsl: {
         ...(prev.hsl || {}),
         [activeColor]: {
           ...(prev.hsl?.[activeColor] || {}),
-          [key]: parseFloat(value),
+          [key]: numericValue,
         },
       },
     }));

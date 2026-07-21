@@ -12,7 +12,8 @@ interface FolderModalProps {
   buttonText?: string;
 }
 
-const INVALID_FOLDER_CHARS = /[<>:"/\\|?*\x00-\x1F]/;
+// eslint-disable-next-line no-control-regex
+const INVALID_FOLDER_CHARS = /[<>:"/\\|?*\u0000-\u001f]/;
 
 export default function CreateFolderModal({
   isOpen,

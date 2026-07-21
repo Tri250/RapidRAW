@@ -105,6 +105,8 @@
 
   html {
     background-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   html,
@@ -139,7 +141,7 @@
   }
   ::-webkit-scrollbar-thumb {
     background-color: var(--color-text-secondary);
-    border-radius: 10px;
+    border-radius: 6px;
     border: 2px solid transparent;
     background-clip: padding-box;
   }

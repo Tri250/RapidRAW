@@ -110,7 +110,7 @@ function buildParametricPoints(settings: ParametricCurveSettings): Array<Coord> 
 
   const clamp = (v: number) => Math.max(0, Math.min(1, v));
 
-  let points = xs.map((x, i) => ({
+  const points = xs.map((x, i) => ({
     x: x * 255,
     y: clamp(ys[i]) * 255,
   }));
@@ -205,7 +205,7 @@ function getCurvePath(points: Array<Coord>) {
 
 function getHistogramPath(data: Array<any>) {
   if (!data || data.length === 0) return '';
-  const maxVal = Math.max(...data);
+  const maxVal = data.reduce((max: number, v: number) => (v > max ? v : max), 0);
   if (maxVal === 0) return '';
 
   const pathData = data
