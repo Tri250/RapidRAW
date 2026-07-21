@@ -1,90 +1,28 @@
-const js = require('@eslint/js');
-const tseslint = require('typescript-eslint');
-const react = require('eslint-plugin-react');
-const reactHooks = require('eslint-plugin-react-hooks');
-const i18next = require('eslint-plugin-i18next');
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import tseslint from 'typescript-eslint'
 
-const tsFiles = ['**/*.{ts,tsx}'];
-
-const jsRecommendedForTs = {
-  ...js.configs.recommended,
-  files: tsFiles,
-};
-
-const tsRecommended = tseslint.configs.recommended.map((config) =>
-  config.files ? config : { ...config, files: tsFiles },
-);
-
-module.exports = [
+export default tseslint.config(
+  { ignores: ['dist'] },
   {
-    ignores: [
-      'dist/**',
-      'node_modules/**',
-      'src-tauri/target/**',
-      'src-tauri/gen/**',
-      'src-tauri/rawler/**',
-      'data/**',
-      'coverage/**',
-    ],
-  },
-  jsRecommendedForTs,
-  ...tsRecommended,
-  {
-    files: tsFiles,
-    plugins: {
-      react,
-      'react-hooks': reactHooks,
-      i18next,
-    },
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    files: ['**/*.{ts,tsx}'],
     languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
-      parserOptions: {
-        ecmaFeatures: {
-          jsx: true,
-        },
-      },
+      ecmaVersion: 2020,
+      globals: globals.browser,
     },
-    settings: {
-      react: {
-        version: 'detect',
-      },
+    plugins: {
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
     },
     rules: {
-      'no-unused-vars': 'off',
-      'react-hooks/exhaustive-deps': 'warn',
-      '@typescript-eslint/no-unused-vars': [
+      ...reactHooks.configs.recommended.rules,
+      'react-refresh/only-export-components': [
         'warn',
-        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
-      ],
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unsafe-function-type': 'warn',
-      '@typescript-eslint/ban-ts-comment': 'warn',
-      'i18next/no-literal-string': [
-        'warn',
-        {
-          markupOnly: true,
-          ignoreAttribute: [
-            'className',
-            'style',
-            'data-tooltip',
-            'variant',
-            'size',
-            'color',
-            'weight',
-            'fillOrigin',
-            'id',
-            'name',
-            'type',
-            'value',
-            'label',
-            'placeholder',
-            'stroke',
-            'fill',
-            'viewBox',
-          ],
-        },
+        { allowConstantExport: true },
       ],
     },
   },
-];
+)
