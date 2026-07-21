@@ -973,7 +973,7 @@ export function AdvancedFilterPanel() {
           <input
             type="text"
             className="w-full bg-bg-primary text-text-primary text-sm px-2 py-1 rounded border border-border-color focus:outline-hidden focus:border-accent"
-            placeholder="Sony, Canon, Nikon..."
+            placeholder={t('library.search.cameraPlaceholder', 'Sony, Canon, Nikon...')}
             value={advancedFilter.cameraModel || ''}
             onChange={(e) =>
               setAdvancedFilter({ cameraModel: e.target.value || null })
@@ -993,7 +993,7 @@ export function AdvancedFilterPanel() {
             <input
               type="number"
               className="w-full bg-bg-primary text-text-primary text-sm px-2 py-1 rounded border border-border-color focus:outline-hidden focus:border-accent"
-              placeholder="Min mm"
+              placeholder={t('library.search.focalMinPlaceholder', 'Min mm')}
               min={0}
               value={advancedFilter.focalLengthMin ?? ''}
               onChange={(e) =>
@@ -1004,7 +1004,7 @@ export function AdvancedFilterPanel() {
             <input
               type="number"
               className="w-full bg-bg-primary text-text-primary text-sm px-2 py-1 rounded border border-border-color focus:outline-hidden focus:border-accent"
-              placeholder="Max mm"
+              placeholder={t('library.search.focalMaxPlaceholder', 'Max mm')}
               min={0}
               value={advancedFilter.focalLengthMax ?? ''}
               onChange={(e) =>

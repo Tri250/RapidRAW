@@ -831,22 +831,6 @@
     }
   },
   "library": {
-    "community": {
-      "actionSave": "Сохранить",
-      "actionSaved": "Сохранено",
-      "actionSaving": "Сохранение...",
-      "fetchingPresets": "Получение пресетов с GitHub...",
-      "footerHeading": "Хотите добавить свой пресет в рекомендуемые?",
-      "footerLinkText": "Создайте обращение на GitHub",
-      "headerDesc": "Откройте для себя пресеты, созданные сообществом.",
-      "headerTitle": "Пресеты сообщества",
-      "presetBy": "от {{creator}}",
-      "searchPlaceholder": "Поиск пресетов...",
-      "sortBy": "Сортировка:",
-      "sortMethods": {
-        "name": "Имя (А-Я)"
-      }
-    },
     "filters": {
       "edited": {
         "all": "Все изображения",
@@ -1020,7 +1004,6 @@
       "small": "Маленький"
     },
     "tooltips": {
-      "communityPresets": "Пресеты сообщества",
       "goHome": "На главную",
       "importImages": "Импортировать изображения"
     }

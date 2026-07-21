@@ -874,22 +874,6 @@
     }
   },
   "library": {
-    "community": {
-      "actionSave": "Zapisz",
-      "actionSaved": "Zapisano",
-      "actionSaving": "Zapisywanie...",
-      "fetchingPresets": "Pobieranie presetów z GitHuba...",
-      "footerHeading": "Chcesz, by Twój preset tu trafił?",
-      "footerLinkText": "Utwórz zgłoszenie na GitHubie",
-      "headerDesc": "Odkrywaj presety stworzone przez społeczność.",
-      "headerTitle": "Presety społeczności",
-      "presetBy": "od {{creator}}",
-      "searchPlaceholder": "Szukaj presetów...",
-      "sortBy": "Sortuj według:",
-      "sortMethods": {
-        "name": "Nazwa (A-Z)"
-      }
-    },
     "filters": {
       "edited": {
         "all": "Wszystkie obrazy",
@@ -1065,7 +1049,6 @@
       "small": "Mały"
     },
     "tooltips": {
-      "communityPresets": "Presety społeczności",
       "goHome": "Przejdź do strony głównej",
       "importImages": "Importuj obrazy"
     }

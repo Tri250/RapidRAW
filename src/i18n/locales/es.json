@@ -832,22 +832,6 @@
     }
   },
   "library": {
-    "community": {
-      "actionSave": "Guardar",
-      "actionSaved": "Guardado",
-      "actionSaving": "Guardando...",
-      "fetchingPresets": "Obteniendo ajustes preestablecidos desde GitHub...",
-      "footerHeading": "¿Quieres que tu ajuste preestablecido aparezca aquí?",
-      "footerLinkText": "Crea un issue en GitHub",
-      "headerDesc": "Descubre ajustes preestablecidos creados por la comunidad.",
-      "headerTitle": "Ajustes de la comunidad",
-      "presetBy": "por {{creator}}",
-      "searchPlaceholder": "Buscar ajustes preestablecidos...",
-      "sortBy": "Ordenar por:",
-      "sortMethods": {
-        "name": "Nombre (A-Z)"
-      }
-    },
     "filters": {
       "edited": {
         "all": "Todas las imágenes",
@@ -1021,7 +1005,6 @@
       "small": "Pequeño"
     },
     "tooltips": {
-      "communityPresets": "Ajustes de la comunidad",
       "goHome": "Ir al Inicio",
       "importImages": "Importar imágenes"
     }

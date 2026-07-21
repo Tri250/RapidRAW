@@ -166,7 +166,7 @@ pub fn get_or_init_gpu_context(
     #[cfg(not(any(target_os = "android", target_os = "linux")))]
     let app_handle = _app_handle;
 
-    let mut context_lock = state.gpu_context.lock().unwrap();
+    let mut context_lock = state.gpu_context.lock().map_err(|e| format!("GPU context lock failed: {}", e))?;
     if let Some(context) = &*context_lock {
         return Ok(context.clone());
     }
@@ -184,7 +184,7 @@ pub fn get_or_init_gpu_context(
         instance_desc.backends = wgpu::Backends::VULKAN;
     }
 
-    let flag_path = state.gpu_crash_flag_path.lock().unwrap().clone();
+    let flag_path = state.gpu_crash_flag_path.lock().map_err(|e| format!("GPU crash flag lock failed: {}", e))?.clone();
     if let Some(p) = &flag_path {
         if let Some(parent) = p.parent() {
             let _ = std::fs::create_dir_all(parent);
@@ -1683,7 +1683,7 @@ fn process_and_get_dynamic_image_inner(
 
     let mut reallocated = false;
 
-    let mut processor_lock = state.gpu_processor.lock().unwrap();
+    let mut processor_lock = state.gpu_processor.lock().map_err(|e| format!("GPU processor lock failed: {}", e))?;
     let mut needs_new_processor = false;
     let new_width = (width + 255) & !255;
     let new_height = (height + 255) & !255;
@@ -1727,7 +1727,7 @@ fn process_and_get_dynamic_image_inner(
         reallocated = true;
     }
 
-    let processor_state = processor_lock.as_ref().unwrap();
+    let processor_state = processor_lock.as_ref().ok_or("GPU processor not initialized")?;
     let processor = &processor_state.processor;
 
     if reallocated
@@ -1763,7 +1763,7 @@ fn process_and_get_dynamic_image_inner(
         display.current_bind_group = Some(bind_group);
     }
 
-    let mut cache_lock = state.gpu_image_cache.lock().unwrap();
+    let mut cache_lock = state.gpu_image_cache.lock().map_err(|e| format!("GPU image cache lock failed: {}", e))?;
     let mut needs_new_cache = false;
 
     if let Some(cache) = &*cache_lock {
@@ -1816,7 +1816,7 @@ fn process_and_get_dynamic_image_inner(
         });
     }
 
-    let cache = cache_lock.as_ref().unwrap();
+    let cache = cache_lock.as_ref().ok_or("GPU image cache not initialized")?;
 
     let skip_readback = output_to_display;
 

@@ -832,22 +832,6 @@
     }
   },
   "library": {
-    "community": {
-      "actionSave": "Speichern",
-      "actionSaved": "Gespeichert",
-      "actionSaving": "Speichert...",
-      "fetchingPresets": "Vorgaben werden von GitHub abgerufen...",
-      "footerHeading": "Möchten Sie Ihre Vorgabe hier sehen?",
-      "footerLinkText": "Erstellen Sie ein Issue auf GitHub",
-      "headerDesc": "Entdecken Sie Vorgaben, die von der Community erstellt wurden.",
-      "headerTitle": "Community-Vorgaben",
-      "presetBy": "von {{creator}}",
-      "searchPlaceholder": "Vorgaben durchsuchen...",
-      "sortBy": "Sortieren nach:",
-      "sortMethods": {
-        "name": "Name (A-Z)"
-      }
-    },
     "filters": {
       "edited": {
         "all": "Alle Bilder",
@@ -1021,7 +1005,6 @@
       "small": "Klein"
     },
     "tooltips": {
-      "communityPresets": "Community-Vorgaben",
       "goHome": "Zur Startseite",
       "importImages": "Bilder importieren"
     }

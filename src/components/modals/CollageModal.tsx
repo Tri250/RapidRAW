@@ -740,7 +740,7 @@ export default function CollageModal({ isOpen, onClose, onSave, sourceImages }: 
             value={exportWidth}
             onChange={(e) => handleExportDimChange(e, 'width')}
             className="w-full bg-bg-primary text-center rounded-md p-1 border border-surface focus:border-accent focus:ring-accent"
-            placeholder="W"
+            placeholder={t('editor.collage.widthPlaceholder', 'W')}
           />
           <span className="text-text-tertiary">×</span>
           <input
@@ -748,7 +748,7 @@ export default function CollageModal({ isOpen, onClose, onSave, sourceImages }: 
             value={exportHeight}
             onChange={(e) => handleExportDimChange(e, 'height')}
             className="w-full bg-bg-primary text-center rounded-md p-1 border border-surface focus:border-accent focus:ring-accent"
-            placeholder="H"
+            placeholder={t('editor.collage.heightPlaceholder', 'H')}
           />
         </div>
       </div>

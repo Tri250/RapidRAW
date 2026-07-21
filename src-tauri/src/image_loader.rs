@@ -804,9 +804,8 @@ pub fn is_image_cached(path: String, state: tauri::State<'_, AppState>) -> bool 
     state
         .decoded_image_cache
         .lock()
-        .unwrap()
-        .get(&source_path_str)
-        .is_some()
+        .map(|guard| guard.get(&source_path_str).is_some())
+        .unwrap_or(false)
 }
 
 #[tauri::command]
@@ -820,19 +819,19 @@ pub async fn load_image(
     let cancel_token = Some((generation_tracker.clone(), my_generation));
 
     {
-        *state.original_image.lock().unwrap() = None;
-        *state.cached_preview.lock().unwrap() = None;
-        *state.gpu_image_cache.lock().unwrap() = None;
-        *state.full_warped_cache.lock().unwrap() = None;
-        *state.full_transformed_cache.lock().unwrap() = None;
+        if let Ok(mut guard) = state.original_image.lock() { *guard = None; }
+        if let Ok(mut guard) = state.cached_preview.lock() { *guard = None; }
+        if let Ok(mut guard) = state.gpu_image_cache.lock() { *guard = None; }
+        if let Ok(mut guard) = state.full_warped_cache.lock() { *guard = None; }
+        if let Ok(mut guard) = state.full_transformed_cache.lock() { *guard = None; }
 
-        state.mask_cache.lock().unwrap().clear();
-        state.patch_cache.lock().unwrap().clear();
-        state.geometry_cache.lock().unwrap().clear();
+        if let Ok(mut guard) = state.mask_cache.lock() { guard.clear(); }
+        if let Ok(mut guard) = state.patch_cache.lock() { guard.clear(); }
+        if let Ok(mut guard) = state.geometry_cache.lock() { guard.clear(); }
 
-        *state.denoise_result.lock().unwrap() = None;
-        *state.hdr_result.lock().unwrap() = None;
-        *state.panorama_result.lock().unwrap() = None;
+        if let Ok(mut guard) = state.denoise_result.lock() { *guard = None; }
+        if let Ok(mut guard) = state.hdr_result.lock() { *guard = None; }
+        if let Ok(mut guard) = state.panorama_result.lock() { *guard = None; }
     }
 
     let (source_path, sidecar_path) = parse_virtual_path(&path);
@@ -916,11 +915,13 @@ pub async fn load_image(
 
         let arc_img = Arc::new(pristine_img);
 
-        state.decoded_image_cache.lock().unwrap().insert(
-            source_path_str.clone(),
-            arc_img.clone(),
-            exif_data_loaded.clone(),
-        );
+        if let Ok(mut cache) = state.decoded_image_cache.lock() {
+            cache.insert(
+                source_path_str.clone(),
+                arc_img.clone(),
+                exif_data_loaded.clone(),
+            );
+        }
 
         (arc_img, exif_data_loaded)
     };
@@ -937,7 +938,7 @@ pub async fn load_image(
 
     let (orig_width, orig_height) = pristine_arc.as_ref().dimensions();
 
-    *state.original_image.lock().unwrap() = Some(LoadedImage {
+    *state.original_image.lock().map_err(|e| format!("Original image lock failed: {}", e))? = Some(LoadedImage {
         path,
         image: pristine_arc,
         is_raw,

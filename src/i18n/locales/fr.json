@@ -832,22 +832,6 @@
     }
   },
   "library": {
-    "community": {
-      "actionSave": "Enregistrer",
-      "actionSaved": "Enregistré",
-      "actionSaving": "Enregistrement en cours...",
-      "fetchingPresets": "Récupération des paramètres prédéfinis depuis GitHub...",
-      "footerHeading": "Vous souhaitez proposer votre paramètre prédéfini ?",
-      "footerLinkText": "Créez une issue sur GitHub",
-      "headerDesc": "Découvrez des paramètres prédéfinis créés par la communauté.",
-      "headerTitle": "Paramètres prédéfinis de la communauté",
-      "presetBy": "par {{creator}}",
-      "searchPlaceholder": "Rechercher des paramètres...",
-      "sortBy": "Trier par :",
-      "sortMethods": {
-        "name": "Nom (A-Z)"
-      }
-    },
     "filters": {
       "edited": {
         "all": "Toutes les images",
@@ -1021,7 +1005,6 @@
       "small": "Petit"
     },
     "tooltips": {
-      "communityPresets": "Paramètres prédéfinis de la communauté",
       "goHome": "Aller à l'accueil",
       "importImages": "Importer des images"
     }

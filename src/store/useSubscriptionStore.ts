@@ -5,7 +5,7 @@ import { PresetSubscription, GalleryPreset, SubscriptionUpdateInfo } from '../ty
 const DEFAULT_SUBSCRIPTIONS: PresetSubscription[] = [
   {
     id: 'default-github',
-    url: 'https://raw.githubusercontent.com/CyberTimon/RapidRAW-Presets/main/presets.json',
+    url: 'https://cdn.jsdelivr.net/gh/CyberTimon/RapidRAW-Presets/main/presets.json',
     name: 'RAW 工坊 Official',
     author: '@CyberTimon',
     build: 1,
@@ -308,12 +308,21 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
 
   loadGalleryPresets: async () => {
     set({ isGalleryLoading: true });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     try {
-      const presets: GalleryPreset[] = await invoke('load_all_subscription_presets');
+      const presets = await Promise.race([
+        invoke('load_all_subscription_presets') as Promise<GalleryPreset[]>,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Gallery presets load timed out')), 15000)
+        ),
+      ]);
       set({ galleryPresets: presets, isGalleryLoading: false });
     } catch (e) {
       console.error('Failed to load gallery presets:', e);
       set({ isGalleryLoading: false });
+    } finally {
+      clearTimeout(timeoutId);
     }
   },
 

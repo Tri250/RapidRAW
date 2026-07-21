@@ -832,22 +832,6 @@
     }
   },
   "library": {
-    "community": {
-      "actionSave": "儲存",
-      "actionSaved": "已儲存",
-      "actionSaving": "儲存中...",
-      "fetchingPresets": "正在從 GitHub 取得預設...",
-      "footerHeading": "想讓您的預設被推薦？",
-      "footerLinkText": "在 GitHub 上建立 Issue",
-      "headerDesc": "發現社群建立的預設。",
-      "headerTitle": "社群預設",
-      "presetBy": "作者 {{creator}}",
-      "searchPlaceholder": "搜尋預設...",
-      "sortBy": "排序方式：",
-      "sortMethods": {
-        "name": "名稱（A-Z）"
-      }
-    },
     "filters": {
       "edited": {
         "all": "所有影像",
@@ -1021,7 +1005,6 @@
       "small": "小"
     },
     "tooltips": {
-      "communityPresets": "社群預設",
       "goHome": "返回首頁",
       "importImages": "匯入影像"
     }

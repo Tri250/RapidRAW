@@ -831,22 +831,6 @@
     }
   },
   "library": {
-    "community": {
-      "actionSave": "保存",
-      "actionSaved": "保存済み",
-      "actionSaving": "保存中...",
-      "fetchingPresets": "GitHubからプリセットを取得中...",
-      "footerHeading": "あなたのプリセットを掲載しませんか？",
-      "footerLinkText": "GitHubでIssueを作成してください",
-      "headerDesc": "コミュニティによって作成されたプリセットをご覧ください。",
-      "headerTitle": "コミュニティプリセット",
-      "presetBy": "作成者: {{creator}}",
-      "searchPlaceholder": "プリセットを検索...",
-      "sortBy": "並べ替え基準:",
-      "sortMethods": {
-        "name": "名前 (A-Z)"
-      }
-    },
     "filters": {
       "edited": {
         "all": "すべての画像",
@@ -1020,7 +1004,6 @@
       "small": "小"
     },
     "tooltips": {
-      "communityPresets": "コミュニティプリセット",
       "goHome": "ホームへ移動",
       "importImages": "画像をインポート"
     }

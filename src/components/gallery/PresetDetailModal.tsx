@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, Wand2, Tag, User, FileText } from 'lucide-react';
 import { PresetImageCarousel } from './PresetImageCarousel';
 import type { GalleryPreset } from '../../types/subscription';
+import { resolvePresetString } from '../../utils/presetStringResolver';
 
 interface PresetDetailModalProps {
   preset: GalleryPreset | null;
@@ -117,10 +118,10 @@ export function PresetDetailModal({ preset, onClose, onDownload }: PresetDetailM
                           className="px-2.5 py-1.5 rounded-md bg-zinc-800/50 border border-zinc-800"
                         >
                           <div className="text-[10px] text-zinc-500 uppercase tracking-wide truncate">
-                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                            {resolvePresetString(key.replace(/([A-Z])/g, ' $1').trim(), 'en')}
                           </div>
                           <div className="text-xs text-zinc-300 font-mono truncate">
-                            {typeof value === 'number' ? value.toFixed(2) : String(value)}
+                            {typeof value === 'number' ? value.toFixed(2) : resolvePresetString(String(value), 'en')}
                           </div>
                         </div>
                       ))}

@@ -832,6 +832,10 @@
         "undo": "撤销（Ctrl+Z）或历史记录（右键单击）"
       },
       "vc": "VC"
+    },
+    "collage": {
+      "widthPlaceholder": "宽",
+      "heightPlaceholder": "高"
     }
   },
   "export": {
@@ -937,22 +941,6 @@
     }
   },
   "library": {
-    "community": {
-      "actionSave": "保存",
-      "actionSaved": "已保存",
-      "actionSaving": "保存中...",
-      "fetchingPresets": "正在从 GitHub 获取预设...",
-      "footerHeading": "想让您的预设被推荐？",
-      "footerLinkText": "在 GitHub 上创建 Issue",
-      "headerDesc": "发现社区创建的预设。",
-      "headerTitle": "社区预设",
-      "presetBy": "作者 {{creator}}",
-      "searchPlaceholder": "搜索预设...",
-      "sortBy": "排序方式：",
-      "sortMethods": {
-        "name": "名称（A-Z）"
-      }
-    },
     "filters": {
       "edited": {
         "all": "所有图像",
@@ -1082,7 +1070,10 @@
       "cameraModel": "相机型号",
       "focalLength": "焦距",
       "aiTagSuggestion": "AI 标签建议",
-      "suggestions": "搜索建议"
+      "suggestions": "搜索建议",
+      "cameraPlaceholder": "索尼、佳能、尼康...",
+      "focalMinPlaceholder": "最小 mm",
+      "focalMaxPlaceholder": "最大 mm"
     },
     "sort": {
       "aperture": "光圈",
@@ -1134,7 +1125,6 @@
       "small": "小"
     },
     "tooltips": {
-      "communityPresets": "社区预设",
       "goHome": "返回首页",
       "importImages": "导入图像"
     },
@@ -1160,7 +1150,9 @@
       "opBetween": "介于",
       "valuePlaceholder": "值",
       "valueTrue": "是",
-      "valueFalse": "否"
+      "valueFalse": "否",
+      "minPlaceholder": "最小",
+      "maxPlaceholder": "最大"
     },
     "favorites": {
       "title": "收藏夹",

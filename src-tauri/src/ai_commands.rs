@@ -124,8 +124,8 @@ pub async fn generate_ai_depth_mask(
     };
 
     let cached_depth = {
-        let mut ai_state_lock = state.ai_state.lock().unwrap();
-        let ai_state = ai_state_lock.as_mut().unwrap();
+        let mut ai_state_lock = state.ai_state.lock().map_err(|e| format!("AI state lock failed: {}", e))?;
+        let ai_state = ai_state_lock.as_mut().ok_or("AI model not loaded")?;
 
         if let Some(cached) = &ai_state.depth_map {
             if cached.path_hash == path_hash {
@@ -213,8 +213,8 @@ pub async fn generate_ai_subject_mask(
     };
 
     let embeddings = {
-        let mut ai_state_lock = state.ai_state.lock().unwrap();
-        let ai_state = ai_state_lock.as_mut().unwrap();
+        let mut ai_state_lock = state.ai_state.lock().map_err(|e| format!("AI state lock failed: {}", e))?;
+        let ai_state = ai_state_lock.as_mut().ok_or("AI model not loaded")?;
 
         if let Some(cached_embeddings) = &ai_state.embeddings {
             if cached_embeddings.path_hash == path_hash {
@@ -358,8 +358,8 @@ pub async fn precompute_ai_subject_mask(
         hasher.finalize().to_hex().to_string()
     };
 
-    let mut ai_state_lock = state.ai_state.lock().unwrap();
-    let ai_state = ai_state_lock.as_mut().unwrap();
+    let mut ai_state_lock = state.ai_state.lock().map_err(|e| format!("AI state lock failed: {}", e))?;
+    let ai_state = ai_state_lock.as_mut().ok_or("AI model not loaded")?;
 
     if let Some(cached_embeddings) = &ai_state.embeddings
         && cached_embeddings.path_hash == path_hash
@@ -848,7 +848,7 @@ pub fn generate_ai_background_remove(state: tauri::State<AppState>) -> Result<Ve
 
     // Get the foreground mask from AI state via depth map
     let foreground_mask = {
-        let ai_state_lock = state.ai_state.lock().unwrap();
+        let ai_state_lock = state.ai_state.lock().map_err(|e| format!("AI state lock failed: {}", e))?;
         let ai_state = ai_state_lock
             .as_ref()
             .ok_or("AI state not initialized. Please generate a depth mask first.")?;

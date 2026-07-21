@@ -817,6 +817,10 @@
         "undo": "Undo (Ctrl+Z) or History (Right-click)"
       },
       "vc": "VC"
+    },
+    "collage": {
+      "widthPlaceholder": "W",
+      "heightPlaceholder": "H"
     }
   },
   "export": {
@@ -921,22 +925,6 @@
     }
   },
   "library": {
-    "community": {
-      "actionSave": "Save",
-      "actionSaved": "Saved",
-      "actionSaving": "Saving...",
-      "fetchingPresets": "Fetching presets from GitHub...",
-      "footerHeading": "Want to get your preset featured?",
-      "footerLinkText": "Create an issue on GitHub",
-      "headerDesc": "Discover presets created by the community.",
-      "headerTitle": "Community Presets",
-      "presetBy": "by {{creator}}",
-      "searchPlaceholder": "Search presets...",
-      "sortBy": "Sort by:",
-      "sortMethods": {
-        "name": "Name (A-Z)"
-      }
-    },
     "filters": {
       "edited": {
         "all": "All Images",
@@ -1066,7 +1054,10 @@
       "cameraModel": "Camera Model",
       "focalLength": "Focal Length",
       "aiTagSuggestion": "AI Tag Suggestions",
-      "suggestions": "Search Suggestions"
+      "suggestions": "Search Suggestions",
+      "cameraPlaceholder": "Sony, Canon, Nikon...",
+      "focalMinPlaceholder": "Min mm",
+      "focalMaxPlaceholder": "Max mm"
     },
     "sort": {
       "aperture": "Aperture",
@@ -1118,7 +1109,6 @@
       "small": "Small"
     },
     "tooltips": {
-      "communityPresets": "Community Presets",
       "goHome": "Go to Home",
       "importImages": "Import Images"
     },
@@ -1144,7 +1134,9 @@
       "opBetween": "Between",
       "valuePlaceholder": "Value",
       "valueTrue": "Yes",
-      "valueFalse": "No"
+      "valueFalse": "No",
+      "minPlaceholder": "Min",
+      "maxPlaceholder": "Max"
     },
     "favorites": {
       "title": "Favorites",

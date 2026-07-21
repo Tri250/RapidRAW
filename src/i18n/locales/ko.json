@@ -832,22 +832,6 @@
     }
   },
   "library": {
-    "community": {
-      "actionSave": "저장",
-      "actionSaved": "저장됨",
-      "actionSaving": "저장 중...",
-      "fetchingPresets": "GitHub에서 프리셋을 가져오는 중...",
-      "footerHeading": "프리셋을 추천에 올리고 싶으신가요?",
-      "footerLinkText": "GitHub에 이슈 생성",
-      "headerDesc": "커뮤니티가 만든 프리셋을 둘러보세요.",
-      "headerTitle": "커뮤니티 프리셋",
-      "presetBy": "{{creator}} 제작",
-      "searchPlaceholder": "프리셋 검색...",
-      "sortBy": "정렬 기준:",
-      "sortMethods": {
-        "name": "이름 (가나다순)"
-      }
-    },
     "filters": {
       "edited": {
         "all": "모든 이미지",
@@ -1020,7 +1004,6 @@
       "small": "작게"
     },
     "tooltips": {
-      "communityPresets": "커뮤니티 프리셋",
       "goHome": "홈으로 이동",
       "importImages": "이미지 가져오기"
     }

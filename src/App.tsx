@@ -11,6 +11,7 @@ import FolderTree from './components/panel/FolderTree';
 import ExportPanel from './components/panel/right/ExportPanel';
 import Resizer from './components/ui/Resizer';
 import GlobalTooltip from './components/ui/GlobalTooltip';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import AppModals from './components/modals/AppModals';
 
 import EditorView from './components/views/EditorView';
@@ -42,6 +43,8 @@ import { useProductivityActions } from './hooks/useProductivityActions';
 
 import { useAppInitialization } from './hooks/useAppInitialization';
 import { useAndroidBackHandler } from './hooks/useAndroidBackHandler';
+import { useAutoUpdate } from './hooks/useAutoUpdate';
+import { useAdjustmentAutoSave } from './hooks/useAdjustmentAutoSave';
 import './i18n';
 
 import {
@@ -377,6 +380,10 @@ function App() {
   });
 
   useAndroidBackHandler();
+
+  useAutoUpdate();
+
+  useAdjustmentAutoSave();
 
   const handleToggleFullScreen = useCallback(() => {
     const { zoom, selectedImage } = useEditorStore.getState();
@@ -799,12 +806,14 @@ function App() {
 }
 
 const AppWrapper = () => (
-  <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} routerPush={(to) => {}} routerReplace={(to) => {}}>
-    <ContextMenuProvider>
-      <App />
-      <GlobalTooltip />
-    </ContextMenuProvider>
-  </ClerkProvider>
+  <ErrorBoundary>
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} routerPush={(to) => {}} routerReplace={(to) => {}}>
+      <ContextMenuProvider>
+        <App />
+        <GlobalTooltip />
+      </ContextMenuProvider>
+    </ClerkProvider>
+  </ErrorBoundary>
 );
 
 export default AppWrapper;

@@ -764,7 +764,7 @@ pub async fn export_images(
 ) -> Result<(), String> {
     tokio::time::sleep(std::time::Duration::from_millis(10)).await;
 
-    if state.export_task_handle.lock().unwrap().is_some() {
+    if state.export_task_handle.lock().map_err(|e| format!("Export task lock failed: {}", e))?.is_some() {
         return Err("An export is already in progress.".to_string());
     }
 
@@ -836,7 +836,7 @@ pub async fn export_images(
         let mut join_handles = Vec::new();
 
         for (global_index, image_path_str, appearance_count, explicit_vc) in export_items {
-            let permit = semaphore.clone().acquire_owned().await.unwrap();
+            let permit = semaphore.clone().acquire_owned().await.map_err(|e| format!("Semaphore acquire failed: {}", e))?;
 
             let app_handle_clone = app_handle.clone();
             let context_clone = Arc::clone(&context);
@@ -854,7 +854,7 @@ pub async fn export_images(
                     .state::<AppState>()
                     .export_task_handle
                     .lock()
-                    .unwrap()
+                    .map_err(|e| format!("Export task lock failed: {}", e))?
                     .is_none()
                 {
                     return Err("Export cancelled".to_string());
@@ -1088,20 +1088,22 @@ pub async fn export_images(
             let _ = app_handle.emit("export-complete", ());
         }
 
-        *app_handle
+        if let Ok(mut guard) = app_handle
             .state::<AppState>()
             .export_task_handle
             .lock()
-            .unwrap() = None;
+        {
+            *guard = None;
+        }
     });
 
-    *state.export_task_handle.lock().unwrap() = Some(task);
+    *state.export_task_handle.lock().map_err(|e| format!("Export task lock failed: {}", e))? = Some(task);
     Ok(())
 }
 
 #[tauri::command]
 pub fn cancel_export(state: tauri::State<AppState>) -> Result<(), String> {
-    match state.export_task_handle.lock().unwrap().take() {
+    match state.export_task_handle.lock().map_err(|e| format!("Export task lock failed: {}", e))?.take() {
         Some(handle) => {
             handle.abort();
             println!("Export task cancellation requested.");
@@ -1153,7 +1155,7 @@ pub async fn estimate_export_sizes(
         hydrate_adjustments(&state, &mut adjustments_clone);
 
         let new_transform_hash = calculate_transform_hash(&adjustments_clone);
-        let cached_preview_lock = state.cached_preview.lock().unwrap();
+        let cached_preview_lock = state.cached_preview.lock().map_err(|e| format!("Preview cache lock failed: {}", e))?;
         let preview_dim = settings.editor_preview_resolution.unwrap_or(1920);
 
         let (preview_image, scale, unscaled_crop_offset) = if let Some(cached) =

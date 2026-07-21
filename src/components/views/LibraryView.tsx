@@ -1,6 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
 
-import CommunityPage from '../panel/CommunityPage';
 import MainLibrary from '../panel/MainLibrary';
 import BottomBar from '../panel/BottomBar';
 
@@ -125,16 +124,8 @@ export default function LibraryView({
   return (
     <div className="flex flex-row grow h-full min-h-0">
       <div className="flex-1 flex flex-col min-w-0 gap-2">
-        {activeView === 'community' ? (
-          <CommunityPage
-            onBackToLibrary={() => setUI({ activeView: 'library' })}
-            supportedTypes={supportedTypes}
-            imageList={sortedImageList}
-            currentFolderPath={currentFolderPath}
-          />
-        ) : (
-          <MainLibrary
-            activePath={libraryActivePath}
+        <MainLibrary
+          activePath={libraryActivePath}
             aiModelDownloadStatus={aiModelDownloadStatus}
             appSettings={appSettings}
             currentFolderPath={currentFolderPath}
@@ -168,13 +159,11 @@ export default function LibraryView({
             thumbnailAspectRatio={thumbnailAspectRatio}
             thumbnailProgress={thumbnailProgress}
             thumbnailSize={thumbnailSize}
-            onNavigateToCommunity={() => setUI({ activeView: 'community' })}
             onBatchRate={onBatchRate}
             onBatchExport={onBatchExport}
             onBatchDelete={onBatchDelete}
             onBatchAddToAlbum={onBatchAddToAlbum}
           />
-        )}
         {rootPaths && rootPaths.length > 0 && (
           <BottomBar
             isCopied={isCopied}

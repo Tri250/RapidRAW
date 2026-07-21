@@ -832,22 +832,6 @@
     }
   },
   "library": {
-    "community": {
-      "actionSave": "Salva",
-      "actionSaved": "Salvato",
-      "actionSaving": "Salvataggio...",
-      "fetchingPresets": "Recupero predefiniti da GitHub...",
-      "footerHeading": "Vuoi che il tuo predefinito sia messo in primo piano?",
-      "footerLinkText": "Crea una issue su GitHub",
-      "headerDesc": "Scopri i predefiniti creati dalla community.",
-      "headerTitle": "Predefiniti della Community",
-      "presetBy": "di {{creator}}",
-      "searchPlaceholder": "Cerca predefiniti...",
-      "sortBy": "Ordina per:",
-      "sortMethods": {
-        "name": "Nome (A-Z)"
-      }
-    },
     "filters": {
       "edited": {
         "all": "Tutte le Immagini",
@@ -1021,7 +1005,6 @@
       "small": "Piccola"
     },
     "tooltips": {
-      "communityPresets": "Predefiniti della Community",
       "goHome": "Torna alla Home page",
       "importImages": "Importa Immagini"
     }

@@ -182,7 +182,7 @@ export default function SmartAlbumModal({ isOpen, onClose, images }: SmartAlbumM
                         const val = condition.value || [0, 0];
                         updateCondition(index, { value: [Number(e.target.value), val[1]] });
                       }}
-                      placeholder="Min"
+                      placeholder={t('library.smartAlbum.minPlaceholder', 'Min')}
                       type="number"
                       value={condition.value?.[0] ?? ''}
                     />
@@ -195,7 +195,7 @@ export default function SmartAlbumModal({ isOpen, onClose, images }: SmartAlbumM
                         const val = condition.value || [0, 0];
                         updateCondition(index, { value: [val[0], Number(e.target.value)] });
                       }}
-                      placeholder="Max"
+                      placeholder={t('library.smartAlbum.maxPlaceholder', 'Max')}
                       type="number"
                       value={condition.value?.[1] ?? ''}
                     />

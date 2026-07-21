@@ -49,6 +49,7 @@ import { useEditorStore } from '../../../store/useEditorStore';
 import { useUIStore } from '../../../store/useUIStore';
 import { useEditorActions } from '../../../hooks/useEditorActions';
 import { useOsPlatform } from '../../../hooks/useOsPlatform';
+import { resolvePresetString } from '../../../utils/presetStringResolver';
 
 interface DroppableFolderItemProps {
   children: any;
@@ -95,7 +96,6 @@ interface PresetItemDisplayProps {
 }
 
 interface PresetsPanelProps {
-  onNavigateToCommunity(): void;
 }
 
 const itemVariants = {
@@ -227,7 +227,9 @@ function PresetItemDisplay({
   onIntensityChange,
   onDragStateChange,
 }: PresetItemDisplayProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language?.startsWith('zh') ? 'zh' : 'en';
+  const resolvedName = resolvePresetString(preset.name, locale);
   const geometryKeys = ADJUSTMENT_GROUPS.geometry.flatMap((g) => g.keys);
 
   const supportsMasks = preset.includeMasks ?? (preset.adjustments?.masks && preset.adjustments.masks.length > 0);
@@ -296,7 +298,7 @@ function PresetItemDisplay({
         <div className="grow min-w-0 flex flex-col justify-center">
           <div className="flex items-center gap-1.5">
             <Text color={TextColors.primary} weight={TextWeights.medium} className="truncate">
-              {preset.name}
+              {resolvedName}
             </Text>
             {typeLabel && (
               <span className={`shrink-0 px-1.5 py-0.5 text-[9px] font-bold text-white rounded-sm ${typeColor}`}>
@@ -519,7 +521,7 @@ function DroppableFolderItem({ folder, onContextMenu, children, onToggle, isExpa
   );
 }
 
-export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProps) {
+export default function PresetsPanel({}: PresetsPanelProps) {
   const { t, i18n } = useTranslation();
   const selectedImage = useEditorStore((s) => s.selectedImage);
   const adjustments = useEditorStore((s) => s.adjustments);
@@ -1285,15 +1287,6 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
         <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface">
           <Text variant={TextVariants.title}>{t('editor.presets.title')}</Text>
           <div className="flex items-center gap-1">
-            {!isDeviceSide && (
-            <button
-              className="p-2 rounded-full hover:bg-surface transition-colors"
-              onClick={onNavigateToCommunity}
-              data-tooltip={t('editor.presets.tooltips.explore')}
-            >
-              <Users size={18} />
-            </button>
-            )}
             <button
               className="p-2 rounded-full hover:bg-surface transition-colors"
               disabled={isLoading}
@@ -1377,12 +1370,6 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
           {!isLoading && presets.length === 0 && activeGroup === 'my' ? (
             <div className="text-center text-text-secondary flex flex-col items-center gap-4 pt-4">
               <Text className="max-w-xs">{t('editor.presets.status.empty')}</Text>
-              {!isDeviceSide && (
-              <Button variant="secondary" onClick={onNavigateToCommunity}>
-                <Users size={16} className="mr-2" />
-                {t('editor.presets.status.getCommunity')}
-              </Button>
-              )}
             </div>
           ) : (
             <>
