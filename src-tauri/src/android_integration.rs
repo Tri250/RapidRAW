@@ -354,7 +354,7 @@ pub fn read_android_content_uri(uri_str: &str) -> Result<Vec<u8>, String> {
 
         loop {
             let read_count = env
-                .call_method(&input_stream, "read", "([B)I", &[(&java_buffer).into()])
+                .call_method(&input_stream, "read", "([B)I", &[java_buffer.as_ref().into()])
                 .and_then(|value| value.i())
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
 
@@ -529,10 +529,10 @@ pub fn save_bytes_to_android_media_store(
             let byte_array = env
                 .byte_array_from_slice(chunk)
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
-            env.call_method(&output_stream, "write", "([B)V", &[(&byte_array).into()])
+            env.call_method(&output_stream, "write", "([B)V", &[byte_array.as_ref().into()])
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
             // Explicitly delete local reference to prevent accumulation in large file writes
-            let _ = env.delete_local_ref(&byte_array);
+            let _ = env.delete_local_ref(byte_array.as_ref());
             offset = end;
         }
         env.call_method(&output_stream, "flush", "()V", &[])
