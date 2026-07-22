@@ -11,6 +11,7 @@ import {
   Ruler,
   Scan,
   X,
+  Compass,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Adjustments, INITIAL_ADJUSTMENTS } from '../../../utils/adjustments';
@@ -25,6 +26,7 @@ import Slider from '../../ui/Slider';
 import { TEXT_COLOR_KEYS, TextColors, TextVariants, TextWeights } from '../../../types/typography';
 import { useEditorStore } from '../../../store/useEditorStore';
 import { useEditorActions } from '../../../hooks/useEditorActions';
+import { useAiMasking } from '../../../hooks/useAiMasking';
 
 const BASE_RATIO = 1.618;
 const ORIGINAL_RATIO = 0;
@@ -52,6 +54,7 @@ export default function CropPanel() {
   const activeOverlay = useEditorStore((s) => s.overlayMode);
   const setEditor = useEditorStore((s) => s.setEditor);
   const { setAdjustments } = useEditorActions();
+  const { handleAutoStraightenHorizon } = useAiMasking();
   const [customW, setCustomW] = useState('');
   const [customH, setCustomH] = useState('');
   const [isTransformModalOpen, setIsTransformModalOpen] = useState(false);
@@ -625,6 +628,19 @@ export default function CropPanel() {
                         disabled={displayRotation === 0}
                       >
                         <RotateCcw size={14} />
+                      </button>
+                      <button
+                        className="p-1.5 rounded-md text-text-secondary transition-colors cursor-pointer hover:bg-card-active hover:text-text-primary"
+                        onClick={async () => {
+                          const angle = await handleAutoStraightenHorizon();
+                          if (angle !== null && angle !== 0) {
+                            updateLocalRotation(null);
+                            setAdjustments((prev: Adjustments) => ({ ...prev, rotation: angle }));
+                          }
+                        }}
+                        data-tooltip={t('editor.crop.tooltips.autoStraightenHorizon', { defaultValue: 'Auto Straighten Horizon' })}
+                      >
+                        <Compass size={14} />
                       </button>
                     </div>
                   }

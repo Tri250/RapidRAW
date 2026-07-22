@@ -561,7 +561,7 @@ function DepthRangePicker({
 export default function MasksPanel() {
   const { t } = useTranslation();
   const { setAdjustments } = useEditorActions();
-  const { handleGenerateAiDepthMask, handleGenerateAiForegroundMask, handleGenerateAiSkyMask, handleGenerateAiSubjectMask, handleDeleteMaskContainer: deleteMaskContainerFromHook } = useAiMasking();
+  const { handleGenerateAiDepthMask, handleGenerateAiForegroundMask, handleGenerateAiSkyMask, handleGenerateAiSubjectMask, handleGenerateColorRangeMask, handleGenerateLuminanceRangeMask, handleDeleteMaskContainer: deleteMaskContainerFromHook } = useAiMasking();
   const setCustomEscapeHandler = useUIStore((s) => s.setCustomEscapeHandler);
   const { appSettings, theme } = useSettingsStore(
     useShallow((state) => ({
@@ -816,6 +816,8 @@ export default function MasksPanel() {
     else if (type === Mask.AiSky) handleGenerateAiSkyMask(subMask.id);
     else if (type === Mask.AiDepth) handleGenerateAiDepthMask(subMask.id, subMask.parameters);
     else if (type === Mask.AiSubject) handleGenerateAiSubjectMask(subMask.id);
+    else if (type === Mask.Color) handleGenerateColorRangeMask(subMask.id, subMask.parameters);
+    else if (type === Mask.Luminance) handleGenerateLuminanceRangeMask(subMask.id, subMask.parameters);
   };
 
   const handleAddSubMask = (
@@ -848,6 +850,8 @@ export default function MasksPanel() {
     else if (type === Mask.AiSky) handleGenerateAiSkyMask(subMask.id);
     else if (type === Mask.AiDepth) handleGenerateAiDepthMask(subMask.id, subMask.parameters);
     else if (type === Mask.AiSubject) handleGenerateAiSubjectMask(subMask.id);
+    else if (type === Mask.Color) handleGenerateColorRangeMask(subMask.id, subMask.parameters);
+    else if (type === Mask.Luminance) handleGenerateLuminanceRangeMask(subMask.id, subMask.parameters);
   };
 
   const handleGridClick = (type: Mask, forceNewMaskContainer: boolean = false) => {

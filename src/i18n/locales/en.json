@@ -433,6 +433,10 @@
       "enhancementTitle": "AI Enhancement",
       "superResolution": "Super Resolution",
       "superResolutionTooltip": "Use AI super resolution to upscale image by 2x",
+      "skyReplace": "Sky Replace",
+      "skyReplaceTooltip": "AI Sky Replace",
+      "bgRemove": "BG Remove",
+      "bgRemoveTooltip": "AI Background Remove",
       "inpaintingTitle": "Inpainting",
       "manualCleanupTitle": "Manual Cleanup",
       "mode": {
@@ -577,6 +581,7 @@
         "lens": "Lens distortion correction",
         "overlayDetails": "Overlay: {{name}}{{rotateHint}}",
         "resetFineRotation": "Reset Fine Rotation",
+        "autoStraightenHorizon": "Auto Straighten Horizon",
         "rotateHint": " (Shift+O to rotate)",
         "rotateLeft": "Rotate 90° counter-clockwise",
         "rotateRight": "Rotate 90° clockwise",
@@ -1094,6 +1099,11 @@
     }
   },
   "library": {
+    "nav": {
+      "library": "Library",
+      "onlineSamples": "Online Samples",
+      "communityPresets": "Community Presets"
+    },
     "community": {
       "actionSave": "Save",
       "actionSaved": "Saved",

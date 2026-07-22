@@ -358,11 +358,12 @@ export default function MainLibrary(props: MainLibraryProps) {
   return (
     <div className="flex-1 flex flex-col h-full min-w-0 bg-bg-secondary rounded-lg overflow-hidden">
       <header
-        className="p-4 shrink-0 flex justify-between items-center border-b border-surface gap-4"
+        className="p-4 pb-0 shrink-0 flex flex-col border-b border-surface gap-2"
         onMouseEnter={() => setIsProgressHovered(true)}
         onMouseLeave={() => setIsProgressHovered(false)}
       >
-        <div className="min-w-0">
+        <div className="flex justify-between items-center gap-4">
+          <div className="min-w-0">
           <Text variant={TextVariants.headline}>{t('library.header.title')}</Text>
           {!props.isAndroid && (
             <div className="flex items-center gap-2">
@@ -441,24 +442,6 @@ export default function MainLibrary(props: MainLibraryProps) {
               {showAdvancedFilter && <div className="absolute -top-1 -right-1 bg-accent rounded-full w-3 h-3" />}
             </Button>
           )}
-          {!props.isAndroid && (
-            <>
-              <Button
-                className="h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center"
-                onClick={props.onNavigateToGallery}
-                data-tooltip={t('library.tooltips.presetGallery', { defaultValue: '在线样张' })}
-              >
-                <Globe className="w-8 h-8" />
-              </Button>
-              <Button
-                className="h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center"
-                onClick={props.onNavigateToCommunity}
-                data-tooltip={t('library.tooltips.communityPresets')}
-              >
-                <Users className="w-8 h-8" />
-              </Button>
-            </>
-          )}
           <Button
             className="h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center"
             onClick={props.onGoHome}
@@ -467,6 +450,28 @@ export default function MainLibrary(props: MainLibraryProps) {
             <Home className="w-8 h-8" />
           </Button>
         </div>
+        </div>
+        <nav className="flex gap-1 -mb-px">
+          <button
+            className="px-4 py-1.5 text-sm font-medium rounded-t-md bg-bg-secondary text-text-primary border border-b-0 border-border-color"
+          >
+            {t('library.nav.library', { defaultValue: '图库' })}
+          </button>
+          <button
+            className="px-4 py-1.5 text-sm font-medium rounded-t-md text-text-secondary hover:text-text-primary hover:bg-surface transition-colors"
+            onClick={props.onNavigateToGallery}
+          >
+            <Globe size={14} className="inline mr-1.5 -mt-0.5" />
+            {t('library.nav.onlineSamples', { defaultValue: '在线样张' })}
+          </button>
+          <button
+            className="px-4 py-1.5 text-sm font-medium rounded-t-md text-text-secondary hover:text-text-primary hover:bg-surface transition-colors"
+            onClick={props.onNavigateToCommunity}
+          >
+            <Users size={14} className="inline mr-1.5 -mt-0.5" />
+            {t('library.nav.communityPresets', { defaultValue: '社区预设' })}
+          </button>
+        </nav>
       </header>
 
       <AnimatePresence>

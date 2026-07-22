@@ -433,6 +433,10 @@
       "enhancementTitle": "AI 图像增强",
       "superResolution": "超分辨率",
       "superResolutionTooltip": "使用 AI 超分辨率将图像放大 2 倍",
+      "skyReplace": "天空替换",
+      "skyReplaceTooltip": "AI 自动替换天空",
+      "bgRemove": "背景移除",
+      "bgRemoveTooltip": "AI 自动移除背景",
       "inpaintingTitle": "图像修复",
       "manualCleanupTitle": "手动清理",
       "mode": {
@@ -577,6 +581,7 @@
         "lens": "镜头畸变校正",
         "overlayDetails": "叠加：{{name}}{{rotateHint}}",
         "resetFineRotation": "重置精细旋转",
+        "autoStraightenHorizon": "自动矫正地平线",
         "rotateHint": "（Shift+O 旋转）",
         "rotateLeft": "逆时针旋转 90°",
         "rotateRight": "顺时针旋转 90°",
@@ -1141,6 +1146,11 @@
     }
   },
   "library": {
+    "nav": {
+      "library": "图库",
+      "onlineSamples": "在线样张",
+      "communityPresets": "社区预设"
+    },
     "community": {
       "actionSave": "保存",
       "actionSaved": "已保存",

@@ -536,6 +536,201 @@ export function useAiMasking() {
     };
   }, [activeMaskId, activeAiSubMaskId, selectedImagePath, adjustmentsForPrecompute]);
 
+  const handleGenerateColorRangeMask = async (subMaskId: string, parameters: any) => {
+    const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
+    if (!selectedImage?.path) return;
+    setEditor({ isGeneratingAiMask: true });
+
+    try {
+      const transformAdjustments = getTransformAdjustments(adjustments);
+      const newParameters = await invoke(Invokes.GenerateColorRangeMask, {
+        jsAdjustments: transformAdjustments,
+        path: selectedImage.path,
+        hueCenter: parameters.hueCenter ?? 0,
+        hueRange: parameters.hueRange ?? 30,
+        satMin: parameters.satMin ?? 10,
+        satMax: parameters.satMax ?? 100,
+        lumMin: parameters.lumMin ?? 10,
+        lumMax: parameters.lumMax ?? 90,
+        feather: parameters.feather ?? 10,
+        flipHorizontal: adjustments.flipHorizontal,
+        flipVertical: adjustments.flipVertical,
+        orientationSteps: adjustments.orientationSteps,
+        rotation: adjustments.rotation,
+      }) as Record<string, any>;
+
+      const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
+      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
+      patchesSentToBackend.delete(subMaskId);
+      updateSubMask(subMaskId, { parameters: mergedParameters });
+    } catch (error) {
+      toast.error(`Color Range Mask Failed: ${error}`);
+    } finally {
+      setEditor({ isGeneratingAiMask: false });
+    }
+  };
+
+  const handleGenerateLuminanceRangeMask = async (subMaskId: string, parameters: any) => {
+    const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
+    if (!selectedImage?.path) return;
+    setEditor({ isGeneratingAiMask: true });
+
+    try {
+      const transformAdjustments = getTransformAdjustments(adjustments);
+      const newParameters = await invoke(Invokes.GenerateLuminanceRangeMask, {
+        jsAdjustments: transformAdjustments,
+        path: selectedImage.path,
+        lumMin: parameters.lumMin ?? 0,
+        lumMax: parameters.lumMax ?? 50,
+        feather: parameters.feather ?? 10,
+        flipHorizontal: adjustments.flipHorizontal,
+        flipVertical: adjustments.flipVertical,
+        orientationSteps: adjustments.orientationSteps,
+        rotation: adjustments.rotation,
+      }) as Record<string, any>;
+
+      const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
+      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
+      patchesSentToBackend.delete(subMaskId);
+      updateSubMask(subMaskId, { parameters: mergedParameters });
+    } catch (error) {
+      toast.error(`Luminance Range Mask Failed: ${error}`);
+    } finally {
+      setEditor({ isGeneratingAiMask: false });
+    }
+  };
+
+  const handleApplyMaskFeather = async (subMaskId: string, feather: number) => {
+    const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
+    if (!selectedImage?.path) return;
+
+    try {
+      const transformAdjustments = getTransformAdjustments(adjustments);
+      const newParameters = await invoke(Invokes.ApplyMaskFeather, {
+        jsAdjustments: transformAdjustments,
+        path: selectedImage.path,
+        subMaskId,
+        feather,
+        flipHorizontal: adjustments.flipHorizontal,
+        flipVertical: adjustments.flipVertical,
+        orientationSteps: adjustments.orientationSteps,
+        rotation: adjustments.rotation,
+      }) as Record<string, any>;
+
+      const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
+      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
+      patchesSentToBackend.delete(subMaskId);
+      updateSubMask(subMaskId, { parameters: mergedParameters });
+    } catch (error) {
+      toast.error(`Mask Feather Failed: ${error}`);
+    }
+  };
+
+  const handleAutoStraightenHorizon = async (): Promise<number | null> => {
+    const { selectedImage, adjustments } = useEditorStore.getState();
+    if (!selectedImage?.path) return null;
+
+    try {
+      const transformAdjustments = getTransformAdjustments(adjustments);
+      const horizonAngle = await invoke(Invokes.AutoStraightenHorizon, {
+        jsAdjustments: transformAdjustments,
+        path: selectedImage.path,
+        flipHorizontal: adjustments.flipHorizontal,
+        flipVertical: adjustments.flipVertical,
+        orientationSteps: adjustments.orientationSteps,
+        rotation: adjustments.rotation,
+      }) as number;
+
+      return horizonAngle;
+    } catch (error) {
+      toast.error(`Auto Straighten Failed: ${error}`);
+      return null;
+    }
+  };
+
+  const handleDetectHorizonLines = async (): Promise<any[] | null> => {
+    const { selectedImage, adjustments } = useEditorStore.getState();
+    if (!selectedImage?.path) return null;
+
+    try {
+      const transformAdjustments = getTransformAdjustments(adjustments);
+      const lines = await invoke(Invokes.DetectHorizonLines, {
+        jsAdjustments: transformAdjustments,
+        path: selectedImage.path,
+        flipHorizontal: adjustments.flipHorizontal,
+        flipVertical: adjustments.flipVertical,
+        orientationSteps: adjustments.orientationSteps,
+        rotation: adjustments.rotation,
+      }) as any[];
+
+      return lines;
+    } catch (error) {
+      toast.error(`Horizon Detection Failed: ${error}`);
+      return null;
+    }
+  };
+
+  const handleGenerateAiSkyReplace = async (subMaskId: string, skyPrompt: string): Promise<boolean> => {
+    const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
+    if (!selectedImage?.path) return false;
+    setEditor({ isGeneratingAi: true });
+
+    try {
+      const transformAdjustments = getTransformAdjustments(adjustments);
+      const newParameters = await invoke(Invokes.GenerateAiSkyReplace, {
+        jsAdjustments: transformAdjustments,
+        path: selectedImage.path,
+        subMaskId,
+        skyPrompt,
+        flipHorizontal: adjustments.flipHorizontal,
+        flipVertical: adjustments.flipVertical,
+        orientationSteps: adjustments.orientationSteps,
+        rotation: adjustments.rotation,
+      }) as Record<string, any>;
+
+      const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
+      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
+      patchesSentToBackend.delete(subMaskId);
+      updateSubMask(subMaskId, { parameters: mergedParameters });
+      return true;
+    } catch (error) {
+      toast.error(`AI Sky Replace Failed: ${error}`);
+      return false;
+    } finally {
+      setEditor({ isGeneratingAi: false });
+    }
+  };
+
+  const handleGenerateAiBackgroundRemove = async (subMaskId: string): Promise<boolean> => {
+    const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
+    if (!selectedImage?.path) return false;
+    setEditor({ isGeneratingAiMask: true });
+
+    try {
+      const transformAdjustments = getTransformAdjustments(adjustments);
+      const newParameters = await invoke(Invokes.GenerateAiBackgroundRemove, {
+        jsAdjustments: transformAdjustments,
+        path: selectedImage.path,
+        subMaskId,
+        flipHorizontal: adjustments.flipHorizontal,
+        flipVertical: adjustments.flipVertical,
+        orientationSteps: adjustments.orientationSteps,
+        rotation: adjustments.rotation,
+      }) as Record<string, any>;
+
+      const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
+      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
+      patchesSentToBackend.delete(subMaskId);
+      updateSubMask(subMaskId, { parameters: mergedParameters });
+      return true;
+    } catch (error) {
+      toast.error(`AI Background Remove Failed: ${error}`);
+      return false;
+    } finally {
+      setEditor({ isGeneratingAiMask: false });
+    }
+  };
+
   return {
     updateSubMask,
     handleGenerativeReplace,
@@ -550,5 +745,12 @@ export function useAiMasking() {
     handleGenerateAiForegroundMask,
     handleGenerateAiSkyMask,
     handleApplySuperResolution,
+    handleGenerateColorRangeMask,
+    handleGenerateLuminanceRangeMask,
+    handleApplyMaskFeather,
+    handleAutoStraightenHorizon,
+    handleDetectHorizonLines,
+    handleGenerateAiSkyReplace,
+    handleGenerateAiBackgroundRemove,
   };
 }
