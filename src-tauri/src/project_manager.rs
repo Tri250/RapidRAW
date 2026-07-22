@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use rusqlite::{params, Connection};
+use duckdb::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -9,36 +9,36 @@ use std::path::Path;
 
 const SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS edit_versions (
-    id            TEXT PRIMARY KEY,
-    image_hash    TEXT NOT NULL,
-    parent_id     TEXT,
-    adjustments   TEXT NOT NULL,
-    name          TEXT NOT NULL,
-    created_at    INTEGER NOT NULL,
-    is_current    INTEGER NOT NULL DEFAULT 0
+    id            VARCHAR PRIMARY KEY,
+    image_hash    VARCHAR NOT NULL,
+    parent_id     VARCHAR,
+    adjustments   VARCHAR NOT NULL,
+    name          VARCHAR NOT NULL,
+    created_at    BIGINT NOT NULL,
+    is_current    BOOLEAN NOT NULL DEFAULT false
 );
 
 CREATE TABLE IF NOT EXISTS thumbnails (
-    image_hash    TEXT PRIMARY KEY,
+    image_hash    VARCHAR PRIMARY KEY,
     data          BLOB NOT NULL,
     width         INTEGER NOT NULL,
     height        INTEGER NOT NULL,
-    format        TEXT NOT NULL
+    format        VARCHAR NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS ai_labels (
-    image_hash    TEXT NOT NULL,
-    label         TEXT NOT NULL,
-    confidence    REAL NOT NULL,
-    model         TEXT NOT NULL,
+    image_hash    VARCHAR NOT NULL,
+    label         VARCHAR NOT NULL,
+    confidence    DOUBLE NOT NULL,
+    model         VARCHAR NOT NULL,
     PRIMARY KEY (image_hash, label, model)
 );
 
 CREATE TABLE IF NOT EXISTS collections (
-    id            TEXT PRIMARY KEY,
-    name          TEXT NOT NULL,
-    query         TEXT NOT NULL,
-    created_at    INTEGER NOT NULL
+    id            VARCHAR PRIMARY KEY,
+    name          VARCHAR NOT NULL,
+    query         VARCHAR NOT NULL,
+    created_at    BIGINT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_edit_versions_image_hash
@@ -58,8 +58,12 @@ CREATE INDEX IF NOT EXISTS idx_ai_labels_image_hash
 // ProjectDb
 // ---------------------------------------------------------------------------
 
-/// SQLite-backed project database storing edit versions, thumbnails, AI labels,
+/// DuckDB-backed project database storing edit versions, thumbnails, AI labels,
 /// and smart collections for a RAW photo editor.
+///
+/// DuckDB provides columnar storage, vectorized execution, and built-in
+/// Parquet/CSV export — ideal for analytical queries over edit history
+/// and large-scale image label aggregations.
 pub struct ProjectDb {
     conn: Connection,
 }
@@ -70,8 +74,15 @@ impl ProjectDb {
     pub fn open(path: &Path) -> Result<Self> {
         let conn = Connection::open(path)
             .with_context(|| format!("Failed to open project database at {:?}", path))?;
-        conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")
-            .context("Failed to set pragmas")?;
+        conn.execute_batch(SCHEMA)
+            .context("Failed to initialise schema")?;
+        Ok(Self { conn })
+    }
+
+    /// Open an in-memory DuckDB database (useful for tests and ephemeral sessions).
+    pub fn open_in_memory() -> Result<Self> {
+        let conn = Connection::open_in_memory()
+            .context("Failed to open in-memory DuckDB")?;
         conn.execute_batch(SCHEMA)
             .context("Failed to initialise schema")?;
         Ok(Self { conn })
@@ -99,7 +110,7 @@ pub struct EditVersion {
 }
 
 impl EditVersion {
-    fn from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Self> {
+    fn from_row(row: &duckdb::Row<'_>) -> duckdb::Result<Self> {
         Ok(Self {
             id: row.get("id")?,
             image_hash: row.get("image_hash")?,
@@ -107,7 +118,7 @@ impl EditVersion {
             adjustments_json: row.get("adjustments")?,
             name: row.get("name")?,
             created_at: row.get("created_at")?,
-            is_current: row.get::<_, i32>("is_current")? != 0,
+            is_current: row.get::<_, bool>("is_current")?,
         })
     }
 }
@@ -133,7 +144,7 @@ pub fn create_version(
         )
         .context("Failed to count existing versions")?;
 
-    let is_current = if count == 0 { 1 } else { 0 };
+    let is_current = count == 0;
 
     db.connection()
         .execute(
@@ -150,7 +161,7 @@ pub fn create_version(
         adjustments_json: adjustments_json.to_string(),
         name: name.to_string(),
         created_at,
-        is_current: is_current != 0,
+        is_current,
     })
 }
 
@@ -198,7 +209,7 @@ pub fn get_current_version(db: &ProjectDb, image_hash: &str) -> Result<Option<Ed
         .connection()
         .prepare(
             "SELECT id, image_hash, parent_id, adjustments, name, created_at, is_current
-             FROM edit_versions WHERE image_hash = ?1 AND is_current = 1",
+             FROM edit_versions WHERE image_hash = ?1 AND is_current = true",
         )
         .context("Failed to prepare get_current_version")?;
 
@@ -223,14 +234,14 @@ pub fn set_current_version(db: &ProjectDb, id: &str) -> Result<()> {
 
     db.connection()
         .execute(
-            "UPDATE edit_versions SET is_current = 0 WHERE image_hash = ?1",
+            "UPDATE edit_versions SET is_current = false WHERE image_hash = ?1",
             params![image_hash],
         )
         .context("Failed to clear current version flag")?;
 
     db.connection()
         .execute(
-            "UPDATE edit_versions SET is_current = 1 WHERE id = ?1",
+            "UPDATE edit_versions SET is_current = true WHERE id = ?1",
             params![id],
         )
         .context("Failed to set new current version")?;
@@ -259,6 +270,61 @@ pub fn clone_version(
         new_name,
         created_at,
     )
+}
+
+// ---------------------------------------------------------------------------
+// Analytical queries (DuckDB excels at these)
+// ---------------------------------------------------------------------------
+
+/// Get edit statistics: total versions, average versions per image, etc.
+/// Leverages DuckDB's vectorized execution engine for fast aggregations.
+pub fn get_edit_statistics(db: &ProjectDb) -> Result<serde_json::Value> {
+    let total: i64 = db.connection()
+        .query_row("SELECT COUNT(*) FROM edit_versions", [], |r| r.get(0))
+        .context("Failed to count versions")?;
+
+    let unique_images: i64 = db.connection()
+        .query_row("SELECT COUNT(DISTINCT image_hash) FROM edit_versions", [], |r| r.get(0))
+        .context("Failed to count unique images")?;
+
+    let avg_per_image: f64 = if unique_images > 0 {
+        db.connection()
+            .query_row(
+                "SELECT AVG(cnt) FROM (SELECT image_hash, COUNT(*) as cnt FROM edit_versions GROUP BY image_hash)",
+                [],
+                |r| r.get(0),
+            )
+            .context("Failed to compute avg versions per image")?
+    } else {
+        0.0
+    };
+
+    let total_labels: i64 = db.connection()
+        .query_row("SELECT COUNT(*) FROM ai_labels", [], |r| r.get(0))
+        .context("Failed to count labels")?;
+
+    Ok(serde_json::json!({
+        "total_versions": total,
+        "unique_images": unique_images,
+        "avg_versions_per_image": avg_per_image,
+        "total_labels": total_labels,
+    }))
+}
+
+/// Export edit history as Parquet (DuckDB native feature).
+/// Returns the Parquet file size in bytes.
+pub fn export_edit_history_parquet(db: &ProjectDb, output_path: &str) -> Result<u64> {
+    db.connection()
+        .execute(
+            &format!("COPY edit_versions TO '{}' (FORMAT PARQUET)", output_path),
+            [],
+        )
+        .context("Failed to export edit history to Parquet")?;
+
+    let file_size = std::fs::metadata(output_path)
+        .context("Failed to read exported Parquet file metadata")?
+        .len();
+    Ok(file_size)
 }
 
 // ---------------------------------------------------------------------------
@@ -392,14 +458,14 @@ pub fn get_labels_for_image(db: &ProjectDb, image_hash: &str) -> Result<Vec<AiLa
 }
 
 /// Search for images that have been tagged with a given label (case-insensitive
-/// substring match).
+/// substring match — uses DuckDB's ILIKE for proper case-insensitive matching).
 pub fn search_by_label(db: &ProjectDb, label_query: &str) -> Result<Vec<AiLabel>> {
     let pattern = format!("%{}%", label_query);
     let mut stmt = db
         .connection()
         .prepare(
             "SELECT image_hash, label, confidence, model
-             FROM ai_labels WHERE label LIKE ?1 ORDER BY confidence DESC",
+             FROM ai_labels WHERE label ILIKE ?1 ORDER BY confidence DESC",
         )
         .context("Failed to prepare search_by_label")?;
 
@@ -679,6 +745,16 @@ pub fn project_search_labels(
         .collect()
 }
 
+#[tauri::command]
+pub fn project_get_statistics() -> Result<serde_json::Value, String> {
+    with_db(|db| get_edit_statistics(db))
+}
+
+#[tauri::command]
+pub fn project_export_parquet(output_path: String) -> Result<u64, String> {
+    with_db(|db| export_edit_history_parquet(db, &output_path))
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -686,13 +762,9 @@ pub fn project_search_labels(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
-    use tempfile::NamedTempFile;
 
     fn test_db() -> ProjectDb {
-        let tf = NamedTempFile::new().unwrap();
-        let path = tf.path();
-        ProjectDb::open(path).unwrap()
+        ProjectDb::open_in_memory().unwrap()
     }
 
     #[test]
@@ -783,5 +855,19 @@ mod tests {
         assert!(delete_collection(&db, "c1").unwrap());
         assert!(!delete_collection(&db, "c1").unwrap()); // already gone
         assert_eq!(list_collections(&db).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn test_edit_statistics() {
+        let db = test_db();
+        create_version(&db, "v1", "h1", None, "{}", "V1", 1000).unwrap();
+        create_version(&db, "v2", "h1", Some("v1"), "{}", "V2", 2000).unwrap();
+        create_version(&db, "v3", "h2", None, "{}", "V3", 3000).unwrap();
+        add_label(&db, "h1", "landscape", 0.9, "mobilenet").unwrap();
+
+        let stats = get_edit_statistics(&db).unwrap();
+        assert_eq!(stats["total_versions"], 3);
+        assert_eq!(stats["unique_images"], 2);
+        assert_eq!(stats["total_labels"], 1);
     }
 }

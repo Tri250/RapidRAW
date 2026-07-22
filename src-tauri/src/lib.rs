@@ -2505,6 +2505,8 @@ pub fn run() {
             project_manager::project_add_ai_label,
             project_manager::project_get_labels,
             project_manager::project_search_labels,
+            project_manager::project_get_statistics,
+            project_manager::project_export_parquet,
             ai_labeling::ai_labeling_init,
             ai_labeling::ai_labeling_auto_label,
             ai_labeling::ai_labeling_search_by_text,

@@ -176,6 +176,8 @@ export enum Invokes {
   ProjectAddAiLabel = 'project_add_ai_label',
   ProjectGetLabels = 'project_get_labels',
   ProjectSearchLabels = 'project_search_labels',
+  ProjectGetStatistics = 'project_get_statistics',
+  ProjectExportParquet = 'project_export_parquet',
   // ── P2: AI labeling ──
   AiLabelingInit = 'ai_labeling_init',
   AiLabelingAutoLabel = 'ai_labeling_auto_label',
