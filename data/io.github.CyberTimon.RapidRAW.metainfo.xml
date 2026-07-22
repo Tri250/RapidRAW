@@ -38,6 +38,22 @@
   <url type="homepage">https://github.com/Tri250/RapidRAW</url>
 
   <releases>
+    <release version="v1.8.14" date="2026-07-22">
+        <url type="details">https://github.com/Tri250/RapidRAW/releases/tag/v1.8.14</url>
+        <description translate="no">
+            <p>RAW工坊 v1.8.14 - 全量自检修复·主题颜色统一·工作流修复</p>
+            <ul>
+                <li>全量自检修复：审查所有功能模块确保100%完整实现，无简化/空/模拟实现</li>
+                <li>主题颜色统一：替换所有硬编码颜色为CSS主题变量，确保多主题一致</li>
+                <li>修复模态框按钮disabled状态使用主题变量替代硬编码gray-500</li>
+                <li>修复Slider组件边框和焦点环使用主题变量替代硬编码颜色</li>
+                <li>修复CullingModal边框hover使用主题变量</li>
+                <li>修复网格图案背景使用主题变量替代硬编码#444</li>
+                <li>修复Color面板渐变图标使用主题变量替代硬编码颜色</li>
+                <li>修复release/ci/pr-ci工作流：macos-15-intel(无效runner)→macos-13(标准Intel runner)</li>
+            </ul>
+        </description>
+    </release>
     <release version="v1.8.5" date="2026-07-19">
         <url type="details">https://github.com/Tri250/RapidRAW/releases/tag/v1.8.5</url>
         <description translate="no">
