@@ -22,6 +22,10 @@
 #![allow(clippy::explicit_auto_deref)]
 #![allow(clippy::unnecessary_sort_by)]
 #![allow(clippy::useless_vec)]
+#![allow(clippy::unwrap_or_default)]
+#![allow(clippy::iter_kv_map)]
+#![allow(clippy::upper_case_acronyms)]
+#![allow(clippy::unnecessary_min_or_max)]
 
 #[cfg(not(all(target_os = "windows", target_arch = "aarch64")))]
 use mimalloc::MiMalloc;
