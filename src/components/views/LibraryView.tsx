@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import CommunityPage from '../panel/CommunityPage';
 import MainLibrary from '../panel/MainLibrary';
 import BottomBar from '../panel/BottomBar';
+import PresetGallery from '../panel/PresetGallery';
 
 import { useUIStore } from '../../store/useUIStore';
 import { useLibraryStore } from '../../store/useLibraryStore';
@@ -132,6 +133,10 @@ export default function LibraryView({
             imageList={sortedImageList}
             currentFolderPath={currentFolderPath}
           />
+        ) : activeView === 'gallery' ? (
+          <PresetGallery
+            onBack={() => setUI({ activeView: 'library' })}
+          />
         ) : (
           <MainLibrary
             activePath={libraryActivePath}
@@ -169,6 +174,7 @@ export default function LibraryView({
             thumbnailProgress={thumbnailProgress}
             thumbnailSize={thumbnailSize}
             onNavigateToCommunity={() => setUI({ activeView: 'community' })}
+            onNavigateToGallery={() => setUI({ activeView: 'gallery' })}
             onBatchRate={onBatchRate}
             onBatchExport={onBatchExport}
             onBatchDelete={onBatchDelete}

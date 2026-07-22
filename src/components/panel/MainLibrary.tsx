@@ -14,6 +14,7 @@ import {
   Users,
   SlidersHorizontal,
   Filter,
+  Globe,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -78,6 +79,7 @@ interface MainLibraryProps {
   thumbnailProgress: Progress;
   thumbnailSize: ThumbnailSize;
   onNavigateToCommunity(): void;
+  onNavigateToGallery(): void;
 }
 
 export interface ColumnWidths {
@@ -441,6 +443,13 @@ export default function MainLibrary(props: MainLibraryProps) {
           )}
           {!props.isAndroid && (
             <>
+              <Button
+                className="h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center"
+                onClick={props.onNavigateToGallery}
+                data-tooltip={t('library.tooltips.presetGallery', { defaultValue: '在线样张' })}
+              >
+                <Globe className="w-8 h-8" />
+              </Button>
               <Button
                 className="h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center"
                 onClick={props.onNavigateToCommunity}

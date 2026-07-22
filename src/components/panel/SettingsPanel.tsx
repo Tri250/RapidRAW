@@ -21,6 +21,8 @@ import {
   Settings,
   Command,
   Zap,
+  Globe,
+  Link,
 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -48,6 +50,7 @@ import Text from '../ui/Text';
 import { TextColors, TextVariants, TextWeights } from '../../types/typography';
 import { useOsPlatform } from '../../hooks/useOsPlatform';
 import { open } from '@tauri-apps/plugin-shell';
+import { usePresetGalleryStore } from '../../store/usePresetGalleryStore';
 
 interface ConfirmModalState {
   confirmText: string;
@@ -497,6 +500,91 @@ const PreviewModeSwitch = ({ mode, onModeChange }: PreviewModeSwitchProps) => {
           </span>
         </button>
       ))}
+    </div>
+  );
+};
+
+const PresetGallerySourceManager = () => {
+  const { t } = useTranslation();
+  const { sources, addSource, removeSource, toggleSource, fetchSourcePresets } = usePresetGalleryStore();
+  const [newSourceUrl, setNewSourceUrl] = useState('');
+
+  const handleAddSource = () => {
+    const trimmed = newSourceUrl.trim();
+    if (!trimmed) return;
+    addSource(trimmed);
+    setNewSourceUrl('');
+    fetchSourcePresets(trimmed);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Input
+            type="text"
+            value={newSourceUrl}
+            onChange={(e) => setNewSourceUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAddSource();
+              }
+            }}
+            placeholder={t('settings.presetGallery.addSourcePlaceholder', { defaultValue: '输入 JSON 链接地址...' })}
+            className="pr-10"
+            bgClassName="bg-bg-primary"
+          />
+          <button
+            onClick={handleAddSource}
+            className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-text-secondary hover:text-text-primary hover:bg-surface"
+            data-tooltip={t('settings.presetGallery.addSource', { defaultValue: '添加数据源' })}
+          >
+            <Plus size={18} />
+          </button>
+        </div>
+      </div>
+
+      <div className="divide-y divide-border-color">
+        {sources.map((source) => (
+          <div key={source.url} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="p-2 bg-accent/10 rounded-md text-accent shrink-0">
+                <Globe size={16} />
+              </div>
+              <div className="min-w-0">
+                <Text color={TextColors.primary} weight={TextWeights.medium} className="truncate block">
+                  {source.name}
+                </Text>
+                <Text variant={TextVariants.small} color={TextColors.secondary} className="truncate block">
+                  {source.url}
+                </Text>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Switch
+                checked={source.enabled}
+                id={`gallery-source-${source.url}`}
+                label={source.enabled ? t('settings.presetGallery.enabled', { defaultValue: '已启用' }) : t('settings.presetGallery.disabled', { defaultValue: '已禁用' })}
+                onChange={(checked) => {
+                  toggleSource(source.url);
+                  if (checked) fetchSourcePresets(source.url);
+                }}
+              />
+              <button
+                onClick={() => removeSource(source.url)}
+                className="p-2 text-text-secondary hover:text-red-400 hover:bg-bg-primary rounded-md transition-colors"
+                data-tooltip={t('settings.presetGallery.removeSource', { defaultValue: '移除数据源' })}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
+        {sources.length === 0 && (
+          <Text className="italic py-2">{t('settings.presetGallery.noSources', { defaultValue: '暂无数据源，请添加 JSON 链接。' })}</Text>
+        )}
+      </div>
     </div>
   );
 };
@@ -1369,6 +1457,18 @@ export default function SettingsPanel({
                         {t('settings.contact.description', { defaultValue: '抖音、小红书搜索「带娃的小陈工」' })}
                       </Text>
                     </div>
+                  </div>
+                </div>
+
+                <div className="p-6 bg-surface rounded-xl shadow-md">
+                  <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
+                    {t('settings.presetGallery.title', { defaultValue: '在线样张' })}
+                  </Text>
+                  <Text className="mb-6">
+                    {t('settings.presetGallery.description', { defaultValue: '管理在线样张 JSON 数据源，添加后可在图库中查看预设样张效果。' })}
+                  </Text>
+                  <div className="space-y-4">
+                    <PresetGallerySourceManager />
                   </div>
                 </div>
 
