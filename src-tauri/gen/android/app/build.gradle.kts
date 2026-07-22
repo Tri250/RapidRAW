@@ -67,9 +67,10 @@ android {
                     .plus(getDefaultProguardFile("proguard-android-optimize.txt"))
                     .toList().toTypedArray()
             )
-            // Keep .so files uncompressed in APK for direct mmap loading (matches extractNativeLibs="false")
+            // Extract .so files at install time for proper page alignment on all devices
+            // (matches extractNativeLibs="true" in AndroidManifest.xml)
             packaging {
-                jniLibs.useLegacyPackaging = false
+                jniLibs.useLegacyPackaging = true
             }
         }
     }

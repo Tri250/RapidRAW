@@ -7,6 +7,12 @@ on:
   release:
     types: [created]
   workflow_dispatch:
+    inputs:
+      upload-artifacts:
+        description: 'Upload build artifacts (for testing without release)'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   release:
@@ -52,13 +58,14 @@ jobs:
             asset-prefix: '04'
     uses: ./.github/workflows/build.yml
     with:
-      release-id: ${{ github.event.release.id }}
+      release-id: ${{ github.event.release.id || '' }}
       platform: ${{ matrix.platform }}
       target: ${{ matrix.target }}
       build-args: ${{ matrix.build-args }}
       asset-name-pattern: '[name]_v[version]_[platform]_[arch][ext]'
       asset-prefix: ${{ matrix.asset-prefix }}
       mobile: ${{ matrix.mobile }}
+      upload-artifacts: ${{ inputs.upload-artifacts || false }}
     secrets: inherit
     permissions:
       contents: write

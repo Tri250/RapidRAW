@@ -57,6 +57,18 @@ class MainActivity : TauriActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
+        // Pre-load ONNX Runtime native library so the ort Rust crate
+        // can find it via dlopen when AI features are used.
+        // Must be called before any Rust code that references ort::session.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            try {
+                System.loadLibrary("onnxruntime")
+            } catch (e: UnsatisfiedLinkError) {
+                // Library not present (e.g. non-arm64 ABI) – AI features will be disabled
+                android.util.Log.w("MainActivity", "Failed to load onnxruntime native library", e)
+            }
+        }
+
         stateRestored = savedInstanceState?.getBoolean(STATE_KEY_RESTORED, false) ?: false
 
         val rootView: View = findViewById(android.R.id.content)

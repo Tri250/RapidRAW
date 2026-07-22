@@ -2148,6 +2148,14 @@ pub fn run() {
                     std::env::set_var("ORT_DYLIB_PATH", &ort_library_path);
                     println!("Set ORT_DYLIB_PATH to: {}", ort_library_path.display());
                 }
+
+                // On Android, libonnxruntime.so is loaded by System.loadLibrary
+                // in MainActivity.kt before the Rust code starts, so the ort crate
+                // can find it via dlopen without needing ORT_DYLIB_PATH.
+                #[cfg(target_os = "android")]
+                {
+                    log::info!("Android: ONNX Runtime library expected to be pre-loaded by System.loadLibrary");
+                }
             }
 
             setup_logging(&app_handle);

@@ -15,6 +15,9 @@
 # Keep Tauri generated classes
 -keep class org.tauri.** { *; }
 -keep class com.tauri.** { *; }
+# Tauri 2.x Android SDK classes (critical for app launch)
+-keep class app.tauri.** { *; }
+-keep class dev.tauri.** { *; }
 
 # === ONNX Runtime Rules ===
 -keep class ai.onnxruntime.** { *; }

@@ -51,7 +51,6 @@ jobs:
       - name: Install Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          rustflags: ''
           target: ${{ inputs.target }}
 
       - name: Rust Cache
@@ -110,7 +109,7 @@ jobs:
         uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r26d
+          ndk-version: r27c
           link-to-sdk: true
 
       - name: Install frontend dependencies
@@ -177,6 +176,8 @@ jobs:
           ORT_SKIP_DOWNLOAD: '1'
           ORT_LIB_LOCATION: ${{ format('{0}/src-tauri/libs/arm64-v8a', github.workspace) }}
           ORT_STRATEGY: manual
+          # 16KB max-page-size for Android 15+ compatibility (16KB page devices like Pixel 8+)
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_RUSTFLAGS: -C link-arg=-Wl,-z,max-page-size=16384
         run: |
           # tauri android build --target accepts short names (aarch64, armv7, i686, x86_64)
           # while Rust toolchain setup needs the full triple (e.g. aarch64-linux-android)
