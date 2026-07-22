@@ -129,7 +129,6 @@ const PresetCard = ({ preset }: PresetCardProps) => {
             alt={preset.name}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
-            crossOrigin="anonymous"
             onError={() => setCoverError(true)}
           />
         ) : (
@@ -305,7 +304,6 @@ const PresetCard = ({ preset }: PresetCardProps) => {
                     src={viewableImages[viewableIndex]}
                     alt={`${preset.name} - ${viewableIndex + 1}`}
                     className="max-h-full max-w-full object-contain rounded-lg"
-                    crossOrigin="anonymous"
                     onError={() => handleGalleryImageError(getOriginalIndex(viewableIndex))}
                   />
                 ) : (
@@ -353,7 +351,6 @@ const PresetCard = ({ preset }: PresetCardProps) => {
                           src={img}
                           alt={`thumb-${i}`}
                           className="w-full h-full object-cover"
-                          crossOrigin="anonymous"
                         />
                       </button>
                     ))}

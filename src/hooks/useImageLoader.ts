@@ -81,6 +81,11 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
             setEditor({ previewSize: { width: 0, height: 0 } });
           }
 
+          // Preserve existing thumbnailUrl/originalUrl as display fallback.
+          // When wgpu is enabled, the backend may return WGPU_RENDER instead of
+          // image data. We must keep a displayable image URL for fallback.
+          const existingThumbnailUrl = selectedImage.thumbnailUrl;
+
           setEditor((state) => {
             if (state.selectedImage && state.selectedImage.path === selectedImage.path) {
               return {
@@ -91,7 +96,8 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
                   isRaw: loadImageResult.is_raw,
                   isReady: true,
                   metadata: loadImageResult.metadata,
-                  originalUrl: null,
+                  // Keep thumbnailUrl for fallback display when wgpu fails
+                  originalUrl: existingThumbnailUrl,
                   width: loadImageResult.width,
                 },
               };
@@ -109,19 +115,24 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
                 previewResolution: appSettings?.editorPreviewResolution || 1920,
               });
               if (previewResult && previewResult.byteLength > 0 && isEffectActive) {
-                const blob = new Blob([previewResult], { type: 'image/jpeg' });
-                const url = URL.createObjectURL(blob);
-                // Only set as fallback if wgpu hasn't rendered yet
-                if (!useEditorStore.getState().hasRenderedFirstFrame) {
-                  setEditor((state) => {
-                    const prevUrl = state.finalPreviewUrl;
-                    if (prevUrl && prevUrl.startsWith('blob:')) {
-                      setTimeout(() => URL.revokeObjectURL(prevUrl), 100);
-                    }
-                    return { finalPreviewUrl: url };
-                  });
-                } else {
-                  URL.revokeObjectURL(url);
+                const textDecoder = new TextDecoder();
+                const previewPrefix = textDecoder.decode(previewResult.slice(0, 11));
+                // Only use as fallback if it's actual image data (not WGPU_RENDER)
+                if (previewPrefix !== 'WGPU_RENDER') {
+                  const blob = new Blob([previewResult], { type: 'image/jpeg' });
+                  const url = URL.createObjectURL(blob);
+                  // Only set as fallback if wgpu hasn't rendered yet
+                  if (!useEditorStore.getState().hasRenderedFirstFrame) {
+                    setEditor((state) => {
+                      const prevUrl = state.finalPreviewUrl;
+                      if (prevUrl && prevUrl.startsWith('blob:')) {
+                        setTimeout(() => URL.revokeObjectURL(prevUrl), 100);
+                      }
+                      return { finalPreviewUrl: url };
+                    });
+                  } else {
+                    URL.revokeObjectURL(url);
+                  }
                 }
               }
             } catch (err) {

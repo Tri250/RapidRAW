@@ -38,6 +38,19 @@
   <url type="homepage">https://github.com/Tri250/RapidRAW</url>
 
   <releases>
+    <release version="v1.8.15" date="2026-07-22">
+        <url type="details">https://github.com/Tri250/RapidRAW/releases/tag/v1.8.15</url>
+        <description translate="no">
+            <p>RAW工坊 v1.8.15 - 深度修复·蒙版渲染·编辑器回退·样张优化</p>
+            <ul>
+                <li>在线样张显示修复：移除crossOrigin="anonymous"属性，解决外部CDN图片CORS加载失败导致的占位符问题</li>
+                <li>在线样张UI/UX深度优化：全屏画廊查看器、键盘导航(左右箭头/ESC)、缩略图导航栏、预设详情模态框(参数/标签/描述)、加载骨架屏、错误状态处理</li>
+                <li>Windows编辑器空白修复：保留originalUrl作为显示回退链、放宽SVG渲染条件(wgpu活跃但无预览数据时显示SVG回退)、displayState回退链完整化</li>
+                <li>蒙版创建空白深度修复：为AiDepth/AiForeground/AiSky/All添加Konva画布渲染实现、AiSubject生成期间显示加载指示器、Linear/Radial初始状态显示中心提示点、Color/Luminance初始状态显示十字提示、画布全局AI蒙版生成加载动画</li>
+                <li>蒙版错误自动调用移除：Color/Luminance蒙版创建时不再错误触发后端生成(这些蒙版需要用户点击选择范围)</li>
+            </ul>
+        </description>
+    </release>
     <release version="v1.8.14" date="2026-07-22">
         <url type="details">https://github.com/Tri250/RapidRAW/releases/tag/v1.8.14</url>
         <description translate="no">

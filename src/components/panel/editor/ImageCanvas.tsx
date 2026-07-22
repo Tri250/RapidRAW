@@ -76,6 +76,7 @@ interface ImageCanvasProps {
   liveRotation?: number | null;
   transformState: { scale: number; positionX: number; positionY: number };
   hasRenderedFirstFrame: boolean;
+  isGeneratingAiMask?: boolean;
 }
 
 interface MaskOverlayProps {
@@ -97,6 +98,7 @@ interface MaskOverlayProps {
   offsetX: number;
   offsetY: number;
   stageScale: number;
+  isGeneratingAiMask?: boolean;
 }
 
 const getEdgeFadeStyle = (fadeDistancePx: number = 128): React.CSSProperties => ({
@@ -212,6 +214,7 @@ const MaskOverlay = memo(
     offsetX,
     offsetY,
     stageScale,
+    isGeneratingAiMask,
   }: MaskOverlayProps) => {
     const shapeRef = useRef<any>(null);
     const trRef = useRef<any>(null);
@@ -690,6 +693,16 @@ const MaskOverlay = memo(
           );
         }
       }
+      if (isGeneratingAiMask && subMask.type === Mask.AiSubject) {
+        const cx = (imageWidth / 2 - cropX) * scale;
+        const cy = (imageHeight / 2 - cropY) * scale;
+        return (
+          <Group>
+            <Circle x={cx} y={cy} radius={6} fill="#0ea5e9" opacity={0.6} />
+            <Circle x={cx} y={cy} radius={12} stroke="#0ea5e9" strokeWidth={1} dash={[4, 4]} opacity={0.4} />
+          </Group>
+        );
+      }
       return null;
     }
 
@@ -796,7 +809,16 @@ const MaskOverlay = memo(
 
     if (subMask.type === Mask.Radial) {
       const { centerX, centerY, radiusX, radiusY, rotation } = p;
-      if (p.isInitialDraw && (radiusX < 1 || radiusY < 2)) return null;
+      if (p.isInitialDraw && (radiusX < 1 || radiusY < 2)) {
+        const cx = (imageWidth / 2 - cropX) * scale;
+        const cy = (imageHeight / 2 - cropY) * scale;
+        return (
+          <Group>
+            <Circle x={cx} y={cy} radius={5} stroke="white" strokeWidth={2} dash={[4, 4]} listening={false} />
+            <Circle x={cx} y={cy} radius={16} stroke="white" strokeWidth={1} dash={[4, 4]} opacity={0.5} listening={false} />
+          </Group>
+        );
+      }
 
       return (
         <Group>
@@ -900,7 +922,17 @@ const MaskOverlay = memo(
 
       const flickDistX = startX - endX;
       const flickDistY = startY - endY;
-      if (p.isInitialDraw && Math.sqrt(flickDistX * flickDistX + flickDistY * flickDistY) < 1) return null;
+      if (p.isInitialDraw && Math.sqrt(flickDistX * flickDistX + flickDistY * flickDistY) < 1) {
+        const cx = (imageWidth / 2 - cropX) * scale;
+        const cy = (imageHeight / 2 - cropY) * scale;
+        return (
+          <Group>
+            <Circle x={cx} y={cy} radius={5} stroke="white" strokeWidth={2} dash={[4, 4]} listening={false} />
+            <Line points={[cx - 12, cy, cx + 12, cy]} stroke="white" strokeWidth={1} dash={[4, 4]} opacity={0.5} listening={false} />
+            <Line points={[cx, cy - 12, cx, cy + 12]} stroke="white" strokeWidth={1} dash={[4, 4]} opacity={0.5} listening={false} />
+          </Group>
+        );
+      }
 
       const sX = (startX - cropX) * scale;
       const sY = (startY - cropY) * scale;
@@ -1130,8 +1162,93 @@ const MaskOverlay = memo(
           />
         );
       }
+      const cx = (imageWidth / 2 - cropX) * scale;
+      const cy = (imageHeight / 2 - cropY) * scale;
+      return (
+        <Group>
+          <Circle x={cx} y={cy} radius={5} stroke="white" strokeWidth={2} dash={[4, 4]} listening={false} />
+          <Line points={[cx - 10, cy, cx + 10, cy]} stroke="white" strokeWidth={1} dash={[4, 4]} opacity={0.5} listening={false} />
+          <Line points={[cx, cy - 10, cx, cy + 10]} stroke="white" strokeWidth={1} dash={[4, 4]} opacity={0.5} listening={false} />
+        </Group>
+      );
+    }
+
+    if (
+      subMask.type === Mask.AiDepth ||
+      subMask.type === Mask.AiForeground ||
+      subMask.type === Mask.AiSky ||
+      subMask.type === Mask.All
+    ) {
+      const { startX, startY, endX, endY } = p;
+      if (startX !== undefined && startY !== undefined && endX !== undefined && endY !== undefined) {
+        const isPoint = Math.abs(startX - endX) < 1e-6 && Math.abs(startY - endY) < 1e-6;
+        if (isPoint) {
+          return (
+            <Circle
+              x={(startX - cropX) * scale}
+              y={(startY - cropY) * scale}
+              radius={5}
+              stroke={isSelected ? '#0ea5e9' : 'white'}
+              strokeWidth={2}
+              listening={!isToolActive}
+              onClick={handleSelect}
+              onTap={handleSelect}
+              onTouchEnd={handleMaskTouchEnd}
+              onTouchStart={handleMaskTouchStart}
+              onMouseEnter={onMaskMouseEnter}
+              onMouseLeave={onMaskMouseLeave}
+              shadowColor="black"
+              shadowBlur={2}
+              shadowOpacity={0.8}
+            />
+          );
+        } else {
+          return (
+            <Rect
+              height={Math.max(0.1, Math.abs(endY - startY) * scale)}
+              onMouseEnter={onMaskMouseEnter}
+              onMouseLeave={onMaskMouseLeave}
+              onTouchEnd={handleMaskTouchEnd}
+              onTouchStart={handleMaskTouchStart}
+              width={Math.max(0.1, Math.abs(endX - startX) * scale)}
+              x={(Math.min(startX, endX) - cropX) * scale}
+              y={(Math.min(startY, endY) - cropY) * scale}
+              {...commonProps}
+            />
+          );
+        }
+      }
+
+      if (subMask.type === Mask.All) {
+        return (
+          <Rect
+            height={Math.max(0.1, cropH * scale)}
+            onMouseEnter={onMaskMouseEnter}
+            onMouseLeave={onMaskMouseLeave}
+            onTouchEnd={handleMaskTouchEnd}
+            onTouchStart={handleMaskTouchStart}
+            width={Math.max(0.1, cropW * scale)}
+            x={0}
+            y={0}
+            {...commonProps}
+          />
+        );
+      }
+
+      if (isGeneratingAiMask) {
+        const cx = (imageWidth / 2 - cropX) * scale;
+        const cy = (imageHeight / 2 - cropY) * scale;
+        return (
+          <Group>
+            <Circle x={cx} y={cy} radius={6} fill="#0ea5e9" opacity={0.6} />
+            <Circle x={cx} y={cy} radius={12} stroke="#0ea5e9" strokeWidth={1} dash={[4, 4]} opacity={0.4} />
+          </Group>
+        );
+      }
+
       return null;
     }
+
     return null;
   },
 );
@@ -1186,6 +1303,7 @@ const ImageCanvas = memo(
     liveRotation,
     transformState,
     hasRenderedFirstFrame,
+    isGeneratingAiMask,
   }: ImageCanvasProps) => {
     const [isCropViewVisible, setIsCropViewVisible] = useState(false);
     const cropImageRef = useRef<HTMLImageElement>(null);
@@ -1208,12 +1326,13 @@ const ImageCanvas = memo(
     const [straightenLine, setStraightenLine] = useState<any>(null);
     const isStraightening = useRef(false);
 
+    const displayFallbackSrc = finalPreviewUrl || selectedImage.thumbnailUrl || selectedImage.originalUrl;
     const [displayState, setDisplayState] = useState({
-      base: finalPreviewUrl || selectedImage.thumbnailUrl,
+      base: displayFallbackSrc,
       fade: null as string | null,
     });
     const [isFadingIn, setIsFadingIn] = useState(false);
-    const prevImageIdentityRef = useRef(selectedImage.thumbnailUrl);
+    const prevImageIdentityRef = useRef(selectedImage.thumbnailUrl || selectedImage.originalUrl);
 
     const [baseTool, setBaseTool] = useState<ToolType>(brushSettings?.tool ?? ToolType.Brush);
     const [isAltPressed, setIsAltPressed] = useState(false);
@@ -1305,11 +1424,11 @@ const ImageCanvas = memo(
     }, [interactivePatch]);
 
     useEffect(() => {
-      const newSrc = finalPreviewUrl || selectedImage.thumbnailUrl;
-      const isNewImage = prevImageIdentityRef.current !== selectedImage.thumbnailUrl;
+      const newSrc = finalPreviewUrl || selectedImage.thumbnailUrl || selectedImage.originalUrl;
+      const isNewImage = prevImageIdentityRef.current !== (selectedImage.thumbnailUrl || selectedImage.originalUrl);
 
       if (isNewImage) {
-        prevImageIdentityRef.current = selectedImage.thumbnailUrl;
+        prevImageIdentityRef.current = selectedImage.thumbnailUrl || selectedImage.originalUrl;
         setDisplayState({ base: newSrc, fade: null });
         setIsFadingIn(false);
         return;
@@ -1345,7 +1464,7 @@ const ImageCanvas = memo(
           setIsFadingIn(false);
         }
       }
-    }, [finalPreviewUrl, selectedImage.thumbnailUrl, isSliderDragging, displayState.base]);
+    }, [finalPreviewUrl, selectedImage.thumbnailUrl, selectedImage.originalUrl, isSliderDragging, displayState.base]);
 
     useEffect(() => {
       setBaseTool(brushSettings?.tool ?? ToolType.Brush);
@@ -2549,7 +2668,7 @@ const ImageCanvas = memo(
       };
     }, [originalSrc]);
 
-    const currentTarget = finalPreviewUrl || selectedImage.thumbnailUrl;
+    const currentTarget = finalPreviewUrl || selectedImage.thumbnailUrl || selectedImage.originalUrl;
     const baseIsReady = displayState.base === currentTarget && !displayState.fade;
 
     const visiblePatch = interactivePatch ?? (baseIsReady ? null : retainedPatchRef.current);
@@ -2726,7 +2845,10 @@ const ImageCanvas = memo(
                 }
                 preserveAspectRatio={imageRenderSize.width > 0 && imageRenderSize.height > 0 ? 'none' : 'xMidYMid meet'}
               >
-                {displayState.base && !isWgpuActive && (
+                {/* Show SVG fallback when wgpu is not active, OR when wgpu is active
+                    but no actual image data is available (finalPreviewUrl is null).
+                    This prevents blank display when wgpu fails to render properly. */}
+                {displayState.base && (!isWgpuActive || !finalPreviewUrl) && (
                   <image
                     href={displayState.base}
                     x="0"
@@ -2737,7 +2859,7 @@ const ImageCanvas = memo(
                   />
                 )}
 
-                {displayState.fade && !isWgpuActive && (
+                {displayState.fade && (!isWgpuActive || !finalPreviewUrl) && (
                   <image
                     href={displayState.fade}
                     x="0"
@@ -2961,6 +3083,7 @@ const ImageCanvas = memo(
                               offsetX={groupOffsetX}
                               offsetY={groupOffsetY}
                               stageScale={maxSafeScale}
+                              isGeneratingAiMask={isGeneratingAiMask}
                             />
                           );
                         })}
@@ -3101,6 +3224,15 @@ const ImageCanvas = memo(
             </div>
           )}
         </div>
+
+        {isGeneratingAiMask && (
+          <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+            <div className="flex flex-col items-center gap-2 bg-black/60 backdrop-blur-sm rounded-lg px-4 py-3">
+              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span className="text-white text-xs font-medium">Generating AI Mask...</span>
+            </div>
+          </div>
+        )}
       </div>
     );
   },

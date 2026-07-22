@@ -107,6 +107,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
   const activeMaskId = useEditorStore((s) => s.activeMaskId);
   const activeAiPatchContainerId = useEditorStore((s) => s.activeAiPatchContainerId);
   const activeAiSubMaskId = useEditorStore((s) => s.activeAiSubMaskId);
+  const isGeneratingAiMask = useEditorStore((s) => s.isGeneratingAiMask);
   const isMaskControlHovered = useEditorStore((s) => s.isMaskControlHovered);
   const hasRenderedFirstFrame = useEditorStore((s) => s.hasRenderedFirstFrame);
 
@@ -2092,6 +2093,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
             liveRotation={liveRotation}
             transformState={transformState}
             hasRenderedFirstFrame={hasRenderedFirstFrame}
+            isGeneratingAiMask={isGeneratingAiMask}
           />
         </div>
       </div>
