@@ -880,7 +880,7 @@ export default function LensCorrectionModal({
         >
           <div
             className="absolute inset-0 opacity-20 pointer-events-none"
-            style={{ backgroundImage: 'radial-gradient(#444 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+            style={{ backgroundImage: 'radial-gradient(var(--app-border-color) 1px, transparent 1px)', backgroundSize: '24px 24px' }}
           ></div>
 
           {previewUrl && (

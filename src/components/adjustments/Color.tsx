@@ -163,7 +163,7 @@ const ColorGradingPanel = ({ adjustments, setAdjustments, onDragStateChange }: C
       {
         id: 'global',
         icon: (
-          <div className="w-3.5 h-3.5 rounded-full" style={{ background: 'linear-gradient(to top, #666, #fff)' }} />
+          <div className="w-3.5 h-3.5 rounded-full" style={{ background: `linear-gradient(to top, var(--app-text-secondary), var(--app-text-primary))` }} />
         ),
       },
     ],

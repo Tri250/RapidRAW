@@ -296,7 +296,7 @@ export default function CullingModal({
                 className={`${
                   activeTab === 'similar'
                     ? 'border-accent text-accent'
-                    : 'border-transparent text-text-secondary hover:text-text-primary hover:border-gray-300'
+                    : 'border-transparent text-text-secondary hover:text-text-primary hover:border-hover-color'
                 } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
               >
                 {t('modals.culling.similarGroupsTab')}{' '}
@@ -309,7 +309,7 @@ export default function CullingModal({
                 className={`${
                   activeTab === 'blurry'
                     ? 'border-accent text-accent'
-                    : 'border-transparent text-text-secondary hover:text-text-primary hover:border-gray-300'
+                    : 'border-transparent text-text-secondary hover:text-text-primary hover:border-hover-color'
                 } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
               >
                 {t('modals.culling.blurryImagesTab')}{' '}

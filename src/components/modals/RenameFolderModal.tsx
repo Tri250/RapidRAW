@@ -107,7 +107,7 @@ export default function RenameFolderModal({
             {t('modals.renameFolder.cancel')}
           </button>
           <button
-            className="px-4 py-2 rounded-md bg-accent text-button-text font-semibold hover:bg-accent-hover disabled:bg-gray-500 disabled:text-white disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 rounded-md bg-accent text-button-text font-semibold hover:bg-accent-hover disabled:bg-card-active disabled:text-text-secondary disabled:cursor-not-allowed transition-colors"
             disabled={!name.trim() || name.trim() === currentName}
             onClick={handleSave}
           >
