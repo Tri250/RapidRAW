@@ -7,8 +7,6 @@
 use image::{DynamicImage, GenericImageView, Rgba, RgbaImage};
 use rayon::prelude::*;
 
-use crate::app_state::AppState;
-
 // ---------------------------------------------------------------------------
 // Data structures
 // ---------------------------------------------------------------------------

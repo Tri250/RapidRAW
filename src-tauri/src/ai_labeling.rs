@@ -3,7 +3,7 @@
 /// Provides vector embedding generation, storage, and similarity search
 /// for automatic image tagging. Designed to work with CLIP/SigLIP models
 /// via the ai_service module, storing results in the project_manager database.
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
