@@ -197,6 +197,11 @@ export function useImageProcessing(
               if (state.interactivePatch && state.interactivePatch.url) URL.revokeObjectURL(state.interactivePatch.url);
               return { interactivePatch: null };
             });
+            // When wgpu is active, keep existing finalPreviewUrl as fallback.
+            // The SVG image display uses !isWgpuActive guard, so the fallback
+            // will show when hasRenderedFirstFrame is false (wgpu not yet ready).
+            // Once wgpu renders its first frame, isWgpuActive becomes true and
+            // the SVG fallback is hidden, showing the wgpu canvas instead.
             return;
           }
 

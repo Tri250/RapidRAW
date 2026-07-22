@@ -80,6 +80,89 @@ const saveSources = (sources: GallerySource[]) => {
   } catch {}
 };
 
+/**
+ * Resolve a potentially relative path to an absolute URL using the JSON source base URL.
+ * Handles: absolute URLs, relative paths, and protocol-relative URLs.
+ */
+const resolvePath = (path: string, baseDir: string): string => {
+  if (!path || typeof path !== 'string') return '';
+  const trimmed = path.trim();
+  if (!trimmed) return '';
+
+  // Already absolute URLs
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+
+  // Protocol-relative URL (e.g., //cdn.example.com/...)
+  if (trimmed.startsWith('//')) return 'https:' + trimmed;
+
+  // Data URIs
+  if (trimmed.startsWith('data:')) return trimmed;
+
+  // Relative path - resolve against base directory
+  if (trimmed.startsWith('/')) {
+    // Absolute path relative to domain root
+    try {
+      const urlObj = new URL(baseDir);
+      return `${urlObj.origin}${trimmed}`;
+    } catch {
+      return baseDir + trimmed.slice(1);
+    }
+  }
+
+  // Relative path
+  return baseDir + trimmed;
+};
+
+/**
+ * Parse various JSON formats for preset gallery data.
+ * Supports:
+ * - { presets: [...] } format (OMaster/OPPO style)
+ * - Array format [...] (RapidRAW manifest style)
+ */
+const parsePresetsFromJson = (data: any, baseDir: string): { presets: GalleryPreset[]; sourceName: string } => {
+  if (!data) return { presets: [], sourceName: '' };
+
+  // Array format: data is directly an array of presets
+  if (Array.isArray(data)) {
+    const presets: GalleryPreset[] = data.map((item: any) => ({
+      name: item.name || 'Untitled',
+      coverPath: resolvePath(item.coverPath || item.cover_image || '', baseDir),
+      galleryImages: (item.galleryImages || item.gallery_images || item.samples || [])
+        .map((img: any) => resolvePath(typeof img === 'string' ? img : img.url || '', baseDir))
+        .filter(Boolean),
+      author: item.author || item.creator || undefined,
+      isNew: item.isNew || item.is_new || undefined,
+      sections: item.sections || undefined,
+      tags: item.tags || undefined,
+      description: item.description || undefined,
+    }));
+    return { presets, sourceName: '' };
+  }
+
+  // Object format: { presets: [...], name: ... }
+  if (typeof data === 'object') {
+    const rawPresets: any[] = data.presets || data.data || [];
+    const sourceName = data.name || data.title || '';
+
+    const presets: GalleryPreset[] = rawPresets.map((p: any) => ({
+      name: p.name || 'Untitled',
+      coverPath: resolvePath(p.coverPath || p.cover_path || p.cover_image || '', baseDir),
+      galleryImages: (p.galleryImages || p.gallery_images || p.samples || [])
+        .map((img: any) => resolvePath(typeof img === 'string' ? img : img.url || '', baseDir))
+        .filter(Boolean),
+      author: p.author || p.creator || undefined,
+      isNew: p.isNew || p.is_new || undefined,
+      sections: p.sections || undefined,
+      tags: p.tags || undefined,
+      description: p.description || undefined,
+    }));
+
+    return { presets, sourceName };
+  }
+
+  return { presets: [], sourceName: '' };
+};
+
 export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
   sources: loadSources(),
 
@@ -129,36 +212,23 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
     }));
 
     try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const response = await fetch(url, {
+        mode: 'cors',
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       const data = await response.json();
 
       // Get base directory for resolving relative paths
       const baseDir = url.substring(0, url.lastIndexOf('/') + 1);
 
-      const rawPresets: GalleryPreset[] = data.presets || [];
-
-      // Resolve all paths to absolute URLs
-      const presets: GalleryPreset[] = rawPresets.map((p) => {
-        const resolvePath = (path: string) => {
-          if (!path) return '';
-          if (path.startsWith('http://') || path.startsWith('https://')) return path;
-          return baseDir + path;
-        };
-
-        return {
-          ...p,
-          coverPath: resolvePath(p.coverPath),
-          galleryImages: p.galleryImages.map(resolvePath).filter(Boolean),
-        };
-      });
-
-      const sourceName = data.name || url;
+      const { presets, sourceName } = parsePresetsFromJson(data, baseDir);
+      const finalName = sourceName || source?.name || url;
 
       set((state) => {
         const newSources = state.sources.map((s) =>
           s.url === url
-            ? { ...s, presets, name: sourceName, isLoading: false, error: null }
+            ? { ...s, presets, name: finalName, isLoading: false, error: null }
             : s,
         );
         saveSources(newSources);
@@ -167,7 +237,7 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
     } catch (err: any) {
       set((state) => {
         const newSources = state.sources.map((s) =>
-          s.url === url ? { ...s, isLoading: false, error: err.message } : s,
+          s.url === url ? { ...s, isLoading: false, error: err.message || String(err) } : s,
         );
         saveSources(newSources);
         return { sources: newSources };

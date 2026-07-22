@@ -99,6 +99,36 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
             return state;
           });
 
+          // Generate an initial CPU-based preview as fallback when wgpu is enabled.
+          // This ensures the editor displays an image immediately, even if wgpu
+          // takes longer to initialize (common on Windows with some GPU drivers).
+          if (appSettings?.useWgpuRenderer !== false) {
+            try {
+              const previewResult: ArrayBuffer | null = await invoke(Invokes.GeneratePreviewForPath, {
+                path: selectedImage.path,
+                previewResolution: appSettings?.editorPreviewResolution || 1920,
+              });
+              if (previewResult && previewResult.byteLength > 0 && isEffectActive) {
+                const blob = new Blob([previewResult], { type: 'image/jpeg' });
+                const url = URL.createObjectURL(blob);
+                // Only set as fallback if wgpu hasn't rendered yet
+                if (!useEditorStore.getState().hasRenderedFirstFrame) {
+                  setEditor((state) => {
+                    const prevUrl = state.finalPreviewUrl;
+                    if (prevUrl && prevUrl.startsWith('blob:')) {
+                      setTimeout(() => URL.revokeObjectURL(prevUrl), 100);
+                    }
+                    return { finalPreviewUrl: url };
+                  });
+                } else {
+                  URL.revokeObjectURL(url);
+                }
+              }
+            } catch (err) {
+              console.warn('Initial preview generation failed (non-critical):', err);
+            }
+          }
+
           setEditor((state) => {
             if (!state.adjustments.aspectRatio && !state.adjustments.crop) {
               const safeHeight = loadImageResult.height || 1;
