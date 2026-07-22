@@ -53,6 +53,7 @@ jobs:
         with:
           rustflags: ''
           target: ${{ inputs.target }}
+          rust-src-dir: src-tauri
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
@@ -157,7 +158,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NO_STRIP: ${{ startsWith(inputs.platform, 'ubuntu') }}
+          NO_STRIP: ${{ startsWith(inputs.platform, 'ubuntu') && 'true' || '' }}
         with:
           args: --verbose${{ inputs.build-args && format(' {0}', inputs.build-args) || '' }}${{ inputs.target != '' && format(' --target {0}', inputs.target) || '' }}
           assetNamePattern: ${{ steps.patch-release-name.outputs.platform }}

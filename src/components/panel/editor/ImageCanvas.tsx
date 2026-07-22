@@ -2874,7 +2874,7 @@ const ImageCanvas = memo(
                   />
                 )}
 
-                {visiblePatch && !isWgpuActive && (
+                {visiblePatch && (
                   <image
                     href={visiblePatch.url}
                     x={`${visiblePatch.normX * 100}%`}

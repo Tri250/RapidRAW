@@ -320,7 +320,7 @@ pub async fn generate_manual_cleanup_patch(
         "offsetY": min_y_u32,
         "width": crop_w,
         "height": crop_h,
-        "isSrgbEncoded": is_raw
+        "isSrgbEncoded": true
     })
     .to_string();
 
@@ -598,7 +598,7 @@ pub async fn invoke_generative_replace_with_mask_def(
         "offsetY": min_y_u32,
         "width": crop_w,
         "height": crop_h,
-        "isSrgbEncoded": is_raw
+        "isSrgbEncoded": true
     })
     .to_string();
 

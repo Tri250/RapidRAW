@@ -605,10 +605,20 @@ pub fn composite_patches_on_image(
                 color_image_u8
             };
 
+            // Ensure mask and color have identical dimensions to prevent
+            // get_pixel() out-of-bounds panic during compositing.
+            let (mask_w, mask_h) = mask_bitmap.dimensions();
+            let (color_w, color_h) = final_color.dimensions();
+            let final_mask = if mask_w != color_w || mask_h != color_h {
+                imageops::resize(&mask_bitmap, color_w, color_h, imageops::FilterType::Lanczos3)
+            } else {
+                mask_bitmap
+            };
+
             Ok(DecodedPatch {
                 offset_x,
                 offset_y,
-                mask: mask_bitmap,
+                mask: final_mask,
                 color: final_color,
                 is_srgb_encoded,
             })

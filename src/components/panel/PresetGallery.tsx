@@ -108,7 +108,7 @@ const PresetCard = ({ preset, index }: PresetCardProps) => {
     setCurrentImageIndex(0);
     setGalleryImageErrors(new Set());
     setGalleryUrlMap(new Map());
-  }, [preset.coverPath]);
+  }, [preset.coverPath, preset.galleryImages]);
 
   const allImages = [preset.coverPath, ...preset.galleryImages].filter(Boolean);
   const hasImages = allImages.length > 0;
@@ -130,15 +130,28 @@ const PresetCard = ({ preset, index }: PresetCardProps) => {
     }
     const primaryUrl = imgIndex < allImages.length ? allImages[imgIndex] : '';
     const currentUrl = galleryUrlMap.has(imgIndex) ? galleryUrlMap.get(imgIndex)! : primaryUrl;
-    if (currentUrl === primaryUrl && preset.galleryFallback && preset.galleryFallback[imgIndex - 1]) {
-      setGalleryUrlMap((prev) => new Map(prev).set(imgIndex, preset.galleryFallback![imgIndex - 1]));
-      return;
+    if (currentUrl === primaryUrl && preset.galleryFallback) {
+      const fallbackIdx = preset.coverPath ? imgIndex - 1 : imgIndex;
+      if (fallbackIdx >= 0 && fallbackIdx < preset.galleryFallback.length) {
+        setGalleryUrlMap((prev) => new Map(prev).set(imgIndex, preset.galleryFallback![fallbackIdx]));
+        return;
+      }
     }
-    setGalleryImageErrors((prev) => new Set(prev).add(imgIndex));
+    setGalleryImageErrors((prev) => {
+      const updated = new Set(prev).add(imgIndex);
+      return updated;
+    });
   };
 
   const viewableImages = allImages.filter((_, i) => !galleryImageErrors.has(i));
   const viewableIndex = Math.min(currentImageIndex, Math.max(0, viewableImages.length - 1));
+
+  // Sync currentImageIndex when viewableImages changes to prevent index drift
+  useEffect(() => {
+    if (currentImageIndex >= viewableImages.length && viewableImages.length > 0) {
+      setCurrentImageIndex(viewableImages.length - 1);
+    }
+  }, [viewableImages.length, currentImageIndex]);
 
   const getOriginalIndex = (viewIdx: number): number => {
     let count = 0;
