@@ -3,7 +3,9 @@ import { create } from 'zustand';
 export interface GalleryPreset {
   name: string;
   coverPath: string;
+  coverFallback?: string;
   galleryImages: string[];
+  galleryFallback?: string[];
   author?: string;
   isNew?: boolean;
   sections?: any[];
@@ -35,6 +37,26 @@ interface PresetGalleryState {
 }
 
 const DEFAULT_SOURCE_URL = 'https://cdn.jsdelivr.net/gh/fengyec2/OMaster-Community@main/presets/v2/oppo.json';
+
+/** Fallback CDN for images not available on jsDelivr (e.g. relative paths like images/xxx.webp) */
+const FALLBACK_CDN_BASE = 'https://cdn.fky.ltd/';
+
+/**
+ * Generate a fallback URL on the fallback CDN by extracting just the filename from the path.
+ * Example: images/fsjp_01.webp  →  https://cdn.fky.ltd/fsjp_01.webp
+ */
+const resolveFallbackPath = (path: string): string => {
+  if (!path || typeof path !== 'string') return '';
+  const trimmed = path.trim();
+  if (!trimmed) return '';
+  // Already absolute URLs don't need a fallback
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('//')) return '';
+  // Extract just the filename from the path
+  const lastSlash = trimmed.lastIndexOf('/');
+  const filename = lastSlash >= 0 ? trimmed.slice(lastSlash + 1) : trimmed;
+  if (!filename) return '';
+  return FALLBACK_CDN_BASE + filename;
+};
 
 const DEFAULT_SOURCES: GallerySource[] = [
   {
@@ -124,18 +146,26 @@ const parsePresetsFromJson = (data: any, baseDir: string): { presets: GalleryPre
 
   // Array format: data is directly an array of presets
   if (Array.isArray(data)) {
-    const presets: GalleryPreset[] = data.map((item: any) => ({
-      name: item.name || 'Untitled',
-      coverPath: resolvePath(item.coverPath || item.cover_image || '', baseDir),
-      galleryImages: (item.galleryImages || item.gallery_images || item.samples || [])
-        .map((img: any) => resolvePath(typeof img === 'string' ? img : img.url || '', baseDir))
-        .filter(Boolean),
-      author: item.author || item.creator || undefined,
-      isNew: item.isNew || item.is_new || undefined,
-      sections: item.sections || undefined,
-      tags: item.tags || undefined,
-      description: item.description || undefined,
-    }));
+    const presets: GalleryPreset[] = data.map((item: any) => {
+      const rawCover = item.coverPath || item.cover_image || '';
+      const rawGallery: any[] = item.galleryImages || item.gallery_images || item.samples || [];
+      return {
+        name: item.name || 'Untitled',
+        coverPath: resolvePath(rawCover, baseDir),
+        coverFallback: resolveFallbackPath(rawCover) || undefined,
+        galleryImages: rawGallery
+          .map((img: any) => resolvePath(typeof img === 'string' ? img : img.url || '', baseDir))
+          .filter(Boolean),
+        galleryFallback: rawGallery
+          .map((img: any) => resolveFallbackPath(typeof img === 'string' ? img : img.url || ''))
+          .filter(Boolean),
+        author: item.author || item.creator || undefined,
+        isNew: item.isNew || item.is_new || undefined,
+        sections: item.sections || undefined,
+        tags: item.tags || undefined,
+        description: item.description || undefined,
+      };
+    });
     return { presets, sourceName: '' };
   }
 
@@ -144,18 +174,26 @@ const parsePresetsFromJson = (data: any, baseDir: string): { presets: GalleryPre
     const rawPresets: any[] = data.presets || data.data || [];
     const sourceName = data.name || data.title || '';
 
-    const presets: GalleryPreset[] = rawPresets.map((p: any) => ({
-      name: p.name || 'Untitled',
-      coverPath: resolvePath(p.coverPath || p.cover_path || p.cover_image || '', baseDir),
-      galleryImages: (p.galleryImages || p.gallery_images || p.samples || [])
-        .map((img: any) => resolvePath(typeof img === 'string' ? img : img.url || '', baseDir))
-        .filter(Boolean),
-      author: p.author || p.creator || undefined,
-      isNew: p.isNew || p.is_new || undefined,
-      sections: p.sections || undefined,
-      tags: p.tags || undefined,
-      description: p.description || undefined,
-    }));
+    const presets: GalleryPreset[] = rawPresets.map((p: any) => {
+      const rawCover = p.coverPath || p.cover_path || p.cover_image || '';
+      const rawGallery: any[] = p.galleryImages || p.gallery_images || p.samples || [];
+      return {
+        name: p.name || 'Untitled',
+        coverPath: resolvePath(rawCover, baseDir),
+        coverFallback: resolveFallbackPath(rawCover) || undefined,
+        galleryImages: rawGallery
+          .map((img: any) => resolvePath(typeof img === 'string' ? img : img.url || '', baseDir))
+          .filter(Boolean),
+        galleryFallback: rawGallery
+          .map((img: any) => resolveFallbackPath(typeof img === 'string' ? img : img.url || ''))
+          .filter(Boolean),
+        author: p.author || p.creator || undefined,
+        isNew: p.isNew || p.is_new || undefined,
+        sections: p.sections || undefined,
+        tags: p.tags || undefined,
+        description: p.description || undefined,
+      };
+    });
 
     return { presets, sourceName };
   }

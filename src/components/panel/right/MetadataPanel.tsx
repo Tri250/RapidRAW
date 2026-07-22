@@ -1003,7 +1003,7 @@ export default function MetadataPanel() {
                 </Text>
                 <div className="bg-surface border border-surface rounded-xl p-3 flex flex-col gap-0.5 overflow-hidden">
                   {otherExifEntries.map(([tag, value]) => (
-                    <MetadataItem key={tag} label={formatExifTag(tag, t)} value={value} />
+                    <MetadataItem key={tag} label={formatExifTag(tag, t as unknown as (key: string) => string)} value={value} />
                   ))}
                 </div>
               </div>

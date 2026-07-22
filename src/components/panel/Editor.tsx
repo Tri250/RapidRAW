@@ -1379,6 +1379,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
       subMasks,
       geometry,
       renderSize: { w: imageRenderSize.width, h: imageRenderSize.height },
+      isGeneratingAiMask,
     });
   }, [
     activeRightPanel,
@@ -1387,6 +1388,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
     adjustments,
     imageRenderSize.width,
     imageRenderSize.height,
+    isGeneratingAiMask,
   ]);
 
   useEffect(() => {
@@ -1412,7 +1414,6 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
     }
 
     requestMaskOverlay(maskDefForOverlay, imageRenderSize, adjustments);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     overlayTriggerHash,
     requestMaskOverlay,
@@ -1420,6 +1421,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
     activeMaskContainerId,
     activeAiPatchContainerId,
     imageRenderSize,
+    isGeneratingAiMask,
   ]);
 
   useEffect(() => {
