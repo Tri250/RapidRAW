@@ -25,8 +25,8 @@ jobs:
           - platform: 'macos-14'
             target: aarch64-apple-darwin
             asset-prefix: '02'
-          # macOS Intel (use macos-13)
-          - platform: 'macos-13'
+          # macOS Intel
+          - platform: 'macos-15-intel'
             target: x86_64-apple-darwin
             asset-prefix: '02_intel'
           # Ubuntu x64

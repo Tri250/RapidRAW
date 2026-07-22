@@ -27,11 +27,13 @@ const PresetCard = ({ preset }: PresetCardProps) => {
   const [showGallery, setShowGallery] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [coverError, setCoverError] = useState(false);
+  const [galleryImageErrors, setGalleryImageErrors] = useState<Set<number>>(new Set());
 
   // Reset error state when preset changes (e.g. after re-fetch)
   useEffect(() => {
     setCoverError(false);
     setCurrentImageIndex(0);
+    setGalleryImageErrors(new Set());
   }, [preset.coverPath]);
 
   // Paths are already resolved to absolute URLs in the store
@@ -40,8 +42,34 @@ const PresetCard = ({ preset }: PresetCardProps) => {
   const onlineImages = [coverUrl, ...preset.galleryImages].filter((u) => u.startsWith('http'));
   const hasOnlineImages = onlineImages.length > 0;
 
-  const nextImage = () => setCurrentImageIndex((i) => (i + 1) % onlineImages.length);
-  const prevImage = () => setCurrentImageIndex((i) => (i - 1 + onlineImages.length) % onlineImages.length);
+  // Filter out images that failed to load in gallery
+  const viewableImages = onlineImages.filter((_, i) => !galleryImageErrors.has(i));
+  const viewableIndex = Math.min(currentImageIndex, Math.max(0, viewableImages.length - 1));
+
+  // Map viewableIndex back to onlineImages index for error tracking
+  const getOriginalIndex = (viewIdx: number): number => {
+    let count = 0;
+    for (let i = 0; i < onlineImages.length; i++) {
+      if (!galleryImageErrors.has(i)) {
+        if (count === viewIdx) return i;
+        count++;
+      }
+    }
+    return viewIdx;
+  };
+
+  const nextImage = () => {
+    if (viewableImages.length <= 1) return;
+    setCurrentImageIndex((i) => (i + 1) % viewableImages.length);
+  };
+  const prevImage = () => {
+    if (viewableImages.length <= 1) return;
+    setCurrentImageIndex((i) => (i - 1 + viewableImages.length) % viewableImages.length);
+  };
+
+  const handleGalleryImageError = (originalIndex: number) => {
+    setGalleryImageErrors((prev) => new Set(prev).add(originalIndex));
+  };
 
   // Whether cover is an online-accessible image
   const isCoverOnline = coverUrl.startsWith('http');
@@ -135,13 +163,20 @@ const PresetCard = ({ preset }: PresetCardProps) => {
               </button>
 
               <div className="relative bg-bg-primary rounded-xl overflow-hidden border border-border-color">
-                <img
-                  src={onlineImages[currentImageIndex]}
-                  alt={`${preset.name} - ${currentImageIndex + 1}`}
-                  className="max-h-[75vh] w-auto mx-auto object-contain"
-                />
+                {viewableImages.length > 0 ? (
+                  <img
+                    src={viewableImages[viewableIndex]}
+                    alt={`${preset.name} - ${viewableIndex + 1}`}
+                    className="max-h-[75vh] w-auto mx-auto object-contain"
+                    onError={() => handleGalleryImageError(getOriginalIndex(viewableIndex))}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-48 text-text-secondary">
+                    <ImageIcon size={48} />
+                  </div>
+                )}
 
-                {onlineImages.length > 1 && (
+                {viewableImages.length > 1 && (
                   <>
                     <button
                       onClick={prevImage}
@@ -156,12 +191,12 @@ const PresetCard = ({ preset }: PresetCardProps) => {
                       <ChevronRight size={20} />
                     </button>
                     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                      {onlineImages.map((_, i) => (
+                      {viewableImages.map((_, i) => (
                         <button
                           key={i}
                           onClick={() => setCurrentImageIndex(i)}
                           className={`w-2 h-2 rounded-full transition-colors ${
-                            i === currentImageIndex ? 'bg-white' : 'bg-white/40'
+                            i === viewableIndex ? 'bg-white' : 'bg-white/40'
                           }`}
                         />
                       ))}

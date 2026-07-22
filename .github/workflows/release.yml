@@ -25,8 +25,8 @@ jobs:
             build-args: ''
             target: aarch64-apple-darwin
             asset-prefix: '02'
-          # macOS Intel (use macos-13 for Intel)
-          - platform: 'macos-13'
+          # macOS Intel
+          - platform: 'macos-15-intel'
             build-args: ''
             target: x86_64-apple-darwin
             asset-prefix: '02_intel'
