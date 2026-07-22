@@ -9,10 +9,13 @@ mod adjustment_utils;
 mod ai_commands;
 mod ai_connector;
 mod ai_processing;
+mod ai_labeling;
+mod ai_service;
 mod android_integration;
 mod app_settings;
 mod app_state;
 mod cache_utils;
+mod color_science;
 mod culling;
 mod denoising;
 mod exif_processing;
@@ -20,6 +23,7 @@ mod export_processing;
 mod face_landmark;
 mod file_management;
 mod formats;
+mod gpu_pipeline;
 mod gpu_processing;
 mod hdr_deghosting;
 mod image_loader;
@@ -27,12 +31,14 @@ mod image_processing;
 mod inpainting;
 mod lens_correction;
 mod lut_processing;
+mod lut_processor;
 mod mask_generation;
 mod negative_conversion;
 mod panorama_stitching;
 mod panorama_utils;
 mod portrait_processing;
 mod preset_converter;
+mod project_manager;
 mod raw_processing;
 mod tagging;
 mod tagging_utils;
@@ -2479,6 +2485,30 @@ pub fn run() {
             android_integration::save_to_android_gallery,
             android_integration::share_image,
             set_ai_model_mirror,
+            // ── New P0/P1/P2 commands ──
+            gpu_pipeline::gpu_apply_adjustments,
+            color_science::color_convert_space,
+            color_science::color_apply_aces_output,
+            color_science::color_srgb_to_linear,
+            color_science::color_linear_to_srgb,
+            color_science::color_apply_aces_fitted,
+            lut_processor::lut_parse_cube_file,
+            lut_processor::lut_apply_to_image,
+            project_manager::project_open,
+            project_manager::project_close,
+            project_manager::project_create_edit_version,
+            project_manager::project_list_versions,
+            project_manager::project_get_current_version,
+            project_manager::project_set_current_version,
+            project_manager::project_store_thumbnail,
+            project_manager::project_get_thumbnail,
+            project_manager::project_add_ai_label,
+            project_manager::project_get_labels,
+            project_manager::project_search_labels,
+            ai_labeling::ai_labeling_auto_label,
+            ai_labeling::ai_labeling_search_by_text,
+            ai_labeling::ai_labeling_find_similar,
+            ai_labeling::ai_labeling_get_stats,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

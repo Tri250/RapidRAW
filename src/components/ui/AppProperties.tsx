@@ -153,6 +153,34 @@ export enum Invokes {
   GetLensfunMakers = 'get_lensfun_makers',
   GetLensfunLensesForMaker = 'get_lensfun_lenses_for_maker',
   GetLensDistortionParams = 'get_lens_distortion_params',
+  // ── P0: GPU compute pipeline ──
+  GpuApplyAdjustments = 'gpu_apply_adjustments',
+  // ── P1: Color science (ACES) ──
+  ColorConvertSpace = 'color_convert_space',
+  ColorApplyAcesOutput = 'color_apply_aces_output',
+  ColorSrgbToLinear = 'color_srgb_to_linear',
+  ColorLinearToSrgb = 'color_linear_to_srgb',
+  ColorApplyAcesFitted = 'color_apply_aces_fitted',
+  // ── P2: LUT processor ──
+  LutParseCubeFile = 'lut_parse_cube_file',
+  LutApplyToImage = 'lut_apply_to_image',
+  // ── P1: Project management ──
+  ProjectOpen = 'project_open',
+  ProjectClose = 'project_close',
+  ProjectCreateEditVersion = 'project_create_edit_version',
+  ProjectListVersions = 'project_list_versions',
+  ProjectGetCurrentVersion = 'project_get_current_version',
+  ProjectSetCurrentVersion = 'project_set_current_version',
+  ProjectStoreThumbnail = 'project_store_thumbnail',
+  ProjectGetThumbnail = 'project_get_thumbnail',
+  ProjectAddAiLabel = 'project_add_ai_label',
+  ProjectGetLabels = 'project_get_labels',
+  ProjectSearchLabels = 'project_search_labels',
+  // ── P2: AI labeling ──
+  AiLabelingAutoLabel = 'ai_labeling_auto_label',
+  AiLabelingSearchByText = 'ai_labeling_search_by_text',
+  AiLabelingFindSimilar = 'ai_labeling_find_similar',
+  AiLabelingGetStats = 'ai_labeling_get_stats',
 }
 
 export enum ExifOverlay {
