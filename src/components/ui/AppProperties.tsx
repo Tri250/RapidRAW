@@ -116,6 +116,40 @@ export enum Invokes {
   SaveAlbums = 'save_albums',
   AddToAlbum = 'add_to_album',
   GetAlbumImages = 'get_album_images',
+  // LUT processing
+  LoadAndParseLut = 'load_and_parse_lut',
+  ListLuts = 'list_luts',
+  ImportLuts = 'import_luts',
+  RemoveLut = 'remove_lut',
+  GenerateLutPreviews = 'generate_lut_previews',
+  // Cache management
+  ClearSessionCaches = 'clear_session_caches',
+  ClearImageCaches = 'clear_image_caches',
+  // System
+  FrontendReady = 'frontend_ready',
+  CancelThumbnailGeneration = 'cancel_thumbnail_generation',
+  GetImageDimensions = 'get_image_dimensions',
+  PreviewGeometryTransform = 'preview_geometry_transform',
+  SetAiModelMirror = 'set_ai_model_mirror',
+  // Android
+  ResolveAndroidContentUriName = 'resolve_android_content_uri_name',
+  SaveToAndroidGallery = 'save_to_android_gallery',
+  ShareImage = 'share_image',
+  // Mask generation
+  GenerateColorRangeMask = 'generate_color_range_mask',
+  GenerateLuminanceRangeMask = 'generate_luminance_range_mask',
+  ApplyMaskFeather = 'apply_mask_feather',
+  // AI commands
+  GenerateAiSkyReplace = 'generate_ai_sky_replace',
+  GenerateAiBackgroundRemove = 'generate_ai_background_remove',
+  // Image processing
+  DetectHorizonLines = 'detect_horizon_lines',
+  AutoStraightenHorizon = 'auto_straighten_horizon',
+  // Lens correction
+  AutodetectLens = 'autodetect_lens',
+  GetLensfunMakers = 'get_lensfun_makers',
+  GetLensfunLensesForMaker = 'get_lensfun_lenses_for_maker',
+  GetLensDistortionParams = 'get_lens_distortion_params',
 }
 
 export enum ExifOverlay {
