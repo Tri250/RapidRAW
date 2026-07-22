@@ -177,6 +177,7 @@ export enum Invokes {
   ProjectGetLabels = 'project_get_labels',
   ProjectSearchLabels = 'project_search_labels',
   // ── P2: AI labeling ──
+  AiLabelingInit = 'ai_labeling_init',
   AiLabelingAutoLabel = 'ai_labeling_auto_label',
   AiLabelingSearchByText = 'ai_labeling_search_by_text',
   AiLabelingFindSimilar = 'ai_labeling_find_similar',

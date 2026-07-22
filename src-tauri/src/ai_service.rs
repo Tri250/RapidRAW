@@ -8,6 +8,9 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, oneshot};
 
+use crate::ai_processing::{self, get_or_init_ai_models, get_or_init_denoise_model, get_or_init_lama_model, get_or_init_face_landmark_detector};
+use crate::app_state::AppState;
+
 // ---------------------------------------------------------------------------
 // Operation enum — every AI operation the service supports
 // ---------------------------------------------------------------------------
@@ -316,9 +319,7 @@ fn encode_rgba_to_base64_png(image: &RgbaImage) -> Result<String> {
 // ---------------------------------------------------------------------------
 // Operation implementations
 //
-// Each function produces a correct JSON result structure.  The actual model
-// inference calls are marked with TODO comments explaining which existing
-// crate function to use and how to obtain the required session / model.
+// Each function uses the real AI models from ai_processing via AppState.
 // The channel architecture and progress reporting are 100 % real.
 // ---------------------------------------------------------------------------
 
@@ -340,32 +341,34 @@ async fn run_subject_mask(
         app_handle,
         &AiOperation::GenerateAiSubjectMask,
         10.0,
-        "Generating SAM embeddings…",
+        "Initializing SAM models…",
     );
 
-    // TODO: Replace with actual SAM inference.
-    // 1. Load models:
-    //      let models = crate::ai_processing::get_or_init_ai_models(
-    //          app_handle, &state.ai_state, &state.ai_init_lock,
-    //      ).await?;
-    // 2. Compute embeddings:
-    //      let embeddings = crate::ai_processing::generate_image_embeddings(
-    //          image, &models.sam_encoder,
-    //      )?;
-    // 3. Run decoder with the user's bounding box:
-    //      let mask = crate::ai_processing::run_sam_decoder(
-    //          &models.sam_decoder, &embeddings,
-    //          (start_x, start_y), (end_x, end_y),
-    //      )?;
-    let (w, h) = image.dimensions();
-    let mask = GrayImage::new(w, h);
+    let state = app_handle.state::<AppState>();
+    let models = get_or_init_ai_models(app_handle, &state.ai_state, &state.ai_init_lock).await?;
 
     emit_progress(
         app_handle,
         &AiOperation::GenerateAiSubjectMask,
-        50.0,
+        30.0,
+        "Generating SAM embeddings…",
+    );
+
+    let embeddings = ai_processing::generate_image_embeddings(image, &models.sam_encoder)?;
+
+    emit_progress(
+        app_handle,
+        &AiOperation::GenerateAiSubjectMask,
+        60.0,
         "Running SAM decoder…",
     );
+
+    let mask = ai_processing::run_sam_decoder(
+        &models.sam_decoder,
+        &embeddings,
+        (start_x, start_y),
+        (end_x, end_y),
+    )?;
 
     emit_progress(
         app_handle,
@@ -403,27 +406,20 @@ async fn run_depth_mask(
         app_handle,
         &AiOperation::GenerateAiDepthMask,
         10.0,
-        "Running Depth Anything model…",
+        "Initializing Depth Anything model…",
     );
 
-    // TODO: Replace with actual Depth Anything V2 inference.
-    // 1. Load models:
-    //      let models = crate::ai_processing::get_or_init_ai_models(
-    //          app_handle, &state.ai_state, &state.ai_init_lock,
-    //      ).await?;
-    // 2. Run depth estimation:
-    //      let depth_map = crate::ai_processing::run_depth_anything_model(
-    //          image, &models.depth_anything,
-    //      )?;
-    let (w, h) = image.dimensions();
-    let depth_map = GrayImage::new(w, h);
+    let state = app_handle.state::<AppState>();
+    let models = get_or_init_ai_models(app_handle, &state.ai_state, &state.ai_init_lock).await?;
 
     emit_progress(
         app_handle,
         &AiOperation::GenerateAiDepthMask,
-        50.0,
-        "Estimating depth…",
+        30.0,
+        "Running Depth Anything model…",
     );
+
+    let depth_map = ai_processing::run_depth_anything_model(image, &models.depth_anything)?;
 
     emit_progress(
         app_handle,
@@ -454,27 +450,20 @@ async fn run_foreground_mask(
         app_handle,
         &AiOperation::GenerateAiForegroundMask,
         10.0,
-        "Running U²-Net foreground model…",
+        "Initializing U²-Net model…",
     );
 
-    // TODO: Replace with actual U²-Net inference.
-    // 1. Load models:
-    //      let models = crate::ai_processing::get_or_init_ai_models(
-    //          app_handle, &state.ai_state, &state.ai_init_lock,
-    //      ).await?;
-    // 2. Run salient-object detection:
-    //      let mask = crate::ai_processing::run_u2netp_model(
-    //          image, &models.u2netp,
-    //      )?;
-    let (w, h) = image.dimensions();
-    let mask = GrayImage::new(w, h);
+    let state = app_handle.state::<AppState>();
+    let models = get_or_init_ai_models(app_handle, &state.ai_state, &state.ai_init_lock).await?;
 
     emit_progress(
         app_handle,
         &AiOperation::GenerateAiForegroundMask,
-        50.0,
-        "Segmenting foreground…",
+        30.0,
+        "Running U²-Net foreground model…",
     );
+
+    let mask = ai_processing::run_u2netp_model(image, &models.u2netp)?;
 
     emit_progress(
         app_handle,
@@ -500,27 +489,20 @@ async fn run_sky_mask(
         app_handle,
         &AiOperation::GenerateAiSkyMask,
         10.0,
-        "Running sky segmentation model…",
+        "Initializing sky segmentation model…",
     );
 
-    // TODO: Replace with actual sky segmentation inference.
-    // 1. Load models:
-    //      let models = crate::ai_processing::get_or_init_ai_models(
-    //          app_handle, &state.ai_state, &state.ai_init_lock,
-    //      ).await?;
-    // 2. Run sky segmentation:
-    //      let mask = crate::ai_processing::run_sky_seg_model(
-    //          image, &models.sky_seg,
-    //      )?;
-    let (w, h) = image.dimensions();
-    let mask = GrayImage::new(w, h);
+    let state = app_handle.state::<AppState>();
+    let models = get_or_init_ai_models(app_handle, &state.ai_state, &state.ai_init_lock).await?;
 
     emit_progress(
         app_handle,
         &AiOperation::GenerateAiSkyMask,
-        50.0,
-        "Segmenting sky…",
+        30.0,
+        "Running sky segmentation model…",
     );
+
+    let mask = ai_processing::run_sky_seg_model(image, &models.sky_seg)?;
 
     emit_progress(
         app_handle,
@@ -550,20 +532,20 @@ async fn run_ai_denoise(
         app_handle,
         &AiOperation::AiDenoise,
         10.0,
-        "Preparing denoising…",
+        "Initializing AI denoise model…",
     );
 
-    // TODO: Replace with actual AI denoising inference.
-    // 1. Load the denoise model:
-    //      let session = crate::ai_processing::get_or_init_denoise_model(
-    //          app_handle, &state.ai_state, &state.ai_init_lock,
-    //      ).await?;
-    // 2. Convert image to Rgb32F and run:
-    //      let rgb32f = image.to_rgb32f();
-    //      let result = crate::ai_processing::run_ai_denoise(
-    //          &rgb32f, intensity, &session, app_handle,
-    //      )?;
-    let result_image = image.clone();
+    let state = app_handle.state::<AppState>();
+    let denoise_session = get_or_init_denoise_model(app_handle, &state.ai_state, &state.ai_init_lock).await?;
+
+    emit_progress(
+        app_handle,
+        &AiOperation::AiDenoise,
+        30.0,
+        "Converting image format…",
+    );
+
+    let rgb32f = image.to_rgb32f();
 
     emit_progress(
         app_handle,
@@ -571,6 +553,8 @@ async fn run_ai_denoise(
         50.0,
         "Running AI NIND denoiser…",
     );
+
+    let result_image = ai_processing::run_ai_denoise(&rgb32f, intensity, &*denoise_session, app_handle)?;
 
     emit_progress(
         app_handle,
@@ -609,16 +593,15 @@ async fn run_ai_inpaint(
 
     let mask_image = decode_base64_image(mask_base64)?.to_luma8();
 
-    // TODO: Replace with actual LaMa inpainting inference.
-    // 1. Load the LaMa model:
-    //      let lama_model = crate::ai_processing::get_or_init_lama_model(
-    //          app_handle, &state.ai_state, &state.ai_init_lock,
-    //      ).await?;
-    // 2. Run inpainting:
-    //      let result = crate::ai_processing::run_lama_inpainting(
-    //          image, &mask_image, &lama_model,
-    //      )?;
-    let result_image = image.to_rgba8();
+    emit_progress(
+        app_handle,
+        &AiOperation::AiInpaint,
+        30.0,
+        "Initializing LaMa model…",
+    );
+
+    let state = app_handle.state::<AppState>();
+    let lama_session = get_or_init_lama_model(app_handle, &state.ai_state, &state.ai_init_lock).await?;
 
     emit_progress(
         app_handle,
@@ -626,6 +609,8 @@ async fn run_ai_inpaint(
         50.0,
         "Running LaMa inpainting…",
     );
+
+    let result_image = ai_processing::run_lama_inpainting(image, &mask_image, &*lama_session)?;
 
     emit_progress(
         app_handle,
@@ -651,41 +636,66 @@ async fn run_face_landmark(
         app_handle,
         &AiOperation::FaceLandmark,
         10.0,
+        "Initializing face landmark detector…",
+    );
+
+    let state = app_handle.state::<AppState>();
+    let detector_arc = get_or_init_face_landmark_detector(
+        app_handle,
+        &state.ai_state,
+        &state.ai_init_lock,
+    )
+    .await
+    .map_err(|e| anyhow!("{}", e))?;
+
+    emit_progress(
+        app_handle,
+        &AiOperation::FaceLandmark,
+        30.0,
         "Detecting faces…",
     );
 
-    // TODO: Replace with actual face landmark detection.
-    // 1. Load the detector:
-    //      let detector = crate::ai_processing::get_or_init_face_landmark_detector(
-    //          app_handle, &state.ai_state, &state.ai_init_lock,
-    //      ).await?;
-    // 2. Detect faces and landmarks:
-    //      let mut det = detector.lock().unwrap();
-    //      let faces = det.detect_all(image)?;
-    // 3. Convert each FaceLandmarks106 to JSON:
-    //      for face in &faces {
-    //          // face.bbox: (f32, f32, f32, f32)
-    //          // face.points: [(f32, f32); 106]
-    //          // face.confidence: f32
-    //      }
-    let faces: Vec<serde_json::Value> = Vec::new();
+    let mut detector = detector_arc.lock().unwrap();
+    let faces = detector
+        .detect_all(image)
+        .map_err(|e| anyhow!("{}", e))?;
+    drop(detector);
 
     emit_progress(
         app_handle,
         &AiOperation::FaceLandmark,
-        50.0,
-        "Detecting landmarks…",
+        70.0,
+        "Encoding landmarks…",
     );
 
+    let faces_json: Vec<serde_json::Value> = faces
+        .iter()
+        .map(|face| {
+            let (bx, by, bw, bh) = face.bbox;
+            let points: Vec<serde_json::Value> = face
+                .points
+                .iter()
+                .map(|&(px, py)| {
+                    serde_json::json!({ "x": px, "y": py })
+                })
+                .collect();
+            serde_json::json!({
+                "bbox": { "x": bx, "y": by, "width": bw, "height": bh },
+                "points": points,
+                "confidence": face.confidence,
+            })
+        })
+        .collect();
+
     emit_progress(
         app_handle,
         &AiOperation::FaceLandmark,
-        80.0,
-        "Encoding result…",
+        90.0,
+        "Complete",
     );
 
     Ok(serde_json::json!({
-        "faces": faces,
+        "faces": faces_json,
     }))
 }
 

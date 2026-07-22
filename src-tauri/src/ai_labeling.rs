@@ -542,6 +542,36 @@ where
 }
 
 #[tauri::command]
+pub fn ai_labeling_init(
+    vocabulary_json: Option<String>,
+    similarity_threshold: Option<f32>,
+) -> Result<(), String> {
+    let mut guard = LABELING_ENGINE.lock().unwrap();
+
+    let mut engine = LabelingEngine::new();
+
+    if let Some(threshold) = similarity_threshold {
+        engine.similarity_threshold = threshold;
+    }
+
+    // Initialize vocabulary from JSON if provided
+    if let Some(json_str) = vocabulary_json {
+        let entries: Vec<VocabularyEntry> = serde_json::from_str(&json_str)
+            .map_err(|e| format!("Failed to parse vocabulary JSON: {}", e))?;
+        for entry in entries {
+            engine.add_vocabulary_entry(&entry.label, Embedding {
+                vector: entry.embedding,
+                model: "clip-vit-b32".to_string(),
+                dim: DEFAULT_EMBEDDING_DIM,
+            });
+        }
+    }
+
+    *guard = Some(engine);
+    Ok(())
+}
+
+#[tauri::command]
 pub fn ai_labeling_auto_label(
     image_hash: String,
     max_labels: usize,
