@@ -41,16 +41,15 @@
     <release version="v1.8.14" date="2026-07-22">
         <url type="details">https://github.com/Tri250/RapidRAW/releases/tag/v1.8.14</url>
         <description translate="no">
-            <p>RAW工坊 v1.8.14 - 全量自检修复·主题颜色统一·工作流修复</p>
+            <p>RAW工坊 v1.8.14 - 功能增强·EXIF中文翻译·预设扩展·主题统一</p>
             <ul>
-                <li>全量自检修复：审查所有功能模块确保100%完整实现，无简化/空/模拟实现</li>
+                <li>扩展EXIF中文翻译：新增200+EXIF标签中文翻译，元数据面板完全本地化</li>
+                <li>预设推荐扩展：新增10个内置预设（青橙电影/粉彩梦境/高对比戏剧/富士经典/戏剧人像/自然光人像/AI清晰增强/情绪暗调/风景摄影/美食摄影），总计23个</li>
+                <li>在线样张增强：添加刷新按钮、错误状态显示、空状态提示、重试功能</li>
+                <li>图标自适应优化：EXIF图标支持size参数，响应式尺寸适配</li>
                 <li>主题颜色统一：替换所有硬编码颜色为CSS主题变量，确保多主题一致</li>
-                <li>修复模态框按钮disabled状态使用主题变量替代硬编码gray-500</li>
-                <li>修复Slider组件边框和焦点环使用主题变量替代硬编码颜色</li>
-                <li>修复CullingModal边框hover使用主题变量</li>
-                <li>修复网格图案背景使用主题变量替代硬编码#444</li>
-                <li>修复Color面板渐变图标使用主题变量替代硬编码颜色</li>
-                <li>修复release/ci/pr-ci工作流：macos-15-intel(无效runner)→macos-13(标准Intel runner)</li>
+                <li>修复release/ci/pr-ci工作流：macos-15-intel(无效runner)→macos-13</li>
+                <li>全量自检修复：审查所有功能模块确保100%完整实现</li>
             </ul>
         </description>
     </release>

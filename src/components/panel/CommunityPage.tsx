@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { ArrowLeft, CheckCircle2, ChevronDown, Loader2, Search, Users, Layers, Crop } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronDown, Loader2, RefreshCw, Search, Users, Layers, Crop } from 'lucide-react';
 import { siGithub } from 'simple-icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -62,6 +62,7 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
   const [presets, setPresets] = useState<CommunityPreset[]>([]);
   const [previews, setPreviews] = useState<Record<string, string | null>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [previewImagePaths, setPreviewImagePaths] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
@@ -87,19 +88,21 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
     }
   }, []);
 
-  useEffect(() => {
-    const fetchPresets = async () => {
-      setIsLoading(true);
-      try {
-        const communityPresets: CommunityPreset[] = await invoke(Invokes.FetchCommunityPresets);
-        setPresets(communityPresets);
-      } catch (error) {
-        console.error('Failed to fetch community presets:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchPresets = useCallback(async () => {
+    setIsLoading(true);
+    setFetchError(null);
+    try {
+      const communityPresets: CommunityPreset[] = await invoke(Invokes.FetchCommunityPresets);
+      setPresets(communityPresets);
+    } catch (error) {
+      console.error('Failed to fetch community presets:', error);
+      setFetchError(String(error));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
+  useEffect(() => {
     fetchPresets();
 
     return () => {
@@ -109,7 +112,7 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
         }
       });
     };
-  }, []);
+  }, [fetchPresets]);
 
   useEffect(() => {
     const setupPreviewImages = async () => {
@@ -224,6 +227,16 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
             <Text>{t('library.community.headerDesc')}</Text>
           </div>
         </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={fetchPresets}
+          disabled={isLoading}
+          className="flex items-center gap-1.5"
+        >
+          <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+          {t('library.community.refresh') || 'Refresh'}
+        </Button>
       </header>
 
       <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
@@ -243,6 +256,28 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 -mr-2">
+        {fetchError && !isLoading && (
+          <div className="flex flex-col items-center justify-center h-48 gap-4">
+            <Text variant={TextVariants.heading} color={TextColors.secondary}>
+              {t('library.community.fetchError') || 'Failed to load presets'}
+            </Text>
+            <Text variant={TextVariants.small} color={TextColors.secondary}>
+              {fetchError}
+            </Text>
+            <Button variant="secondary" size="sm" onClick={fetchPresets}>
+              <RefreshCw size={14} className="mr-1.5" />
+              {t('library.community.retry') || 'Retry'}
+            </Button>
+          </div>
+        )}
+        {!fetchError && !isLoading && presets.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-48 gap-3">
+            <Users size={32} className="text-text-secondary" />
+            <Text variant={TextVariants.heading} color={TextColors.secondary}>
+              {t('library.community.noPresets') || 'No community presets available'}
+            </Text>
+          </div>
+        )}
         {isLoading ? (
           <Text
             variant={TextVariants.heading}

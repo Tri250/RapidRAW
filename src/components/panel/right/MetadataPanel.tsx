@@ -43,8 +43,11 @@ interface MetaDataItemProps {
 
 const USER_TAG_PREFIX = 'user:';
 
-function formatExifTag(str: string) {
+function formatExifTag(str: string, t: (key: string) => string) {
   if (!str) return '';
+  const translationKey = `editor.metadata.extendedExif.tags.${str}`;
+  const translated = t(translationKey);
+  if (translated && translated !== translationKey) return translated;
   return str.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z])([A-Z][a-z])/g, '$1 $2');
 }
 
@@ -1000,7 +1003,7 @@ export default function MetadataPanel() {
                 </Text>
                 <div className="bg-surface border border-surface rounded-xl p-3 flex flex-col gap-0.5 overflow-hidden">
                   {otherExifEntries.map(([tag, value]) => (
-                    <MetadataItem key={tag} label={formatExifTag(tag)} value={value} />
+                    <MetadataItem key={tag} label={formatExifTag(tag, t)} value={value} />
                   ))}
                 </div>
               </div>
