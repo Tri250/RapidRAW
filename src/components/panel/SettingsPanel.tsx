@@ -512,9 +512,8 @@ const PresetGallerySourceManager = () => {
   const handleAddSource = () => {
     const trimmed = newSourceUrl.trim();
     if (!trimmed) return;
-    addSource(trimmed);
+    addSource(trimmed); // addSource already triggers fetchSourcePresets internally
     setNewSourceUrl('');
-    fetchSourcePresets(trimmed);
   };
 
   return (

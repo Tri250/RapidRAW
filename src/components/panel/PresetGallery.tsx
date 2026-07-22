@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, ExternalLink, Loader2, Plus, RefreshCw, Trash2, X, ImageIcon, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, RefreshCw, Trash2, X, ImageIcon, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
@@ -27,15 +27,12 @@ const PresetCard = ({ preset, baseUrl }: PresetCardProps) => {
   const { t } = useTranslation();
   const [showGallery, setShowGallery] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [coverError, setCoverError] = useState(false);
 
-  const resolveUrl = (path: string) => {
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    const base = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
-    return base + path;
-  };
-
-  const coverUrl = resolveUrl(preset.coverPath);
-  const allImages = [coverUrl, ...preset.galleryImages.map(resolveUrl)];
+  // Paths are already resolved to absolute URLs in the store
+  const coverUrl = preset.coverPath;
+  const allImages = [coverUrl, ...preset.galleryImages].filter(Boolean);
+  const hasOnlineImages = coverUrl.startsWith('http');
 
   const nextImage = () => setCurrentImageIndex((i) => (i + 1) % allImages.length);
   const prevImage = () => setCurrentImageIndex((i) => (i - 1 + allImages.length) % allImages.length);
@@ -44,14 +41,33 @@ const PresetCard = ({ preset, baseUrl }: PresetCardProps) => {
     <motion.div variants={itemVariants} className="group relative">
       <div
         className="relative aspect-[4/3] rounded-lg overflow-hidden bg-bg-primary border border-border-color cursor-pointer"
-        onClick={() => setShowGallery(true)}
+        onClick={() => hasOnlineImages && allImages.length > 0 && setShowGallery(true)}
       >
-        <img
-          src={coverUrl}
-          alt={preset.name}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-          loading="lazy"
-        />
+        {hasOnlineImages && !coverError ? (
+          <img
+            src={coverUrl}
+            alt={preset.name}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+            onError={() => setCoverError(true)}
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-surface p-3">
+            <ImageIcon size={32} className="text-text-secondary mb-2" />
+            <Text variant={TextVariants.label} weight={TextWeights.medium} className="text-center text-text-secondary">
+              {preset.name}
+            </Text>
+            {preset.tags && preset.tags.length > 0 && (
+              <div className="flex gap-1 mt-2 flex-wrap justify-center">
+                {preset.tags.map((tag) => (
+                  <span key={tag} className="text-xs px-1.5 py-0.5 bg-accent/10 text-accent rounded">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {preset.isNew && (
           <span className="absolute top-2 right-2 bg-accent text-button-text text-xs font-bold px-2 py-0.5 rounded-full">
             NEW
