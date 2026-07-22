@@ -14,6 +14,14 @@
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::if_same_then_else)]
 #![allow(clippy::type_complexity)]
+#![allow(clippy::let_and_return)]
+#![allow(clippy::manual_inspect)]
+#![allow(clippy::needless_range_loop)]
+#![allow(clippy::manual_div_ceil)]
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::explicit_auto_deref)]
+#![allow(clippy::unnecessary_sort_by)]
+#![allow(clippy::useless_vec)]
 
 #[cfg(not(all(target_os = "windows", target_arch = "aarch64")))]
 use mimalloc::MiMalloc;
