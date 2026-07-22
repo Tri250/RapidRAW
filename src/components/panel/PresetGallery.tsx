@@ -46,6 +46,12 @@ const PresetCard = ({ preset }: PresetCardProps) => {
   // Whether cover is an online-accessible image
   const isCoverOnline = coverUrl.startsWith('http');
 
+  // Reset state when gallery closes
+  const closeGallery = () => {
+    setShowGallery(false);
+    setCurrentImageIndex(0);
+  };
+
   return (
     <motion.div variants={itemVariants} className="group relative">
       <div
@@ -112,7 +118,7 @@ const PresetCard = ({ preset }: PresetCardProps) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm"
-            onClick={() => setShowGallery(false)}
+            onClick={closeGallery}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -122,7 +128,7 @@ const PresetCard = ({ preset }: PresetCardProps) => {
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                onClick={() => setShowGallery(false)}
+                onClick={closeGallery}
                 className="absolute -top-10 right-0 text-white hover:text-accent transition-colors z-10"
               >
                 <X size={24} />
@@ -252,7 +258,7 @@ interface PresetGalleryProps {
 
 export default function PresetGallery({ onBack }: PresetGalleryProps) {
   const { t } = useTranslation();
-  const { sources, addSource, fetchAllEnabledSources } = usePresetGalleryStore();
+  const { sources, addSource, fetchAllEnabledSources, refreshAllSources } = usePresetGalleryStore();
   const [newUrl, setNewUrl] = useState('');
 
   useEffect(() => {
@@ -304,7 +310,7 @@ export default function PresetGallery({ onBack }: PresetGalleryProps) {
           </div>
           <Button
             className="h-10 w-10 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center"
-            onClick={fetchAllEnabledSources}
+            onClick={refreshAllSources}
             data-tooltip={t('presetGallery.refresh', { defaultValue: '刷新所有源' })}
           >
             <RefreshCw className="w-5 h-5" />

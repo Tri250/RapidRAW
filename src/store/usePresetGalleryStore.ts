@@ -30,6 +30,7 @@ interface PresetGalleryState {
   updateSourceName: (url: string, name: string) => void;
   fetchSourcePresets: (url: string) => Promise<void>;
   fetchAllEnabledSources: () => Promise<void>;
+  refreshAllSources: () => Promise<void>;
   setSources: (sources: GallerySource[]) => void;
 }
 
@@ -55,7 +56,9 @@ const loadSources = (): GallerySource[] => {
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed.map((s: any) => ({
-          ...s,
+          url: s.url || '',
+          name: s.name || s.url || '',
+          enabled: s.enabled !== false,
           presets: [],
           isLoading: false,
           error: null,
@@ -117,6 +120,10 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
   },
 
   fetchSourcePresets: async (url) => {
+    const source = get().sources.find((s) => s.url === url);
+    // Skip if already loading (prevent concurrent duplicate requests)
+    if (source?.isLoading) return;
+
     set((state) => ({
       sources: state.sources.map((s) => (s.url === url ? { ...s, isLoading: true, error: null } : s)),
     }));
@@ -170,7 +177,19 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
 
   fetchAllEnabledSources: async () => {
     const { sources } = get();
+    // Only fetch sources that are enabled and haven't loaded data yet
+    const needFetch = sources.filter((s) => s.enabled && s.presets.length === 0 && !s.isLoading);
+    await Promise.all(needFetch.map((s) => get().fetchSourcePresets(s.url)));
+  },
+
+  refreshAllSources: async () => {
+    const { sources } = get();
+    // Force refresh all enabled sources regardless of existing data
     const enabledSources = sources.filter((s) => s.enabled);
+    // Clear existing presets first to allow re-fetch
+    set((state) => ({
+      sources: state.sources.map((s) => (s.enabled ? { ...s, presets: [], error: null } : s)),
+    }));
     await Promise.all(enabledSources.map((s) => get().fetchSourcePresets(s.url)));
   },
 
