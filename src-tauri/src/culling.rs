@@ -295,7 +295,13 @@ pub async fn cull_images(
                         .result
                         .quality_score
                         .partial_cmp(&successful_analyses[a].result.quality_score)
-                        .unwrap_or_else(|| if successful_analyses[b].result.quality_score.is_nan() { std::cmp::Ordering::Greater } else { std::cmp::Ordering::Less })
+                        .unwrap_or_else(|| {
+                            if successful_analyses[b].result.quality_score.is_nan() {
+                                std::cmp::Ordering::Greater
+                            } else {
+                                std::cmp::Ordering::Less
+                            }
+                        })
                 });
 
                 let representative_idx = current_group_indices[0];

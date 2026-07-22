@@ -122,7 +122,9 @@ pub fn get_android_cached_lut_path(uri: &str, extension: &str) -> anyhow::Result
         .map_err(|e| anyhow::anyhow!(map_android_jni_error(&mut env, e)))?;
 
     if array_length == 0 {
-        return Err(anyhow::anyhow!("No external media directories available on this device"));
+        return Err(anyhow::anyhow!(
+            "No external media directories available on this device"
+        ));
     }
 
     let dir_file = env
@@ -354,7 +356,12 @@ pub fn read_android_content_uri(uri_str: &str) -> Result<Vec<u8>, String> {
 
         loop {
             let read_count = env
-                .call_method(&input_stream, "read", "([B)I", &[JValueGen::from(&*java_buffer as &JObject)])
+                .call_method(
+                    &input_stream,
+                    "read",
+                    "([B)I",
+                    &[JValueGen::from(&*java_buffer as &JObject)],
+                )
                 .and_then(|value| value.i())
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
 
@@ -527,8 +534,13 @@ pub fn save_bytes_to_android_media_store(
             let byte_array = env
                 .byte_array_from_slice(chunk)
                 .map_err(|e| map_android_jni_error(&mut env, e))?;
-            env.call_method(&output_stream, "write", "([B)V", &[JValueGen::from(&*byte_array as &JObject)])
-                .map_err(|e| map_android_jni_error(&mut env, e))?;
+            env.call_method(
+                &output_stream,
+                "write",
+                "([B)V",
+                &[JValueGen::from(&*byte_array as &JObject)],
+            )
+            .map_err(|e| map_android_jni_error(&mut env, e))?;
             // Explicitly delete local reference to prevent accumulation in large file writes
             let _ = env.delete_local_ref(JObject::from(byte_array));
             offset = end;
@@ -676,7 +688,12 @@ pub fn save_to_android_gallery(file_path: String, mime_type: String) -> Result<(
 }
 
 #[tauri::command]
-pub fn share_image(file_path: String, mime_type: String, title: String, target_package: Option<String>) -> Result<(), String> {
+pub fn share_image(
+    file_path: String,
+    mime_type: String,
+    title: String,
+    target_package: Option<String>,
+) -> Result<(), String> {
     #[cfg(target_os = "android")]
     {
         let vm = unsafe { JavaVM::from_raw(android_context().vm().cast()) }
@@ -766,7 +783,10 @@ pub fn share_image(file_path: String, mime_type: String, title: String, target_p
 
         if uri.is_null() {
             clear_pending_android_exception(&mut env);
-            return Err("FileProvider.getUriForFile returned null URI. Check file_paths.xml configuration.".to_string());
+            return Err(
+                "FileProvider.getUriForFile returned null URI. Check file_paths.xml configuration."
+                    .to_string(),
+            );
         }
 
         let stream_key = env
@@ -803,7 +823,10 @@ pub fn share_image(file_path: String, mime_type: String, title: String, target_p
             );
             if set_pkg_result.is_err() {
                 clear_pending_android_exception(&mut env);
-                log::warn!("Failed to set package '{}' on share intent, falling back to chooser", pkg);
+                log::warn!(
+                    "Failed to set package '{}' on share intent, falling back to chooser",
+                    pkg
+                );
             }
         }
 

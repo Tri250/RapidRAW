@@ -81,10 +81,7 @@ pub fn parse_cube_file(content: &str) -> Result<Lut3D> {
             }
             "LUT_3D_SIZE" => {
                 if parts.len() < 2 {
-                    anyhow::bail!(
-                        "Line {}: LUT_3D_SIZE requires a size value",
-                        line_num
-                    );
+                    anyhow::bail!("Line {}: LUT_3D_SIZE requires a size value", line_num);
                 }
                 size = Some(parts[1].parse::<usize>().with_context(|| {
                     format!("Line {}: failed to parse LUT_3D_SIZE value", line_num)
@@ -270,12 +267,7 @@ fn lut_sample(lut: &Lut3D, r: f32, g: f32, b: f32) -> [f32; 3] {
 /// Each pixel is converted from 0-255 to 0.0-1.0 float, the LUT is applied
 /// via trilinear interpolation, and the result is converted back to u8.
 /// The alpha channel is passed through unchanged.
-pub fn apply_lut_to_image(
-    lut: &Lut3D,
-    image_data: &[u8],
-    width: u32,
-    height: u32,
-) -> Vec<u8> {
+pub fn apply_lut_to_image(lut: &Lut3D, image_data: &[u8], width: u32, height: u32) -> Vec<u8> {
     let pixel_count = (width * height) as usize;
     let mut output = vec![0u8; pixel_count * 4];
 

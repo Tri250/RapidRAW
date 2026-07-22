@@ -86,7 +86,15 @@ fn analyze_bounds(log_data: &[f32], width: usize, height: usize) -> [ChannelBoun
             return ChannelBounds { min: 0.0, max: 1.0 };
         }
 
-        vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or_else(|| if a.is_nan() { Ordering::Greater } else { Ordering::Less }));
+        vals.sort_by(|a, b| {
+            a.partial_cmp(b).unwrap_or_else(|| {
+                if a.is_nan() {
+                    Ordering::Greater
+                } else {
+                    Ordering::Less
+                }
+            })
+        });
 
         let len = vals.len() as f32;
 
@@ -318,7 +326,8 @@ pub async fn convert_negatives(
             let img = match read_file_mapped(Path::new(&real_path)) {
                 Ok(mmap) => load_base_image_from_bytes(&mmap, &real_path, false, &settings, None),
                 Err(_) => {
-                    let bytes = fs::read(&real_path).map_err(|e| format!("Failed to read file {}: {}", real_path, e))?;
+                    let bytes = fs::read(&real_path)
+                        .map_err(|e| format!("Failed to read file {}: {}", real_path, e))?;
                     load_base_image_from_bytes(&bytes, &real_path, false, &settings, None)
                 }
             }

@@ -1,5 +1,7 @@
+#![allow(unused_variables)]
+
 use anyhow::{Context, Result};
-use duckdb::{params, Connection};
+use duckdb::{Connection, params};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -81,8 +83,7 @@ impl ProjectDb {
 
     /// Open an in-memory DuckDB database (useful for tests and ephemeral sessions).
     pub fn open_in_memory() -> Result<Self> {
-        let conn = Connection::open_in_memory()
-            .context("Failed to open in-memory DuckDB")?;
+        let conn = Connection::open_in_memory().context("Failed to open in-memory DuckDB")?;
         conn.execute_batch(SCHEMA)
             .context("Failed to initialise schema")?;
         Ok(Self { conn })
@@ -279,12 +280,18 @@ pub fn clone_version(
 /// Get edit statistics: total versions, average versions per image, etc.
 /// Leverages DuckDB's vectorized execution engine for fast aggregations.
 pub fn get_edit_statistics(db: &ProjectDb) -> Result<serde_json::Value> {
-    let total: i64 = db.connection()
+    let total: i64 = db
+        .connection()
         .query_row("SELECT COUNT(*) FROM edit_versions", [], |r| r.get(0))
         .context("Failed to count versions")?;
 
-    let unique_images: i64 = db.connection()
-        .query_row("SELECT COUNT(DISTINCT image_hash) FROM edit_versions", [], |r| r.get(0))
+    let unique_images: i64 = db
+        .connection()
+        .query_row(
+            "SELECT COUNT(DISTINCT image_hash) FROM edit_versions",
+            [],
+            |r| r.get(0),
+        )
         .context("Failed to count unique images")?;
 
     let avg_per_image: f64 = if unique_images > 0 {
@@ -299,7 +306,8 @@ pub fn get_edit_statistics(db: &ProjectDb) -> Result<serde_json::Value> {
         0.0
     };
 
-    let total_labels: i64 = db.connection()
+    let total_labels: i64 = db
+        .connection()
         .query_row("SELECT COUNT(*) FROM ai_labels", [], |r| r.get(0))
         .context("Failed to count labels")?;
 
@@ -661,10 +669,7 @@ pub fn project_get_current_version(
 }
 
 #[tauri::command]
-pub fn project_set_current_version(
-    db_path: String,
-    version_id: String,
-) -> Result<(), String> {
+pub fn project_set_current_version(db_path: String, version_id: String) -> Result<(), String> {
     with_db(|db| set_current_version(db, &version_id))
 }
 
@@ -681,9 +686,7 @@ pub fn project_store_thumbnail(
     let data = general_purpose::STANDARD
         .decode(&data_base64)
         .map_err(|e| format!("Failed to decode base64 thumbnail data: {}", e))?;
-    with_db(|db| {
-        store_thumbnail(db, &image_hash, &data, width as i32, height as i32, &format)
-    })
+    with_db(|db| store_thumbnail(db, &image_hash, &data, width as i32, height as i32, &format))
 }
 
 #[tauri::command]
@@ -716,9 +719,7 @@ pub fn project_add_ai_label(
     confidence: f64,
     model: String,
 ) -> Result<(), String> {
-    with_db(|db| {
-        add_label(db, &image_hash, &label, confidence, &model)
-    })
+    with_db(|db| add_label(db, &image_hash, &label, confidence, &model))
 }
 
 #[tauri::command]

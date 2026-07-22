@@ -456,23 +456,14 @@ pub fn aces_odt_srgb(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
     let b = b.max(0.0);
 
     // Apply sRGB gamma encoding
-    (
-        linear_to_srgb(r),
-        linear_to_srgb(g),
-        linear_to_srgb(b),
-    )
+    (linear_to_srgb(r), linear_to_srgb(g), linear_to_srgb(b))
 }
 
 /// Full ACES output transform: RRT + ODT in one step.
 ///
 /// Takes scene-linear input (any linear space) and produces display-ready
 /// output for the specified target color space.
-pub fn aces_output_transform(
-    r: f64,
-    g: f64,
-    b: f64,
-    target_space: ColorSpace,
-) -> (f64, f64, f64) {
+pub fn aces_output_transform(r: f64, g: f64, b: f64, target_space: ColorSpace) -> (f64, f64, f64) {
     // Step 1: Apply ACES RRT (filmic curve)
     let (rr, rg, rb) = aces_rrt(r, g, b);
 
@@ -482,11 +473,7 @@ pub fn aces_output_transform(
             let (or, og, ob) = aces_odt_srgb(rr, rg, rb);
             if target_space == ColorSpace::LinearSRGB {
                 // Undo the gamma that aces_odt_srgb applied
-                (
-                    srgb_to_linear(or),
-                    srgb_to_linear(og),
-                    srgb_to_linear(ob),
-                )
+                (srgb_to_linear(or), srgb_to_linear(og), srgb_to_linear(ob))
             } else {
                 (or, og, ob)
             }
@@ -543,7 +530,13 @@ pub fn aces_output_transform(
 // ---------------------------------------------------------------------------
 
 #[tauri::command]
-pub fn color_convert_space(r: f64, g: f64, b: f64, from_space: String, to_space: String) -> Result<Vec<f64>, String> {
+pub fn color_convert_space(
+    r: f64,
+    g: f64,
+    b: f64,
+    from_space: String,
+    to_space: String,
+) -> Result<Vec<f64>, String> {
     let from = parse_color_space(&from_space)?;
     let to = parse_color_space(&to_space)?;
 
@@ -571,7 +564,12 @@ pub fn color_convert_space(r: f64, g: f64, b: f64, from_space: String, to_space:
 }
 
 #[tauri::command]
-pub fn color_apply_aces_output(r: f64, g: f64, b: f64, target_space: String) -> Result<Vec<f64>, String> {
+pub fn color_apply_aces_output(
+    r: f64,
+    g: f64,
+    b: f64,
+    target_space: String,
+) -> Result<Vec<f64>, String> {
     let target = parse_color_space(&target_space)?;
     let (or, og, ob) = aces_output_transform(r, g, b, target);
     Ok(vec![or, og, ob])
@@ -615,7 +613,9 @@ fn primaries_for_space(space: ColorSpace) -> &'static ColorPrimaries {
         ColorSpace::SRGB | ColorSpace::LinearSRGB => &SRGB_PRIMARIES,
         ColorSpace::DisplayP3 => &P3_PRIMARIES,
         ColorSpace::Rec2020 => &REC2020_PRIMARIES,
-        ColorSpace::ACES2065_1 | ColorSpace::ACEScg | ColorSpace::ACEScc | ColorSpace::ACEScct => &ACES_PRIMARIES,
+        ColorSpace::ACES2065_1 | ColorSpace::ACEScg | ColorSpace::ACEScc | ColorSpace::ACEScct => {
+            &ACES_PRIMARIES
+        }
     }
 }
 

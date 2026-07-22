@@ -504,11 +504,17 @@ fn build_stitching_order(
                     let h_vu = if let Some(m) = matches.get(&(v, u)) {
                         m.homography
                     } else if let Some(m) = matches.get(&(u, v)) {
-                        m.homography
-                            .try_inverse()
-                            .ok_or_else(|| format!("Failed to invert homography for MST edge between {} and {}", v, u))?
+                        m.homography.try_inverse().ok_or_else(|| {
+                            format!(
+                                "Failed to invert homography for MST edge between {} and {}",
+                                v, u
+                            )
+                        })?
                     } else {
-                        return Err(format!("Match not found for MST edge between {} and {}", u, v));
+                        return Err(format!(
+                            "Match not found for MST edge between {} and {}",
+                            u, v
+                        ));
                     };
 
                     let h_v_global = h_u_global * h_vu;

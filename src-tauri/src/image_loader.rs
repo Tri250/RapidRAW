@@ -610,7 +610,12 @@ pub fn composite_patches_on_image(
             let (mask_w, mask_h) = mask_bitmap.dimensions();
             let (color_w, color_h) = final_color.dimensions();
             let final_mask = if mask_w != color_w || mask_h != color_h {
-                imageops::resize(&mask_bitmap, color_w, color_h, imageops::FilterType::Lanczos3)
+                imageops::resize(
+                    &mask_bitmap,
+                    color_w,
+                    color_h,
+                    imageops::FilterType::Lanczos3,
+                )
             } else {
                 mask_bitmap
             };

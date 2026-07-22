@@ -694,7 +694,15 @@ fn block_matching_joint(
     }
 
     let valid_slice = &mut candidates[0..cand_count];
-    valid_slice.sort_unstable_by(|a, b| a.dist.partial_cmp(&b.dist).unwrap_or_else(|| if a.dist.is_nan() { Ordering::Greater } else { Ordering::Less }));
+    valid_slice.sort_unstable_by(|a, b| {
+        a.dist.partial_cmp(&b.dist).unwrap_or_else(|| {
+            if a.dist.is_nan() {
+                Ordering::Greater
+            } else {
+                Ordering::Less
+            }
+        })
+    });
 
     let limit = MAX_GROUP_SIZE.min(cand_count);
     let p2_limit = prev_power_of_two(limit);

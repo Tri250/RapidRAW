@@ -258,7 +258,7 @@ impl GpuPipeline {
     pub fn init() -> Result<Self> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
-            ..Default::default()
+            ..wgpu::InstanceDescriptor::new_without_display_handle()
         });
 
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
@@ -268,17 +268,14 @@ impl GpuPipeline {
         }))
         .context("Failed to find a suitable GPU adapter")?;
 
-        let (device, queue) = pollster::block_on(adapter.request_device(
-            &wgpu::DeviceDescriptor {
-                label: Some("GpuPipeline Device"),
-                required_features: wgpu::Features::empty(),
-                required_limits: wgpu::Limits::downlevel_defaults(),
-                experimental_features: wgpu::ExperimentalFeatures::default(),
-                memory_hints: wgpu::MemoryHints::Performance,
-                trace: wgpu::Trace::Off,
-            },
-            None,
-        ))
+        let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+            label: Some("GpuPipeline Device"),
+            required_features: wgpu::Features::empty(),
+            required_limits: wgpu::Limits::downlevel_defaults(),
+            experimental_features: wgpu::ExperimentalFeatures::default(),
+            memory_hints: wgpu::MemoryHints::Performance,
+            trace: wgpu::Trace::Off,
+        }))
         .context("Failed to request wgpu device")?;
 
         let device = Arc::new(device);
@@ -436,11 +433,7 @@ pub fn apply_adjustments(
         usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         mapped_at_creation: false,
     });
-    queue.write_buffer(
-        &adjustments_buffer,
-        0,
-        bytemuck::bytes_of(&uniforms),
-    );
+    queue.write_buffer(&adjustments_buffer, 0, bytemuck::bytes_of(&uniforms));
 
     let params = ShaderParams {
         width,
@@ -481,10 +474,9 @@ pub fn apply_adjustments(
     });
 
     // --- Dispatch compute shader ---
-    let mut encoder =
-        device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Adjustment Compute Encoder"),
-        });
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("Adjustment Compute Encoder"),
+    });
 
     {
         let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {

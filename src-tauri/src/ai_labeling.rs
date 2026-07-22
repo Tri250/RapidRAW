@@ -3,8 +3,7 @@
 /// Provides vector embedding generation, storage, and similarity search
 /// for automatic image tagging. Designed to work with CLIP/SigLIP models
 /// via the ai_service module, storing results in the project_manager database.
-
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -96,7 +95,8 @@ impl LabelingEngine {
 
     /// Store an image embedding
     pub fn add_image_embedding(&mut self, image_hash: &str, embedding: Embedding) {
-        self.image_embeddings.insert(image_hash.to_string(), embedding);
+        self.image_embeddings
+            .insert(image_hash.to_string(), embedding);
     }
 
     /// Retrieve an image embedding
@@ -180,7 +180,8 @@ impl LabelingEngine {
             .collect();
 
         // Store the labels
-        self.image_labels.insert(image_hash.to_string(), labels.clone());
+        self.image_labels
+            .insert(image_hash.to_string(), labels.clone());
 
         labels
     }
@@ -236,17 +237,17 @@ impl LabelingEngine {
             .filter(|r| r.similarity >= self.similarity_threshold)
             .collect();
 
-        results.sort_by(|a, b| b.similarity.partial_cmp(&a.similarity).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            b.similarity
+                .partial_cmp(&a.similarity)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         results.truncate(max_results);
         results
     }
 
     /// Search images by a text label (using vocabulary embedding).
-    pub fn search_by_text(
-        &self,
-        query_text: &str,
-        max_results: usize,
-    ) -> Vec<SearchResult> {
+    pub fn search_by_text(&self, query_text: &str, max_results: usize) -> Vec<SearchResult> {
         // First check if we have an exact vocabulary match
         if let Some(vocab_emb) = self.vocabulary.get(query_text) {
             return self.search_by_embedding(&vocab_emb.vector, max_results);
@@ -303,11 +304,7 @@ impl LabelingEngine {
     }
 
     /// Find similar images to a given image.
-    pub fn find_similar_images(
-        &self,
-        image_hash: &str,
-        max_results: usize,
-    ) -> Vec<SearchResult> {
+    pub fn find_similar_images(&self, image_hash: &str, max_results: usize) -> Vec<SearchResult> {
         let emb = match self.image_embeddings.get(image_hash) {
             Some(e) => e,
             None => return Vec::new(),
@@ -331,7 +328,11 @@ impl LabelingEngine {
             })
             .collect();
 
-        results.sort_by(|a, b| b.similarity.partial_cmp(&a.similarity).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            b.similarity
+                .partial_cmp(&a.similarity)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         results.truncate(max_results);
         results
     }
@@ -339,7 +340,11 @@ impl LabelingEngine {
     // ──────────── Batch Operations ────────────
 
     /// Batch auto-label all indexed images that don't have labels yet
-    pub fn batch_auto_label(&mut self, max_labels_per_image: usize, min_confidence: f32) -> HashMap<String, Vec<ImageLabel>> {
+    pub fn batch_auto_label(
+        &mut self,
+        max_labels_per_image: usize,
+        min_confidence: f32,
+    ) -> HashMap<String, Vec<ImageLabel>> {
         let unabeled: Vec<String> = self
             .image_embeddings
             .keys()
@@ -452,7 +457,9 @@ pub fn random_embedding(dim: usize, model: &str) -> Embedding {
     let mut state = seed;
     let mut vector = Vec::with_capacity(dim);
     for _ in 0..dim {
-        state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        state = state
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         let v = ((state >> 33) as f32) / ((1u64 << 31) as f32) * 2.0 - 1.0;
         vector.push(v);
     }
@@ -513,11 +520,10 @@ pub fn average_embeddings(embeddings: &[&Embedding]) -> Option<Embedding> {
 // Tauri commands
 // ---------------------------------------------------------------------------
 
-use std::sync::Mutex as StdMutex;
 use once_cell::sync::Lazy;
+use std::sync::Mutex as StdMutex;
 
-static LABELING_ENGINE: Lazy<StdMutex<Option<LabelingEngine>>> =
-    Lazy::new(|| StdMutex::new(None));
+static LABELING_ENGINE: Lazy<StdMutex<Option<LabelingEngine>>> = Lazy::new(|| StdMutex::new(None));
 
 fn with_engine<F, T>(f: F) -> Result<T, String>
 where
@@ -559,11 +565,14 @@ pub fn ai_labeling_init(
         let entries: Vec<VocabularyEntry> = serde_json::from_str(&json_str)
             .map_err(|e| format!("Failed to parse vocabulary JSON: {}", e))?;
         for entry in entries {
-            engine.add_vocabulary_entry(&entry.label, Embedding {
-                vector: entry.embedding,
-                model: "clip-vit-b32".to_string(),
-                dim: DEFAULT_EMBEDDING_DIM,
-            });
+            engine.add_vocabulary_entry(
+                &entry.label,
+                Embedding {
+                    vector: entry.embedding,
+                    model: "clip-vit-b32".to_string(),
+                    dim: DEFAULT_EMBEDDING_DIM,
+                },
+            );
         }
     }
 
@@ -591,9 +600,7 @@ pub fn ai_labeling_search_by_text(
     query: String,
     max_results: usize,
 ) -> Result<Vec<serde_json::Value>, String> {
-    let results = with_engine(|engine| {
-        Ok(engine.search_by_text(&query, max_results))
-    })?;
+    let results = with_engine(|engine| Ok(engine.search_by_text(&query, max_results)))?;
     results
         .iter()
         .map(|r| serde_json::to_value(r).map_err(|e| format!("Serialization error: {}", e)))
@@ -605,9 +612,7 @@ pub fn ai_labeling_find_similar(
     image_hash: String,
     max_results: usize,
 ) -> Result<Vec<serde_json::Value>, String> {
-    let results = with_engine(|engine| {
-        Ok(engine.find_similar_images(&image_hash, max_results))
-    })?;
+    let results = with_engine(|engine| Ok(engine.find_similar_images(&image_hash, max_results)))?;
     results
         .iter()
         .map(|r| serde_json::to_value(r).map_err(|e| format!("Serialization error: {}", e)))
@@ -657,23 +662,32 @@ mod tests {
         let mut engine = LabelingEngine::with_threshold(0.3);
 
         // Add vocabulary with orthogonal-ish embeddings
-        engine.add_vocabulary_entry("sunset", Embedding {
-            vector: vec![1.0, 0.0, 0.0],
-            model: "test".to_string(),
-            dim: 3,
-        });
-        engine.add_vocabulary_entry("portrait", Embedding {
-            vector: vec![0.0, 1.0, 0.0],
-            model: "test".to_string(),
-            dim: 3,
-        });
+        engine.add_vocabulary_entry(
+            "sunset",
+            Embedding {
+                vector: vec![1.0, 0.0, 0.0],
+                model: "test".to_string(),
+                dim: 3,
+            },
+        );
+        engine.add_vocabulary_entry(
+            "portrait",
+            Embedding {
+                vector: vec![0.0, 1.0, 0.0],
+                model: "test".to_string(),
+                dim: 3,
+            },
+        );
 
         // Add image embedding close to "sunset"
-        engine.add_image_embedding("img1", Embedding {
-            vector: vec![0.9, 0.1, 0.0],
-            model: "test".to_string(),
-            dim: 3,
-        });
+        engine.add_image_embedding(
+            "img1",
+            Embedding {
+                vector: vec![0.9, 0.1, 0.0],
+                model: "test".to_string(),
+                dim: 3,
+            },
+        );
 
         let labels = engine.auto_label_image("img1", 5, 0.3);
         assert!(!labels.is_empty());
@@ -685,16 +699,22 @@ mod tests {
     fn test_search_by_embedding() {
         let mut engine = LabelingEngine::with_threshold(0.5);
 
-        engine.add_image_embedding("img1", Embedding {
-            vector: vec![1.0, 0.0],
-            model: "test".to_string(),
-            dim: 2,
-        });
-        engine.add_image_embedding("img2", Embedding {
-            vector: vec![0.0, 1.0],
-            model: "test".to_string(),
-            dim: 2,
-        });
+        engine.add_image_embedding(
+            "img1",
+            Embedding {
+                vector: vec![1.0, 0.0],
+                model: "test".to_string(),
+                dim: 2,
+            },
+        );
+        engine.add_image_embedding(
+            "img2",
+            Embedding {
+                vector: vec![0.0, 1.0],
+                model: "test".to_string(),
+                dim: 2,
+            },
+        );
 
         let results = engine.search_by_embedding(&vec![1.0, 0.0], 10);
         assert_eq!(results.len(), 1);
@@ -705,21 +725,30 @@ mod tests {
     fn test_find_similar_images() {
         let mut engine = LabelingEngine::new();
 
-        engine.add_image_embedding("img1", Embedding {
-            vector: vec![1.0, 0.0, 0.0],
-            model: "test".to_string(),
-            dim: 3,
-        });
-        engine.add_image_embedding("img2", Embedding {
-            vector: vec![0.95, 0.05, 0.0],
-            model: "test".to_string(),
-            dim: 3,
-        });
-        engine.add_image_embedding("img3", Embedding {
-            vector: vec![0.0, 0.0, 1.0],
-            model: "test".to_string(),
-            dim: 3,
-        });
+        engine.add_image_embedding(
+            "img1",
+            Embedding {
+                vector: vec![1.0, 0.0, 0.0],
+                model: "test".to_string(),
+                dim: 3,
+            },
+        );
+        engine.add_image_embedding(
+            "img2",
+            Embedding {
+                vector: vec![0.95, 0.05, 0.0],
+                model: "test".to_string(),
+                dim: 3,
+            },
+        );
+        engine.add_image_embedding(
+            "img3",
+            Embedding {
+                vector: vec![0.0, 0.0, 1.0],
+                model: "test".to_string(),
+                dim: 3,
+            },
+        );
 
         let similar = engine.find_similar_images("img1", 2);
         assert_eq!(similar.len(), 2);

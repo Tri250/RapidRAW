@@ -5,10 +5,13 @@ use anyhow::{Result, anyhow};
 use base64::{Engine as _, engine::general_purpose};
 use image::{DynamicImage, GrayImage, ImageFormat, RgbaImage};
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::{mpsc, oneshot};
 
-use crate::ai_processing::{self, get_or_init_ai_models, get_or_init_denoise_model, get_or_init_lama_model, get_or_init_face_landmark_detector};
+use crate::ai_processing::{
+    self, get_or_init_ai_models, get_or_init_denoise_model, get_or_init_face_landmark_detector,
+    get_or_init_lama_model,
+};
 use crate::app_state::AppState;
 
 // ---------------------------------------------------------------------------
@@ -220,20 +223,14 @@ async fn process_ai_request(
         AiOperation::GenerateAiSubjectMask => {
             run_subject_mask(app_handle, &image, parameters).await
         }
-        AiOperation::GenerateAiDepthMask => {
-            run_depth_mask(app_handle, &image, parameters).await
-        }
+        AiOperation::GenerateAiDepthMask => run_depth_mask(app_handle, &image, parameters).await,
         AiOperation::GenerateAiForegroundMask => {
             run_foreground_mask(app_handle, &image, parameters).await
         }
-        AiOperation::GenerateAiSkyMask => {
-            run_sky_mask(app_handle, &image, parameters).await
-        }
+        AiOperation::GenerateAiSkyMask => run_sky_mask(app_handle, &image, parameters).await,
         AiOperation::AiDenoise => run_ai_denoise(app_handle, &image, parameters).await,
         AiOperation::AiInpaint => run_ai_inpaint(app_handle, &image, parameters).await,
-        AiOperation::FaceLandmark => {
-            run_face_landmark(app_handle, &image, parameters).await
-        }
+        AiOperation::FaceLandmark => run_face_landmark(app_handle, &image, parameters).await,
     };
 
     match &result {
@@ -249,12 +246,7 @@ async fn process_ai_request(
 // ---------------------------------------------------------------------------
 
 /// Emit a `"ai-progress"` Tauri event with the current operation status.
-fn emit_progress(
-    app_handle: &AppHandle,
-    operation: &AiOperation,
-    progress: f32,
-    message: &str,
-) {
+fn emit_progress(app_handle: &AppHandle, operation: &AiOperation, progress: f32, message: &str) {
     let payload = AiProgressPayload {
         operation: operation.clone(),
         progress,
@@ -536,7 +528,8 @@ async fn run_ai_denoise(
     );
 
     let state = app_handle.state::<AppState>();
-    let denoise_session = get_or_init_denoise_model(app_handle, &state.ai_state, &state.ai_init_lock).await?;
+    let denoise_session =
+        get_or_init_denoise_model(app_handle, &state.ai_state, &state.ai_init_lock).await?;
 
     emit_progress(
         app_handle,
@@ -554,7 +547,8 @@ async fn run_ai_denoise(
         "Running AI NIND denoiser…",
     );
 
-    let result_image = ai_processing::run_ai_denoise(&rgb32f, intensity, &*denoise_session, app_handle)?;
+    let result_image =
+        ai_processing::run_ai_denoise(&rgb32f, intensity, &*denoise_session, app_handle)?;
 
     emit_progress(
         app_handle,
@@ -584,12 +578,7 @@ async fn run_ai_inpaint(
         .and_then(|v| v.as_str())
         .ok_or_else(|| anyhow!("maskDataBase64 parameter is required for inpainting"))?;
 
-    emit_progress(
-        app_handle,
-        &AiOperation::AiInpaint,
-        10.0,
-        "Decoding mask…",
-    );
+    emit_progress(app_handle, &AiOperation::AiInpaint, 10.0, "Decoding mask…");
 
     let mask_image = decode_base64_image(mask_base64)?.to_luma8();
 
@@ -601,7 +590,8 @@ async fn run_ai_inpaint(
     );
 
     let state = app_handle.state::<AppState>();
-    let lama_session = get_or_init_lama_model(app_handle, &state.ai_state, &state.ai_init_lock).await?;
+    let lama_session =
+        get_or_init_lama_model(app_handle, &state.ai_state, &state.ai_init_lock).await?;
 
     emit_progress(
         app_handle,
@@ -640,13 +630,10 @@ async fn run_face_landmark(
     );
 
     let state = app_handle.state::<AppState>();
-    let detector_arc = get_or_init_face_landmark_detector(
-        app_handle,
-        &state.ai_state,
-        &state.ai_init_lock,
-    )
-    .await
-    .map_err(|e| anyhow!("{}", e))?;
+    let detector_arc =
+        get_or_init_face_landmark_detector(app_handle, &state.ai_state, &state.ai_init_lock)
+            .await
+            .map_err(|e| anyhow!("{}", e))?;
 
     emit_progress(
         app_handle,
@@ -656,9 +643,7 @@ async fn run_face_landmark(
     );
 
     let mut detector = detector_arc.lock().unwrap();
-    let faces = detector
-        .detect_all(image)
-        .map_err(|e| anyhow!("{}", e))?;
+    let faces = detector.detect_all(image).map_err(|e| anyhow!("{}", e))?;
     drop(detector);
 
     emit_progress(
@@ -675,9 +660,7 @@ async fn run_face_landmark(
             let points: Vec<serde_json::Value> = face
                 .points
                 .iter()
-                .map(|&(px, py)| {
-                    serde_json::json!({ "x": px, "y": py })
-                })
+                .map(|&(px, py)| serde_json::json!({ "x": px, "y": py }))
                 .collect();
             serde_json::json!({
                 "bbox": { "x": bx, "y": by, "width": bw, "height": bh },
@@ -687,12 +670,7 @@ async fn run_face_landmark(
         })
         .collect();
 
-    emit_progress(
-        app_handle,
-        &AiOperation::FaceLandmark,
-        90.0,
-        "Complete",
-    );
+    emit_progress(app_handle, &AiOperation::FaceLandmark, 90.0, "Complete");
 
     Ok(serde_json::json!({
         "faces": faces_json,
