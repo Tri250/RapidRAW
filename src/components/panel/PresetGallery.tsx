@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Loader2, Plus, RefreshCw, Trash2, X, ImageIcon, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -29,21 +29,31 @@ const PresetCard = ({ preset, baseUrl }: PresetCardProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [coverError, setCoverError] = useState(false);
 
+  // Reset error state when preset changes (e.g. after re-fetch)
+  useEffect(() => {
+    setCoverError(false);
+    setCurrentImageIndex(0);
+  }, [preset.coverPath]);
+
   // Paths are already resolved to absolute URLs in the store
   const coverUrl = preset.coverPath;
-  const allImages = [coverUrl, ...preset.galleryImages].filter(Boolean);
-  const hasOnlineImages = coverUrl.startsWith('http');
+  // Only include http images for gallery browsing (relative paths will 404)
+  const onlineImages = [coverUrl, ...preset.galleryImages].filter((u) => u.startsWith('http'));
+  const hasOnlineImages = onlineImages.length > 0;
 
-  const nextImage = () => setCurrentImageIndex((i) => (i + 1) % allImages.length);
-  const prevImage = () => setCurrentImageIndex((i) => (i - 1 + allImages.length) % allImages.length);
+  const nextImage = () => setCurrentImageIndex((i) => (i + 1) % onlineImages.length);
+  const prevImage = () => setCurrentImageIndex((i) => (i - 1 + onlineImages.length) % onlineImages.length);
+
+  // Whether cover is an online-accessible image
+  const isCoverOnline = coverUrl.startsWith('http');
 
   return (
     <motion.div variants={itemVariants} className="group relative">
       <div
         className="relative aspect-[4/3] rounded-lg overflow-hidden bg-bg-primary border border-border-color cursor-pointer"
-        onClick={() => hasOnlineImages && allImages.length > 0 && setShowGallery(true)}
+        onClick={() => hasOnlineImages && setShowGallery(true)}
       >
-        {hasOnlineImages && !coverError ? (
+        {isCoverOnline && !coverError ? (
           <img
             src={coverUrl}
             alt={preset.name}
@@ -73,15 +83,17 @@ const PresetCard = ({ preset, baseUrl }: PresetCardProps) => {
             NEW
           </span>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          {preset.galleryImages.length > 0 && (
-            <div className="flex items-center gap-1 text-white text-xs">
-              <ImageIcon size={12} />
-              <span>{preset.galleryImages.length + 1} {t('presetGallery.images', { defaultValue: '张图片' })}</span>
+        {hasOnlineImages && (
+          <>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className="flex items-center gap-1 text-white text-xs">
+                <ImageIcon size={12} />
+                <span>{onlineImages.length} {t('presetGallery.images', { defaultValue: '张图片' })}</span>
+              </div>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
       <div className="mt-2">
         <Text variant={TextVariants.label} weight={TextWeights.medium} className="truncate block">
@@ -95,7 +107,7 @@ const PresetCard = ({ preset, baseUrl }: PresetCardProps) => {
       </div>
 
       <AnimatePresence>
-        {showGallery && (
+        {showGallery && hasOnlineImages && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -119,12 +131,12 @@ const PresetCard = ({ preset, baseUrl }: PresetCardProps) => {
 
               <div className="relative bg-bg-primary rounded-xl overflow-hidden border border-border-color">
                 <img
-                  src={allImages[currentImageIndex]}
+                  src={onlineImages[currentImageIndex]}
                   alt={`${preset.name} - ${currentImageIndex + 1}`}
                   className="max-h-[75vh] w-auto mx-auto object-contain"
                 />
 
-                {allImages.length > 1 && (
+                {onlineImages.length > 1 && (
                   <>
                     <button
                       onClick={prevImage}
@@ -139,7 +151,7 @@ const PresetCard = ({ preset, baseUrl }: PresetCardProps) => {
                       <ChevronRight size={20} />
                     </button>
                     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                      {allImages.map((_, i) => (
+                      {onlineImages.map((_, i) => (
                         <button
                           key={i}
                           onClick={() => setCurrentImageIndex(i)}
@@ -185,7 +197,6 @@ interface SourceSectionProps {
 const SourceSection = ({ source }: SourceSectionProps) => {
   const { t } = useTranslation();
   const removeSource = usePresetGalleryStore((s) => s.removeSource);
-  const toggleSource = usePresetGalleryStore((s) => s.toggleSource);
   const fetchSourcePresets = usePresetGalleryStore((s) => s.fetchSourcePresets);
 
   if (!source.enabled) return null;
@@ -209,9 +220,9 @@ const SourceSection = ({ source }: SourceSectionProps) => {
           <Button
             variant="ghost"
             className="h-8 px-2 text-text-secondary hover:text-red-400"
-            onClick={() => toggleSource(source.url)}
+            onClick={() => removeSource(source.url)}
           >
-            <X size={14} />
+            <Trash2 size={14} />
           </Button>
         </div>
       </div>
@@ -247,7 +258,7 @@ export default function PresetGallery({ onBack }: PresetGalleryProps) {
 
   useEffect(() => {
     fetchAllEnabledSources();
-  }, []);
+  }, [fetchAllEnabledSources]);
 
   const handleAddSource = () => {
     const trimmed = newUrl.trim();

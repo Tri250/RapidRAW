@@ -70,7 +70,11 @@ const loadSources = (): GallerySource[] => {
 
 const saveSources = (sources: GallerySource[]) => {
   try {
-    const toSave = sources.map(({ presets, isLoading, error, ...rest }) => rest);
+    const toSave = sources.map((s) => ({
+      url: s.url,
+      name: s.name,
+      enabled: s.enabled,
+    }));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch {}
 };
