@@ -20,10 +20,9 @@ const itemVariants = {
 
 interface PresetCardProps {
   preset: GalleryPreset;
-  baseUrl: string;
 }
 
-const PresetCard = ({ preset, baseUrl }: PresetCardProps) => {
+const PresetCard = ({ preset }: PresetCardProps) => {
   const { t } = useTranslation();
   const [showGallery, setShowGallery] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -240,7 +239,7 @@ const SourceSection = ({ source }: SourceSectionProps) => {
         className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
       >
         {source.presets.map((preset, index) => (
-          <PresetCard key={`${source.url}-${index}`} preset={preset} baseUrl={source.url} />
+          <PresetCard key={`${source.url}-${index}`} preset={preset} />
         ))}
       </motion.div>
     </div>

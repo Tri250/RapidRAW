@@ -22,7 +22,6 @@ import {
   Command,
   Zap,
   Globe,
-  Link,
 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';

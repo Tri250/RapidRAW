@@ -22,10 +22,8 @@ export interface GallerySource {
 
 interface PresetGalleryState {
   sources: GallerySource[];
-  isGalleryOpen: boolean;
 
   // Actions
-  setGalleryOpen: (open: boolean) => void;
   addSource: (url: string, name?: string) => void;
   removeSource: (url: string) => void;
   toggleSource: (url: string) => void;
@@ -81,9 +79,6 @@ const saveSources = (sources: GallerySource[]) => {
 
 export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
   sources: loadSources(),
-  isGalleryOpen: false,
-
-  setGalleryOpen: (open) => set({ isGalleryOpen: open }),
 
   addSource: (url, name) => {
     const { sources } = get();
