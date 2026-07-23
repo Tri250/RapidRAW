@@ -1,6 +1,3 @@
-#![allow(clippy::collapsible_if)]
-#![allow(clippy::unnecessary_cast)]
-
 use std::path::Path;
 
 use image::{DynamicImage, GenericImageView, Rgb, RgbImage};

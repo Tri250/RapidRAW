@@ -1,5 +1,3 @@
-#![allow(unused_variables)]
-
 use anyhow::{Context, Result};
 use duckdb::{Connection, params};
 use serde::{Deserialize, Serialize};
@@ -622,7 +620,6 @@ pub fn project_close() -> Result<(), String> {
 
 #[tauri::command]
 pub fn project_create_edit_version(
-    db_path: String,
     image_hash: String,
     parent_id: Option<String>,
     adjustments: String,
@@ -646,7 +643,6 @@ pub fn project_create_edit_version(
 
 #[tauri::command]
 pub fn project_list_versions(
-    db_path: String,
     image_hash: String,
 ) -> Result<Vec<serde_json::Value>, String> {
     let versions = with_db(|db| list_versions_for_image(db, &image_hash))?;
@@ -658,7 +654,6 @@ pub fn project_list_versions(
 
 #[tauri::command]
 pub fn project_get_current_version(
-    db_path: String,
     image_hash: String,
 ) -> Result<serde_json::Value, String> {
     let version = with_db(|db| get_current_version(db, &image_hash))?;
@@ -669,13 +664,12 @@ pub fn project_get_current_version(
 }
 
 #[tauri::command]
-pub fn project_set_current_version(db_path: String, version_id: String) -> Result<(), String> {
+pub fn project_set_current_version(version_id: String) -> Result<(), String> {
     with_db(|db| set_current_version(db, &version_id))
 }
 
 #[tauri::command]
 pub fn project_store_thumbnail(
-    db_path: String,
     image_hash: String,
     data_base64: String,
     width: u32,
@@ -691,7 +685,6 @@ pub fn project_store_thumbnail(
 
 #[tauri::command]
 pub fn project_get_thumbnail(
-    db_path: String,
     image_hash: String,
 ) -> Result<serde_json::Value, String> {
     use base64::{Engine as _, engine::general_purpose};
@@ -713,7 +706,6 @@ pub fn project_get_thumbnail(
 
 #[tauri::command]
 pub fn project_add_ai_label(
-    db_path: String,
     image_hash: String,
     label: String,
     confidence: f64,
@@ -724,7 +716,6 @@ pub fn project_add_ai_label(
 
 #[tauri::command]
 pub fn project_get_labels(
-    db_path: String,
     image_hash: String,
 ) -> Result<Vec<serde_json::Value>, String> {
     let labels = with_db(|db| get_labels_for_image(db, &image_hash))?;
@@ -736,7 +727,6 @@ pub fn project_get_labels(
 
 #[tauri::command]
 pub fn project_search_labels(
-    db_path: String,
     label_query: String,
 ) -> Result<Vec<serde_json::Value>, String> {
     let labels = with_db(|db| search_by_label(db, &label_query))?;
