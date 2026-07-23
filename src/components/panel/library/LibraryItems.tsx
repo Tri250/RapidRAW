@@ -132,6 +132,16 @@ const ThumbnailComponent = ({
     });
   }, []);
 
+  const handleImgError = useCallback((failedUrl: string) => {
+    setLayers((prev) => {
+      const filtered = prev.filter((l) => l.url !== failedUrl);
+      if (filtered.length === 0) {
+        setShowPlaceholder(true);
+      }
+      return filtered;
+    });
+  }, []);
+
   const ringClass = isActive
     ? 'ring-2 ring-inset ring-accent'
     : isSelected
@@ -188,6 +198,7 @@ const ThumbnailComponent = ({
                   loading="lazy"
                   src={layer.url}
                   onLoad={() => onLoad(path)}
+                  onError={() => handleImgError(layer.url)}
                 />
               </div>
             ))}
@@ -578,6 +589,16 @@ const ListItemComponent = ({
     });
   }, []);
 
+  const handleImgError = useCallback((failedUrl: string) => {
+    setLayers((prev) => {
+      const filtered = prev.filter((l) => l.url !== failedUrl);
+      if (filtered.length === 0) {
+        setShowPlaceholder(true);
+      }
+      return filtered;
+    });
+  }, []);
+
   const colorTag = tags?.find((t: string) => t.startsWith('color:'))?.substring(6);
   const colorLabel = COLOR_LABELS.find((c: Color) => c.name === colorTag);
 
@@ -626,6 +647,7 @@ const ListItemComponent = ({
                     loading="lazy"
                     src={layer.url}
                     onLoad={() => onLoad(path)}
+                    onError={() => handleImgError(layer.url)}
                   />
                 </div>
               ))}

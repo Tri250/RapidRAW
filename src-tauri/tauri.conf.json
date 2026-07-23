@@ -23,12 +23,19 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost blob: data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*; script-src 'self'",
+      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost asset.localhost http://asset.localhost blob: data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://* asset:; script-src 'self'",
       "dangerousDisableAssetCspModification": false,
       "capabilities": ["default"],
       "assetProtocol": {
             "enable": true,
-            "scope": ["$APPCACHE/thumbnails/**/*", "$APPLOCALDATA/thumbnails/**/*"]
+            "scope": [
+              "$APPCACHE/**/*",
+              "$APPLOCALDATA/**/*",
+              "$APPCONFIG/**/*",
+              "$APPDATA/**/*",
+              "$HOME/**/*",
+              "$TEMP/**/*"
+            ]
           }
     },
     "macOSPrivateApi": false

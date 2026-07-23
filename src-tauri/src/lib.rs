@@ -1690,7 +1690,6 @@ fn generate_preview_for_path(
     state: tauri::State<AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<Response, String> {
-    let context = get_or_init_gpu_context(&state, &app_handle)?;
     let (source_path, _) = parse_virtual_path(&path);
     let source_path_str = source_path.to_string_lossy().to_string();
     let is_raw = is_raw_file(&source_path_str);
@@ -1728,44 +1727,77 @@ fn generate_preview_for_path(
     let (transformed_image, unscaled_crop_offset) =
         apply_all_transformations(Cow::Borrowed(&base_image), &js_adjustments);
     let (img_w, img_h) = transformed_image.dimensions();
-    let mask_definitions: Vec<MaskDefinition> = js_adjustments
-        .get("masks")
-        .and_then(|m| serde_json::from_value(m.clone()).ok())
-        .unwrap_or_default();
 
-    let warped_image = resolve_warped_image_for_masks(&state, &js_adjustments, &mask_definitions);
-    let mask_bitmaps: Vec<ImageBuffer<Luma<u8>, Vec<u8>>> = mask_definitions
-        .iter()
-        .filter_map(|def| {
-            generate_mask_bitmap(
-                def,
-                img_w,
-                img_h,
-                1.0,
-                unscaled_crop_offset,
-                warped_image.as_deref(),
-            )
-        })
-        .collect();
+    let preview_resolution = js_adjustments
+        .get("previewResolution")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(1920) as u32;
 
-    let tm_override = resolve_tonemapper_override(&settings, is_raw);
-    let all_adjustments = get_all_adjustments_from_json(&js_adjustments, is_raw, tm_override);
-    let lut_path = js_adjustments["lutPath"].as_str();
-    let lut = lut_path.and_then(|p| lut_processing::get_or_load_lut(&state, p).ok());
-    let unique_hash = calculate_full_job_hash(&source_path_str, &js_adjustments);
-    let final_image = process_and_get_dynamic_image(
-        &context,
-        &state,
-        transformed_image.as_ref(),
-        unique_hash,
-        RenderRequest {
-            adjustments: all_adjustments,
-            mask_bitmaps: &mask_bitmaps,
-            lut,
-            roi: None,
-        },
-        "generate_preview_for_path",
-    )?;
+    let context_result = get_or_init_gpu_context(&state, &app_handle);
+
+    let final_image: DynamicImage = match context_result {
+        Ok(context) => {
+            let mask_definitions: Vec<MaskDefinition> = js_adjustments
+                .get("masks")
+                .and_then(|m| serde_json::from_value(m.clone()).ok())
+                .unwrap_or_default();
+
+            let warped_image = resolve_warped_image_for_masks(&state, &js_adjustments, &mask_definitions);
+            let mask_bitmaps: Vec<ImageBuffer<Luma<u8>, Vec<u8>>> = mask_definitions
+                .iter()
+                .filter_map(|def| {
+                    generate_mask_bitmap(
+                        def,
+                        img_w,
+                        img_h,
+                        1.0,
+                        unscaled_crop_offset,
+                        warped_image.as_deref(),
+                    )
+                })
+                .collect();
+
+            let tm_override = resolve_tonemapper_override(&settings, is_raw);
+            let all_adjustments = get_all_adjustments_from_json(&js_adjustments, is_raw, tm_override);
+            let lut_path = js_adjustments["lutPath"].as_str();
+            let lut = lut_path.and_then(|p| lut_processing::get_or_load_lut(&state, p).ok());
+            let unique_hash = calculate_full_job_hash(&source_path_str, &js_adjustments);
+            process_and_get_dynamic_image(
+                &context,
+                &state,
+                transformed_image.as_ref(),
+                unique_hash,
+                RenderRequest {
+                    adjustments: all_adjustments,
+                    mask_bitmaps: &mask_bitmaps,
+                    lut,
+                    roi: None,
+                },
+                "generate_preview_for_path",
+            )?
+        }
+        Err(gpu_err) => {
+            log::warn!(
+                "GPU context unavailable for preview ({}). Falling back to CPU-only preview generation.",
+                gpu_err
+            );
+            let mut cpu_image = transformed_image.into_owned();
+            if is_raw {
+                apply_cpu_default_raw_processing(&mut cpu_image);
+            }
+            let (cw, ch) = cpu_image.dimensions();
+            let max_dim = cw.max(ch);
+            if max_dim > preview_resolution && preview_resolution > 0 {
+                let ratio = preview_resolution as f32 / max_dim as f32;
+                let new_w = ((cw as f32) * ratio).round().max(1) as u32;
+                let new_h = ((ch as f32) * ratio).round().max(1) as u32;
+                use image::imageops::FilterType;
+                cpu_image = cpu_image.resize(new_w, new_h, FilterType::Triangle);
+            }
+            cpu_image
+        }
+    };
+
     let (width, height) = final_image.dimensions();
     let rgb_pixels = final_image.to_rgb8().into_vec();
 

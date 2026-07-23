@@ -1326,13 +1326,27 @@ const ImageCanvas = memo(
     const [straightenLine, setStraightenLine] = useState<any>(null);
     const isStraightening = useRef(false);
 
-    const displayFallbackSrc = finalPreviewUrl || selectedImage.thumbnailUrl || selectedImage.originalUrl;
     const [displayState, setDisplayState] = useState({
-      base: displayFallbackSrc,
+      base: finalPreviewUrl || null,
       fade: null as string | null,
     });
     const [isFadingIn, setIsFadingIn] = useState(false);
+    const [displayedBaseFailed, setDisplayedBaseFailed] = useState(false);
+    const [displayedFadeFailed, setDisplayedFadeFailed] = useState(false);
     const prevImageIdentityRef = useRef(selectedImage.thumbnailUrl || selectedImage.originalUrl);
+
+    const isSafeUrl = (url: string | null | undefined): url is string => {
+      if (!url) return false;
+      return url.startsWith('blob:') || url.startsWith('data:');
+    };
+
+    const handleDisplayImageError = useCallback((which: 'base' | 'fade') => {
+      if (which === 'base') {
+        setDisplayedBaseFailed(true);
+      } else {
+        setDisplayedFadeFailed(true);
+      }
+    }, []);
 
     const [baseTool, setBaseTool] = useState<ToolType>(brushSettings?.tool ?? ToolType.Brush);
     const [isAltPressed, setIsAltPressed] = useState(false);
@@ -1424,23 +1438,29 @@ const ImageCanvas = memo(
     }, [interactivePatch]);
 
     useEffect(() => {
-      const newSrc = finalPreviewUrl || selectedImage.thumbnailUrl || selectedImage.originalUrl;
+      const unsafeFallback = selectedImage.thumbnailUrl || selectedImage.originalUrl;
+      const newSrc = isSafeUrl(finalPreviewUrl) ? finalPreviewUrl : (isSafeUrl(unsafeFallback) ? unsafeFallback : (finalPreviewUrl || null));
       const isNewImage = prevImageIdentityRef.current !== (selectedImage.thumbnailUrl || selectedImage.originalUrl);
 
       if (isNewImage) {
         prevImageIdentityRef.current = selectedImage.thumbnailUrl || selectedImage.originalUrl;
         setDisplayState({ base: newSrc, fade: null });
         setIsFadingIn(false);
+        setDisplayedBaseFailed(false);
+        setDisplayedFadeFailed(false);
         return;
       }
 
       if (isSliderDragging) {
         setDisplayState({ base: newSrc, fade: null });
         setIsFadingIn(false);
+        setDisplayedBaseFailed(false);
+        setDisplayedFadeFailed(false);
       } else {
         if (displayState.base !== newSrc && displayState.base) {
           setDisplayState((prev) => ({ base: prev.base, fade: newSrc }));
           setIsFadingIn(false);
+          setDisplayedFadeFailed(false);
 
           let frame2: number;
           const frame1 = requestAnimationFrame(() => {
@@ -1452,6 +1472,8 @@ const ImageCanvas = memo(
           const timer = setTimeout(() => {
             setDisplayState({ base: newSrc, fade: null });
             setIsFadingIn(false);
+            setDisplayedBaseFailed(false);
+            setDisplayedFadeFailed(false);
           }, 150);
 
           return () => {
@@ -1462,6 +1484,8 @@ const ImageCanvas = memo(
         } else {
           setDisplayState({ base: newSrc, fade: null });
           setIsFadingIn(false);
+          setDisplayedBaseFailed(false);
+          setDisplayedFadeFailed(false);
         }
       }
     }, [finalPreviewUrl, selectedImage.thumbnailUrl, selectedImage.originalUrl, isSliderDragging, displayState.base]);
@@ -2668,8 +2692,8 @@ const ImageCanvas = memo(
       };
     }, [originalSrc]);
 
-    const currentTarget = finalPreviewUrl || selectedImage.thumbnailUrl || selectedImage.originalUrl;
-    const baseIsReady = displayState.base === currentTarget && !displayState.fade;
+    const currentTarget = isSafeUrl(finalPreviewUrl) ? finalPreviewUrl : null;
+    const baseIsReady = displayState.base === currentTarget && !displayState.fade && !displayedBaseFailed;
 
     const visiblePatch = interactivePatch ?? (baseIsReady ? null : retainedPatchRef.current);
 
@@ -2848,7 +2872,7 @@ const ImageCanvas = memo(
                 {/* Show SVG fallback when wgpu is not active, OR when wgpu is active
                     but no actual image data is available (finalPreviewUrl is null).
                     This prevents blank display when wgpu fails to render properly. */}
-                {displayState.base && (!isWgpuActive || !finalPreviewUrl) && (
+                {displayState.base && !displayedBaseFailed && (!isWgpuActive || !finalPreviewUrl) && (
                   <image
                     href={displayState.base}
                     x="0"
@@ -2856,10 +2880,11 @@ const ImageCanvas = memo(
                     width="100%"
                     height="100%"
                     style={{ imageRendering: isMaxZoom ? 'pixelated' : 'auto' }}
+                    onError={() => handleDisplayImageError('base')}
                   />
                 )}
 
-                {displayState.fade && (!isWgpuActive || !finalPreviewUrl) && (
+                {displayState.fade && !displayedFadeFailed && (!isWgpuActive || !finalPreviewUrl) && (
                   <image
                     href={displayState.fade}
                     x="0"
@@ -2871,6 +2896,7 @@ const ImageCanvas = memo(
                       opacity: isFadingIn ? 1 : 0,
                       transition: 'opacity 150ms ease-in-out',
                     }}
+                    onError={() => handleDisplayImageError('fade')}
                   />
                 )}
 

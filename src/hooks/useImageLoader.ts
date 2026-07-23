@@ -105,39 +105,37 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
             return state;
           });
 
-          // Generate an initial CPU-based preview as fallback when wgpu is enabled.
+          // Generate an initial CPU-based preview as fallback.
           // This ensures the editor displays an image immediately, even if wgpu
-          // takes longer to initialize (common on Windows with some GPU drivers).
-          if (appSettings?.useWgpuRenderer !== false) {
-            try {
-              const previewResult: ArrayBuffer | null = await invoke(Invokes.GeneratePreviewForPath, {
-                path: selectedImage.path,
-                previewResolution: appSettings?.editorPreviewResolution || 1920,
-              });
-              if (previewResult && previewResult.byteLength > 0 && isEffectActive) {
-                const textDecoder = new TextDecoder();
-                const previewPrefix = textDecoder.decode(previewResult.slice(0, 11));
-                // Only use as fallback if it's actual image data (not WGPU_RENDER)
-                if (previewPrefix !== 'WGPU_RENDER') {
-                  const blob = new Blob([previewResult], { type: 'image/jpeg' });
-                  const url = URL.createObjectURL(blob);
-                  // Only set as fallback if wgpu hasn't rendered yet
-                  if (!useEditorStore.getState().hasRenderedFirstFrame) {
-                    setEditor((state) => {
-                      const prevUrl = state.finalPreviewUrl;
-                      if (prevUrl && prevUrl.startsWith('blob:')) {
-                        setTimeout(() => URL.revokeObjectURL(prevUrl), 100);
-                      }
-                      return { finalPreviewUrl: url };
-                    });
-                  } else {
-                    URL.revokeObjectURL(url);
-                  }
+          // takes longer to initialize or is unavailable on this device.
+          try {
+            const previewResult: ArrayBuffer | null = await invoke(Invokes.GeneratePreviewForPath, {
+              path: selectedImage.path,
+              previewResolution: appSettings?.editorPreviewResolution || 1920,
+            });
+            if (previewResult && previewResult.byteLength > 0 && isEffectActive) {
+              const textDecoder = new TextDecoder();
+              const previewPrefix = textDecoder.decode(previewResult.slice(0, 11));
+              // Only use as fallback if it's actual image data (not WGPU_RENDER)
+              if (previewPrefix !== 'WGPU_RENDER') {
+                const blob = new Blob([previewResult], { type: 'image/jpeg' });
+                const url = URL.createObjectURL(blob);
+                const editorState = useEditorStore.getState();
+                if (!editorState.hasRenderedFirstFrame || !editorState.finalPreviewUrl) {
+                  setEditor((state) => {
+                    const prevUrl = state.finalPreviewUrl;
+                    if (prevUrl && prevUrl.startsWith('blob:')) {
+                      setTimeout(() => URL.revokeObjectURL(prevUrl), 100);
+                    }
+                    return { finalPreviewUrl: url };
+                  });
+                } else {
+                  URL.revokeObjectURL(url);
                 }
               }
-            } catch (err) {
-              console.warn('Initial preview generation failed (non-critical):', err);
             }
+          } catch (err) {
+            console.warn('Initial preview generation failed (non-critical):', err);
           }
 
           setEditor((state) => {
