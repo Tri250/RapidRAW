@@ -27,9 +27,9 @@
       "dangerousDisableAssetCspModification": false,
       "capabilities": ["default"],
       "assetProtocol": {
-        "enable": true,
-        "scope": ["$APPCACHE/thumbnails/*"]
-      }
+            "enable": true,
+            "scope": ["$APPCACHE/thumbnails/**/*", "$APPLOCALDATA/thumbnails/**/*"]
+          }
     },
     "macOSPrivateApi": false
   },

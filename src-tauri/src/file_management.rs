@@ -1780,9 +1780,11 @@ fn emit_thumbnail_generated(
     rating: u8,
     is_edited: bool,
 ) {
+    // Normalize path separators for cross-platform compatibility with convertFileSrc
+    let normalized_thumbnail_path = thumbnail_path.replace('\\', "/");
     let _ = app_handle.emit(
         "thumbnail-generated",
-        serde_json::json!({ "path": path, "thumbnailPath": thumbnail_path, "rating": rating, "is_edited": is_edited }),
+        serde_json::json!({ "path": path, "thumbnailPath": normalized_thumbnail_path, "rating": rating, "is_edited": is_edited }),
     );
 }
 
