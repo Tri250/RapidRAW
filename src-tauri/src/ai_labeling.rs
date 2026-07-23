@@ -187,10 +187,10 @@ impl LabelingEngine {
     }
 
     /// Get labels for an image
-    pub fn get_labels(&self, image_hash: &str) -> Vec<&ImageLabel> {
+    pub fn get_labels(&self, image_hash: &str) -> Vec<ImageLabel> {
         self.image_labels
             .get(image_hash)
-            .map(|v| v.iter().collect())
+            .map(|v| v.iter().cloned().collect())
             .unwrap_or_default()
     }
 
@@ -294,12 +294,13 @@ impl LabelingEngine {
     }
 
     /// Search images by label substring.
-    pub fn search_by_label(&self, label_query: &str) -> Vec<&ImageLabel> {
+    pub fn search_by_label(&self, label_query: &str) -> Vec<ImageLabel> {
         let query_lower = label_query.to_lowercase();
         self.image_labels
             .iter()
             .flat_map(|(_, labels)| labels.iter())
             .filter(|l| l.label.to_lowercase().contains(&query_lower))
+            .cloned()
             .collect()
     }
 
