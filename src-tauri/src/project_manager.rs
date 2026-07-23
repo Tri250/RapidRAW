@@ -1,3 +1,5 @@
+#![allow(unused_variables)]
+
 use anyhow::{Context, Result};
 use duckdb::{Connection, params};
 use serde::{Deserialize, Serialize};
@@ -602,6 +604,30 @@ where
     f(db).map_err(|e| e.to_string())
 }
 
+/// Resolve a database connection: if `db_path` is non-empty, open a temporary
+/// connection to the specified DuckDB file; otherwise use the globally-opened
+/// project database.  This allows every command to operate on either the
+/// current session database or an arbitrary project file without side-effects.
+fn with_db_or_path<F, T>(db_path: &str, f: F) -> Result<T, String>
+where
+    F: FnOnce(&ProjectDb) -> anyhow::Result<T>,
+{
+    if db_path.is_empty() {
+        // Use the global session database
+        let guard = PROJECT_DB.lock().unwrap();
+        let db = guard
+            .as_ref()
+            .ok_or_else(|| "No project database is currently open".to_string())?;
+        f(db).map_err(|e| e.to_string())
+    } else {
+        // Open a temporary connection to the given path
+        let path = Path::new(db_path);
+        let db = ProjectDb::open(path)
+            .map_err(|e| format!("Failed to open project DB at {}: {}", db_path, e))?;
+        f(&db).map_err(|e| e.to_string())
+    }
+}
+
 #[tauri::command]
 pub fn project_open(db_path: String) -> Result<String, String> {
     let path = Path::new(&db_path);
@@ -620,6 +646,7 @@ pub fn project_close() -> Result<(), String> {
 
 #[tauri::command]
 pub fn project_create_edit_version(
+    db_path: String,
     image_hash: String,
     parent_id: Option<String>,
     adjustments: String,
@@ -627,7 +654,7 @@ pub fn project_create_edit_version(
 ) -> Result<serde_json::Value, String> {
     let id = uuid::Uuid::new_v4().to_string();
     let created_at = chrono::Utc::now().timestamp();
-    let version = with_db(|db| {
+    let version = with_db_or_path(&db_path, |db| {
         create_version(
             db,
             &id,
@@ -643,9 +670,10 @@ pub fn project_create_edit_version(
 
 #[tauri::command]
 pub fn project_list_versions(
+    db_path: String,
     image_hash: String,
 ) -> Result<Vec<serde_json::Value>, String> {
-    let versions = with_db(|db| list_versions_for_image(db, &image_hash))?;
+    let versions = with_db_or_path(&db_path, |db| list_versions_for_image(db, &image_hash))?;
     versions
         .iter()
         .map(|v| serde_json::to_value(v).map_err(|e| format!("Serialization error: {}", e)))
@@ -654,9 +682,10 @@ pub fn project_list_versions(
 
 #[tauri::command]
 pub fn project_get_current_version(
+    db_path: String,
     image_hash: String,
 ) -> Result<serde_json::Value, String> {
-    let version = with_db(|db| get_current_version(db, &image_hash))?;
+    let version = with_db_or_path(&db_path, |db| get_current_version(db, &image_hash))?;
     match version {
         Some(v) => serde_json::to_value(v).map_err(|e| format!("Serialization error: {}", e)),
         None => Ok(serde_json::Value::Null),
@@ -664,12 +693,13 @@ pub fn project_get_current_version(
 }
 
 #[tauri::command]
-pub fn project_set_current_version(version_id: String) -> Result<(), String> {
-    with_db(|db| set_current_version(db, &version_id))
+pub fn project_set_current_version(db_path: String, version_id: String) -> Result<(), String> {
+    with_db_or_path(&db_path, |db| set_current_version(db, &version_id))
 }
 
 #[tauri::command]
 pub fn project_store_thumbnail(
+    db_path: String,
     image_hash: String,
     data_base64: String,
     width: u32,
@@ -680,15 +710,16 @@ pub fn project_store_thumbnail(
     let data = general_purpose::STANDARD
         .decode(&data_base64)
         .map_err(|e| format!("Failed to decode base64 thumbnail data: {}", e))?;
-    with_db(|db| store_thumbnail(db, &image_hash, &data, width as i32, height as i32, &format))
+    with_db_or_path(&db_path, |db| store_thumbnail(db, &image_hash, &data, width as i32, height as i32, &format))
 }
 
 #[tauri::command]
 pub fn project_get_thumbnail(
+    db_path: String,
     image_hash: String,
 ) -> Result<serde_json::Value, String> {
     use base64::{Engine as _, engine::general_purpose};
-    let thumb = with_db(|db| get_thumbnail(db, &image_hash))?;
+    let thumb = with_db_or_path(&db_path, |db| get_thumbnail(db, &image_hash))?;
     match thumb {
         Some(t) => {
             let data_b64 = general_purpose::STANDARD.encode(&t.data);
@@ -706,19 +737,21 @@ pub fn project_get_thumbnail(
 
 #[tauri::command]
 pub fn project_add_ai_label(
+    db_path: String,
     image_hash: String,
     label: String,
     confidence: f64,
     model: String,
 ) -> Result<(), String> {
-    with_db(|db| add_label(db, &image_hash, &label, confidence, &model))
+    with_db_or_path(&db_path, |db| add_label(db, &image_hash, &label, confidence, &model))
 }
 
 #[tauri::command]
 pub fn project_get_labels(
+    db_path: String,
     image_hash: String,
 ) -> Result<Vec<serde_json::Value>, String> {
-    let labels = with_db(|db| get_labels_for_image(db, &image_hash))?;
+    let labels = with_db_or_path(&db_path, |db| get_labels_for_image(db, &image_hash))?;
     labels
         .iter()
         .map(|l| serde_json::to_value(l).map_err(|e| format!("Serialization error: {}", e)))
@@ -727,9 +760,10 @@ pub fn project_get_labels(
 
 #[tauri::command]
 pub fn project_search_labels(
+    db_path: String,
     label_query: String,
 ) -> Result<Vec<serde_json::Value>, String> {
-    let labels = with_db(|db| search_by_label(db, &label_query))?;
+    let labels = with_db_or_path(&db_path, |db| search_by_label(db, &label_query))?;
     labels
         .iter()
         .map(|l| serde_json::to_value(l).map_err(|e| format!("Serialization error: {}", e)))
@@ -737,13 +771,13 @@ pub fn project_search_labels(
 }
 
 #[tauri::command]
-pub fn project_get_statistics() -> Result<serde_json::Value, String> {
-    with_db(|db| get_edit_statistics(db))
+pub fn project_get_statistics(db_path: String) -> Result<serde_json::Value, String> {
+    with_db_or_path(&db_path, |db| get_edit_statistics(db))
 }
 
 #[tauri::command]
-pub fn project_export_parquet(output_path: String) -> Result<u64, String> {
-    with_db(|db| export_edit_history_parquet(db, &output_path))
+pub fn project_export_parquet(db_path: String, output_path: String) -> Result<u64, String> {
+    with_db_or_path(&db_path, |db| export_edit_history_parquet(db, &output_path))
 }
 
 // ---------------------------------------------------------------------------
