@@ -6,13 +6,14 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
-      release_platform:
-        description: 'Platform to build (empty = all)'
-        required: false
+      tag-name:
+        description: 'Tag name for release (e.g. v1.8.18)'
+        required: true
         type: string
-        default: ''
-  release:
-    types: [published]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -58,7 +59,7 @@ jobs:
             asset-prefix: '04'
     uses: ./.github/workflows/build.yml
     with:
-      release-id: ${{ github.event.release.id }}
+      release-id: ${{ github.event.release.id || '' }}
       platform: ${{ matrix.platform }}
       target: ${{ matrix.target }}
       build-args: ${{ matrix.build-args }}
