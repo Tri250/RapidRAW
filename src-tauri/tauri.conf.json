@@ -23,19 +23,27 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost asset.localhost http://asset.localhost blob: data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://* asset:; script-src 'self'",
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https://asset.localhost blob: data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://* asset: http://asset.localhost https://asset.localhost; script-src 'self'",
       "dangerousDisableAssetCspModification": false,
       "capabilities": ["default"],
       "assetProtocol": {
             "enable": true,
-            "scope": [
-              "$APPCACHE/**/*",
-              "$APPLOCALDATA/**/*",
-              "$APPCONFIG/**/*",
-              "$APPDATA/**/*",
-              "$HOME/**/*",
-              "$TEMP/**/*"
-            ]
+            "scope": {
+              "allow": [
+                "$APPCACHE/**/*",
+                "$APPLOCALDATA/**/*",
+                "$APPCONFIG/**/*",
+                "$APPDATA/**/*",
+                "$HOME/**/*",
+                "$TEMP/**/*",
+                "$RESOURCE/**/*",
+                "$LOG/**/*",
+                "**/.local/share/**/*",
+                "**/.cache/**/*",
+                "**/.config/**/*"
+              ],
+              "requireLiteralLeadingDot": false
+            }
           }
     },
     "macOSPrivateApi": false
@@ -122,5 +130,5 @@
       }
     }
   },
-  "version": "1.8.19"
+  "version": "1.8.20"
 }

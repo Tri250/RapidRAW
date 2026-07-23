@@ -1337,7 +1337,7 @@ const ImageCanvas = memo(
 
     const isSafeUrl = (url: string | null | undefined): url is string => {
       if (!url) return false;
-      return url.startsWith('blob:') || url.startsWith('data:');
+      return url.startsWith('blob:') || url.startsWith('data:') || url.startsWith('asset:');
     };
 
     const handleDisplayImageError = useCallback((which: 'base' | 'fade') => {
