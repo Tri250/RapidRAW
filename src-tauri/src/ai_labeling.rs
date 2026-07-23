@@ -625,6 +625,158 @@ pub fn ai_labeling_get_stats() -> Result<serde_json::Value, String> {
     serde_json::to_value(stats).map_err(|e| format!("Serialization error: {}", e))
 }
 
+#[tauri::command]
+pub fn ai_labeling_is_initialized() -> Result<bool, String> {
+    let guard = LABELING_ENGINE.lock().unwrap();
+    Ok(guard.is_some())
+}
+
+#[tauri::command]
+pub fn ai_labeling_reset() -> Result<(), String> {
+    let mut guard = LABELING_ENGINE.lock().unwrap();
+    *guard = None;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn ai_labeling_add_vocabulary_entry(
+    label: String,
+    embedding_json: String,
+) -> Result<(), String> {
+    let entry: VocabularyEntry = serde_json::from_str(&embedding_json)
+        .map_err(|e| format!("Failed to parse vocabulary entry JSON: {}", e))?;
+    with_engine_mut(|engine| {
+        engine.add_vocabulary_entry(
+            &label,
+            Embedding {
+                vector: entry.embedding,
+                model: "clip-vit-b32".to_string(),
+                dim: DEFAULT_EMBEDDING_DIM,
+            },
+        );
+        Ok(())
+    })
+}
+
+#[tauri::command]
+pub fn ai_labeling_remove_vocabulary_entry(label: String) -> Result<(), String> {
+    with_engine_mut(|engine| {
+        engine.remove_vocabulary_entry(&label);
+        Ok(())
+    })
+}
+
+#[tauri::command]
+pub fn ai_labeling_get_vocabulary_labels() -> Result<Vec<String>, String> {
+    with_engine(|engine| Ok(engine.vocabulary_labels().into_iter().map(|s| s.to_string()).collect()))
+}
+
+#[tauri::command]
+pub fn ai_labeling_add_image_embedding(
+    image_hash: String,
+    embedding_json: String,
+) -> Result<(), String> {
+    let embedding: Embedding = serde_json::from_str(&embedding_json)
+        .map_err(|e| format!("Failed to parse embedding JSON: {}", e))?;
+    with_engine_mut(|engine| {
+        engine.add_image_embedding(&image_hash, embedding);
+        Ok(())
+    })
+}
+
+#[tauri::command]
+pub fn ai_labeling_remove_image(image_hash: String) -> Result<(), String> {
+    with_engine_mut(|engine| {
+        engine.remove_image(&image_hash);
+        Ok(())
+    })
+}
+
+#[tauri::command]
+pub fn ai_labeling_search_by_embedding(
+    embedding_json: String,
+    max_results: usize,
+) -> Result<Vec<serde_json::Value>, String> {
+    let embedding: Vec<f32> = serde_json::from_str(&embedding_json)
+        .map_err(|e| format!("Failed to parse embedding JSON: {}", e))?;
+    let results = with_engine(|engine| Ok(engine.search_by_embedding(&embedding, max_results)))?;
+    results
+        .iter()
+        .map(|r| serde_json::to_value(r).map_err(|e| format!("Serialization error: {}", e)))
+        .collect()
+}
+
+#[tauri::command]
+pub fn ai_labeling_search_by_label(
+    label_query: String,
+) -> Result<Vec<serde_json::Value>, String> {
+    let results = with_engine(|engine| Ok(engine.search_by_label(&label_query)))?;
+    results
+        .iter()
+        .map(|r| serde_json::to_value(r).map_err(|e| format!("Serialization error: {}", e)))
+        .collect()
+}
+
+#[tauri::command]
+pub fn ai_labeling_batch_auto_label(
+    max_labels_per_image: usize,
+    min_confidence: f32,
+) -> Result<Vec<serde_json::Value>, String> {
+    let results =
+        with_engine_mut(|engine| Ok(engine.batch_auto_label(max_labels_per_image, min_confidence)))?;
+    let mut output = Vec::new();
+    for (hash, labels) in results {
+        let labels_json: Vec<serde_json::Value> = labels
+            .iter()
+            .filter_map(|l| serde_json::to_value(l).ok())
+            .collect();
+        output.push(serde_json::json!({
+            "image_hash": hash,
+            "labels": labels_json,
+        }));
+    }
+    Ok(output)
+}
+
+#[tauri::command]
+pub fn ai_labeling_add_manual_label(
+    image_hash: String,
+    label: String,
+    confidence: f32,
+    model: String,
+) -> Result<(), String> {
+    with_engine_mut(|engine| {
+        engine.add_manual_label(ImageLabel {
+            image_hash: image_hash.clone(),
+            label,
+            confidence,
+            model,
+        });
+        Ok(())
+    })
+}
+
+#[tauri::command]
+pub fn ai_labeling_remove_label(
+    image_hash: String,
+    label: String,
+    model: String,
+) -> Result<(), String> {
+    with_engine_mut(|engine| {
+        engine.remove_label(&image_hash, &label, &model);
+        Ok(())
+    })
+}
+
+#[tauri::command]
+pub fn ai_labeling_get_labels(image_hash: String) -> Result<Vec<serde_json::Value>, String> {
+    let labels = with_engine(|engine| Ok(engine.get_labels(&image_hash)))?;
+    labels
+        .iter()
+        .map(|l| serde_json::to_value(l).map_err(|e| format!("Serialization error: {}", e)))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

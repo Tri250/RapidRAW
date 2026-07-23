@@ -558,6 +558,18 @@ pub fn apply_adjustments(
 // GpuPipelineHandle – thread-safe handle for Tauri state
 // ---------------------------------------------------------------------------
 
+use once_cell::sync::Lazy;
+
+/// Global singleton handle so the GPU pipeline is initialized once and reused
+/// across all `gpu_apply_adjustments` calls.
+static GPU_PIPELINE_HANDLE: Lazy<GpuPipelineHandle> =
+    Lazy::new(|| GpuPipelineHandle::new());
+
+/// Returns true if the global GPU pipeline was successfully initialized.
+pub fn is_gpu_pipeline_ready() -> bool {
+    GPU_PIPELINE_HANDLE.get_or_init().is_ok()
+}
+
 pub struct GpuPipelineHandle {
     inner: Arc<std::sync::Mutex<Option<GpuPipeline>>>,
 }
@@ -635,24 +647,34 @@ pub fn gpu_apply_adjustments(
         dehaze: dehaze.unwrap_or(defaults.dehaze),
     };
 
-    // Try to get or init the GPU pipeline
-    let handle = GpuPipelineHandle::new();
-    let guard = match handle.get_or_init() {
+    // Try to get or init the GPU pipeline from the global singleton.
+    // On first failure, the error is logged and the original image is returned.
+    // On subsequent calls the pipeline is already initialized.
+    let guard = match GPU_PIPELINE_HANDLE.get_or_init() {
         Ok(g) => g,
-        Err(_) => {
-            // If wgpu init fails, fall back to returning the original data unchanged
+        Err(e) => {
+            log::warn!("GPU pipeline initialization failed, returning original image: {}", e);
             return Ok(image_data_base64);
         }
     };
 
     let pipeline = match guard.as_ref() {
         Some(p) => p,
-        None => return Ok(image_data_base64),
+        None => {
+            log::warn!("GPU pipeline not available, returning original image");
+            return Ok(image_data_base64);
+        }
     };
 
-    // Call apply_adjustments
-    let result_data = apply_adjustments(pipeline, &image_data, width, height, uniforms)
-        .map_err(|e| format!("GPU apply_adjustments failed: {}", e))?;
+    // Call apply_adjustments with CPU fallback on GPU error
+    let result_data = match apply_adjustments(pipeline, &image_data, width, height, uniforms) {
+        Ok(data) => data,
+        Err(e) => {
+            log::error!("GPU apply_adjustments failed: {}. Falling back to original image.", e);
+            // GPU compute failed — return the original image unchanged
+            return Ok(image_data_base64);
+        }
+    };
 
     // Encode result as base64 PNG
     // The result is raw RGBA8 pixels; encode as PNG using the image crate
