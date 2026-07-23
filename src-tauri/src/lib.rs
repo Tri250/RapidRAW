@@ -1728,11 +1728,6 @@ fn generate_preview_for_path(
         apply_all_transformations(Cow::Borrowed(&base_image), &js_adjustments);
     let (img_w, img_h) = transformed_image.dimensions();
 
-    let preview_resolution = js_adjustments
-        .get("previewResolution")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(1920) as u32;
-
     let context_result = get_or_init_gpu_context(&state, &app_handle);
 
     let final_image: DynamicImage = match context_result {
@@ -1781,18 +1776,21 @@ fn generate_preview_for_path(
                 "GPU context unavailable for preview ({}). Falling back to CPU-only preview generation.",
                 gpu_err
             );
+            let preview_resolution = js_adjustments
+                .get("previewResolution")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(1920) as u32;
             let mut cpu_image = transformed_image.into_owned();
             if is_raw {
                 apply_cpu_default_raw_processing(&mut cpu_image);
             }
             let (cw, ch) = cpu_image.dimensions();
             let max_dim = cw.max(ch);
-            if max_dim > preview_resolution && preview_resolution > 0 {
+            if preview_resolution > 0 && max_dim > preview_resolution {
                 let ratio = preview_resolution as f32 / max_dim as f32;
                 let new_w = ((cw as f32) * ratio).round().max(1) as u32;
                 let new_h = ((ch as f32) * ratio).round().max(1) as u32;
-                use image::imageops::FilterType;
-                cpu_image = cpu_image.resize(new_w, new_h, FilterType::Triangle);
+                cpu_image = cpu_image.resize_exact(new_w, new_h, image::imageops::FilterType::Triangle);
             }
             cpu_image
         }
