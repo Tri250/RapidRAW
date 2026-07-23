@@ -887,12 +887,13 @@ export default function AIPanel() {
 
     if (dragData.type === 'Creation' && dragData.maskType) {
       const creationFn = () => {
+        const currentAdjustments = useEditorStore.getState().adjustments;
         const isCreationStandalone = [Mask.Clone, Mask.Heal].includes(dragData.maskType!);
 
         if (isCreationStandalone) {
           handleAddAiPatchContainer(dragData.maskType!);
         } else if (overData?.type === 'Container') {
-          const overContainer = adjustments.aiPatches.find((p) => p.id === overData.item!.id);
+          const overContainer = currentAdjustments.aiPatches.find((p) => p.id === overData.item!.id);
           const isOverStandalone =
             overContainer?.subMasks.length === 1 && [Mask.Clone, Mask.Heal].includes(overContainer.subMasks[0].type);
 
@@ -902,7 +903,7 @@ export default function AIPanel() {
             handleAddSubMask(overData.item!.id, dragData.maskType!);
           }
         } else if (overData?.type === 'SubMask') {
-          const container = adjustments.aiPatches.find((p) => p.id === overData.parentId);
+          const container = currentAdjustments.aiPatches.find((p) => p.id === overData.parentId);
           const isTargetStandalone =
             container?.subMasks.length === 1 && [Mask.Clone, Mask.Heal].includes(container.subMasks[0].type);
 

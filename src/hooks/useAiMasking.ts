@@ -269,14 +269,18 @@ export function useAiMasking() {
         setEditor({ activeAiPatchContainerId: null, activeAiSubMaskId: null });
       } catch (err: any) {
         if (err.name === 'AbortError') {
-          // Request was cancelled due to a new request; don't show error toast.
-          return;
+          // Request was cancelled due to a new request; reset loading state without error toast.
+          setAdjustments((prev: Adjustments) => ({
+            ...prev,
+            aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
+          }));
+        } else {
+          toast.error(`Quick Erase Failed: ${err.message || String(err)}`);
+          setAdjustments((prev: Adjustments) => ({
+            ...prev,
+            aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
+          }));
         }
-        toast.error(`Quick Erase Failed: ${err.message || String(err)}`);
-        setAdjustments((prev: Adjustments) => ({
-          ...prev,
-          aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
-        }));
       } finally {
         setEditor({ isGeneratingAi: false });
       }
@@ -537,26 +541,19 @@ export function useAiMasking() {
   }, [activeMaskId, activeAiSubMaskId, selectedImagePath, adjustmentsForPrecompute]);
 
   const handleGenerateColorRangeMask = async (subMaskId: string, parameters: any) => {
-    const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
+    const { selectedImage, patchesSentToBackend } = useEditorStore.getState();
     if (!selectedImage?.path) return;
     setEditor({ isGeneratingAiMask: true });
 
     try {
-      const transformAdjustments = getTransformAdjustments(adjustments);
       const newParameters = await invoke(Invokes.GenerateColorRangeMask, {
-        jsAdjustments: transformAdjustments,
-        path: selectedImage.path,
-        hueCenter: parameters.hueCenter ?? 0,
+        centerHue: parameters.hueCenter ?? 0,
+        centerSat: ((parameters.satMin ?? 10) + (parameters.satMax ?? 100)) / 200,
+        centerLum: ((parameters.lumMin ?? 10) + (parameters.lumMax ?? 90)) / 200,
         hueRange: parameters.hueRange ?? 30,
-        satMin: parameters.satMin ?? 10,
-        satMax: parameters.satMax ?? 100,
-        lumMin: parameters.lumMin ?? 10,
-        lumMax: parameters.lumMax ?? 90,
+        satRange: ((parameters.satMax ?? 100) - (parameters.satMin ?? 10)) / 200,
+        lumRange: ((parameters.lumMax ?? 90) - (parameters.lumMin ?? 10)) / 200,
         feather: parameters.feather ?? 10,
-        flipHorizontal: adjustments.flipHorizontal,
-        flipVertical: adjustments.flipVertical,
-        orientationSteps: adjustments.orientationSteps,
-        rotation: adjustments.rotation,
       }) as Record<string, any>;
 
       const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
@@ -571,22 +568,15 @@ export function useAiMasking() {
   };
 
   const handleGenerateLuminanceRangeMask = async (subMaskId: string, parameters: any) => {
-    const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
+    const { selectedImage, patchesSentToBackend } = useEditorStore.getState();
     if (!selectedImage?.path) return;
     setEditor({ isGeneratingAiMask: true });
 
     try {
-      const transformAdjustments = getTransformAdjustments(adjustments);
       const newParameters = await invoke(Invokes.GenerateLuminanceRangeMask, {
-        jsAdjustments: transformAdjustments,
-        path: selectedImage.path,
-        lumMin: parameters.lumMin ?? 0,
-        lumMax: parameters.lumMax ?? 50,
+        minLum: (parameters.lumMin ?? 0) / 100,
+        maxLum: (parameters.lumMax ?? 50) / 100,
         feather: parameters.feather ?? 10,
-        flipHorizontal: adjustments.flipHorizontal,
-        flipVertical: adjustments.flipVertical,
-        orientationSteps: adjustments.orientationSteps,
-        rotation: adjustments.rotation,
       }) as Record<string, any>;
 
       const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
@@ -605,20 +595,40 @@ export function useAiMasking() {
     if (!selectedImage?.path) return;
 
     try {
-      const transformAdjustments = getTransformAdjustments(adjustments);
-      const newParameters = await invoke(Invokes.ApplyMaskFeather, {
-        jsAdjustments: transformAdjustments,
-        path: selectedImage.path,
-        subMaskId,
-        feather,
-        flipHorizontal: adjustments.flipHorizontal,
-        flipVertical: adjustments.flipVertical,
-        orientationSteps: adjustments.orientationSteps,
-        rotation: adjustments.rotation,
-      }) as Record<string, any>;
+      const subMask = findSubMask(adjustments, subMaskId);
+      if (!subMask?.parameters?.maskDataBase64) {
+        toast.error('No mask data available for feathering');
+        return;
+      }
 
-      const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
-      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
+      // Decode base64 mask data to raw bytes
+      const b64Data = (subMask.parameters.maskDataBase64 as string).replace(/^data:image\/\w+;base64,/, '');
+      const binaryStr = atob(b64Data);
+      const maskData = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) {
+        maskData[i] = binaryStr.charCodeAt(i);
+      }
+
+      // Load the mask image to get dimensions
+      const maskBlob = new Blob([maskData], { type: 'image/png' });
+      const maskBitmap = await createImageBitmap(maskBlob);
+      const width = maskBitmap.width;
+      const height = maskBitmap.height;
+      maskBitmap.close();
+
+      const newMaskData = await invoke(Invokes.ApplyMaskFeather, {
+        maskData: Array.from(maskData),
+        width,
+        height,
+        featherRadius: feather,
+      }) as number[];
+
+      // Encode the feathered mask back to base64
+      const featheredBytes = new Uint8Array(newMaskData);
+      const featheredBase64 = btoa(String.fromCharCode(...featheredBytes));
+      const newDataUrl = `data:image/png;base64,${featheredBase64}`;
+
+      const mergedParameters = { ...((subMask.parameters || {}) as Record<string, any>), maskDataBase64: newDataUrl, feather };
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
     } catch (error) {

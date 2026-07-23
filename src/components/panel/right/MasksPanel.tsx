@@ -1126,10 +1126,11 @@ export default function MasksPanel() {
 
     if (dragData.type === 'Creation' && dragData.maskType) {
       const creationFn = () => {
+        const currentAdjustments = useEditorStore.getState().adjustments;
         if (overData?.type === 'Container') {
           handleAddSubMask(overData.item!.id, dragData.maskType!);
         } else if (overData?.type === 'SubMask' && over) {
-          const container = adjustments.masks.find((m) => m.id === overData.parentId);
+          const container = currentAdjustments.masks.find((m) => m.id === overData.parentId);
           if (container) {
             const targetIndex = container.subMasks.findIndex((sm) => sm.id === over.id);
             handleAddSubMask(overData.parentId!, dragData.maskType!, SubMaskMode.Additive, targetIndex);
@@ -1196,7 +1197,7 @@ export default function MasksPanel() {
           const newContainer = {
             ...INITIAL_MASK_CONTAINER,
             id: uuidv4(),
-            name: `Mask ${newMasks.length + 1}`,
+            name: t('masks.maskName', { count: newMasks.length + 1 }),
             subMasks: [movedSubMask],
           };
           newMasks.push(newContainer);
@@ -1670,10 +1671,7 @@ function ContainerRow({
   const handleRenameSubmit = () => {
     if (tempName.trim()) {
       const newName = tempName.trim();
-      setAdjustments((prev: any) => {
-        const updatedMasks = prev.masks.map((m: any) => (m.id === container.id ? { ...m, name: newName } : m));
-        return { ...prev, masks: updatedMasks };
-      });
+      updateContainer(container.id, { name: newName });
     }
     setRenamingId(null);
   };
