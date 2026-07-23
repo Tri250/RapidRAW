@@ -34,6 +34,9 @@ on:
         required: false
         type: string
         default: ''
+      tag-name:
+        required: false
+        type: string
 
 jobs:
   build:
@@ -160,6 +163,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NO_STRIP: ${{ startsWith(inputs.platform, 'ubuntu') && 'true' || '' }}
         with:
+          tagName: ${{ inputs.tag-name }}
+          releaseName: 'RapidRAW v__VERSION__'
+          releaseBody: 'See the assets to download and install this version.'
+          releaseDraft: false
+          prerelease: false
           args: --verbose${{ inputs.build-args && format(' {0}', inputs.build-args) || '' }}${{ inputs.target != '' && format(' --target {0}', inputs.target) || '' }}
           assetNamePattern: ${{ steps.patch-release-name.outputs.platform }}
           releaseId: ${{ inputs.release-id }}
@@ -187,7 +195,7 @@ jobs:
           npx tauri android build --verbose ${target_arg}${{ inputs.build-args && format(' {0}', inputs.build-args) || '' }}
 
       - name: Prepare Android Release Assets
-        if: inputs.mobile == 'android' && inputs.release-id != ''
+        if: inputs.mobile == 'android' && inputs.tag-name != ''
         shell: bash
         run: |
           set -euo pipefail
@@ -211,18 +219,18 @@ jobs:
           done
 
       - name: Upload Android Release Assets
-        if: inputs.mobile == 'android' && inputs.release-id != ''
+        if: inputs.mobile == 'android' && inputs.tag-name != ''
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
-          tag_name="${{ github.event.release.tag_name || github.ref_name }}"
+          tag_name="${{ inputs.tag-name }}"
           gh release upload "$tag_name" "$RUNNER_TEMP"/android-release-assets/* --clobber
 
       - name: Upload Android Artifacts
-        if: inputs.mobile == 'android' && inputs.release-id == ''
+        if: inputs.mobile == 'android' && inputs.tag-name == ''
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.asset-prefix }}_android${{ inputs.target && format('_{0}', inputs.target) || '' }}_artifacts
