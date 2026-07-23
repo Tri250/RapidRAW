@@ -7,6 +7,7 @@
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
+  "productName": "RapidRAW",
   "app": {
     "windows": [
       {
@@ -22,14 +23,15 @@
       }
     ],
     "security": {
-      "csp": null,
+      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost blob: data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*; script-src 'self'",
+      "dangerousDisableAssetCspModification": false,
       "capabilities": ["default"],
       "assetProtocol": {
         "enable": true,
         "scope": ["$APPCACHE/thumbnails/*"]
       }
     },
-    "macOSPrivateApi": true
+    "macOSPrivateApi": false
   },
   "bundle": {
     "active": true,

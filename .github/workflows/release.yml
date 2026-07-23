@@ -1,8 +1,18 @@
 name: 'Release: Build & Package App'
 
 on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_platform:
+        description: 'Platform to build (empty = all)'
+        required: false
+        type: string
+        default: ''
   release:
-    types: [created]
+    types: [published]
 
 jobs:
   release:

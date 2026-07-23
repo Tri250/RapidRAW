@@ -1,6 +1,7 @@
 {
   "name": "rapidraw",
   "author": "Timon Käch",
+  "version": "1.8.15",
   "private": true,
   "scripts": {
     "dev": "vite",
