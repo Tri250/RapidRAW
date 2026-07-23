@@ -96,6 +96,7 @@ const PresetCard = ({ preset, index }: PresetCardProps) => {
   const [coverError, setCoverError] = useState(false);
   const [coverUrl, setCoverUrl] = useState(preset.coverPath);
   const [coverLoaded, setCoverLoaded] = useState(false);
+  const [coverRetryCount, setCoverRetryCount] = useState(0);
   const [galleryImageErrors, setGalleryImageErrors] = useState<Set<number>>(new Set());
   const [galleryUrlMap, setGalleryUrlMap] = useState<Map<number, string>>(new Map());
   const [showDetail, setShowDetail] = useState(false);
@@ -143,14 +144,25 @@ const PresetCard = ({ preset, index }: PresetCardProps) => {
     });
   };
 
+  const handleCoverRetry = () => {
+    setCoverError(false);
+    setCoverLoaded(false);
+    setCoverRetryCount((c) => c + 1);
+    setCoverUrl(preset.coverFallback || preset.coverPath);
+  };
+
   const viewableImages = allImages.filter((_, i) => !galleryImageErrors.has(i));
   const viewableIndex = Math.min(currentImageIndex, Math.max(0, viewableImages.length - 1));
 
   // Sync currentImageIndex when viewableImages changes to prevent index drift
+  const prevViewableLengthRef = useRef(viewableImages.length);
   useEffect(() => {
     if (currentImageIndex >= viewableImages.length && viewableImages.length > 0) {
       setCurrentImageIndex(viewableImages.length - 1);
+    } else if (viewableImages.length > 0 && currentImageIndex < 0) {
+      setCurrentImageIndex(0);
     }
+    prevViewableLengthRef.current = viewableImages.length;
   }, [viewableImages.length, currentImageIndex]);
 
   const getOriginalIndex = (viewIdx: number): number => {
@@ -181,7 +193,7 @@ const PresetCard = ({ preset, index }: PresetCardProps) => {
 
   // Keyboard navigation
   useEffect(() => {
-    if (!showGallery) return;
+    if (!showGallery || viewableImages.length === 0) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === 'd') nextImage();
       else if (e.key === 'ArrowLeft' || e.key === 'a') prevImage();
@@ -194,7 +206,7 @@ const PresetCard = ({ preset, index }: PresetCardProps) => {
   return (
     <motion.div
       variants={itemVariants}
-      className="group relative"
+      className="group relative min-w-0"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -210,9 +222,10 @@ const PresetCard = ({ preset, index }: PresetCardProps) => {
           <>
             {/* Blur-up placeholder */}
             {!coverLoaded && (
-              <div className="absolute inset-0 bg-surface animate-pulse" />
+              <div className="absolute inset-0 bg-surface/80" />
             )}
             <img
+              key={coverRetryCount}
               src={coverUrl}
               alt={preset.name}
               className={`w-full h-full object-cover transition-all duration-500 ease-out
@@ -224,10 +237,17 @@ const PresetCard = ({ preset, index }: PresetCardProps) => {
             />
           </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-surface p-4">
+          <div
+            className="w-full h-full flex flex-col items-center justify-center bg-surface p-4 cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); handleCoverRetry(); }}
+            title={t('presetGallery.retryLoad', '点击重试加载图片')}
+          >
             <Camera size={28} className="text-text-secondary/40 mb-2" />
             <Text variant={TextVariants.label} weight={TextWeights.medium} className="text-center text-text-secondary/60">
               {preset.name}
+            </Text>
+            <Text variant={TextVariants.small} className="text-text-secondary/40 mt-1">
+              {t('presetGallery.clickRetry', '点击重试')}
             </Text>
           </div>
         )}
@@ -677,10 +697,10 @@ const SourceSection = ({ source }: SourceSectionProps) => {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 min-w-0"
         >
           {source.presets.map((preset, idx) => (
-            <PresetCard key={`${source.url}-${idx}`} preset={preset} index={idx} />
+            <PresetCard key={preset.coverPath || preset.name || `${source.url}-${idx}`} preset={preset} index={idx} />
           ))}
         </motion.div>
       )}
@@ -699,6 +719,7 @@ export default function PresetGallery({ onBack }: PresetGalleryProps) {
   const { sources, addSource, fetchAllEnabledSources, refreshAllSources } = usePresetGalleryStore();
   const [newUrl, setNewUrl] = useState('');
   const [showAddSource, setShowAddSource] = useState(false);
+  const [urlError, setUrlError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -714,6 +735,17 @@ export default function PresetGallery({ onBack }: PresetGalleryProps) {
   const handleAddSource = () => {
     const trimmed = newUrl.trim();
     if (!trimmed) return;
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        setUrlError(t('presetGallery.invalidUrlProtocol', '仅支持 http/https 协议'));
+        return;
+      }
+    } catch {
+      setUrlError(t('presetGallery.invalidUrl', '请输入有效的 URL'));
+      return;
+    }
+    setUrlError('');
     addSource(trimmed);
     setNewUrl('');
     setShowAddSource(false);
@@ -788,14 +820,23 @@ export default function PresetGallery({ onBack }: PresetGalleryProps) {
                   ref={inputRef}
                   type="text"
                   value={newUrl}
-                  onChange={(e) => setNewUrl(e.target.value)}
+                  onChange={(e) => { setNewUrl(e.target.value); setUrlError(''); }}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddSource()}
                   placeholder={t('presetGallery.addSourcePlaceholder', '输入 JSON URL...')}
-                  className="w-full h-10 pl-9 pr-3 rounded-xl bg-bg-primary border border-border-color/50
+                  className={`w-full h-10 pl-9 pr-3 rounded-xl bg-bg-primary border
                              text-sm text-text-primary placeholder:text-text-secondary/40
-                             focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20
-                             transition-all"
+                             focus:outline-none focus:ring-1
+                             transition-all
+                             ${urlError
+                               ? 'border-red-400/60 focus:border-red-400/80 focus:ring-red-400/20'
+                               : 'border-border-color/50 focus:border-accent/50 focus:ring-accent/20'
+                             }`}
                 />
+                {urlError && (
+                  <Text variant={TextVariants.small} color={TextColors.error} className="mt-1 block pl-1">
+                    {urlError}
+                  </Text>
+                )}
               </div>
               <Button onClick={handleAddSource} className="h-10 px-4 rounded-xl text-sm font-medium">
                 {t('presetGallery.add', '添加')}

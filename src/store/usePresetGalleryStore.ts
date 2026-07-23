@@ -249,11 +249,16 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
       sources: state.sources.map((s) => (s.url === url ? { ...s, isLoading: true, error: null } : s)),
     }));
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     try {
       const response = await fetch(url, {
         mode: 'cors',
         headers: { 'Accept': 'application/json' },
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       const data = await response.json();
 
@@ -273,9 +278,13 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
         return { sources: newSources };
       });
     } catch (err: any) {
+      clearTimeout(timeoutId);
+      const message = err.name === 'AbortError'
+        ? '请求超时，请稍后重试'
+        : (err.message || String(err));
       set((state) => {
         const newSources = state.sources.map((s) =>
-          s.url === url ? { ...s, isLoading: false, error: err.message || String(err) } : s,
+          s.url === url ? { ...s, isLoading: false, error: message } : s,
         );
         saveSources(newSources);
         return { sources: newSources };

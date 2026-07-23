@@ -61,11 +61,10 @@ fn resolve_model_url(original_url: &str) -> String {
         return original_url.to_string();
     }
 
-    // Replace huggingface.co with the mirror domain
-    original_url.replace(
-        "https://huggingface.co/",
-        &format!("{}/", mirror_base.trim_end_matches('/')),
-    )
+    let mirror_root = format!("{}/", mirror_base.trim_end_matches('/'));
+
+    // Handle both regular model URLs and datasets URLs (e.g. insightface)
+    original_url.replace("https://huggingface.co/", &mirror_root)
 }
 
 const ENCODER_URL: &str = "https://huggingface.co/CyberTimon/RapidRAW-Models/resolve/main/sam_vit_b_01ec64_encoder.onnx?download=true";
@@ -326,11 +325,121 @@ fn persist_downloaded_asset(dest: &Path, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
+/// Secondary HuggingFace mirror for automatic fallback (critical for Chinese users).
+const HF_MIRROR_FALLBACK: &str = "https://hf-mirror.com";
+
 async fn download_model(url: &str, dest: &Path) -> Result<()> {
+    // Create a client with proper timeouts for large model files
+    let client = reqwest::Client::builder()
+        .connect_timeout(std::time::Duration::from_secs(30))
+        .timeout(std::time::Duration::from_secs(300))
+        .build()
+        .map_err(|e| anyhow::anyhow!("Failed to create HTTP client: {}", e))?;
+
     let resolved_url = resolve_model_url(url);
-    let response = reqwest::get(&resolved_url).await?.error_for_status()?;
-    let bytes = response.bytes().await?;
-    persist_downloaded_asset(dest, &bytes)
+    log::info!("Downloading model from {}", resolved_url);
+
+    // Try primary URL with retries (exponential backoff: 2s, 4s, 8s)
+    let max_retries: u32 = 3;
+    let mut last_error: Option<anyhow::Error> = None;
+
+    for attempt in 0..max_retries {
+        if attempt > 0 {
+            let delay = std::time::Duration::from_secs(2u64.pow(attempt));
+            log::info!("Retry attempt {} for {}", attempt + 1, resolved_url);
+            tokio::time::sleep(delay).await;
+        }
+
+        match client.get(&resolved_url).send().await {
+            Ok(response) => {
+                match response.error_for_status() {
+                    Ok(resp) => {
+                        match resp.bytes().await {
+                            Ok(bytes) => {
+                                log::info!(
+                                    "Downloaded {} bytes from {}",
+                                    bytes.len(),
+                                    resolved_url
+                                );
+                                match persist_downloaded_asset(dest, &bytes) {
+                                    Ok(()) => return Ok(()),
+                                    Err(e) => {
+                                        log::error!("Failed to persist downloaded asset: {}", e);
+                                        last_error = Some(e);
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                last_error = Some(anyhow::anyhow!(
+                                    "Failed to read response bytes from {}: {}",
+                                    resolved_url,
+                                    e
+                                ));
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        last_error = Some(anyhow::anyhow!(
+                            "HTTP error from {}: {}",
+                            resolved_url,
+                            e
+                        ));
+                    }
+                }
+            }
+            Err(e) => {
+                last_error = Some(anyhow::anyhow!(
+                    "Request failed for {}: {}",
+                    resolved_url,
+                    e
+                ));
+            }
+        }
+    }
+
+    // If primary URL failed and we haven't already tried a mirror,
+    // try hf-mirror.com as an automatic fallback
+    if !resolved_url.contains("hf-mirror.com") {
+        let mirror_url = url
+            .replace("https://huggingface.co/", &format!("{}/", HF_MIRROR_FALLBACK));
+        log::info!(
+            "Primary URL failed. Trying fallback mirror: {}",
+            mirror_url
+        );
+
+        for attempt in 0..2u32 {
+            if attempt > 0 {
+                let delay = std::time::Duration::from_secs(2u64.pow(attempt));
+                tokio::time::sleep(delay).await;
+            }
+
+            match client.get(&mirror_url).send().await {
+                Ok(response) => {
+                    if let Ok(resp) = response.error_for_status() {
+                        if let Ok(bytes) = resp.bytes().await {
+                            log::info!(
+                                "Downloaded {} bytes from fallback mirror {}",
+                                bytes.len(),
+                                mirror_url
+                            );
+                            if persist_downloaded_asset(dest, &bytes).is_ok() {
+                                return Ok(());
+                            }
+                        }
+                    }
+                }
+                Err(_) => {}
+            }
+        }
+        log::error!("Fallback mirror {} also failed", mirror_url);
+    }
+
+    Err(last_error.unwrap_or_else(|| {
+        anyhow::anyhow!(
+            "Download failed after all retries. Try setting the {} environment variable to a HuggingFace mirror (e.g. https://hf-mirror.com) and try again.",
+            HF_MIRROR_ENV_VAR
+        )
+    }))
 }
 
 fn verify_sha256(path: &Path, expected_hash: &str) -> Result<bool> {
@@ -399,20 +508,29 @@ async fn download_and_verify_model(
 
     if !is_valid {
         if dest_path.exists() {
-            println!("Model {} has incorrect hash. Re-downloading.", model_name);
+            log::warn!("Model {} has incorrect hash. Re-downloading.", model_name);
             fs::remove_file(&dest_path)?;
         }
+        log::info!("Downloading model {} from {}", model_name, url);
         let _ = app_handle.emit("ai-model-download-start", model_name);
         let download_result = download_model(url, &dest_path).await;
         let _ = app_handle.emit("ai-model-download-finish", model_name);
-        download_result?;
+        if let Err(e) = download_result {
+            log::error!("Failed to download model {}: {}", model_name, e);
+            return Err(e);
+        }
 
         if !verify_sha256(&dest_path, expected_hash)? {
+            log::error!(
+                "Hash mismatch for model {} after download. File may be corrupted.",
+                model_name
+            );
             return Err(anyhow::anyhow!(
                 "Failed to verify model {} after download. Hash mismatch.",
                 model_name
             ));
         }
+        log::info!("Model {} downloaded and verified successfully", model_name);
     }
     Ok(())
 }
