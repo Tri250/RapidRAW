@@ -116,7 +116,8 @@ export function useTauriListeners({
         try {
           thumbnailBuffer.current[path] = convertFileSrc(thumbnailPath);
         } catch {
-          thumbnailBuffer.current[path] = thumbnailPath;
+          // Fallback: use asset:// protocol for local file paths
+          thumbnailBuffer.current[path] = `https://asset.localhost/${encodeURIComponent(thumbnailPath)}`;
         }
         refs.current.markGenerated(path);
       } else if (data) {

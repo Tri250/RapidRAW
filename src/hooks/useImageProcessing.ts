@@ -338,9 +338,11 @@ export function useImageProcessing(
 
     if (originalSize && originalSize.width > 0 && originalSize.height > 0) {
       const origMax = Math.max(originalSize.width, originalSize.height);
-      targetRes = Math.min(targetRes, origMax);
+      // Cap preview resolution to avoid excessive processing time
+      const maxPreviewRes = 2880;
+      targetRes = Math.min(targetRes, origMax, maxPreviewRes);
       if (targetRes >= origMax * 0.8) {
-        targetRes = origMax;
+        targetRes = Math.min(origMax, maxPreviewRes);
       }
     }
 
@@ -366,7 +368,7 @@ export function useImageProcessing(
           currentResRef.current = targetRes;
           applyAdjustments(currentAdjustments, false, targetRes);
         }
-      }, 50),
+      }, 30),
     [applyAdjustments, currentResRef],
   );
 
@@ -491,7 +493,7 @@ export function useImageProcessing(
           }
         }
         prevAdjustmentsRef.current = { path: selectedImage.path, adjustments };
-      }, 50);
+      }, 16);
     }
 
     return () => {

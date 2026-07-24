@@ -227,21 +227,20 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
 
   return (
     <div className="flex-1 flex flex-col h-full min-w-0 bg-bg-secondary rounded-lg overflow-hidden p-4">
-      <header className="shrink-0 flex items-center justify-between mb-4 flex-wrap gap-4">
-        <div className="flex items-center">
+      <header className="shrink-0 flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div className="flex items-center gap-2">
           <Button
-            className="mr-4 hover:bg-surface text-text-primary rounded-full"
+            className="hover:bg-surface text-text-primary rounded-full"
             onClick={onBackToLibrary}
             size="icon"
             variant="ghost"
           >
-            <ArrowLeft />
+            <ArrowLeft size={18} />
           </Button>
           <div>
-            <Text variant={TextVariants.headline} className="flex items-center gap-2">
-              <Users /> {t('library.community.headerTitle')}
+            <Text variant={TextVariants.heading} className="flex items-center gap-1.5 text-sm">
+              <Users size={16} /> {t('library.community.headerTitle')}
             </Text>
-            <Text>{t('library.community.headerDesc')}</Text>
           </div>
         </div>
         <Button
@@ -249,10 +248,10 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
           size="sm"
           onClick={fetchPresets}
           disabled={isLoading}
-          className="flex items-center gap-1.5"
+          className="flex items-center gap-1.5 h-8"
         >
-          <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-          {t('library.community.refresh') || 'Refresh'}
+          <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
+          <span className="hidden sm:inline">{t('library.community.refresh') || 'Refresh'}</span>
         </Button>
       </header>
 
@@ -264,15 +263,15 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
         </div>
       )}
 
-      <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
-        <div className="relative">
+      <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
+        <div className="relative flex-1 min-w-[120px] max-w-[200px]">
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={t('library.community.searchPlaceholder')}
-            className="pl-10 w-64"
+            className="pl-8 h-8 text-sm"
           />
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-secondary" />
         </div>
         <div className="flex items-center gap-2 text-sm">
           <Text variant={TextVariants.label}>{t('library.community.sortBy')}</Text>
@@ -370,7 +369,15 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
                           loading="lazy"
                           decoding="async"
                           referrerPolicy="no-referrer"
-                          onError={() => {
+                          crossOrigin="anonymous"
+                          onError={(e) => {
+                            const img = e.currentTarget;
+                            // Fallback to default preview image on first error
+                            if (coverErrorCount === 0 && !img.dataset.fallbackTried) {
+                              img.dataset.fallbackTried = '1';
+                              img.src = DEFAULT_PREVIEW_IMAGE_URL;
+                              return;
+                            }
                             setCoverErrors((prev) => ({
                               ...prev,
                               [preset.name]: (prev[preset.name] || 0) + 1,

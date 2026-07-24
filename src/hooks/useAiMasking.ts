@@ -382,6 +382,12 @@ export function useAiMasking() {
         startPoint: [startPoint.x, startPoint.y],
       }) as Record<string, any>;
 
+      if (!newParameters.mask_data_base64) {
+        toast.error('AI Mask: No mask data generated');
+        setEditor({ isGeneratingAiMask: false });
+        return;
+      }
+
       const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
       const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
       patchesSentToBackend.delete(subMaskId);
@@ -420,6 +426,13 @@ export function useAiMasking() {
         rotation: adjustments.rotation,
         startPoint: [startPoint.x, startPoint.y],
       }) as Record<string, any>;
+
+      // Check if mask data is empty (no subject detected)
+      if (!newParameters.mask_data_base64) {
+        toast.error('AI Subject Mask: No subject detected in image');
+        setEditor({ isGeneratingAiMask: false });
+        return;
+      }
 
       const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
       const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
