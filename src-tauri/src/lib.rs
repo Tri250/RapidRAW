@@ -835,12 +835,12 @@ fn process_preview_job(
             RenderRequest {
                 adjustments: final_adjustments,
                 mask_bitmaps: &mask_bitmaps,
-                lut,
+                lut: lut.clone(),
                 roi: pixel_roi,
             },
             "apply_adjustments_fallback",
             false, // force CPU path
-            analytics_config,
+            None,  // analytics not needed for fallback render
         );
         (cpu_result, false)
     } else {
