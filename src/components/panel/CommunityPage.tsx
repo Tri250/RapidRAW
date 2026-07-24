@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { ArrowLeft, CheckCircle2, ChevronDown, ImageIcon, Loader2, RefreshCw, Search, Users, Layers, Crop } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, ImageIcon, Loader2, RefreshCw, Search, Users, Layers, Crop, Tag, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { siGithub } from 'simple-icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +21,13 @@ interface CommunityPreset {
   includeMasks?: boolean;
   includeCropTransform?: boolean;
   presetType?: 'tool' | 'style';
+  sourceName?: string;
+  source?: string;
+  coverPath?: string;
+  galleryImages?: string[];
+  tags?: string[];
+  description?: { title: string; content: string };
+  sections?: { title: string; items: { label: string; value: string; span: number }[] }[];
 }
 
 const containerVariants = {
@@ -69,6 +76,9 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
   const [downloadStatus, setDownloadStatus] = useState<Record<string, 'idle' | 'downloading' | 'success'>>({});
   const [allPreviewsLoaded, setAllPreviewsLoaded] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [expandedPresets, setExpandedPresets] = useState<Record<string, boolean>>({});
+  const [galleryState, setGalleryState] = useState<{ images: string[]; currentIndex: number } | null>(null);
+  const [coverErrors, setCoverErrors] = useState<Record<string, boolean>>({});
 
   const sortMethods = useMemo(() => [{ value: 'name', label: t('library.community.sortMethods.name') }], [t]);
 
@@ -312,6 +322,12 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
               {filteredAndSortedPresets.map((preset) => {
                 const previewUrl = previews[preset.name];
                 const status = downloadStatus[preset.name] || 'idle';
+                const isExpanded = expandedPresets[preset.name] || false;
+                const isCoverError = coverErrors[preset.name] || false;
+                const hasCoverImage = !!preset.coverPath && !isCoverError;
+                const hasGallery = !!(preset.galleryImages && preset.galleryImages.length > 0);
+                const hasTags = !!(preset.tags && preset.tags.length > 0);
+                const hasDescription = !!(preset.description && preset.description.content);
 
                 return (
                   <motion.div
@@ -321,29 +337,58 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
                     exit={{ opacity: 0, scale: 0.9 }}
                     className="bg-surface rounded-lg overflow-hidden group border border-border-color flex flex-col"
                   >
-                    <div className="relative w-full aspect-square bg-bg-primary flex items-center justify-center">
-                      {previewUrl ? (
+                    <div
+                      className="relative w-full aspect-square bg-bg-primary flex items-center justify-center cursor-pointer"
+                      onClick={() => {
+                        if (hasGallery) {
+                          setGalleryState({ images: preset.galleryImages!, currentIndex: 0 });
+                        }
+                      }}
+                    >
+                      {hasCoverImage ? (
+                        <img
+                          src={preset.coverPath}
+                          alt={preset.name}
+                          className="w-full h-full object-cover transition-all duration-300 group-hover:blur-xs group-hover:brightness-75"
+                          onError={() => {
+                            setCoverErrors((prev) => ({ ...prev, [preset.name]: true }));
+                          }}
+                        />
+                      ) : null}
+                      {(!hasCoverImage && previewUrl) ? (
                         <img
                           src={previewUrl}
                           alt={preset.name}
                           className="w-full h-full object-cover transition-all duration-300 group-hover:blur-xs group-hover:brightness-75"
                         />
-                      ) : allPreviewsLoaded ? (
+                      ) : null}
+                      {(!hasCoverImage && !previewUrl && allPreviewsLoaded) ? (
                         <div className="flex flex-col items-center justify-center gap-2 text-text-secondary">
                           <ImageIcon size={32} />
                           <Text variant={TextVariants.small} color={TextColors.secondary}>
                             {t('library.community.noPreview') || 'No preview'}
                           </Text>
                         </div>
-                      ) : (
+                      ) : null}
+                      {(!hasCoverImage && !previewUrl && !allPreviewsLoaded) ? (
                         <Loader2 className="h-8 w-8 animate-spin text-text-secondary" />
+                      ) : null}
+
+                      {hasGallery && (
+                        <div className="absolute top-2 right-2 bg-black/50 rounded-full px-2 py-0.5 text-white text-xs flex items-center gap-1">
+                          <ImageIcon size={12} />
+                          {preset.galleryImages!.length}
+                        </div>
                       )}
 
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <Button
                           size="sm"
                           variant="secondary"
-                          onClick={() => handleDownloadPreset(preset)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownloadPreset(preset);
+                          }}
                           disabled={status !== 'idle'}
                           className="shadow-lg"
                         >
@@ -362,12 +407,56 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
                       </div>
                     </div>
                     <div className="p-4 text-center">
+                      {preset.sourceName && (
+                        <Text variant={TextVariants.small} color={TextColors.secondary} className="mb-1 opacity-60">
+                          {preset.sourceName}
+                        </Text>
+                      )}
                       <Text variant={TextVariants.heading} className="truncate mb-1">
                         {preset.name}
                       </Text>
                       <Text variant={TextVariants.small} className="font-['cursive'] italic">
                         {t('library.community.presetBy', { creator: preset.creator })}
                       </Text>
+
+                      {hasTags && (
+                        <div className="flex flex-wrap justify-center gap-1 mt-2">
+                          {preset.tags!.map((tag) => (
+                            <span
+                              key={tag}
+                              className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-accent/10 text-accent text-xs"
+                            >
+                              <Tag size={10} />
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {hasDescription && (
+                        <div className="mt-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedPresets((prev) => ({ ...prev, [preset.name]: !isExpanded }));
+                            }}
+                            className="flex items-center gap-1 mx-auto text-xs text-text-secondary hover:text-text-primary transition-colors"
+                          >
+                            {preset.description!.title}
+                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                          </button>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="mt-2 text-xs text-text-secondary text-left leading-relaxed"
+                            >
+                              {preset.description!.content}
+                            </motion.div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 );
@@ -403,6 +492,72 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
             </a>
           </Text>
         </motion.div>
+
+        {/* Gallery Modal */}
+        <AnimatePresence>
+          {galleryState && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+              onClick={() => setGalleryState(null)}
+            >
+              <button
+                className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+                onClick={() => setGalleryState(null)}
+              >
+                <X size={28} />
+              </button>
+
+              {galleryState.images.length > 1 && (
+                <>
+                  <button
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white transition-colors bg-black/30 rounded-full p-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setGalleryState((prev) => prev && {
+                        ...prev,
+                        currentIndex: (prev.currentIndex - 1 + prev.images.length) % prev.images.length,
+                      });
+                    }}
+                  >
+                    <ChevronLeft size={28} />
+                  </button>
+                  <button
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white transition-colors bg-black/30 rounded-full p-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setGalleryState((prev) => prev && {
+                        ...prev,
+                        currentIndex: (prev.currentIndex + 1) % prev.images.length,
+                      });
+                    }}
+                  >
+                    <ChevronRight size={28} />
+                  </button>
+                </>
+              )}
+
+              <div
+                className="max-w-[90vw] max-h-[85vh] flex items-center justify-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <img
+                  src={galleryState.images[galleryState.currentIndex]}
+                  alt={`Gallery image ${galleryState.currentIndex + 1}`}
+                  className="max-w-full max-h-[85vh] object-contain rounded-lg"
+                />
+              </div>
+
+              {galleryState.images.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm">
+                  {galleryState.currentIndex + 1} / {galleryState.images.length}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

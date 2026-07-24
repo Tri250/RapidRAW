@@ -159,6 +159,89 @@ pub struct CommunityPreset {
     pub include_crop_transform: Option<bool>,
     #[serde(rename = "presetType")]
     pub preset_type: Option<String>,
+    /// v2 fields: source collection name
+    #[serde(rename = "sourceName", skip_serializing_if = "Option::is_none")]
+    pub source_name: Option<String>,
+    /// v2 fields: source URL
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    /// v2 fields: cover image URL
+    #[serde(rename = "coverPath", skip_serializing_if = "Option::is_none")]
+    pub cover_path: Option<String>,
+    /// v2 fields: gallery image URLs
+    #[serde(rename = "galleryImages", skip_serializing_if = "Option::is_none")]
+    pub gallery_images: Option<Vec<String>>,
+    /// v2 fields: tags
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<String>>,
+    /// v2 fields: description
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<PresetDescription>,
+    /// v2 fields: raw sections for display
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sections: Option<Vec<PresetSection>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PresetDescription {
+    pub title: String,
+    pub content: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PresetSection {
+    pub title: String,
+    pub items: Vec<PresetParam>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PresetParam {
+    pub label: String,
+    pub value: String,
+    pub span: u32,
+}
+
+// ── V2 preset source format (OMaster-Community) ──
+
+#[derive(Deserialize, Debug, Clone)]
+struct CommunityPresetV2Source {
+    version: u32,
+    name: String,
+    author: String,
+    build: u32,
+    presets: Vec<CommunityPresetV2Item>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+struct CommunityPresetV2Item {
+    name: String,
+    #[serde(rename = "coverPath")]
+    cover_path: String,
+    #[serde(rename = "galleryImages")]
+    gallery_images: Vec<String>,
+    author: String,
+    sections: Vec<CommunityPresetV2Section>,
+    tags: Vec<String>,
+    description: CommunityPresetV2Description,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+struct CommunityPresetV2Section {
+    title: String,
+    items: Vec<CommunityPresetV2Param>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+struct CommunityPresetV2Param {
+    label: String,
+    value: String,
+    span: u32,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+struct CommunityPresetV2Description {
+    title: String,
+    content: String,
 }
 
 #[derive(serde::Serialize)]
@@ -1349,25 +1432,225 @@ fn generate_preset_preview(
 #[tauri::command]
 async fn fetch_community_presets() -> Result<Vec<CommunityPreset>, String> {
     let client = reqwest::Client::new();
-    let url = "https://raw.githubusercontent.com/CyberTimon/RapidRAW-Presets/main/manifest.json";
 
+    // Community preset data sources (ordered by priority)
+    let sources: Vec<(&str, &str)> = vec![
+        // Original RapidRAW presets (GitHub manifest)
+        (
+            "https://raw.githubusercontent.com/CyberTimon/RapidRAW-Presets/main/manifest.json",
+            "manifest",
+        ),
+        // OMaster community presets - Realme
+        (
+            "https://cdn.jsdelivr.net/gh/fengyec2/OMaster-Community@main/presets/v2/realme.json",
+            "v2",
+        ),
+        // OMaster community presets - Honor
+        (
+            "https://cdn.jsdelivr.net/gh/fengyec2/OMaster-Community@main/presets/v2/honor.json",
+            "v2",
+        ),
+    ];
+
+    let mut all_presets: Vec<CommunityPreset> = Vec::new();
+    let mut errors: Vec<String> = Vec::new();
+
+    for (url, source_type) in &sources {
+        match fetch_presets_from_url(&client, url, source_type).await {
+            Ok(presets) => all_presets.extend(presets),
+            Err(e) => {
+                log::warn!("Failed to fetch presets from {}: {}", url, e);
+                errors.push(format!("{}: {}", url, e));
+            }
+        }
+    }
+
+    // If all sources failed, return an error
+    if all_presets.is_empty() && !errors.is_empty() {
+        return Err(errors.join("; "));
+    }
+
+    Ok(all_presets)
+}
+
+async fn fetch_presets_from_url(
+    client: &reqwest::Client,
+    url: &str,
+    source_type: &str,
+) -> Result<Vec<CommunityPreset>, String> {
     let response = client
         .get(url)
         .header("User-Agent", "RapidRAW-App")
         .send()
         .await
-        .map_err(|e| format!("Failed to fetch manifest from GitHub: {}", e))?;
+        .map_err(|e| format!("Failed to fetch from {}: {}", url, e))?;
 
     if !response.status().is_success() {
-        return Err(format!("GitHub returned an error: {}", response.status()));
+        return Err(format!("{} returned HTTP {}", url, response.status()));
     }
 
-    let presets: Vec<CommunityPreset> = response
-        .json()
-        .await
-        .map_err(|e| format!("Failed to parse manifest.json: {}", e))?;
+    match *source_type {
+        "v2" => {
+            let source: CommunityPresetV2Source = response
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse v2 preset from {}: {}", url, e))?;
+            Ok(convert_v2_presets(source, url))
+        }
+        _ => {
+            // Original manifest format: directly deserialize as Vec<CommunityPreset>
+            let presets: Vec<CommunityPreset> = response
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse manifest from {}: {}", url, e))?;
+            Ok(presets)
+        }
+    }
+}
 
-    Ok(presets)
+/// Convert v2 format presets to the unified CommunityPreset format
+fn convert_v2_presets(source: CommunityPresetV2Source, source_url: &str) -> Vec<CommunityPreset> {
+    let base_url = resolve_base_url(source_url);
+
+    source
+        .presets
+        .into_iter()
+        .map(|item| {
+            // Resolve cover path (handle both absolute and relative URLs)
+            let cover_path = if item.cover_path.starts_with("http") {
+                item.cover_path.clone()
+            } else {
+                format!("{}{}", base_url, item.cover_path)
+            };
+
+            // Resolve gallery image paths
+            let gallery_images: Vec<String> = item
+                .gallery_images
+                .iter()
+                .map(|img| {
+                    if img.starts_with("http") {
+                        img.clone()
+                    } else {
+                        format!("{}{}", base_url, img)
+                    }
+                })
+                .collect();
+
+            // Convert sections to the unified format
+            let sections: Vec<PresetSection> = item
+                .sections
+                .iter()
+                .map(|s| PresetSection {
+                    title: s.title.clone(),
+                    items: s
+                        .items
+                        .iter()
+                        .map(|p| PresetParam {
+                            label: p.label.clone(),
+                            value: p.value.clone(),
+                            span: p.span,
+                        })
+                        .collect(),
+                })
+                .collect();
+
+            // Try to convert parameter descriptions to adjustment values
+            let adjustments = convert_params_to_adjustments(&item.sections);
+
+            CommunityPreset {
+                name: item.name.clone(),
+                creator: item.author.clone(),
+                adjustments,
+                include_masks: None,
+                include_crop_transform: None,
+                preset_type: Some("style".to_string()),
+                source_name: Some(source.name.clone()),
+                source: Some(source_url.to_string()),
+                cover_path: Some(cover_path),
+                gallery_images: Some(gallery_images),
+                tags: Some(item.tags.clone()),
+                description: Some(PresetDescription {
+                    title: item.description.title.clone(),
+                    content: item.description.content.clone(),
+                }),
+                sections: Some(sections),
+            }
+        })
+        .collect()
+}
+
+/// Resolve the base URL from a source URL (strip the filename)
+fn resolve_base_url(url: &str) -> String {
+    if let Some(pos) = url.rfind('/') {
+        format!("{}/", &url[..pos + 1])
+    } else {
+        url.to_string()
+    }
+}
+
+/// Attempt to convert v2 parameter sections to adjustment values
+/// Maps known parameter labels to adjustment keys with normalized values
+fn convert_params_to_adjustments(sections: &[CommunityPresetV2Section]) -> Value {
+    let mut adjustments = serde_json::Map::new();
+
+    for section in sections {
+        for param in &section.items {
+            let value_str = param.value.trim();
+            // Try to parse numeric value (handles "+3", "-1", "0", "500" etc.)
+            if let Ok(num) = value_str.parse::<f64>() {
+                // Normalize based on the parameter type
+                let normalized = match param.label.as_str() {
+                    // Basic adjustments: scale from [-5, +5] to [-1, 1] range
+                    "saturation" | "hue" | "contrast" | "brightness"
+                    | "sharpness" | "clarity" | "tone_curve" => {
+                        (num / 5.0).clamp(-1.0, 1.0)
+                    }
+                    // Highlight/shadow: scale from [-5, +5] to [-100, 100]
+                    "contrast_highlight" => {
+                        (num * 20.0).clamp(-100.0, 100.0)
+                    }
+                    "contrast_shadow" => {
+                        (num * 20.0).clamp(-100.0, 100.0)
+                    }
+                    // Grain: scale from [-5, +5] to [0, 100]
+                    "grain" => {
+                        ((num + 5.0) / 10.0 * 100.0).clamp(0.0, 100.0)
+                    }
+                    "grain_size" => {
+                        ((num + 5.0) / 10.0 * 100.0).clamp(0.0, 100.0)
+                    }
+                    _ => num,
+                };
+
+                // Map label to adjustment key
+                let key = param_label_to_key(&param.label);
+                adjustments.insert(key, Value::Number(serde_json::Number::from_f64(
+                    (normalized * 100.0).round() / 100.0,
+                ).unwrap_or_else(|| serde_json::Number::from(0))));
+            }
+        }
+    }
+
+    Value::Object(adjustments)
+}
+
+/// Map parameter label to the corresponding adjustment key
+fn param_label_to_key(label: &str) -> String {
+    match label {
+        "saturation" => "saturation".to_string(),
+        "hue" => "hue".to_string(),
+        "contrast" => "contrast".to_string(),
+        "brightness" => "brightness".to_string(),
+        "sharpness" => "sharpness".to_string(),
+        "clarity" => "clarity".to_string(),
+        "tone_curve" => "toneCurve".to_string(),
+        "contrast_highlight" => "highlights".to_string(),
+        "contrast_shadow" => "shadows".to_string(),
+        "grain" => "grainAmount".to_string(),
+        "grain_size" => "grainSize".to_string(),
+        "filter" => "filter".to_string(),
+        _ => label.to_lowercase().replace(' ', "_"),
+    }
 }
 
 #[tauri::command]
