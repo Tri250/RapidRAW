@@ -449,10 +449,16 @@ export function useImageProcessing(
     const targetRes = calculateTargetRes();
     const renderAdjustments = previewOverride ?? adjustments;
 
+    const finalPreviewExists = !!(globalImageCache.get(selectedImage.path)?.finalPreviewUrl || useEditorStore.getState().finalPreviewUrl);
+    const firstRender = !finalPreviewExists;
+
     if (isSliderDragging) {
       if (appSettings?.enableLivePreviews !== false) {
         applyAdjustments(renderAdjustments, true, targetRes);
       }
+    } else if (firstRender) {
+      currentResRef.current = targetRes;
+      applyAdjustments(renderAdjustments, false, targetRes);
     } else {
       dragIdleTimer.current = setTimeout(() => {
         currentResRef.current = targetRes;

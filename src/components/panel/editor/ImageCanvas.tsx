@@ -4,6 +4,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 import { Stage, Layer, Ellipse, Line, Transformer, Group, Circle, Rect } from 'react-konva';
 import { PercentCrop, Crop } from 'react-image-crop';
 import { Stamp, Bandage } from 'lucide-react';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { Adjustments, AiPatch, Coord, MaskContainer, INITIAL_PORTRAIT_ADJUSTMENTS } from '../../../utils/adjustments';
 import { Mask, SubMask, SubMaskMode, ToolType } from '../right/Masks';
 import { AppSettings, BrushSettings, SelectedImage } from '../../ui/AppProperties';
@@ -1326,13 +1327,39 @@ const ImageCanvas = memo(
     const [straightenLine, setStraightenLine] = useState<any>(null);
     const isStraightening = useRef(false);
 
-    const displayFallbackSrc = finalPreviewUrl || selectedImage.thumbnailUrl || selectedImage.originalUrl;
+    const toSafeSrc = useCallback((raw: string | null | undefined): string | null => {
+      if (!raw) return null;
+      const lower = raw.toLowerCase();
+      if (
+        lower.startsWith('http://') ||
+        lower.startsWith('https://') ||
+        lower.startsWith('blob:') ||
+        lower.startsWith('data:') ||
+        lower.startsWith('asset:') ||
+        lower.startsWith('http://asset.localhost') ||
+        lower.startsWith('https://asset.localhost')
+      ) {
+        return raw;
+      }
+      try {
+        const converted = convertFileSrc(raw);
+        return converted || raw;
+      } catch {
+        return raw;
+      }
+    }, []);
+
+    const safeFinalPreview = toSafeSrc(finalPreviewUrl);
+    const safeThumbnail = toSafeSrc(selectedImage.thumbnailUrl);
+    const safeOriginal = toSafeSrc(selectedImage.originalUrl);
+    const lastValidBaseSrcRef = useRef<string | null>(safeFinalPreview || safeThumbnail || safeOriginal || null);
+    const displayFallbackSrc = safeFinalPreview || safeThumbnail || safeOriginal || lastValidBaseSrcRef.current;
     const [displayState, setDisplayState] = useState({
       base: displayFallbackSrc,
       fade: null as string | null,
     });
     const [isFadingIn, setIsFadingIn] = useState(false);
-    const prevImageIdentityRef = useRef(selectedImage.thumbnailUrl || selectedImage.originalUrl);
+    const prevImageIdentityRef = useRef(safeThumbnail || safeOriginal);
 
     const [baseTool, setBaseTool] = useState<ToolType>(brushSettings?.tool ?? ToolType.Brush);
     const [isAltPressed, setIsAltPressed] = useState(false);
@@ -1424,17 +1451,20 @@ const ImageCanvas = memo(
     }, [interactivePatch]);
 
     useEffect(() => {
-      const newSrc = finalPreviewUrl || selectedImage.thumbnailUrl || selectedImage.originalUrl;
-      const isNewImage = prevImageIdentityRef.current !== (selectedImage.thumbnailUrl || selectedImage.originalUrl);
+      const newSrc = safeFinalPreview || safeThumbnail || safeOriginal || lastValidBaseSrcRef.current;
+      const identityKey = safeThumbnail || safeOriginal;
+      const isNewImage = prevImageIdentityRef.current !== identityKey;
 
       if (isNewImage) {
-        prevImageIdentityRef.current = selectedImage.thumbnailUrl || selectedImage.originalUrl;
+        prevImageIdentityRef.current = identityKey;
+        if (newSrc) lastValidBaseSrcRef.current = newSrc;
         setDisplayState({ base: newSrc, fade: null });
         setIsFadingIn(false);
         return;
       }
 
       if (isSliderDragging) {
+        if (newSrc) lastValidBaseSrcRef.current = newSrc;
         setDisplayState({ base: newSrc, fade: null });
         setIsFadingIn(false);
       } else {
@@ -1450,6 +1480,7 @@ const ImageCanvas = memo(
           });
 
           const timer = setTimeout(() => {
+            if (newSrc) lastValidBaseSrcRef.current = newSrc;
             setDisplayState({ base: newSrc, fade: null });
             setIsFadingIn(false);
           }, 150);
@@ -1460,11 +1491,12 @@ const ImageCanvas = memo(
             clearTimeout(timer);
           };
         } else {
+          if (newSrc) lastValidBaseSrcRef.current = newSrc;
           setDisplayState({ base: newSrc, fade: null });
           setIsFadingIn(false);
         }
       }
-    }, [finalPreviewUrl, selectedImage.thumbnailUrl, selectedImage.originalUrl, isSliderDragging, displayState.base]);
+    }, [safeFinalPreview, safeThumbnail, safeOriginal, isSliderDragging, displayState.base, toSafeSrc]);
 
     useEffect(() => {
       setBaseTool(brushSettings?.tool ?? ToolType.Brush);
@@ -2848,7 +2880,7 @@ const ImageCanvas = memo(
                 {/* Show SVG fallback when wgpu is not active, OR when wgpu is active
                     but no actual image data is available (finalPreviewUrl is null).
                     This prevents blank display when wgpu fails to render properly. */}
-                {displayState.base && (!isWgpuActive || !finalPreviewUrl) && (
+                {displayState.base && (!isWgpuActive || !safeFinalPreview) && (
                   <image
                     href={displayState.base}
                     x="0"
@@ -2856,10 +2888,20 @@ const ImageCanvas = memo(
                     width="100%"
                     height="100%"
                     style={{ imageRendering: isMaxZoom ? 'pixelated' : 'auto' }}
+                    onError={() => {
+                      const fallback = lastValidBaseSrcRef.current || safeFinalPreview || safeThumbnail;
+                      setDisplayState((prev) => {
+                        if (prev.base === fallback || !fallback) return prev;
+                        return { ...prev, base: fallback };
+                      });
+                    }}
+                    onLoad={() => {
+                      if (displayState.base) lastValidBaseSrcRef.current = displayState.base;
+                    }}
                   />
                 )}
 
-                {displayState.fade && (!isWgpuActive || !finalPreviewUrl) && (
+                {displayState.fade && (!isWgpuActive || !safeFinalPreview) && (
                   <image
                     href={displayState.fade}
                     x="0"
@@ -2870,6 +2912,12 @@ const ImageCanvas = memo(
                       imageRendering: isMaxZoom ? 'pixelated' : 'auto',
                       opacity: isFadingIn ? 1 : 0,
                       transition: 'opacity 150ms ease-in-out',
+                    }}
+                    onError={() => {
+                      setDisplayState((prev) => ({ ...prev, fade: null }));
+                    }}
+                    onLoad={() => {
+                      if (displayState.fade) lastValidBaseSrcRef.current = displayState.fade;
                     }}
                   />
                 )}

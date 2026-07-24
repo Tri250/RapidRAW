@@ -74,11 +74,11 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
   const [downloadStatus, setDownloadStatus] = useState<Record<string, 'idle' | 'downloading' | 'success'>>({});
-  const [allPreviewsLoaded, setAllPreviewsLoaded] = useState(false);
+  const [allPreviewsLoaded, setAllPreviewsLoaded] = useState(true);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [expandedPresets, setExpandedPresets] = useState<Record<string, boolean>>({});
   const [galleryState, setGalleryState] = useState<{ images: string[]; currentIndex: number } | null>(null);
-  const [coverErrors, setCoverErrors] = useState<Record<string, boolean>>({});
+  const [coverErrors, setCoverErrors] = useState<Record<string, number>>({});
 
   const sortMethods = useMemo(() => [{ value: 'name', label: t('library.community.sortMethods.name') }], [t]);
 
@@ -131,13 +131,7 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
       setPreviewError(null);
 
       if (!currentFolderPath || imageList.length === 0) {
-        const defaultPath = await fetchDefaultPreviewImage();
-        if (defaultPath) {
-          setPreviewImagePaths([defaultPath]);
-        } else {
-          setPreviewImagePaths([]);
-          setPreviewError(t('library.community.previewImageError') || 'Failed to load preview image');
-        }
+        setPreviewImagePaths([]);
         return;
       }
 
@@ -153,10 +147,18 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
     };
 
     setupPreviewImages();
-  }, [imageList, currentFolderPath, fetchDefaultPreviewImage, t]);
+  }, [imageList, currentFolderPath]);
 
   useEffect(() => {
     if (presets.length === 0 || previewImagePaths.length === 0) {
+      setAllPreviewsLoaded(true);
+      return;
+    }
+
+    const presetHasCover = (p: CommunityPreset) => !!p.coverPath;
+    const presetsNeedingPreview = presets.filter((p) => !presetHasCover(p));
+    if (presetsNeedingPreview.length === 0) {
+      setAllPreviewsLoaded(true);
       return;
     }
 
@@ -165,7 +167,7 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
       try {
         const previewDataMap: Record<string, number[]> = await invoke(Invokes.GenerateAllCommunityPreviews, {
           imagePaths: previewImagePaths,
-          presets: presets.map((p) => ({
+          presets: presetsNeedingPreview.map((p) => ({
             ...p,
             adjustments: { ...INITIAL_ADJUSTMENTS, ...p.adjustments },
           })),
@@ -323,11 +325,25 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
                 const previewUrl = previews[preset.name];
                 const status = downloadStatus[preset.name] || 'idle';
                 const isExpanded = expandedPresets[preset.name] || false;
-                const isCoverError = coverErrors[preset.name] || false;
-                const hasCoverImage = !!preset.coverPath && !isCoverError;
+                const coverErrorCount = coverErrors[preset.name] || 0;
+                const coverRetryLimit = 2;
+                const coverPath =
+                  preset.coverPath && coverErrorCount <= coverRetryLimit
+                    ? `${preset.coverPath}${preset.coverPath.includes('?') ? '&' : '?'}retry=${coverErrorCount}`
+                    : undefined;
+                const hasCoverImage = !!coverPath;
                 const hasGallery = !!(preset.galleryImages && preset.galleryImages.length > 0);
                 const hasTags = !!(preset.tags && preset.tags.length > 0);
                 const hasDescription = !!(preset.description && preset.description.content);
+
+                const coverInlineStyle: React.CSSProperties | undefined = coverPath
+                  ? {
+                      backgroundImage: `url("${coverPath}")`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                    }
+                  : undefined;
 
                 return (
                   <motion.div
@@ -338,7 +354,8 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
                     className="bg-surface rounded-lg overflow-hidden group border border-border-color flex flex-col"
                   >
                     <div
-                      className="relative w-full aspect-square bg-bg-primary flex items-center justify-center cursor-pointer"
+                      className="relative w-full aspect-square bg-bg-primary flex items-center justify-center cursor-pointer overflow-hidden"
+                      style={coverInlineStyle}
                       onClick={() => {
                         if (hasGallery) {
                           setGalleryState({ images: preset.galleryImages!, currentIndex: 0 });
@@ -347,11 +364,17 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
                     >
                       {hasCoverImage ? (
                         <img
-                          src={preset.coverPath}
+                          src={coverPath}
                           alt={preset.name}
                           className="w-full h-full object-cover transition-all duration-300 group-hover:blur-xs group-hover:brightness-75"
+                          loading="lazy"
+                          decoding="async"
+                          referrerPolicy="no-referrer"
                           onError={() => {
-                            setCoverErrors((prev) => ({ ...prev, [preset.name]: true }));
+                            setCoverErrors((prev) => ({
+                              ...prev,
+                              [preset.name]: (prev[preset.name] || 0) + 1,
+                            }));
                           }}
                         />
                       ) : null}
@@ -360,18 +383,24 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
                           src={previewUrl}
                           alt={preset.name}
                           className="w-full h-full object-cover transition-all duration-300 group-hover:blur-xs group-hover:brightness-75"
+                          loading="lazy"
+                          decoding="async"
                         />
                       ) : null}
                       {(!hasCoverImage && !previewUrl && allPreviewsLoaded) ? (
-                        <div className="flex flex-col items-center justify-center gap-2 text-text-secondary">
-                          <ImageIcon size={32} />
-                          <Text variant={TextVariants.small} color={TextColors.secondary}>
-                            {t('library.community.noPreview') || 'No preview'}
+                        <div className="flex flex-col items-center justify-center gap-2 text-text-secondary bg-bg-primary/60 backdrop-blur-sm w-full h-full">
+                          <div className="text-3xl font-bold tracking-wider opacity-70">
+                            {preset.name.slice(0, 2)}
+                          </div>
+                          <Text variant={TextVariants.small} color={TextColors.secondary} className="opacity-70">
+                            {preset.sourceName || t('library.community.noPreview', { defaultValue: 'No preview' })}
                           </Text>
                         </div>
                       ) : null}
                       {(!hasCoverImage && !previewUrl && !allPreviewsLoaded) ? (
-                        <Loader2 className="h-8 w-8 animate-spin text-text-secondary" />
+                        <div className="flex flex-col items-center justify-center gap-2 text-text-secondary">
+                          <Loader2 className="h-8 w-8 animate-spin text-text-secondary" />
+                        </div>
                       ) : null}
 
                       {hasGallery && (
@@ -385,7 +414,7 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
                         <Button
                           size="sm"
                           variant="secondary"
-                          onClick={(e) => {
+                          onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
                             handleDownloadPreset(preset);
                           }}
