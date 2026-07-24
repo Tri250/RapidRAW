@@ -36,8 +36,8 @@ jobs:
             build-args: ''
             target: aarch64-apple-darwin
             asset-prefix: '02'
-          # macOS Intel
-          - platform: 'macos-13'
+          # macOS Intel (cross-compile on macos-14 runner)
+          - platform: 'macos-14'
             build-args: ''
             target: x86_64-apple-darwin
             asset-prefix: '02_intel'
