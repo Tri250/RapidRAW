@@ -530,7 +530,7 @@ fn with_engine<F, T>(f: F) -> Result<T, String>
 where
     F: FnOnce(&LabelingEngine) -> anyhow::Result<T>,
 {
-    let guard = LABELING_ENGINE.lock().unwrap();
+    let guard = LABELING_ENGINE.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
     let engine = guard
         .as_ref()
         .ok_or_else(|| "Labeling engine is not initialized".to_string())?;
@@ -541,7 +541,7 @@ fn with_engine_mut<F, T>(f: F) -> Result<T, String>
 where
     F: FnOnce(&mut LabelingEngine) -> anyhow::Result<T>,
 {
-    let mut guard = LABELING_ENGINE.lock().unwrap();
+    let mut guard = LABELING_ENGINE.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
     let engine = guard
         .as_mut()
         .ok_or_else(|| "Labeling engine is not initialized".to_string())?;
@@ -553,7 +553,7 @@ pub fn ai_labeling_init(
     vocabulary_json: Option<String>,
     similarity_threshold: Option<f32>,
 ) -> Result<(), String> {
-    let mut guard = LABELING_ENGINE.lock().unwrap();
+    let mut guard = LABELING_ENGINE.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
 
     let mut engine = LabelingEngine::new();
 
@@ -628,13 +628,13 @@ pub fn ai_labeling_get_stats() -> Result<serde_json::Value, String> {
 
 #[tauri::command]
 pub fn ai_labeling_is_initialized() -> Result<bool, String> {
-    let guard = LABELING_ENGINE.lock().unwrap();
+    let guard = LABELING_ENGINE.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
     Ok(guard.is_some())
 }
 
 #[tauri::command]
 pub fn ai_labeling_reset() -> Result<(), String> {
-    let mut guard = LABELING_ENGINE.lock().unwrap();
+    let mut guard = LABELING_ENGINE.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
     *guard = None;
     Ok(())
 }

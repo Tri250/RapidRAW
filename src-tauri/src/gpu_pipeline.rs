@@ -584,7 +584,7 @@ impl GpuPipelineHandle {
 
     /// Lazily initialize the pipeline on first use, returning a locked guard.
     pub fn get_or_init(&self) -> Result<std::sync::MutexGuard<'_, Option<GpuPipeline>>> {
-        let mut guard = self.inner.lock().unwrap();
+        let mut guard = self.inner.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
         if guard.is_none() {
             let pipeline = GpuPipeline::init()?;
             *guard = Some(pipeline);
@@ -661,20 +661,16 @@ pub fn gpu_apply_adjustments(
     let pipeline = match guard.as_ref() {
         Some(p) => p,
         None => {
-            log::warn!("GPU pipeline not available, returning original image");
-            return Ok(image_data_base64);
+            log::warn!("GPU pipeline not available – returning error so caller can fall back to CPU");
+            return Err("GPU pipeline not initialized".to_string());
         }
     };
 
-    // Call apply_adjustments with CPU fallback on GPU error
-    let result_data = match apply_adjustments(pipeline, &image_data, width, height, uniforms) {
-        Ok(data) => data,
-        Err(e) => {
-            log::error!("GPU apply_adjustments failed: {}. Falling back to original image.", e);
-            // GPU compute failed — return the original image unchanged
-            return Ok(image_data_base64);
-        }
-    };
+    // Call apply_adjustments — if GPU fails, return error so the caller
+    // can fall back to the CPU rendering path instead of silently returning
+    // the unadjusted original image.
+    let result_data = apply_adjustments(pipeline, &image_data, width, height, uniforms)
+        .map_err(|e| format!("GPU apply_adjustments failed: {}", e))?;
 
     // Encode result as base64 PNG
     // The result is raw RGBA8 pixels; encode as PNG using the image crate

@@ -46,6 +46,21 @@ export function useAiMasking() {
 
   // Track in-flight requests for cancellation on unmount or re-trigger.
   const quickEraseAbortRef = useRef<AbortController | null>(null);
+  const generativeAbortRef = useRef<AbortController | null>(null);
+  const cleanupAbortRef = useRef<AbortController | null>(null);
+
+  // AI operation timeout (30s for cleanup, 60s for generative replace).
+  const AI_CLEANUP_TIMEOUT_MS = 30_000;
+  const AI_GENERATIVE_TIMEOUT_MS = 60_000;
+
+  // Cleanup abort controllers on unmount.
+  useEffect(() => {
+    return () => {
+      quickEraseAbortRef.current?.abort();
+      generativeAbortRef.current?.abort();
+      cleanupAbortRef.current?.abort();
+    };
+  }, []);
 
   const updateSubMask = useCallback(
     (subMaskId: string, updatedData: any) => {
@@ -79,6 +94,15 @@ export function useAiMasking() {
         aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: true } : p)),
       }));
 
+      // Set up timeout for manual cleanup.
+      cleanupAbortRef.current?.abort();
+      const cleanupAbort = new AbortController();
+      cleanupAbortRef.current = cleanupAbort;
+      const cleanupTimeout = setTimeout(() => {
+        cleanupAbort.abort();
+        toast.error('Cleanup timed out – operation took too long');
+      }, AI_CLEANUP_TIMEOUT_MS);
+
       try {
         const patchDefinitionForBackend = adjustments.aiPatches.find((p: AiPatch) => p.id === patchId);
 
@@ -87,6 +111,8 @@ export function useAiMasking() {
           patchDefinition: patchDefinitionForBackend,
           sourcePoint: [sourceX, sourceY],
         });
+
+        if (cleanupAbort.signal.aborted) return;
 
         const newPatchData = JSON.parse(newPatchDataJson);
         patchesSentToBackend.delete(patchId);
@@ -98,11 +124,14 @@ export function useAiMasking() {
           ),
         }));
       } catch (err: any) {
+        if (err.name === 'AbortError' || cleanupAbort.signal.aborted) return;
         toast.error(`Cleanup Failed: ${err.message || String(err)}`);
         setAdjustments((prev: Adjustments) => ({
           ...prev,
           aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
         }));
+      } finally {
+        clearTimeout(cleanupTimeout);
       }
     },
     [setAdjustments],
@@ -135,6 +164,15 @@ export function useAiMasking() {
 
       setEditor({ isGeneratingAi: true });
 
+      // Set up timeout for generative replace.
+      generativeAbortRef.current?.abort();
+      const genAbort = new AbortController();
+      generativeAbortRef.current = genAbort;
+      const genTimeout = setTimeout(() => {
+        genAbort.abort();
+        toast.error('AI Replace timed out – operation took too long');
+      }, AI_GENERATIVE_TIMEOUT_MS);
+
       try {
         const newPatchDataJson: any = await invoke(Invokes.InvokeGenerativeReplaceWithMaskDef, {
           currentAdjustments: adjustments,
@@ -143,6 +181,8 @@ export function useAiMasking() {
           useFastInpaint: useFastInpaint,
           token: token || null,
         });
+
+        if (genAbort.signal.aborted) return;
 
         const newPatchData = JSON.parse(newPatchDataJson);
         patchesSentToBackend.delete(patchId);
@@ -161,13 +201,15 @@ export function useAiMasking() {
           ),
         }));
         setEditor({ activeAiPatchContainerId: null, activeAiSubMaskId: null });
-      } catch (err) {
+      } catch (err: any) {
+        if (err.name === 'AbortError' || genAbort.signal.aborted) return;
         toast.error(`AI Replace Failed: ${err}`);
         setAdjustments((prev: Adjustments) => ({
           ...prev,
           aiPatches: prev.aiPatches.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
         }));
       } finally {
+        clearTimeout(genTimeout);
         setEditor({ isGeneratingAi: false });
       }
     },

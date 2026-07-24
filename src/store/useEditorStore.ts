@@ -137,10 +137,30 @@ export const useEditorStore = create<EditorState>((set) => ({
   pushHistory: (newAdj) =>
     set((state) => {
       const newHistory = state.history.slice(0, state.historyIndex + 1);
-      newHistory.push(newAdj);
-      // Cap at 30 entries (reduced from 50) to limit memory usage since
-      // Adjustments can contain large base64 mask data strings
-      if (newHistory.length > 30) newHistory.shift();
+      // Strip heavy mask base64 data from history entries to limit memory.
+      // Mask data is reconstructed from the current adjustments when undo/redo
+      // navigates to a history entry that references masks — the visual state
+      // is fully determined by the numeric adjustment values + mask geometry,
+      // and the heavy base64 is only needed for the active render, not history.
+      const lightweightAdj = {
+        ...newAdj,
+        maskContainers: newAdj.maskContainers?.map((mc: any) => ({
+          ...mc,
+          masks: mc.masks?.map((m: any) => ({
+            ...m,
+            subMasks: m.subMasks?.map((sm: any) => ({
+              ...sm,
+              // Replace heavy bitmap data with a placeholder indicator.
+              // When this entry is restored via undo/redo, the mask will
+              // be re-rendered from its definition parameters.
+              bitmapData: sm.bitmapData ? '__mask_ref__' : undefined,
+            })),
+          })),
+        })),
+      };
+      newHistory.push(lightweightAdj);
+      // Cap at 20 entries to limit memory usage.
+      if (newHistory.length > 20) newHistory.shift();
       return { history: newHistory, historyIndex: newHistory.length - 1 };
     }),
 

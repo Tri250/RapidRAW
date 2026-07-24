@@ -85,8 +85,42 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 
 use std::borrow::Cow;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
+
+/// Recover from a poisoned Mutex instead of panicking.
+/// When a thread panics while holding a lock, the Mutex becomes "poisoned".
+/// Using `.lock_resilient()` on a poisoned Mutex will panic again, cascading
+/// the failure. This helper instead recovers the guard so the application
+/// can continue operating (the data may be inconsistent but that's preferable
+/// to a crash). Use in all non-critical paths where graceful degradation
+/// is better than abort.
+fn resilient_lock<'a, T>(mutex: &'a Mutex<T>) -> MutexGuard<'a, T> {
+    match mutex.lock() {
+        Ok(guard) => guard,
+        Err(poisoned) => {
+            log::warn!("Mutex poisoned – recovering for graceful degradation");
+            poisoned.into_inner()
+        }
+    }
+}
+
+/// Trait extension to allow `.lock_resilient()` on Arc<Mutex<T>> for ergonomics.
+trait MutexResilient<T> {
+    fn lock_resilient(&self) -> MutexGuard<'_, T>;
+}
+
+impl<T> MutexResilient<T> for Mutex<T> {
+    fn lock_resilient(&self) -> MutexGuard<'_, T> {
+        resilient_lock(self)
+    }
+}
+
+impl<T> MutexResilient<T> for Arc<Mutex<T>> {
+    fn lock_resilient(&self) -> MutexGuard<'_, T> {
+        resilient_lock(self)
+    }
+}
 
 use base64::{Engine as _, engine::general_purpose};
 use image::codecs::jpeg::JpegEncoder;
@@ -277,7 +311,7 @@ pub fn generate_transformed_preview(
     let transform_hash = calculate_transform_hash(adjustments);
 
     let (transformed_full_res, unscaled_crop_offset) = {
-        let mut cache_lock = state.full_transformed_cache.lock().unwrap();
+        let mut cache_lock = state.full_transformed_cache.lock_resilient();
         if let Some((hash, img, offset)) = cache_lock.as_ref() {
             if *hash == transform_hash {
                 (Arc::clone(img), *offset)
@@ -348,7 +382,7 @@ fn cancel_thumbnail_generation(
         .thumbnail_cancellation_token
         .store(true, Ordering::SeqCst);
 
-    let mut tracker = state.thumbnail_progress.lock().unwrap();
+    let mut tracker = state.thumbnail_progress.lock_resilient();
     tracker.total = 0;
     tracker.completed = 0;
     drop(tracker);
@@ -367,7 +401,7 @@ pub fn get_cached_full_warped_image(
     let geo_hash = calculate_geometry_hash(js_adjustments);
 
     {
-        let cache_lock = state.full_warped_cache.lock().unwrap();
+        let cache_lock = state.full_warped_cache.lock_resilient();
         if let Some((hash, img)) = cache_lock.as_ref()
             && *hash == geo_hash
         {
@@ -386,7 +420,7 @@ pub fn get_cached_full_warped_image(
     let warped_arc = Arc::new(warped_image);
 
     {
-        let mut cache_lock = state.full_warped_cache.lock().unwrap();
+        let mut cache_lock = state.full_warped_cache.lock_resilient();
         *cache_lock = Some((geo_hash, Arc::clone(&warped_arc)));
     }
 
@@ -398,13 +432,13 @@ async fn update_wgpu_transform(
     payload: WgpuTransformPayload,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    let context = match state.gpu_context.lock().unwrap().as_ref() {
+    let context = match state.gpu_context.lock_resilient().as_ref() {
         Some(c) => c.clone(),
         None => return Ok(()),
     };
 
     tokio::task::spawn_blocking(move || {
-        let mut display_lock = context.display.lock().unwrap();
+        let mut display_lock = context.display.lock_resilient();
         if let Some(display) = display_lock.as_mut() {
             display.latest_transform =
                 crate::gpu_processing::DisplayTransform::from_payload(&payload);
@@ -435,7 +469,7 @@ fn resolve_cached_preview(
     is_interactive: bool,
     target_resolution: Option<u32>,
 ) -> Result<(Arc<DynamicImage>, f32, (f32, f32)), String> {
-    let mut cached_preview_lock = state.cached_preview.lock().unwrap();
+    let mut cached_preview_lock = state.cached_preview.lock_resilient();
 
     let base_valid = cached_preview_lock
         .as_ref()
@@ -445,7 +479,7 @@ fn resolve_cached_preview(
         let cached = cached_preview_lock.as_ref().unwrap();
         (Arc::clone(&cached.image), cached.scale, cached.unscaled_crop_offset)
     } else {
-        *state.gpu_image_cache.lock().unwrap() = None;
+        *state.gpu_image_cache.lock_resilient() = None;
         let (base, scale, offset) =
             generate_transformed_preview(state, loaded_image, adjustments, preview_dim)?;
         (Arc::new(base), scale, offset)
@@ -475,7 +509,7 @@ fn resolve_cached_preview(
         };
 
         if is_interactive && base_valid {
-            *state.gpu_image_cache.lock().unwrap() = None;
+            *state.gpu_image_cache.lock_resilient() = None;
         }
         small
     };
@@ -560,13 +594,13 @@ fn apply_portrait_postprocessing(
     };
 
     let face_regions = {
-        let ai_state_guard = state.ai_state.lock().unwrap();
+        let ai_state_guard = state.ai_state.lock_resilient();
         if let Some(detector_arc) = ai_state_guard
             .as_ref()
             .and_then(|s| s.face_landmark_detector.clone())
         {
             drop(ai_state_guard);
-            let mut detector_guard = detector_arc.lock().unwrap();
+            let mut detector_guard = detector_arc.lock_resilient();
             crate::portrait_processing::detect_face_regions_onnx(image, &mut detector_guard)
         } else {
             drop(ai_state_guard);
@@ -579,7 +613,7 @@ fn apply_portrait_postprocessing(
                 .await
             }) {
                 Ok(detector_arc) => {
-                    let mut detector_guard = detector_arc.lock().unwrap();
+                    let mut detector_guard = detector_arc.lock_resilient();
                     crate::portrait_processing::detect_face_regions_onnx(image, &mut detector_guard)
                 }
                 Err(e) => {
@@ -661,7 +695,7 @@ fn process_preview_job(
     hydrate_adjustments(&state, &mut adjustments_json);
     let adjustments_clone = adjustments_json;
 
-    let loaded_image_guard = state.original_image.lock().unwrap();
+    let loaded_image_guard = state.original_image.lock_resilient();
     let loaded_image = loaded_image_guard
         .as_ref()
         .ok_or("No original image loaded")?
@@ -698,7 +732,7 @@ fn process_preview_job(
     )?;
 
     let small_preview_base = {
-        let cached_preview_lock = state.cached_preview.lock().unwrap();
+        let cached_preview_lock = state.cached_preview.lock_resilient();
         let small = cached_preview_lock
             .as_ref()
             .map(|c| Arc::clone(&c.small_image))
@@ -753,8 +787,7 @@ fn process_preview_job(
     let analytics_config = if wants_analytics {
         state
             .analytics_worker_tx
-            .lock()
-            .unwrap()
+            .lock_resilient()
             .clone()
             .map(|tx| crate::AnalyticsConfig {
                 path: loaded_image.path.clone(),
@@ -783,8 +816,32 @@ fn process_preview_job(
             analytics_config,
         );
 
+    // If WGPU rendering failed and wgpu was requested, automatically
+    // fall back to the CPU rendering path so the user always sees
+    // an adjusted image (not the original or a blank canvas).
+    let (final_processed_image_result, actually_used_wgpu) = if final_processed_image_result.is_err() && use_wgpu_renderer {
+        log::warn!("WGPU rendering failed – falling back to CPU path for this frame");
+        let cpu_result = process_and_get_dynamic_image(
+            &state,
+            &processing_image,
+            new_transform_hash,
+            RenderRequest {
+                adjustments: final_adjustments,
+                mask_bitmaps: &mask_bitmaps,
+                lut,
+                roi: pixel_roi,
+            },
+            "apply_adjustments",
+            false, // force CPU path
+            analytics_config,
+        );
+        (cpu_result, false)
+    } else {
+        (final_processed_image_result, use_wgpu_renderer)
+    };
+
     if let Ok(mut final_processed_image) = final_processed_image_result {
-        if use_wgpu_renderer {
+        if actually_used_wgpu {
             let _ = context.device.poll(wgpu::PollType::Wait {
                 submission_index: None,
                 timeout: Some(std::time::Duration::from_millis(500)),
@@ -850,7 +907,7 @@ fn process_preview_job(
 fn start_analytics_worker(app_handle: tauri::AppHandle) {
     let state = app_handle.state::<AppState>();
     let (tx, rx): (Sender<AnalyticsJob>, Receiver<AnalyticsJob>) = mpsc::channel();
-    *state.analytics_worker_tx.lock().unwrap() = Some(tx);
+    *state.analytics_worker_tx.lock_resilient() = Some(tx);
 
     std::thread::spawn(move || {
         while let Ok(mut job) = rx.recv() {
@@ -885,7 +942,7 @@ fn start_preview_worker(app_handle: tauri::AppHandle) {
     let state = app_handle.state::<AppState>();
     let (tx, rx): (Sender<PreviewJob>, Receiver<PreviewJob>) = mpsc::channel();
 
-    *state.preview_worker_tx.lock().unwrap() = Some(tx);
+    *state.preview_worker_tx.lock_resilient() = Some(tx);
 
     std::thread::spawn(move || {
         while let Ok(mut job) = rx.recv() {
@@ -929,7 +986,7 @@ async fn apply_adjustments(
     let (tx, rx) = tokio::sync::oneshot::channel();
 
     {
-        let tx_guard = state.preview_worker_tx.lock().unwrap();
+        let tx_guard = state.preview_worker_tx.lock_resilient();
         if let Some(worker_tx) = &*tx_guard {
             let job = PreviewJob {
                 adjustments: js_adjustments,
@@ -966,8 +1023,7 @@ fn generate_uncropped_preview(
 
     let loaded_image = state
         .original_image
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .clone()
         .ok_or("No original image loaded")?;
 
@@ -1095,8 +1151,7 @@ fn generate_original_transformed_preview(
 ) -> Result<String, String> {
     let loaded_image = state
         .original_image
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .clone()
         .ok_or("No original image loaded")?;
 
@@ -1143,7 +1198,7 @@ async fn preview_geometry_transform(
     app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
     let (loaded_image_path, is_raw) = {
-        let guard = state.original_image.lock().unwrap();
+        let guard = state.original_image.lock_resilient();
         let loaded = guard.as_ref().ok_or("No image loaded")?;
         (loaded.path.clone(), loaded.is_raw)
     };
@@ -1153,8 +1208,7 @@ async fn preview_geometry_transform(
     let base_image_to_warp = {
         let maybe_cached_image = state
             .geometry_cache
-            .lock()
-            .unwrap()
+            .lock_resilient()
             .get(&visual_hash)
             .cloned();
 
@@ -1164,7 +1218,7 @@ async fn preview_geometry_transform(
             let context = get_or_init_gpu_context(&state, &app_handle)?;
 
             let original_image = {
-                let guard = state.original_image.lock().unwrap();
+                let guard = state.original_image.lock_resilient();
                 let loaded = guard.as_ref().ok_or("No image loaded")?;
                 loaded.image.clone()
             };
@@ -1231,7 +1285,7 @@ async fn preview_geometry_transform(
                 "preview_geometry_transform_base_gen",
             )?;
 
-            let mut cache = state.geometry_cache.lock().unwrap();
+            let mut cache = state.geometry_cache.lock_resilient();
             if cache.len() > 5 {
                 cache.clear();
             }
@@ -1342,7 +1396,7 @@ async fn preview_geometry_transform(
 pub fn get_original_image(
     state: &tauri::State<AppState>,
 ) -> Result<(std::sync::Arc<image::DynamicImage>, bool), String> {
-    let original_image_lock = state.original_image.lock().unwrap();
+    let original_image_lock = state.original_image.lock_resilient();
     let loaded_image = original_image_lock
         .as_ref()
         .ok_or("No original image loaded")?;
@@ -1362,8 +1416,7 @@ fn generate_preset_preview(
 
     let loaded_image = state
         .original_image
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .clone()
         .ok_or("No original image loaded for preset preview")?;
     let is_raw = loaded_image.is_raw;
@@ -1881,7 +1934,7 @@ async fn merge_hdr(
 
     let _ = app_handle.emit("hdr-progress", "Creating preview...");
 
-    *hdr_result_handle.lock().unwrap() = Some(hdr_merged);
+    *hdr_result_handle.lock_resilient() = Some(hdr_merged);
 
     let _ = app_handle.emit(
         "hdr-complete",
@@ -1897,7 +1950,7 @@ async fn save_hdr(
     first_path_str: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<String, String> {
-    let hdr_image = state.hdr_result.lock().unwrap().take().ok_or_else(|| {
+    let hdr_image = state.hdr_result.lock_resilient().take().ok_or_else(|| {
         "No hdr image found in memory to save. It might have already been saved.".to_string()
     })?;
 
@@ -2405,8 +2458,8 @@ fn frontend_ready(
         }
     }
 
-    let open_with_file = state.initial_file_path.lock().unwrap().take();
-    let edit_session = state.pending_edit_session.lock().unwrap().take();
+    let open_with_file = state.initial_file_path.lock_resilient().take();
+    let edit_session = state.pending_edit_session.lock_resilient().take();
     if let Some(path) = &open_with_file {
         log::info!("Frontend is ready, returning initial path: {}", path);
     }
@@ -2460,7 +2513,7 @@ pub fn run() {
         .plugin(PinchZoomDisablePlugin)
         .on_window_event(|window, event| if let tauri::WindowEvent::Resized(size) = event {
             let state = window.state::<AppState>();
-            if let Some(ctx) = state.gpu_context.lock().unwrap().as_ref()
+            if let Some(ctx) = state.gpu_context.lock_resilient().as_ref()
                 && let Ok(mut display_lock) = ctx.display.try_lock()
                     && let Some(display) = display_lock.as_mut() {
                         display.config.width = size.width.max(1);
@@ -2477,11 +2530,11 @@ pub fn run() {
                 match parse_launch_args(&args) {
                     LaunchRequest::EditSession(session) => {
                         log::info!("Initial launch with external edit session for: {}", &session.source);
-                        *state.pending_edit_session.lock().unwrap() = Some(session);
+                        *state.pending_edit_session.lock_resilient() = Some(session);
                     }
                     LaunchRequest::OpenFile(path) => {
                         log::info!("Windows/Linux initial open: Storing path {} for later.", &path);
-                        *state.initial_file_path.lock().unwrap() = Some(path);
+                        *state.initial_file_path.lock_resilient() = Some(path);
                     }
                     LaunchRequest::None => {}
                 }
@@ -2493,7 +2546,7 @@ pub fn run() {
 
             {
                 let state = app.state::<AppState>();
-                *state.gpu_crash_flag_path.lock().unwrap() = Some(crash_flag_path.clone());
+                *state.gpu_crash_flag_path.lock_resilient() = Some(crash_flag_path.clone());
             }
 
             let mut settings: AppSettings = load_settings(app_handle.clone()).unwrap_or_default();
@@ -2501,7 +2554,7 @@ pub fn run() {
             {
                 let state = app.state::<AppState>();
                 let cache_size = settings.image_cache_size.unwrap_or(5) as usize;
-                state.decoded_image_cache.lock().unwrap().set_capacity(cache_size);
+                state.decoded_image_cache.lock_resilient().set_capacity(cache_size);
             }
 
             if crash_flag_path.exists() {
@@ -2513,7 +2566,7 @@ pub fn run() {
 
             let lens_db = lens_correction::load_lensfun_db(&app_handle);
             let state = app.state::<AppState>();
-            *state.lens_db.lock().unwrap() = Some(Arc::new(lens_db));
+            *state.lens_db.lock_resilient() = Some(Arc::new(lens_db));
 
             unsafe {
                 if let Some(backend) = &settings.processing_backend
@@ -2663,7 +2716,7 @@ pub fn run() {
                         tokio::time::sleep(Duration::from_millis(500)).await;
 
                         let state_to_save = {
-                            let mut lock = pending_state_for_saver.lock().unwrap();
+                            let mut lock = pending_state_for_saver.lock_resilient();
                             lock.take()
                         };
 
@@ -2723,7 +2776,7 @@ pub fn run() {
                             state.height = size.height;
                         }
 
-                        *pending_state_for_handler.lock().unwrap() = Some(state);
+                        *pending_state_for_handler.lock_resilient() = Some(state);
                     }
                     _ => {}
                 });
@@ -2935,7 +2988,7 @@ pub fn run() {
                         if let Ok(path) = url.to_file_path() {
                             if let Some(path_str) = path.to_str() {
                                 let state = app_handle.state::<AppState>();
-                                *state.initial_file_path.lock().unwrap() = Some(path_str.to_string());
+                                *state.initial_file_path.lock_resilient() = Some(path_str.to_string());
                                 log::info!("macOS initial open: Stored path {} for later.", path_str);
                             }
                         }
