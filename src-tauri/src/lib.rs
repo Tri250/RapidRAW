@@ -812,9 +812,9 @@ fn process_preview_job(
             &processing_image,
             new_transform_hash,
             RenderRequest {
-                adjustments: final_adjustments,
+                adjustments: final_adjustments.clone(),
                 mask_bitmaps: &mask_bitmaps,
-                lut,
+                lut: lut.clone(),
                 roi: pixel_roi,
             },
             "apply_adjustments",
@@ -835,7 +835,7 @@ fn process_preview_job(
             RenderRequest {
                 adjustments: final_adjustments,
                 mask_bitmaps: &mask_bitmaps,
-                lut: lut.clone(),
+                lut,
                 roi: pixel_roi,
             },
             "apply_adjustments_fallback",
