@@ -157,6 +157,8 @@ pub struct CommunityPreset {
     pub include_masks: Option<bool>,
     #[serde(rename = "includeCropTransform")]
     pub include_crop_transform: Option<bool>,
+    #[serde(rename = "presetType")]
+    pub preset_type: Option<String>,
 }
 
 #[derive(serde::Serialize)]

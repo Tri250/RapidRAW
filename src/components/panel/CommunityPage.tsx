@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { ArrowLeft, CheckCircle2, ChevronDown, Loader2, RefreshCw, Search, Users, Layers, Crop } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronDown, ImageIcon, Loader2, RefreshCw, Search, Users, Layers, Crop } from 'lucide-react';
 import { siGithub } from 'simple-icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -68,6 +68,7 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
   const [sortBy, setSortBy] = useState('name');
   const [downloadStatus, setDownloadStatus] = useState<Record<string, 'idle' | 'downloading' | 'success'>>({});
   const [allPreviewsLoaded, setAllPreviewsLoaded] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   const sortMethods = useMemo(() => [{ value: 'name', label: t('library.community.sortMethods.name') }], [t]);
 
@@ -117,11 +118,15 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
   useEffect(() => {
     const setupPreviewImages = async () => {
       setPreviews({});
+      setPreviewError(null);
 
       if (!currentFolderPath || imageList.length === 0) {
         const defaultPath = await fetchDefaultPreviewImage();
         if (defaultPath) {
           setPreviewImagePaths([defaultPath]);
+        } else {
+          setPreviewImagePaths([]);
+          setPreviewError(t('library.community.previewImageError') || 'Failed to load preview image');
         }
         return;
       }
@@ -138,7 +143,7 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
     };
 
     setupPreviewImages();
-  }, [imageList, currentFolderPath, fetchDefaultPreviewImage]);
+  }, [imageList, currentFolderPath, fetchDefaultPreviewImage, t]);
 
   useEffect(() => {
     if (presets.length === 0 || previewImagePaths.length === 0) {
@@ -239,6 +244,14 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
         </Button>
       </header>
 
+      {previewError && !isLoading && presets.length > 0 && (
+        <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+          <Text variant={TextVariants.small} color={TextColors.secondary}>
+            {previewError}
+          </Text>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
         <div className="relative">
           <Input
@@ -315,6 +328,13 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
                           alt={preset.name}
                           className="w-full h-full object-cover transition-all duration-300 group-hover:blur-xs group-hover:brightness-75"
                         />
+                      ) : allPreviewsLoaded ? (
+                        <div className="flex flex-col items-center justify-center gap-2 text-text-secondary">
+                          <ImageIcon size={32} />
+                          <Text variant={TextVariants.small} color={TextColors.secondary}>
+                            {t('library.community.noPreview') || 'No preview'}
+                          </Text>
+                        </div>
                       ) : (
                         <Loader2 className="h-8 w-8 animate-spin text-text-secondary" />
                       )}

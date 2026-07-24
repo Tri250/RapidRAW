@@ -198,9 +198,11 @@ export function useTauriListeners({
       if (isEffectActive) {
         useProcessStore.getState().setImportState({ status: Status.Success });
         refs.current.refreshAllFolderTrees();
+        const importTargetFolder = useUIStore.getState().importTargetFolder;
         const currentPath = useLibraryStore.getState().currentFolderPath;
-        if (currentPath) {
-          refs.current.handleSelectSubfolder(currentPath, false);
+        const targetPath = importTargetFolder || currentPath;
+        if (targetPath) {
+          refs.current.handleSelectSubfolder(targetPath, false);
         }
       }
     }));
