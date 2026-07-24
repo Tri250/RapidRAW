@@ -827,7 +827,8 @@ fn process_preview_job(
     // an adjusted image (not the original or a blank canvas).
     let (final_processed_image_result, actually_used_wgpu) = if final_processed_image_result.is_err() && use_wgpu_renderer {
         log::warn!("WGPU rendering failed – falling back to CPU path for this frame");
-        let cpu_result = process_and_get_dynamic_image(
+        let cpu_result = crate::image_processing::process_and_get_dynamic_image_with_analytics(
+            &context,
             &state,
             &processing_image,
             new_transform_hash,
@@ -837,7 +838,7 @@ fn process_preview_job(
                 lut,
                 roi: pixel_roi,
             },
-            "apply_adjustments",
+            "apply_adjustments_fallback",
             false, // force CPU path
             analytics_config,
         );
