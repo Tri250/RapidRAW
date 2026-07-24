@@ -868,8 +868,7 @@ pub async fn load_image(
 
     let path_clone = source_path_str.clone();
 
-    let cached_data = resilient_lock(&state.decoded_image_cache)
-        .get(&source_path_str);
+    let cached_data = resilient_lock(&state.decoded_image_cache).get(&source_path_str);
 
     let (pristine_arc, exif_data) = if let Some((cached_img, cached_exif)) = cached_data {
         (cached_img, cached_exif)

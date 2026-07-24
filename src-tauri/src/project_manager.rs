@@ -597,7 +597,10 @@ fn with_db<F, T>(f: F) -> Result<T, String>
 where
     F: FnOnce(&ProjectDb) -> anyhow::Result<T>,
 {
-    let guard = PROJECT_DB.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
+    let guard = PROJECT_DB.lock().unwrap_or_else(|e| {
+        log::warn!("Mutex poisoned");
+        e.into_inner()
+    });
     let db = guard
         .as_ref()
         .ok_or_else(|| "No project database is currently open".to_string())?;
@@ -614,7 +617,10 @@ where
 {
     if db_path.is_empty() {
         // Use the global session database
-        let guard = PROJECT_DB.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
+        let guard = PROJECT_DB.lock().unwrap_or_else(|e| {
+            log::warn!("Mutex poisoned");
+            e.into_inner()
+        });
         let db = guard
             .as_ref()
             .ok_or_else(|| "No project database is currently open".to_string())?;
@@ -632,14 +638,20 @@ where
 pub fn project_open(db_path: String) -> Result<String, String> {
     let path = Path::new(&db_path);
     let db = ProjectDb::open(path).map_err(|e| format!("Failed to open project DB: {}", e))?;
-    let mut guard = PROJECT_DB.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
+    let mut guard = PROJECT_DB.lock().unwrap_or_else(|e| {
+        log::warn!("Mutex poisoned");
+        e.into_inner()
+    });
     *guard = Some(db);
     Ok(format!("Project database opened: {}", db_path))
 }
 
 #[tauri::command]
 pub fn project_close() -> Result<(), String> {
-    let mut guard = PROJECT_DB.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
+    let mut guard = PROJECT_DB.lock().unwrap_or_else(|e| {
+        log::warn!("Mutex poisoned");
+        e.into_inner()
+    });
     *guard = None;
     Ok(())
 }
@@ -710,7 +722,9 @@ pub fn project_store_thumbnail(
     let data = general_purpose::STANDARD
         .decode(&data_base64)
         .map_err(|e| format!("Failed to decode base64 thumbnail data: {}", e))?;
-    with_db_or_path(&db_path, |db| store_thumbnail(db, &image_hash, &data, width as i32, height as i32, &format))
+    with_db_or_path(&db_path, |db| {
+        store_thumbnail(db, &image_hash, &data, width as i32, height as i32, &format)
+    })
 }
 
 #[tauri::command]
@@ -743,7 +757,9 @@ pub fn project_add_ai_label(
     confidence: f64,
     model: String,
 ) -> Result<(), String> {
-    with_db_or_path(&db_path, |db| add_label(db, &image_hash, &label, confidence, &model))
+    with_db_or_path(&db_path, |db| {
+        add_label(db, &image_hash, &label, confidence, &model)
+    })
 }
 
 #[tauri::command]

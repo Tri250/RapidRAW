@@ -477,7 +477,11 @@ fn resolve_cached_preview(
 
     let (final_preview_base, scale_for_gpu, unscaled_crop_offset) = if base_valid {
         if let Some(cached) = cached_preview_lock.as_ref() {
-            (Arc::clone(&cached.image), cached.scale, cached.unscaled_crop_offset)
+            (
+                Arc::clone(&cached.image),
+                cached.scale,
+                cached.unscaled_crop_offset,
+            )
         } else {
             *state.gpu_image_cache.lock_resilient() = None;
             let (base, scale, offset) =
@@ -497,7 +501,10 @@ fn resolve_cached_preview(
             .is_some_and(|c| c.interactive_divisor == interactive_divisor);
 
     let small_preview_base = if small_valid {
-        cached_preview_lock.as_ref().map(|c| Arc::clone(&c.small_image)).unwrap_or_else(|| Arc::clone(&final_preview_base))
+        cached_preview_lock
+            .as_ref()
+            .map(|c| Arc::clone(&c.small_image))
+            .unwrap_or_else(|| Arc::clone(&final_preview_base))
     } else {
         let small = if interactive_divisor > 1.0 {
             let target_size = (preview_dim as f32 / interactive_divisor) as u32;
@@ -509,7 +516,11 @@ fn resolve_cached_preview(
                 let ratio = w as f32 / h as f32;
                 ((target_size as f32 * ratio) as u32, target_size)
             };
-            Arc::new(image_processing::downscale_f32_image(&final_preview_base, small_w, small_h))
+            Arc::new(image_processing::downscale_f32_image(
+                &final_preview_base,
+                small_w,
+                small_h,
+            ))
         } else {
             Arc::clone(&final_preview_base)
         };
@@ -547,7 +558,11 @@ fn resolve_processing_parameters(
         let orig_w = final_preview_base.width() as f32;
         let small_w = small_preview_base.width() as f32;
         let scale_factor = if orig_w > 0.0 { small_w / orig_w } else { 1.0 };
-        (small_preview_base, scale_for_gpu * scale_factor, interactive_quality)
+        (
+            small_preview_base,
+            scale_for_gpu * scale_factor,
+            interactive_quality,
+        )
     } else {
         (final_preview_base, scale_for_gpu, 94)
     }
@@ -667,7 +682,11 @@ fn encode_preview_response(
         Ok(jpeg_bytes) => {
             if is_interactive {
                 let (roi_w, roi_h) = final_rgba_image.dimensions();
-                let (rx, ry) = if let Some(r) = pixel_roi { (r.x, r.y) } else { (0, 0) };
+                let (rx, ry) = if let Some(r) = pixel_roi {
+                    (r.x, r.y)
+                } else {
+                    (0, 0)
+                };
                 let mut response = Vec::with_capacity(24 + jpeg_bytes.len());
                 response.extend_from_slice(&rx.to_le_bytes());
                 response.extend_from_slice(&ry.to_le_bytes());
@@ -825,27 +844,28 @@ fn process_preview_job(
     // If WGPU rendering failed and wgpu was requested, automatically
     // fall back to the CPU rendering path so the user always sees
     // an adjusted image (not the original or a blank canvas).
-    let (final_processed_image_result, actually_used_wgpu) = if final_processed_image_result.is_err() && use_wgpu_renderer {
-        log::warn!("WGPU rendering failed – falling back to CPU path for this frame");
-        let cpu_result = crate::image_processing::process_and_get_dynamic_image_with_analytics(
-            &context,
-            &state,
-            &processing_image,
-            new_transform_hash,
-            RenderRequest {
-                adjustments: final_adjustments,
-                mask_bitmaps: &mask_bitmaps,
-                lut,
-                roi: pixel_roi,
-            },
-            "apply_adjustments_fallback",
-            false, // force CPU path
-            None,  // analytics not needed for fallback render
-        );
-        (cpu_result, false)
-    } else {
-        (final_processed_image_result, use_wgpu_renderer)
-    };
+    let (final_processed_image_result, actually_used_wgpu) =
+        if final_processed_image_result.is_err() && use_wgpu_renderer {
+            log::warn!("WGPU rendering failed – falling back to CPU path for this frame");
+            let cpu_result = crate::image_processing::process_and_get_dynamic_image_with_analytics(
+                &context,
+                &state,
+                &processing_image,
+                new_transform_hash,
+                RenderRequest {
+                    adjustments: final_adjustments,
+                    mask_bitmaps: &mask_bitmaps,
+                    lut,
+                    roi: pixel_roi,
+                },
+                "apply_adjustments_fallback",
+                false, // force CPU path
+                None,  // analytics not needed for fallback render
+            );
+            (cpu_result, false)
+        } else {
+            (final_processed_image_result, use_wgpu_renderer)
+        };
 
     if let Ok(mut final_processed_image) = final_processed_image_result {
         if actually_used_wgpu {
@@ -890,12 +910,19 @@ fn process_preview_job(
                 if is_interactive {
                     log::info!(
                         "[process_preview_job] interactive ROI {}x{} encode in {:.2?}, total {:.2?}",
-                        r_w, r_h, step_start.elapsed(), fn_start.elapsed()
+                        r_w,
+                        r_h,
+                        step_start.elapsed(),
+                        fn_start.elapsed()
                     );
                 } else {
                     log::info!(
                         "[process_preview_job] full {}x{} q={} encode in {:.2?}, total {:.2?}",
-                        r_w, r_h, jpeg_quality, step_start.elapsed(), fn_start.elapsed()
+                        r_w,
+                        r_h,
+                        jpeg_quality,
+                        step_start.elapsed(),
+                        fn_start.elapsed()
                     );
                 }
                 Ok(bytes)
@@ -1661,32 +1688,26 @@ fn convert_params_to_adjustments(sections: &[CommunityPresetV2Section]) -> Value
                 // Normalize based on the parameter type
                 let normalized = match param.label.as_str() {
                     // Basic adjustments: scale from [-5, +5] to [-1, 1] range
-                    "saturation" | "hue" | "contrast" | "brightness"
-                    | "sharpness" | "clarity" | "tone_curve" => {
-                        (num / 5.0).clamp(-1.0, 1.0)
-                    }
+                    "saturation" | "hue" | "contrast" | "brightness" | "sharpness" | "clarity"
+                    | "tone_curve" => (num / 5.0).clamp(-1.0, 1.0),
                     // Highlight/shadow: scale from [-5, +5] to [-100, 100]
-                    "contrast_highlight" => {
-                        (num * 20.0).clamp(-100.0, 100.0)
-                    }
-                    "contrast_shadow" => {
-                        (num * 20.0).clamp(-100.0, 100.0)
-                    }
+                    "contrast_highlight" => (num * 20.0).clamp(-100.0, 100.0),
+                    "contrast_shadow" => (num * 20.0).clamp(-100.0, 100.0),
                     // Grain: scale from [-5, +5] to [0, 100]
-                    "grain" => {
-                        ((num + 5.0) / 10.0 * 100.0).clamp(0.0, 100.0)
-                    }
-                    "grain_size" => {
-                        ((num + 5.0) / 10.0 * 100.0).clamp(0.0, 100.0)
-                    }
+                    "grain" => ((num + 5.0) / 10.0 * 100.0).clamp(0.0, 100.0),
+                    "grain_size" => ((num + 5.0) / 10.0 * 100.0).clamp(0.0, 100.0),
                     _ => num,
                 };
 
                 // Map label to adjustment key
                 let key = param_label_to_key(&param.label);
-                adjustments.insert(key, Value::Number(serde_json::Number::from_f64(
-                    (normalized * 100.0).round() / 100.0,
-                ).unwrap_or_else(|| serde_json::Number::from(0))));
+                adjustments.insert(
+                    key,
+                    Value::Number(
+                        serde_json::Number::from_f64((normalized * 100.0).round() / 100.0)
+                            .unwrap_or_else(|| serde_json::Number::from(0)),
+                    ),
+                );
             }
         }
     }

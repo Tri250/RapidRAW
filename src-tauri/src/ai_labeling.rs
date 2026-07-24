@@ -530,7 +530,10 @@ fn with_engine<F, T>(f: F) -> Result<T, String>
 where
     F: FnOnce(&LabelingEngine) -> anyhow::Result<T>,
 {
-    let guard = LABELING_ENGINE.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
+    let guard = LABELING_ENGINE.lock().unwrap_or_else(|e| {
+        log::warn!("Mutex poisoned");
+        e.into_inner()
+    });
     let engine = guard
         .as_ref()
         .ok_or_else(|| "Labeling engine is not initialized".to_string())?;
@@ -541,7 +544,10 @@ fn with_engine_mut<F, T>(f: F) -> Result<T, String>
 where
     F: FnOnce(&mut LabelingEngine) -> anyhow::Result<T>,
 {
-    let mut guard = LABELING_ENGINE.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
+    let mut guard = LABELING_ENGINE.lock().unwrap_or_else(|e| {
+        log::warn!("Mutex poisoned");
+        e.into_inner()
+    });
     let engine = guard
         .as_mut()
         .ok_or_else(|| "Labeling engine is not initialized".to_string())?;
@@ -553,7 +559,10 @@ pub fn ai_labeling_init(
     vocabulary_json: Option<String>,
     similarity_threshold: Option<f32>,
 ) -> Result<(), String> {
-    let mut guard = LABELING_ENGINE.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
+    let mut guard = LABELING_ENGINE.lock().unwrap_or_else(|e| {
+        log::warn!("Mutex poisoned");
+        e.into_inner()
+    });
 
     let mut engine = LabelingEngine::new();
 
@@ -628,13 +637,19 @@ pub fn ai_labeling_get_stats() -> Result<serde_json::Value, String> {
 
 #[tauri::command]
 pub fn ai_labeling_is_initialized() -> Result<bool, String> {
-    let guard = LABELING_ENGINE.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
+    let guard = LABELING_ENGINE.lock().unwrap_or_else(|e| {
+        log::warn!("Mutex poisoned");
+        e.into_inner()
+    });
     Ok(guard.is_some())
 }
 
 #[tauri::command]
 pub fn ai_labeling_reset() -> Result<(), String> {
-    let mut guard = LABELING_ENGINE.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
+    let mut guard = LABELING_ENGINE.lock().unwrap_or_else(|e| {
+        log::warn!("Mutex poisoned");
+        e.into_inner()
+    });
     *guard = None;
     Ok(())
 }
@@ -669,7 +684,13 @@ pub fn ai_labeling_remove_vocabulary_entry(label: String) -> Result<(), String> 
 
 #[tauri::command]
 pub fn ai_labeling_get_vocabulary_labels() -> Result<Vec<String>, String> {
-    with_engine(|engine| Ok(engine.vocabulary_labels().into_iter().map(|s| s.to_string()).collect()))
+    with_engine(|engine| {
+        Ok(engine
+            .vocabulary_labels()
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect())
+    })
 }
 
 #[tauri::command]
@@ -708,9 +729,7 @@ pub fn ai_labeling_search_by_embedding(
 }
 
 #[tauri::command]
-pub fn ai_labeling_search_by_label(
-    label_query: String,
-) -> Result<Vec<serde_json::Value>, String> {
+pub fn ai_labeling_search_by_label(label_query: String) -> Result<Vec<serde_json::Value>, String> {
     let results = with_engine(|engine| Ok(engine.search_by_label(&label_query)))?;
     results
         .iter()
@@ -724,7 +743,9 @@ pub fn ai_labeling_batch_auto_label(
     min_confidence: f32,
 ) -> Result<Vec<serde_json::Value>, String> {
     let results =
-        with_engine_mut(|engine| Ok(engine.batch_auto_label(max_labels_per_image, min_confidence)))?;
+        with_engine_mut(
+            |engine| Ok(engine.batch_auto_label(max_labels_per_image, min_confidence)),
+        )?;
     let mut output = Vec::new();
     for (hash, labels) in results {
         let labels_json: Vec<serde_json::Value> = labels

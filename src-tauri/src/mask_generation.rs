@@ -1434,7 +1434,10 @@ pub fn generate_mask_overlay(
     }
 
     if let Some(sub_masks) = mask_def.get_mut("subMasks").and_then(|v| v.as_array_mut()) {
-        let mut cache = state.patch_cache.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
+        let mut cache = state.patch_cache.lock().unwrap_or_else(|e| {
+            log::warn!("Mutex poisoned");
+            e.into_inner()
+        });
         crate::adjustment_utils::hydrate_sub_masks(sub_masks, &mut cache);
     }
 
@@ -1513,7 +1516,10 @@ pub fn get_cached_or_generate_mask(
     let key = hasher.finish();
 
     {
-        let cache = state.mask_cache.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
+        let cache = state.mask_cache.lock().unwrap_or_else(|e| {
+            log::warn!("Mutex poisoned");
+            e.into_inner()
+        });
         if let Some(img) = cache.get(&key) {
             return Some(img.clone());
         }
@@ -1532,7 +1538,10 @@ pub fn get_cached_or_generate_mask(
     );
 
     if let Some(img) = &generated {
-        let mut cache = state.mask_cache.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
+        let mut cache = state.mask_cache.lock().unwrap_or_else(|e| {
+            log::warn!("Mutex poisoned");
+            e.into_inner()
+        });
         if cache.len() > 50 {
             // Remove oldest half of entries instead of clearing all
             let keys: Vec<_> = cache.keys().take(cache.len() / 2).cloned().collect();

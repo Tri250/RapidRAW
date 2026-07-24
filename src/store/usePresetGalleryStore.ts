@@ -87,7 +87,9 @@ const loadSources = (): GallerySource[] => {
         }));
       }
     }
-  } catch {}
+  } catch {
+    console.warn('Failed to load gallery sources, using defaults');
+  }
   return DEFAULT_SOURCES;
 };
 
@@ -99,7 +101,9 @@ const saveSources = (sources: GallerySource[]) => {
       enabled: s.enabled,
     }));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-  } catch {}
+  } catch {
+    console.warn('Failed to save gallery sources');
+  }
 };
 
 /**

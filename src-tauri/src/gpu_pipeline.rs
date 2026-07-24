@@ -562,8 +562,7 @@ use once_cell::sync::Lazy;
 
 /// Global singleton handle so the GPU pipeline is initialized once and reused
 /// across all `gpu_apply_adjustments` calls.
-static GPU_PIPELINE_HANDLE: Lazy<GpuPipelineHandle> =
-    Lazy::new(|| GpuPipelineHandle::new());
+static GPU_PIPELINE_HANDLE: Lazy<GpuPipelineHandle> = Lazy::new(|| GpuPipelineHandle::new());
 
 /// Returns true if the global GPU pipeline was successfully initialized.
 pub fn is_gpu_pipeline_ready() -> bool {
@@ -584,7 +583,10 @@ impl GpuPipelineHandle {
 
     /// Lazily initialize the pipeline on first use, returning a locked guard.
     pub fn get_or_init(&self) -> Result<std::sync::MutexGuard<'_, Option<GpuPipeline>>> {
-        let mut guard = self.inner.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
+        let mut guard = self.inner.lock().unwrap_or_else(|e| {
+            log::warn!("Mutex poisoned");
+            e.into_inner()
+        });
         if guard.is_none() {
             let pipeline = GpuPipeline::init()?;
             *guard = Some(pipeline);
@@ -653,7 +655,10 @@ pub fn gpu_apply_adjustments(
     let guard = match GPU_PIPELINE_HANDLE.get_or_init() {
         Ok(g) => g,
         Err(e) => {
-            log::warn!("GPU pipeline initialization failed, returning original image: {}", e);
+            log::warn!(
+                "GPU pipeline initialization failed, returning original image: {}",
+                e
+            );
             return Ok(image_data_base64);
         }
     };
@@ -661,7 +666,9 @@ pub fn gpu_apply_adjustments(
     let pipeline = match guard.as_ref() {
         Some(p) => p,
         None => {
-            log::warn!("GPU pipeline not available – returning error so caller can fall back to CPU");
+            log::warn!(
+                "GPU pipeline not available – returning error so caller can fall back to CPU"
+            );
             return Err("GPU pipeline not initialized".to_string());
         }
     };

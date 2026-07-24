@@ -767,10 +767,15 @@ pub async fn export_images(
     // Check if an export is already in progress, but also clean up
     // stale handles from panicked/aborted previous exports.
     {
-        let mut handle_guard = state.export_task_handle.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
+        let mut handle_guard = state.export_task_handle.lock().unwrap_or_else(|e| {
+            log::warn!("Mutex poisoned");
+            e.into_inner()
+        });
         if let Some(ref handle) = *handle_guard {
             if handle.is_finished() {
-                log::warn!("Previous export task finished (possibly panicked) – clearing stale handle");
+                log::warn!(
+                    "Previous export task finished (possibly panicked) – clearing stale handle"
+                );
                 *handle_guard = None;
             } else {
                 return Err("An export is already in progress.".to_string());
@@ -1105,13 +1110,24 @@ pub async fn export_images(
             .unwrap() = None;
     });
 
-    *state.export_task_handle.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() }) = Some(task);
+    *state.export_task_handle.lock().unwrap_or_else(|e| {
+        log::warn!("Mutex poisoned");
+        e.into_inner()
+    }) = Some(task);
     Ok(())
 }
 
 #[tauri::command]
 pub fn cancel_export(state: tauri::State<AppState>) -> Result<(), String> {
-    match state.export_task_handle.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() }).take() {
+    match state
+        .export_task_handle
+        .lock()
+        .unwrap_or_else(|e| {
+            log::warn!("Mutex poisoned");
+            e.into_inner()
+        })
+        .take()
+    {
         Some(handle) => {
             handle.abort();
             println!("Export task cancellation requested.");
@@ -1163,7 +1179,10 @@ pub async fn estimate_export_sizes(
         hydrate_adjustments(&state, &mut adjustments_clone);
 
         let new_transform_hash = calculate_transform_hash(&adjustments_clone);
-        let cached_preview_lock = state.cached_preview.lock().unwrap_or_else(|e| { log::warn!("Mutex poisoned"); e.into_inner() });
+        let cached_preview_lock = state.cached_preview.lock().unwrap_or_else(|e| {
+            log::warn!("Mutex poisoned");
+            e.into_inner()
+        });
         let preview_dim = settings.editor_preview_resolution.unwrap_or(1920);
 
         let (preview_image, scale, unscaled_crop_offset) = if let Some(cached) =
