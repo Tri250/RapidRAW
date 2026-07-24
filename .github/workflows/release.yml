@@ -60,7 +60,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       release-id: ${{ github.event.release.id || '' }}
-      tag-name: ${{ github.event.release.tag_name || github.ref_name }}
+      tag-name: ${{ inputs.tag-name || github.event.release.tag_name || github.ref_name }}
       platform: ${{ matrix.platform }}
       target: ${{ matrix.target }}
       build-args: ${{ matrix.build-args }}
