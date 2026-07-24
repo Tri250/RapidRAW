@@ -26,9 +26,22 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   initPlatform: () => {
     try {
-      set({ osPlatform: platform() });
+      const p = platform();
+      set({ osPlatform: p });
     } catch (_err) {
-      set({ osPlatform: '' });
+      // Fallback: use navigator.userAgent to infer platform when Tauri API is unavailable
+      const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+      let detected = '';
+      if (ua.includes('Android')) {
+        detected = 'android';
+      } else if (ua.includes('Linux')) {
+        detected = 'linux';
+      } else if (ua.includes('Mac')) {
+        detected = 'macos';
+      } else if (ua.includes('Win')) {
+        detected = 'windows';
+      }
+      set({ osPlatform: detected });
     }
   },
 

@@ -10,6 +10,7 @@ use std::fs::{File, copy, create_dir_all, read_dir};
 use std::io::{BufRead, BufReader, Cursor};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::sync::{Mutex, MutexGuard};
 
 use base64::{Engine as _, engine::general_purpose};
 use mozjpeg_rs::{Encoder, Preset};
@@ -21,6 +22,17 @@ use crate::image_processing::{
     RenderRequest, get_all_adjustments_from_json, process_and_get_dynamic_image,
     resolve_tonemapper_override_from_handle,
 };
+
+/// Recover from a poisoned Mutex instead of panicking.
+fn resilient_lock<'a, T>(mutex: &'a Mutex<T>) -> MutexGuard<'a, T> {
+    match mutex.lock() {
+        Ok(guard) => guard,
+        Err(poisoned) => {
+            log::warn!("Mutex poisoned – recovering for graceful degradation");
+            poisoned.into_inner()
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Lut {
@@ -422,7 +434,7 @@ pub fn convert_image_to_cube_lut(image: &DynamicImage, size: u32) -> Result<Vec<
 }
 
 pub fn get_or_load_lut(state: &State<AppState>, path: &str) -> Result<Arc<Lut>, String> {
-    let mut cache = state.lut_cache.lock().unwrap();
+    let mut cache = resilient_lock(&state.lut_cache);
     if let Some(lut) = cache.get(path) {
         return Ok(lut.clone());
     }
@@ -608,10 +620,7 @@ pub fn generate_lut_previews(
     app_handle: AppHandle,
 ) -> Result<Vec<LutPreview>, String> {
     let context = crate::image_processing::get_or_init_gpu_context(&state, &app_handle)?;
-    let loaded_image = state
-        .original_image
-        .lock()
-        .unwrap()
+    let loaded_image = resilient_lock(&state.original_image)
         .clone()
         .ok_or("No original image loaded for LUT previews")?;
     let is_raw = loaded_image.is_raw;
@@ -652,7 +661,7 @@ pub fn load_and_parse_lut(path: String, state: State<AppState>) -> Result<LutPar
     let lut = parse_lut_file(&path).map_err(|e| e.to_string())?;
     let lut_size = lut.size;
 
-    let mut cache = state.lut_cache.lock().unwrap();
+    let mut cache = resilient_lock(&state.lut_cache);
     cache.insert(path, Arc::new(lut));
 
     Ok(LutParseResult { size: lut_size })

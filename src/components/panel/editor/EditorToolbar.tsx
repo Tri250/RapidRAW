@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useRef, useMemo } from 'react';
+import { memo, useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Eye, EyeOff, ArrowLeft, Maximize, Loader2, Undo, Redo, Waves } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
@@ -323,10 +323,10 @@ const EditorToolbar = memo(
       }
     }, [isHistoryVisible, adjustmentsHistoryIndex]);
 
-    const handleButtonKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    const handleButtonKeyDown = useCallback((e: React.KeyboardEvent<HTMLButtonElement>) => {
       if (e.key === 'Tab') return;
       e.currentTarget.blur();
-    };
+    }, []);
 
     const isExpanded = isInfoHovered && (hasExif || isLoading);
 

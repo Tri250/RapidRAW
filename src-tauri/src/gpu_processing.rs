@@ -180,8 +180,12 @@ pub fn get_or_init_gpu_context(
     }
 
     #[cfg(target_os = "linux")]
-    {
-        instance_desc.backends = wgpu::Backends::VULKAN;
+    if std::env::var("WGPU_BACKEND").is_err() {
+        // Use PRIMARY backends on Linux (includes Vulkan + GL) to ensure
+        // compatibility with both X11 and Wayland compositors, and systems
+        // without Vulkan drivers. Vulkan is still preferred when available
+        // since PRIMARY orders Vulkan before GL.
+        instance_desc.backends = wgpu::Backends::PRIMARY;
     }
 
     let flag_path = state.gpu_crash_flag_path.lock().unwrap().clone();

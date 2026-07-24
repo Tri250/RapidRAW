@@ -14,7 +14,7 @@
     "rootDir": "./src",
     "skipLibCheck": true,
     "strict": true,
-    "target": "es2025",
+    "target": "es2025"
   },
   "include": ["src"],
   "exclude": ["node_modules"]

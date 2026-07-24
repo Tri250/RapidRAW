@@ -183,6 +183,7 @@ jobs:
           ORT_LIB_LOCATION: ${{ format('{0}/src-tauri/libs/arm64-v8a', github.workspace) }}
           ORT_STRATEGY: manual
         run: |
+          set -euo pipefail
           # tauri android build --target accepts short names (aarch64, armv7, i686, x86_64)
           # while Rust toolchain setup needs the full triple (e.g. aarch64-linux-android)
           target_arg=""
@@ -247,10 +248,8 @@ jobs:
         with:
           name: ${{ inputs.asset-prefix }}_${{ inputs.platform }}${{ inputs.target && format('_{0}', inputs.target) || '' }}_artifacts
           path: |
-            src-tauri/target/${{ inputs.target }}/release/bundle/nsis/*.exe
-            src-tauri/target/${{ inputs.target }}/release/bundle/nsis/*.nsis.zip
-            src-tauri/target/release/bundle/nsis/*.exe
-            src-tauri/target/release/bundle/nsis/*.nsis.zip
+            src-tauri/target/${{ inputs.target && format('{0}/', inputs.target) || '' }}release/bundle/nsis/*.exe
+            src-tauri/target/${{ inputs.target && format('{0}/', inputs.target) || '' }}release/bundle/nsis/*.nsis.zip
           retention-days: 7
           compression-level: 6
           if-no-files-found: warn

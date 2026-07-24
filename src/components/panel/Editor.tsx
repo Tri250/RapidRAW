@@ -289,6 +289,31 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
     setEditor({ isWbPickerActive: false });
   }, [setEditor]);
 
+  const handleSelectAiPatchContainer = useCallback(
+    (id: string | null) => setEditor({ activeAiPatchContainerId: id }),
+    [setEditor],
+  );
+
+  const handleSelectMaskContainer = useCallback(
+    (id: string | null) => setEditor({ activeMaskContainerId: id }),
+    [setEditor],
+  );
+
+  const handleSelectAiSubMask = useCallback(
+    (id: string | null) => setEditor({ activeAiSubMaskId: id }),
+    [setEditor],
+  );
+
+  const handleSelectMask = useCallback(
+    (id: string | null) => setEditor({ activeMaskId: id }),
+    [setEditor],
+  );
+
+  const handleToggleDateView = useCallback(
+    () => setShowExifDateView((prev) => !prev),
+    [],
+  );
+
   useEffect(() => {
     if (isFullScreen) {
       setToolbarOverflowVisible(false);
@@ -2005,7 +2030,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
           selectedImage={selectedImage}
           showOriginal={showOriginal}
           showDateView={showExifDateView}
-          onToggleDateView={() => setShowExifDateView((prev) => !prev)}
+          onToggleDateView={handleToggleDateView}
           adjustmentsHistory={adjustmentsHistory}
           adjustmentsHistoryIndex={adjustmentsHistoryIndex}
           goToAdjustmentsHistoryIndex={goToHistoryIndex}
@@ -2068,13 +2093,13 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
             isSliderDragging={isSliderDragging}
             maskOverlayUrl={maskOverlayUrl}
             onGenerateAiMask={handleGenerateAiMask}
-            onSelectAiPatchContainer={(id) => setEditor({ activeAiPatchContainerId: id })}
-            onSelectMaskContainer={(id) => setEditor({ activeMaskContainerId: id })}
+            onSelectAiPatchContainer={handleSelectAiPatchContainer}
+            onSelectMaskContainer={handleSelectMaskContainer}
             onLiveMaskPreview={handleLiveMaskPreview}
             onManualCleanup={handleManualCleanup}
             onQuickErase={handleQuickErase}
-            onSelectAiSubMask={(id) => setEditor({ activeAiSubMaskId: id })}
-            onSelectMask={(id) => setEditor({ activeMaskId: id })}
+            onSelectAiSubMask={handleSelectAiSubMask}
+            onSelectMask={handleSelectMask}
             onStraighten={handleStraighten}
             selectedImage={selectedImage}
             setCrop={handleCropChange}

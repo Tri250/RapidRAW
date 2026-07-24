@@ -93,7 +93,7 @@ export default function Controls() {
     [setUI],
   );
 
-  const handleToggleVisibility = (sectionName: string) => {
+  const handleToggleVisibility = useCallback((sectionName: string) => {
     setAdjustments((prev: Adjustments) => {
       const currentVisibility: SectionVisibility = prev.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility;
       return {
@@ -104,9 +104,9 @@ export default function Controls() {
         },
       };
     });
-  };
+  }, [setAdjustments]);
 
-  const handleResetAdjustments = () => {
+  const handleResetAdjustments = useCallback(() => {
     const confirmed = window.confirm(t('editor.adjustments.confirmReset') || '确定要重置所有调整参数吗？此操作无法撤销。');
     if (!confirmed) return;
     setAdjustments((prev: Adjustments) => ({
@@ -119,9 +119,9 @@ export default function Controls() {
         }, {}),
       sectionVisibility: { ...INITIAL_ADJUSTMENTS.sectionVisibility },
     }));
-  };
+  }, [setAdjustments, t]);
 
-  const handleToggleSection = (section: string) => {
+  const handleToggleSection = useCallback((section: string) => {
     setCollapsibleState((prev: any) => {
       const isOpening = !prev[section];
       if (appSettings?.enableFocusMode && isOpening) {
@@ -134,7 +134,7 @@ export default function Controls() {
       }
       return { ...prev, [section]: !prev[section] };
     });
-  };
+  }, [appSettings?.enableFocusMode, setCollapsibleState]);
 
   const handleSectionContextMenu = (event: any, sectionName: string) => {
     event.preventDefault();

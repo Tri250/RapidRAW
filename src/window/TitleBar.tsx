@@ -33,7 +33,19 @@ export default function TitleBar() {
         setOsPlatform(p);
       } catch (error) {
         console.error('Failed to get platform:', error);
-        setOsPlatform('windows');
+        // Fallback: infer platform from navigator.userAgent
+        const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+        if (ua.includes('Android')) {
+          setOsPlatform('android');
+        } else if (ua.includes('Linux')) {
+          setOsPlatform('linux');
+        } else if (ua.includes('Mac')) {
+          setOsPlatform('macos');
+        } else if (ua.includes('Win')) {
+          setOsPlatform('windows');
+        } else {
+          setOsPlatform('');
+        }
       }
     };
     getPlatform();

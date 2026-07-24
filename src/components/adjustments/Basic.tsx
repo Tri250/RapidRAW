@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import clsx from 'clsx';
 import Slider from '../ui/Slider';
 import { Adjustments, BasicAdjustment } from '../../utils/adjustments';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface BasicAdjustmentsProps {
@@ -154,7 +154,7 @@ const ToneMapperSwitch = ({
   );
 };
 
-export default function BasicAdjustments({
+export default memo(function BasicAdjustments({
   adjustments,
   setAdjustments,
   isForMask = false,
@@ -163,17 +163,17 @@ export default function BasicAdjustments({
 }: BasicAdjustmentsProps) {
   const { t } = useTranslation();
 
-  const handleAdjustmentChange = (key: BasicAdjustment, value: any) => {
+  const handleAdjustmentChange = useCallback((key: BasicAdjustment, value: any) => {
     const numericValue = parseFloat(value);
     setAdjustments((prev: Partial<Adjustments>) => ({ ...prev, [key]: numericValue }));
-  };
+  }, [setAdjustments]);
 
-  const handleToneMapperChange = (mapper: string) => {
+  const handleToneMapperChange = useCallback((mapper: string) => {
     setAdjustments((prev: Partial<Adjustments>) => ({
       ...prev,
       toneMapper: mapper as 'basic' | 'agx',
     }));
-  };
+  }, [setAdjustments]);
 
   const hideTonemapper = isForMask || appSettings?.tonemapperOverrideEnabled;
 
@@ -254,4 +254,4 @@ export default function BasicAdjustments({
       />
     </div>
   );
-}
+})

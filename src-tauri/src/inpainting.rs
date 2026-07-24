@@ -1,4 +1,5 @@
 use std::io::Cursor;
+use std::sync::{Mutex, MutexGuard};
 
 use base64::{Engine as _, engine::general_purpose};
 use image::{DynamicImage, GenericImageView, Rgb, RgbImage, RgbaImage};
@@ -12,6 +13,17 @@ use crate::image_loader::composite_patches_on_image;
 use crate::image_processing::apply_linear_to_srgb;
 use crate::mask_generation::{AiPatchDefinition, MaskDefinition, generate_mask_bitmap};
 use crate::resolve_warped_image_for_masks;
+
+/// Recover from a poisoned Mutex instead of panicking.
+fn resilient_lock<'a, T>(mutex: &'a Mutex<T>) -> MutexGuard<'a, T> {
+    match mutex.lock() {
+        Ok(guard) => guard,
+        Err(poisoned) => {
+            log::warn!("Mutex poisoned – recovering for graceful degradation");
+            poisoned.into_inner()
+        }
+    }
+}
 
 #[tauri::command]
 pub async fn generate_manual_cleanup_patch(
@@ -29,7 +41,7 @@ pub async fn generate_manual_cleanup_patch(
     }
 
     let is_raw = {
-        let guard = state.original_image.lock().unwrap();
+        let guard = resilient_lock(&state.original_image);
         guard.as_ref().map(|img| img.is_raw).unwrap_or(false)
     };
 
@@ -348,7 +360,7 @@ pub async fn invoke_generative_replace_with_mask_def(
     }
 
     let is_raw = {
-        let guard = state.original_image.lock().unwrap();
+        let guard = resilient_lock(&state.original_image);
         guard.as_ref().map(|img| img.is_raw).unwrap_or(false)
     };
 

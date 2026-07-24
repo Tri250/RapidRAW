@@ -476,8 +476,14 @@ fn resolve_cached_preview(
         .is_some_and(|c| c.transform_hash == new_transform_hash && c.preview_dim == preview_dim);
 
     let (final_preview_base, scale_for_gpu, unscaled_crop_offset) = if base_valid {
-        let cached = cached_preview_lock.as_ref().unwrap();
-        (Arc::clone(&cached.image), cached.scale, cached.unscaled_crop_offset)
+        if let Some(cached) = cached_preview_lock.as_ref() {
+            (Arc::clone(&cached.image), cached.scale, cached.unscaled_crop_offset)
+        } else {
+            *state.gpu_image_cache.lock_resilient() = None;
+            let (base, scale, offset) =
+                generate_transformed_preview(state, loaded_image, adjustments, preview_dim)?;
+            (Arc::new(base), scale, offset)
+        }
     } else {
         *state.gpu_image_cache.lock_resilient() = None;
         let (base, scale, offset) =
@@ -491,7 +497,7 @@ fn resolve_cached_preview(
             .is_some_and(|c| c.interactive_divisor == interactive_divisor);
 
     let small_preview_base = if small_valid {
-        Arc::clone(&cached_preview_lock.as_ref().unwrap().small_image)
+        cached_preview_lock.as_ref().map(|c| Arc::clone(&c.small_image)).unwrap_or_else(|| Arc::clone(&final_preview_base))
     } else {
         let small = if interactive_divisor > 1.0 {
             let target_size = (preview_dim as f32 / interactive_divisor) as u32;
@@ -2625,8 +2631,9 @@ pub fn run() {
             file_management::start_metadata_workers(app_handle.clone());
             jxl_oxide::integration::register_image_decoding_hook();
 
-            let window_cfg = app.config().app.windows.first().unwrap().clone();
-            let decorations = settings.decorations.unwrap_or(window_cfg.decorations);
+            let window_cfg = app.config().app.windows.first();
+            let default_decorations = window_cfg.map(|c| c.decorations).unwrap_or(true);
+            let decorations = settings.decorations.unwrap_or(default_decorations);
             #[cfg(target_os = "android")]
             let _ = decorations;
 
@@ -2636,19 +2643,22 @@ pub fn run() {
                 .windows
                 .iter()
                 .find(|w| w.label == "main")
-                .expect("Main window config not found")
-                .clone();
+                .cloned()
+                .unwrap_or_else(|| {
+                    log::error!("Main window config not found, using first available window");
+                    app.config().app.windows.first().cloned().expect("No windows configured")
+                });
 
             let mut window_builder =
                 tauri::WebviewWindowBuilder::from_config(app.handle(), &main_window_cfg)
-                    .unwrap();
+                    .unwrap_or_else(|e| panic!("Failed to create window builder: {}", e));
 
             #[cfg(not(target_os = "android"))]
             {
                 window_builder = window_builder.decorations(decorations).visible(false);
             }
 
-            let window = window_builder.build().expect("Failed to build window");
+            let window = window_builder.build().unwrap_or_else(|e| panic!("Failed to build window: {}", e));
 
             #[cfg(target_os = "android")]
             android_integration::initialize_android(&window);

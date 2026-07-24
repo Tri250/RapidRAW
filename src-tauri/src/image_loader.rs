@@ -27,7 +27,19 @@ use std::sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
 };
+use std::sync::{Mutex, MutexGuard};
 use std::time::{Duration, Instant};
+
+/// Recover from a poisoned Mutex instead of panicking.
+fn resilient_lock<'a, T>(mutex: &'a Mutex<T>) -> MutexGuard<'a, T> {
+    match mutex.lock() {
+        Ok(guard) => guard,
+        Err(poisoned) => {
+            log::warn!("Mutex poisoned – recovering for graceful degradation");
+            poisoned.into_inner()
+        }
+    }
+}
 
 #[derive(serde::Serialize)]
 pub struct LoadImageResult {
@@ -816,10 +828,7 @@ pub fn composite_patches_on_image(
 pub fn is_image_cached(path: String, state: tauri::State<'_, AppState>) -> bool {
     let (source_path, _) = parse_virtual_path(&path);
     let source_path_str = source_path.to_string_lossy().to_string();
-    state
-        .decoded_image_cache
-        .lock()
-        .unwrap()
+    resilient_lock(&state.decoded_image_cache)
         .get(&source_path_str)
         .is_some()
 }
@@ -835,19 +844,19 @@ pub async fn load_image(
     let cancel_token = Some((generation_tracker.clone(), my_generation));
 
     {
-        *state.original_image.lock().unwrap() = None;
-        *state.cached_preview.lock().unwrap() = None;
-        *state.gpu_image_cache.lock().unwrap() = None;
-        *state.full_warped_cache.lock().unwrap() = None;
-        *state.full_transformed_cache.lock().unwrap() = None;
+        *resilient_lock(&state.original_image) = None;
+        *resilient_lock(&state.cached_preview) = None;
+        *resilient_lock(&state.gpu_image_cache) = None;
+        *resilient_lock(&state.full_warped_cache) = None;
+        *resilient_lock(&state.full_transformed_cache) = None;
 
-        state.mask_cache.lock().unwrap().clear();
-        state.patch_cache.lock().unwrap().clear();
-        state.geometry_cache.lock().unwrap().clear();
+        resilient_lock(&state.mask_cache).clear();
+        resilient_lock(&state.patch_cache).clear();
+        resilient_lock(&state.geometry_cache).clear();
 
-        *state.denoise_result.lock().unwrap() = None;
-        *state.hdr_result.lock().unwrap() = None;
-        *state.panorama_result.lock().unwrap() = None;
+        *resilient_lock(&state.denoise_result) = None;
+        *resilient_lock(&state.hdr_result) = None;
+        *resilient_lock(&state.panorama_result) = None;
     }
 
     let (source_path, sidecar_path) = parse_virtual_path(&path);
@@ -859,10 +868,7 @@ pub async fn load_image(
 
     let path_clone = source_path_str.clone();
 
-    let cached_data = state
-        .decoded_image_cache
-        .lock()
-        .unwrap()
+    let cached_data = resilient_lock(&state.decoded_image_cache)
         .get(&source_path_str);
 
     let (pristine_arc, exif_data) = if let Some((cached_img, cached_exif)) = cached_data {
@@ -931,7 +937,7 @@ pub async fn load_image(
 
         let arc_img = Arc::new(pristine_img);
 
-        state.decoded_image_cache.lock().unwrap().insert(
+        resilient_lock(&state.decoded_image_cache).insert(
             source_path_str.clone(),
             arc_img.clone(),
             exif_data_loaded.clone(),
@@ -952,7 +958,7 @@ pub async fn load_image(
 
     let (orig_width, orig_height) = pristine_arc.as_ref().dimensions();
 
-    *state.original_image.lock().unwrap() = Some(LoadedImage {
+    *resilient_lock(&state.original_image) = Some(LoadedImage {
         path,
         image: pristine_arc,
         is_raw,

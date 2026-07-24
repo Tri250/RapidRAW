@@ -64,7 +64,7 @@ const shuffleArray = (array: any[]) => {
   return newArray;
 };
 
-const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: CommunityPageProps) => {
+const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPath }: CommunityPageProps) => {
   const { t } = useTranslation();
   const [presets, setPresets] = useState<CommunityPreset[]>([]);
   const [previews, setPreviews] = useState<Record<string, string | null>>({});
@@ -193,7 +193,7 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
     generateAllPreviews();
   }, [presets, previewImagePaths]);
 
-  const handleDownloadPreset = async (preset: CommunityPreset) => {
+  const handleDownloadPreset = useCallback(async (preset: CommunityPreset) => {
     setDownloadStatus((prev) => ({ ...prev, [preset.name]: 'downloading' }));
     try {
       if (!preset.adjustments) {
@@ -212,7 +212,7 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
       console.error(`Failed to download preset ${preset.name}:`, error);
       setDownloadStatus((prev) => ({ ...prev, [preset.name]: 'idle' }));
     }
-  };
+  }, []);
 
   const filteredAndSortedPresets = useMemo(() => {
     return presets
@@ -590,6 +590,6 @@ const CommunityPage = ({ onBackToLibrary, imageList, currentFolderPath }: Commun
       </div>
     </div>
   );
-};
+});
 
 export default CommunityPage;
