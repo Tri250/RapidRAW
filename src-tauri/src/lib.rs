@@ -1489,7 +1489,7 @@ async fn fetch_presets_from_url(
         return Err(format!("{} returned HTTP {}", url, response.status()));
     }
 
-    match *source_type {
+    match source_type {
         "v2" => {
             let source: CommunityPresetV2Source = response
                 .json()
