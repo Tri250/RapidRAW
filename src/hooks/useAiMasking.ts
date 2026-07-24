@@ -399,6 +399,18 @@ export function useAiMasking() {
     }
   };
 
+  const normalizeMaskData = (raw: Record<string, any>): Record<string, any> => {
+    const normalized = { ...raw };
+    const sn: string | undefined | null = normalized.mask_data_base64;
+    const cc: string | undefined | null = normalized.maskDataBase64;
+    const valid: string | null | undefined = (sn && sn.length > 32) ? sn : (cc && cc.length > 32 ? cc : null);
+    if (valid) {
+      normalized.mask_data_base64 = valid;
+      normalized.maskDataBase64 = valid;
+    }
+    return normalized;
+  };
+
   const handleGenerateAiSubjectMask = async (subMaskId: string) => {
     const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
     if (!selectedImage?.path) return;
@@ -410,13 +422,12 @@ export function useAiMasking() {
       const imgW = isRotated ? (selectedImage.height || 1000) : (selectedImage.width || 1000);
       const imgH = isRotated ? (selectedImage.width || 1000) : (selectedImage.height || 1000);
 
-      // Use center 90% of image as default ROI for auto subject detection
       const margin = 0.05;
       const startPoint = { x: imgW * margin, y: imgH * margin };
       const endPoint = { x: imgW * (1 - margin), y: imgH * (1 - margin) };
 
       const transformAdjustments = getTransformAdjustments(adjustments);
-      const newParameters = await invoke(Invokes.GenerateAiSubjectMask, {
+      const rawNewParameters = await invoke(Invokes.GenerateAiSubjectMask, {
         jsAdjustments: transformAdjustments,
         endPoint: [endPoint.x, endPoint.y],
         flipHorizontal: adjustments.flipHorizontal,
@@ -427,7 +438,8 @@ export function useAiMasking() {
         startPoint: [startPoint.x, startPoint.y],
       }) as Record<string, any>;
 
-      // Check if mask data is empty (no subject detected)
+      const newParameters = normalizeMaskData(rawNewParameters);
+
       if (!newParameters.mask_data_base64) {
         toast.error('AI Subject Mask: No subject detected in image');
         setEditor({ isGeneratingAiMask: false });
@@ -435,7 +447,10 @@ export function useAiMasking() {
       }
 
       const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
-      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
+      const mergedParameters = normalizeMaskData({
+        ...((subMask?.parameters || {}) as Record<string, any>),
+        ...newParameters,
+      });
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
     } catch (error) {
@@ -452,7 +467,7 @@ export function useAiMasking() {
 
     try {
       const transformAdjustments = getTransformAdjustments(adjustments);
-      const newParameters = await invoke(Invokes.GenerateAiDepthMask, {
+      const rawNewParameters = await invoke(Invokes.GenerateAiDepthMask, {
         jsAdjustments: transformAdjustments,
         path: selectedImage.path,
         minDepth: parameters.minDepth ?? 20,
@@ -465,9 +480,13 @@ export function useAiMasking() {
         orientationSteps: adjustments.orientationSteps,
         rotation: adjustments.rotation,
       }) as Record<string, any>;
+      const newParameters = normalizeMaskData(rawNewParameters);
 
       const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
-      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
+      const mergedParameters = normalizeMaskData({
+        ...((subMask?.parameters || {}) as Record<string, any>),
+        ...newParameters,
+      });
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
     } catch (error) {
@@ -484,16 +503,20 @@ export function useAiMasking() {
 
     try {
       const transformAdjustments = getTransformAdjustments(adjustments);
-      const newParameters = await invoke(Invokes.GenerateAiForegroundMask, {
+      const rawNewParameters = await invoke(Invokes.GenerateAiForegroundMask, {
         jsAdjustments: transformAdjustments,
         flipHorizontal: adjustments.flipHorizontal,
         flipVertical: adjustments.flipVertical,
         orientationSteps: adjustments.orientationSteps,
         rotation: adjustments.rotation,
       }) as Record<string, any>;
+      const newParameters = normalizeMaskData(rawNewParameters);
 
       const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
-      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
+      const mergedParameters = normalizeMaskData({
+        ...((subMask?.parameters || {}) as Record<string, any>),
+        ...newParameters,
+      });
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
     } catch (error) {
@@ -510,20 +533,24 @@ export function useAiMasking() {
 
     try {
       const transformAdjustments = getTransformAdjustments(adjustments);
-      const newParameters = await invoke(Invokes.GenerateAiSkyMask, {
+      const rawNewParameters = await invoke(Invokes.GenerateAiSkyMask, {
         jsAdjustments: transformAdjustments,
         flipHorizontal: adjustments.flipHorizontal,
         flipVertical: adjustments.flipVertical,
         orientationSteps: adjustments.orientationSteps,
         rotation: adjustments.rotation,
       }) as Record<string, any>;
+      const newParameters = normalizeMaskData(rawNewParameters);
 
       const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
-      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
+      const mergedParameters = normalizeMaskData({
+        ...((subMask?.parameters || {}) as Record<string, any>),
+        ...newParameters,
+      });
       patchesSentToBackend.delete(subMaskId);
       updateSubMask(subMaskId, { parameters: mergedParameters });
     } catch (error) {
-      toast.error(`AI Mask Failed: ${error}`);
+      toast.error(`AI Sky Mask Failed: ${error}`);
     } finally {
       setEditor({ isGeneratingAiMask: false });
     }

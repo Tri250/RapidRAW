@@ -112,16 +112,31 @@ export function useTauriListeners({
       if (!isEffectActive) return;
       const { path, thumbnailPath, rating, is_edited, data } = event.payload;
 
-      if (thumbnailPath) {
-        try {
-          thumbnailBuffer.current[path] = convertFileSrc(thumbnailPath);
-        } catch {
-          // Fallback: use asset:// protocol for local file paths
-          thumbnailBuffer.current[path] = `https://asset.localhost/${encodeURIComponent(thumbnailPath)}`;
-        }
-        refs.current.markGenerated(path);
-      } else if (data) {
+      if (data && typeof data === 'string' && (data.startsWith('data:image') || data.startsWith('blob:'))) {
         thumbnailBuffer.current[path] = data;
+        refs.current.markGenerated(path);
+      } else if (thumbnailPath) {
+        let resolvedUrl: string | null = null;
+        try {
+          resolvedUrl = convertFileSrc(thumbnailPath, 'asset');
+        } catch {
+          resolvedUrl = null;
+        }
+        if (!resolvedUrl) {
+          try {
+            resolvedUrl = convertFileSrc(thumbnailPath);
+          } catch {
+            resolvedUrl = null;
+          }
+        }
+        if (!resolvedUrl) {
+          // Tauri 2.x asset:// protocol fallback – normalize absolute paths
+          const normalizedPath = thumbnailPath.startsWith('/')
+            ? `asset://localhost${thumbnailPath}`
+            : `asset://localhost/${thumbnailPath}`;
+          resolvedUrl = normalizedPath;
+        }
+        thumbnailBuffer.current[path] = resolvedUrl;
         refs.current.markGenerated(path);
       }
       if (rating !== undefined) {

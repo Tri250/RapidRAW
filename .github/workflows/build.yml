@@ -228,6 +228,15 @@ jobs:
           set -euo pipefail
 
           tag_name="${{ inputs.tag-name }}"
+          version="${tag_name#v}"
+
+          if ! gh release view "$tag_name" >/dev/null 2>&1; then
+            gh release create "$tag_name" \
+              --title "RapidRAW v${version}" \
+              --notes "See the assets to download and install this version. Full release notes available on the Release page." \
+              --latest
+          fi
+          sleep 5
           gh release upload "$tag_name" "$RUNNER_TEMP"/android-release-assets/* --clobber
 
       - name: Upload Android Artifacts

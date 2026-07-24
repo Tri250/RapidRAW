@@ -1798,10 +1798,33 @@ fn emit_thumbnail_generated(
     rating: u8,
     is_edited: bool,
 ) {
-    let _ = app_handle.emit(
-        "thumbnail-generated",
-        serde_json::json!({ "path": path, "thumbnailPath": thumbnail_path, "rating": rating, "is_edited": is_edited }),
-    );
+    let data_url = fs::read(thumbnail_path)
+        .ok()
+        .and_then(|bytes| {
+            use base64::{Engine as _, engine::general_purpose::STANDARD};
+            Some(format!(
+                "data:image/jpeg;base64,{}",
+                STANDARD.encode(&bytes)
+            ))
+        });
+
+    let payload = if let Some(data) = data_url {
+        serde_json::json!({
+            "path": path,
+            "thumbnailPath": thumbnail_path,
+            "rating": rating,
+            "is_edited": is_edited,
+            "data": data,
+        })
+    } else {
+        serde_json::json!({
+            "path": path,
+            "thumbnailPath": thumbnail_path,
+            "rating": rating,
+            "is_edited": is_edited,
+        })
+    };
+    let _ = app_handle.emit("thumbnail-generated", payload);
 }
 
 pub fn resolve_lens_params_in_adjustments(

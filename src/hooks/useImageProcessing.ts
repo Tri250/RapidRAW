@@ -123,50 +123,60 @@ export function useImageProcessing(
       const currentPath = selectedImage?.path;
       if (!currentPath) return;
 
-      const payload = structuredClone(currentAdjustments);
-      const { patchesSentToBackend } = useEditorStore.getState();
+      let effectiveRes = targetRes;
+      if (dragging && effectiveRes) {
+        const dragMax = 1440;
+        if (effectiveRes > dragMax) effectiveRes = dragMax;
+      }
+
+      const patchesSentToBackend = useEditorStore.getState().patchesSentToBackend;
       const newlySentPatches = new Set<string>();
 
-      const processSubMasks = (subMasks: any[]) => {
-        if (!Array.isArray(subMasks)) return;
-        subMasks.forEach((sm: any) => {
-          if (sm.id && sm.parameters) {
-            const keys = ['mask_data_base64', 'maskDataBase64'];
-            let foundMaskData = false;
-
-            for (const key of keys) {
-              if (sm.parameters[key] !== undefined && sm.parameters[key] !== null) {
-                foundMaskData = true;
-                if (patchesSentToBackend.has(sm.id)) {
-                  sm.parameters[key] = null;
-                }
+      const cloneSubMasks = (subMasks: any[]) => {
+        if (!Array.isArray(subMasks)) return subMasks;
+        return subMasks.map((sm) => {
+          if (!sm || !sm.id || !sm.parameters) return sm;
+          const keys = ['mask_data_base64', 'maskDataBase64'];
+          let found = false;
+          for (const k of keys) {
+            if (sm.parameters[k] !== undefined && sm.parameters[k] !== null) {
+              found = true;
+              if (patchesSentToBackend.has(sm.id)) {
+                return { ...sm, parameters: { ...sm.parameters, [k]: null } };
               }
             }
-            if (foundMaskData && !patchesSentToBackend.has(sm.id)) {
-              newlySentPatches.add(sm.id);
-            }
           }
+          if (found && !patchesSentToBackend.has(sm.id)) newlySentPatches.add(sm.id);
+          return sm;
         });
       };
 
-      if (payload.aiPatches && Array.isArray(payload.aiPatches)) {
-        payload.aiPatches.forEach((p: any) => {
-          if (p.id && p.patchData && !p.isLoading) {
+      const cloneAiPatches = (patches: any[]) => {
+        if (!Array.isArray(patches)) return patches;
+        return patches.map((p) => {
+          let np = p;
+          if (p?.id && p?.patchData && !p?.isLoading) {
             if (patchesSentToBackend.has(p.id)) {
-              p.patchData = null;
+              np = { ...p, patchData: null };
             } else {
               newlySentPatches.add(p.id);
             }
           }
-          if (p.subMasks) processSubMasks(p.subMasks);
+          if (np?.subMasks) {
+            np = { ...np, subMasks: cloneSubMasks(np.subMasks) };
+          }
+          return np;
         });
-      }
+      };
 
-      if (payload.masks && Array.isArray(payload.masks)) {
-        payload.masks.forEach((container: any) => {
-          if (container.subMasks) processSubMasks(container.subMasks);
-        });
-      }
+      const cloneMasks = (masks: any[]) => {
+        if (!Array.isArray(masks)) return masks;
+        return masks.map((c) => (c?.subMasks ? { ...c, subMasks: cloneSubMasks(c.subMasks) } : c));
+      };
+
+      const payload: any = { ...currentAdjustments };
+      if (payload.aiPatches) payload.aiPatches = cloneAiPatches(payload.aiPatches);
+      if (payload.masks) payload.masks = cloneMasks(payload.masks);
 
       const jobId = ++previewJobIdRef.current;
       const roi = calculateROI();
@@ -175,7 +185,7 @@ export function useImageProcessing(
         const buffer: ArrayBuffer = await invoke(Invokes.ApplyAdjustments, {
           jsAdjustments: payload,
           isInteractive: dragging,
-          targetResolution: targetRes || null,
+          targetResolution: effectiveRes || null,
           roi: roi || null,
           computeWaveform: !!isWaveformVisible,
           activeWaveformChannel: activeWaveformChannelRef.current || null,
@@ -197,11 +207,6 @@ export function useImageProcessing(
               if (state.interactivePatch && state.interactivePatch.url) URL.revokeObjectURL(state.interactivePatch.url);
               return { interactivePatch: null };
             });
-            // When wgpu is active, keep existing finalPreviewUrl as fallback.
-            // The SVG image display uses !isWgpuActive guard, so the fallback
-            // will show when hasRenderedFirstFrame is false (wgpu not yet ready).
-            // Once wgpu renders its first frame, isWgpuActive becomes true and
-            // the SVG fallback is hidden, showing the wgpu canvas instead.
             return;
           }
 
@@ -451,16 +456,25 @@ export function useImageProcessing(
     const targetRes = calculateTargetRes();
     const renderAdjustments = previewOverride ?? adjustments;
 
-    const finalPreviewExists = !!(globalImageCache.get(selectedImage.path)?.finalPreviewUrl || useEditorStore.getState().finalPreviewUrl);
+    const storeFinalPreviewUrl = globalImageCache.get(selectedImage.path)?.finalPreviewUrl;
+    const stateFinalPreviewUrl = useEditorStore.getState().finalPreviewUrl;
+    const finalPreviewExists = !!(storeFinalPreviewUrl || stateFinalPreviewUrl);
     const firstRender = !finalPreviewExists;
 
     if (isSliderDragging) {
       if (appSettings?.enableLivePreviews !== false) {
-        applyAdjustments(renderAdjustments, true, targetRes);
+        const dragRes = Math.min(targetRes, 1280);
+        currentResRef.current = dragRes;
+        applyAdjustments(renderAdjustments, true, dragRes);
       }
     } else if (firstRender) {
-      currentResRef.current = targetRes;
-      applyAdjustments(renderAdjustments, false, targetRes);
+      const quickRes = Math.min(targetRes, 960);
+      currentResRef.current = quickRes;
+      applyAdjustments(renderAdjustments, false, quickRes);
+      // Progressive upscale after fast first frame
+      if (targetRes > quickRes) {
+        requestHiFiZoom(renderAdjustments, targetRes);
+      }
     } else {
       dragIdleTimer.current = setTimeout(() => {
         currentResRef.current = targetRes;

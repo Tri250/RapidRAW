@@ -1836,7 +1836,7 @@ pub struct AiSubjectMaskParameters {
     pub start_y: f64,
     pub end_x: f64,
     pub end_y: f64,
-    #[serde(default)]
+    #[serde(default, rename = "mask_data_base64", alias = "maskDataBase64")]
     pub mask_data_base64: Option<String>,
     #[serde(default)]
     pub rotation: Option<f32>,
@@ -1851,7 +1851,7 @@ pub struct AiSubjectMaskParameters {
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AiSkyMaskParameters {
-    #[serde(default)]
+    #[serde(default, rename = "mask_data_base64", alias = "maskDataBase64")]
     pub mask_data_base64: Option<String>,
     #[serde(default)]
     pub rotation: Option<f32>,
@@ -1866,7 +1866,7 @@ pub struct AiSkyMaskParameters {
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AiForegroundMaskParameters {
-    #[serde(default)]
+    #[serde(default, rename = "mask_data_base64", alias = "maskDataBase64")]
     pub mask_data_base64: Option<String>,
     #[serde(default)]
     pub rotation: Option<f32>,
@@ -1891,7 +1891,7 @@ pub struct AiDepthMaskParameters {
     pub max_fade: f32,
     #[serde(default)]
     pub feather: f32,
-    #[serde(default)]
+    #[serde(default, rename = "mask_data_base64", alias = "maskDataBase64")]
     pub mask_data_base64: Option<String>,
     #[serde(default)]
     pub rotation: Option<f32>,

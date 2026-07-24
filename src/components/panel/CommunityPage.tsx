@@ -227,20 +227,26 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
 
   return (
     <div className="flex-1 flex flex-col h-full min-w-0 bg-bg-secondary rounded-lg overflow-hidden p-4">
-      <header className="shrink-0 flex items-center justify-between mb-3 flex-wrap gap-2">
-        <div className="flex items-center gap-2">
+      <header className="shrink-0 flex items-center justify-between mb-3 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <Button
-            className="hover:bg-surface text-text-primary rounded-full"
+            className="hover:bg-surface text-text-primary rounded-full shrink-0"
             onClick={onBackToLibrary}
             size="icon"
             variant="ghost"
           >
             <ArrowLeft size={18} />
           </Button>
-          <div>
-            <Text variant={TextVariants.heading} className="flex items-center gap-1.5 text-sm">
-              <Users size={16} /> {t('library.community.headerTitle')}
+          <div className="min-w-0">
+            <Text variant={TextVariants.heading} className="flex items-center gap-1.5 text-sm truncate">
+              <Users size={16} className="shrink-0" />
+              <span className="truncate">{t('library.community.headerTitle')}</span>
             </Text>
+            {!isLoading && presets.length > 0 && (
+              <Text variant={TextVariants.small} color={TextColors.secondary} className="opacity-70 text-xs leading-none mt-0.5">
+                {presets.length} {t('library.community.presetCount', { defaultValue: 'presets' })}
+              </Text>
+            )}
           </div>
         </div>
         <Button
@@ -248,7 +254,7 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
           size="sm"
           onClick={fetchPresets}
           disabled={isLoading}
-          className="flex items-center gap-1.5 h-8"
+          className="flex items-center gap-1.5 h-8 shrink-0"
         >
           <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
           <span className="hidden sm:inline">{t('library.community.refresh') || 'Refresh'}</span>
@@ -263,18 +269,20 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
         </div>
       )}
 
-      <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
-        <div className="relative flex-1 min-w-[120px] max-w-[200px]">
+      <div className="flex justify-between items-center mb-3 gap-2">
+        <div className="relative flex-1 min-w-0">
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={t('library.community.searchPlaceholder')}
-            className="pl-8 h-8 text-sm"
+            className="pl-8 h-8 text-sm w-full"
           />
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-secondary" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-secondary pointer-events-none" />
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          <Text variant={TextVariants.label}>{t('library.community.sortBy')}</Text>
+        <div className="flex items-center gap-2 text-sm shrink-0">
+          <Text variant={TextVariants.label} className="hidden md:block">
+            {t('library.community.sortBy')}
+          </Text>
           <Dropdown options={sortMethods} value={sortBy} onChange={(value) => setSortBy(value)} />
         </div>
       </div>
@@ -326,23 +334,16 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
                 const isExpanded = expandedPresets[preset.name] || false;
                 const coverErrorCount = coverErrors[preset.name] || 0;
                 const coverRetryLimit = 2;
-                const coverPath =
-                  preset.coverPath && coverErrorCount <= coverRetryLimit
-                    ? `${preset.coverPath}${preset.coverPath.includes('?') ? '&' : '?'}retry=${coverErrorCount}`
-                    : undefined;
-                const hasCoverImage = !!coverPath;
+                const coverFailedBefore = coverErrorCount > 0;
+                const rawCoverPath = preset.coverPath;
+                const shouldTryCover = !!rawCoverPath && coverErrorCount <= coverRetryLimit;
+                const effectiveCoverSrc = shouldTryCover
+                  ? `${rawCoverPath}${rawCoverPath.includes('?') ? '&' : '?'}retry=${coverErrorCount}`
+                  : undefined;
+                const hasCoverImage = !!effectiveCoverSrc;
                 const hasGallery = !!(preset.galleryImages && preset.galleryImages.length > 0);
                 const hasTags = !!(preset.tags && preset.tags.length > 0);
                 const hasDescription = !!(preset.description && preset.description.content);
-
-                const coverInlineStyle: React.CSSProperties | undefined = coverPath
-                  ? {
-                      backgroundImage: `url("${coverPath}")`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      backgroundRepeat: 'no-repeat',
-                    }
-                  : undefined;
 
                 return (
                   <motion.div
@@ -354,7 +355,6 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
                   >
                     <div
                       className="relative w-full aspect-square bg-bg-primary flex items-center justify-center cursor-pointer overflow-hidden"
-                      style={coverInlineStyle}
                       onClick={() => {
                         if (hasGallery) {
                           setGalleryState({ images: preset.galleryImages!, currentIndex: 0 });
@@ -363,7 +363,7 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
                     >
                       {hasCoverImage ? (
                         <img
-                          src={coverPath}
+                          src={effectiveCoverSrc}
                           alt={preset.name}
                           className="w-full h-full object-cover transition-all duration-300 group-hover:blur-xs group-hover:brightness-75"
                           loading="lazy"
@@ -372,10 +372,10 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
                           crossOrigin="anonymous"
                           onError={(e) => {
                             const img = e.currentTarget;
-                            // Fallback to default preview image on first error
                             if (coverErrorCount === 0 && !img.dataset.fallbackTried) {
                               img.dataset.fallbackTried = '1';
                               img.src = DEFAULT_PREVIEW_IMAGE_URL;
+                              img.onerror = null;
                               return;
                             }
                             setCoverErrors((prev) => ({
@@ -383,18 +383,24 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
                               [preset.name]: (prev[preset.name] || 0) + 1,
                             }));
                           }}
+                          onLoad={(e) => {
+                            const img = e.currentTarget;
+                            if (!img.naturalWidth || img.naturalWidth < 8) {
+                              img.dispatchEvent(new Event('error'));
+                            }
+                          }}
                         />
                       ) : null}
-                      {(!hasCoverImage && previewUrl) ? (
+                      {(!hasCoverImage || coverFailedBefore) && previewUrl ? (
                         <img
                           src={previewUrl}
                           alt={preset.name}
-                          className="w-full h-full object-cover transition-all duration-300 group-hover:blur-xs group-hover:brightness-75"
+                          className={`w-full h-full object-cover transition-all duration-300 group-hover:blur-xs group-hover:brightness-75 ${hasCoverImage ? 'hidden' : ''}`}
                           loading="lazy"
                           decoding="async"
                         />
                       ) : null}
-                      {(!hasCoverImage && !previewUrl && allPreviewsLoaded) ? (
+                      {(!hasCoverImage || coverFailedBefore) && !previewUrl && allPreviewsLoaded ? (
                         <div className="flex flex-col items-center justify-center gap-2 text-text-secondary bg-bg-primary/60 backdrop-blur-sm w-full h-full">
                           <div className="text-3xl font-bold tracking-wider opacity-70">
                             {preset.name.slice(0, 2)}
@@ -404,7 +410,7 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
                           </Text>
                         </div>
                       ) : null}
-                      {(!hasCoverImage && !previewUrl && !allPreviewsLoaded) ? (
+                      {(!hasCoverImage || coverFailedBefore) && !previewUrl && !allPreviewsLoaded ? (
                         <div className="flex flex-col items-center justify-center gap-2 text-text-secondary">
                           <Loader2 className="h-8 w-8 animate-spin text-text-secondary" />
                         </div>
