@@ -38,6 +38,18 @@
   <url type="homepage">https://github.com/Tri250/RapidRAW</url>
 
   <releases>
+    <release version="v1.8.19" date="2026-07-25">
+        <url type="details">https://github.com/Tri250/RapidRAW/releases/tag/v1.8.19</url>
+        <description translate="no">
+            <p>RAW工坊 v1.8.19 - 专项AI引擎深度自检修复·发布工作流优化</p>
+            <ul>
+                <li>AI引擎深度自检：审查全部AI模块（ai_commands/ai_service/ai_processing/ai_labeling/ai_connector/face_landmark/inpainting/denoising/mask_generation/tagging），确认逻辑完整性</li>
+                <li>AI Labeling前后端参数对齐修复：searchByText/findSimilar的limit→maxResults、embedding序列化为embeddingJson、addManualLabel/removeLabel补充model参数</li>
+                <li>发布工作流修复：workflow_dispatch描述更新为通用版本格式</li>
+                <li>AppStream元数据更新：补充v1.8.19发布条目</li>
+            </ul>
+        </description>
+    </release>
     <release version="v1.8.15" date="2026-07-22">
         <url type="details">https://github.com/Tri250/RapidRAW/releases/tag/v1.8.15</url>
         <description translate="no">
