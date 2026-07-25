@@ -51,12 +51,24 @@ import { useLibraryStore } from '../store/useLibraryStore';
 import { useProcessStore } from '../store/useProcessStore';
 import { useUIStore } from '../store/useUIStore';
 import { useSettingsStore } from '../store/useSettingsStore';
-import { Invokes, Option, OPTION_SEPARATOR, Panel, AlbumItem, Album, AlbumGroup } from '../components/ui/AppProperties';
+import { Invokes, Option, OPTION_SEPARATOR, Panel, AlbumItem, Album, AlbumGroup, ImageFile } from '../components/ui/AppProperties';
 import { Color, COLOR_LABELS, INITIAL_ADJUSTMENTS, normalizeLoadedAdjustments } from '../utils/adjustments';
 import TaggingSubMenu from '../context/TaggingSubMenu';
 import { useEditorActions } from './useEditorActions';
 import { useLibraryActions } from './useLibraryActions';
 import { globalImageCache } from '../utils/ImageLRUCache';
+
+const RAW_EXTENSIONS = new Set([
+  'dng', 'pro', 'ari', 'crw', 'cr2', 'cr3', 'bay', 'erf', 'raf',
+  '3fr', 'fff', 'iiq', 'kdc', 'k25', 'dcs', 'dcr', 'mos', 'rwl',
+  'mef', 'mrw', 'nef', 'nrw', 'orf', 'rw2', 'raw', 'pef', 'ptx',
+  'srw', 'x3f', 'arw', 'srf', 'sr2',
+]);
+
+function isRawByPath(path: string): boolean {
+  const ext = path.split('.').pop()?.toLowerCase();
+  return ext ? RAW_EXTENSIONS.has(ext) : false;
+}
 
 export interface UseAppContextMenusProps {
   handleImageSelect: (path: string) => void;
@@ -235,7 +247,7 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
               icon: LayoutTemplate,
               label: t('contextMenus.editor.frameImage'),
               onClick: () => {
-                setUI({ collageModalState: { isOpen: true, sourceImages: [selectedImage as any] } });
+                setUI({ collageModalState: { isOpen: true, sourceImages: [{ path: selectedImage.path } as ImageFile] } });
               },
             },
             { label: t('contextMenus.editor.cullImage'), icon: Users, disabled: true },
@@ -557,7 +569,7 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
                     error: null,
                     targetPaths: finalSelection,
                     progressMessage: null,
-                    isRaw: selectedImage?.isRaw || false,
+                    isRaw: isRawByPath(finalSelection[0]),
                   },
                 });
               },
@@ -565,7 +577,6 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
             {
               label: conversionLabel,
               icon: Film,
-              disabled: selectionCount === 0,
               onClick: () => {
                 setUI({ negativeModalState: { isOpen: true, targetPaths: finalSelection } });
               },

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { convertFileSrc } from '@tauri-apps/api/core';
+import { toast } from 'react-toastify';
 import { Status } from '../components/ui/ExportImportProperties';
 import { useProcessStore } from '../store/useProcessStore';
 import { useEditorStore } from '../store/useEditorStore';
@@ -305,17 +306,22 @@ export function useTauriListeners({
         }));
       }
     }));
+    registerListener(listen('panorama-warning', (event: any) => {
+      if (isEffectActive) {
+        toast.warning(String(event.payload), { autoClose: 5000 });
+      }
+    }));
     registerListener(listen('hdr-progress', (event: any) => {
       if (isEffectActive) {
-        useUIStore.getState().setUI((state) => ({
-          hdrModalState: {
-            ...state.hdrModalState,
-            error: null,
-            finalImageBase64: null,
-            isOpen: true,
-            progressMessage: event.payload,
-          },
-        }));
+        useUIStore.getState().setUI((state) => {
+          if (state.hdrModalState.finalImageBase64 || state.hdrModalState.error) return state;
+          return {
+            hdrModalState: {
+              ...state.hdrModalState,
+              progressMessage: event.payload,
+            },
+          };
+        });
       }
     }));
     registerListener(listen('hdr-complete', (event: any) => {
