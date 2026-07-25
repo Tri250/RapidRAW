@@ -25,45 +25,94 @@ fn download_and_verify(
     dest_path: &Path,
     expected_hash: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
-    let temp_filename = dest_path.file_name().unwrap();
-    let temp_path = out_dir.join(temp_filename);
+    let max_retries: u32 = 5;
+    let mut attempt = 0;
 
-    println!(
-        "cargo:warning=Downloading to temporary path: {:?}",
-        temp_path
-    );
-    let mut response = reqwest::blocking::get(url)?;
+    loop {
+        attempt += 1;
+        let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
+        let temp_filename = dest_path.file_name().unwrap();
+        let temp_path = out_dir.join(temp_filename);
 
-    if !response.status().is_success() {
-        let status = response.status();
-        let error_body = response
-            .text()
-            .unwrap_or_else(|_| "Could not read error body".to_string());
-        return Err(format!("Download failed with status {}: {}", status, error_body).into());
-    }
+        println!(
+            "cargo:warning=Download attempt {}/{} to temporary path: {:?}",
+            attempt, max_retries, temp_path
+        );
 
-    let mut temp_file = fs::File::create(&temp_path)?;
-    response.copy_to(&mut temp_file)?;
-    println!("cargo:warning=Download complete. Verifying file integrity...");
+        match reqwest::blocking::get(url) {
+            Ok(response) if response.status().is_success() => {
+                let mut temp_file = fs::File::create(&temp_path)?;
+                response.copy_to(&mut temp_file)?;
+                println!("cargo:warning=Download complete. Verifying file integrity...");
 
-    match verify_sha256(&temp_path, expected_hash) {
-        Ok(true) => {
-            fs::copy(&temp_path, dest_path)?;
-            fs::remove_file(&temp_path)?;
-            println!(
-                "cargo:warning=Successfully downloaded and verified {:?}.",
-                dest_path
-            );
-            Ok(())
-        }
-        Ok(false) => {
-            fs::remove_file(&temp_path)?;
-            Err("Verification failed! The downloaded file is corrupt.".into())
-        }
-        Err(e) => {
-            fs::remove_file(&temp_path).ok();
-            Err(format!("Could not verify file after download: {}", e).into())
+                match verify_sha256(&temp_path, expected_hash) {
+                    Ok(true) => {
+                        fs::copy(&temp_path, dest_path)?;
+                        fs::remove_file(&temp_path)?;
+                        println!(
+                            "cargo:warning=Successfully downloaded and verified {:?}.",
+                            dest_path
+                        );
+                        return Ok(());
+                    }
+                    Ok(false) => {
+                        fs::remove_file(&temp_path)?;
+                        if attempt < max_retries {
+                            let wait = 2u64.pow(attempt - 1) * 5;
+                            println!(
+                                "cargo:warning=Verification failed (corrupt download). Retrying in {}s...",
+                                wait
+                            );
+                            std::thread::sleep(std::time::Duration::from_secs(wait));
+                            continue;
+                        }
+                        return Err("Verification failed! The downloaded file is corrupt after all retries.".into());
+                    }
+                    Err(e) => {
+                        fs::remove_file(&temp_path).ok();
+                        if attempt < max_retries {
+                            let wait = 2u64.pow(attempt - 1) * 5;
+                            println!(
+                                "cargo:warning=Could not verify file: {}. Retrying in {}s...",
+                                e, wait
+                            );
+                            std::thread::sleep(std::time::Duration::from_secs(wait));
+                            continue;
+                        }
+                        return Err(format!("Could not verify file after download: {}", e).into());
+                    }
+                }
+            }
+            Ok(response) => {
+                let status = response.status();
+                let error_body = response
+                    .text()
+                    .unwrap_or_else(|_| "Could not read error body".to_string());
+                let is_retryable = status.as_u16() == 429 || status.is_server_error();
+                if is_retryable && attempt < max_retries {
+                    let wait = 2u64.pow(attempt - 1) * 10;
+                    println!(
+                        "cargo:warning=Download failed with status {} (retryable). Retrying in {}s...",
+                        status, wait
+                    );
+                    std::thread::sleep(std::time::Duration::from_secs(wait));
+                    continue;
+                }
+                return Err(format!("Download failed with status {}: {}", status, error_body).into());
+            }
+            Err(e) => {
+                let is_retryable = e.is_timeout() || e.is_connect() || e.is_request();
+                if is_retryable && attempt < max_retries {
+                    let wait = 2u64.pow(attempt - 1) * 10;
+                    println!(
+                        "cargo:warning=Download request failed: {}. Retrying in {}s...",
+                        e, wait
+                    );
+                    std::thread::sleep(std::time::Duration::from_secs(wait));
+                    continue;
+                }
+                return Err(format!("Download request failed: {}", e).into());
+            }
         }
     }
 }
