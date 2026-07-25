@@ -582,28 +582,28 @@ export function useAiMasking() {
   const activeMaskId = useEditorStore((state) => state.activeMaskId);
   const activeAiSubMaskId = useEditorStore((state) => state.activeAiSubMaskId);
   const selectedImagePath = useEditorStore((state) => state.selectedImage?.path);
-  const adjustmentsForPrecompute = useEditorStore((state) => state.adjustments);
 
   useEffect(() => {
     let cancelled = false;
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
+    // Read adjustments lazily inside the effect to avoid subscribing to the entire object
+    const adjustments = useEditorStore.getState().adjustments;
     const activeSubMask =
-      adjustmentsForPrecompute?.masks?.flatMap((m: MaskContainer) => m.subMasks).find((sm: SubMask) => sm.id === activeMaskId) ||
-      adjustmentsForPrecompute?.aiPatches?.flatMap((p: AiPatch) => p.subMasks).find((sm: SubMask) => sm.id === activeAiSubMaskId);
+      adjustments?.masks?.flatMap((m: MaskContainer) => m.subMasks).find((sm: SubMask) => sm.id === activeMaskId) ||
+      adjustments?.aiPatches?.flatMap((p: AiPatch) => p.subMasks).find((sm: SubMask) => sm.id === activeAiSubMaskId);
 
     if (activeSubMask?.type === 'ai-subject' && selectedImagePath) {
-      // Debounce to avoid excessive precompute requests when adjustments change rapidly
       debounceTimer = setTimeout(() => {
         if (cancelled) return;
-        const transformAdjustments = getTransformAdjustments(adjustmentsForPrecompute);
+        const currentAdjustments = useEditorStore.getState().adjustments;
+        const transformAdjustments = getTransformAdjustments(currentAdjustments);
         invoke(Invokes.PrecomputeAiSubjectMask, {
           jsAdjustments: transformAdjustments,
           path: selectedImagePath,
         })
           .then(() => {
             if (cancelled) return;
-            // Precompute completed successfully; no state update needed.
           })
           .catch((err) => {
             if (cancelled) return;
@@ -616,7 +616,7 @@ export function useAiMasking() {
       cancelled = true;
       if (debounceTimer) clearTimeout(debounceTimer);
     };
-  }, [activeMaskId, activeAiSubMaskId, selectedImagePath, adjustmentsForPrecompute]);
+  }, [activeMaskId, activeAiSubMaskId, selectedImagePath]);
 
   const handleGenerateColorRangeMask = async (subMaskId: string, parameters: any) => {
     const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
