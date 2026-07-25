@@ -184,6 +184,19 @@ export enum Invokes {
   AiLabelingSearchByText = 'ai_labeling_search_by_text',
   AiLabelingFindSimilar = 'ai_labeling_find_similar',
   AiLabelingGetStats = 'ai_labeling_get_stats',
+  AiLabelingIsInitialized = 'ai_labeling_is_initialized',
+  AiLabelingReset = 'ai_labeling_reset',
+  AiLabelingAddVocabularyEntry = 'ai_labeling_add_vocabulary_entry',
+  AiLabelingRemoveVocabularyEntry = 'ai_labeling_remove_vocabulary_entry',
+  AiLabelingGetVocabularyLabels = 'ai_labeling_get_vocabulary_labels',
+  AiLabelingAddImageEmbedding = 'ai_labeling_add_image_embedding',
+  AiLabelingRemoveImage = 'ai_labeling_remove_image',
+  AiLabelingSearchByEmbedding = 'ai_labeling_search_by_embedding',
+  AiLabelingSearchByLabel = 'ai_labeling_search_by_label',
+  AiLabelingBatchAutoLabel = 'ai_labeling_batch_auto_label',
+  AiLabelingAddManualLabel = 'ai_labeling_add_manual_label',
+  AiLabelingRemoveLabel = 'ai_labeling_remove_label',
+  AiLabelingGetLabels = 'ai_labeling_get_labels',
 }
 
 export enum ExifOverlay {
