@@ -1338,16 +1338,9 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
     };
   }, []);
 
-  const overlayTriggerHash = useMemo(() => {
-    let activeMaskDef = null;
-    if (activeRightPanel === Panel.Masks && activeMaskContainerId) {
-      activeMaskDef = adjustments.masks?.find((c: MaskContainer) => c.id === activeMaskContainerId);
-    } else if (activeRightPanel === Panel.Ai && activeAiPatchContainerId) {
-      activeMaskDef = adjustments.aiPatches?.find((p: AiPatch) => p.id === activeAiPatchContainerId);
-    }
-
-    if (!activeMaskDef) return null;
-
+  // Extract only geometry-related adjustments to avoid infinite re-render loops
+  // when AI mask generation updates mask parameters (which are part of `adjustments`)
+  const geometrySnapshot = useMemo(() => {
     const geometryKeys = [
       'crop',
       'rotation',
@@ -1372,11 +1365,47 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
       'lensTcaEnabled',
       'lensVignetteEnabled',
     ];
-
     const geometry: any = {};
     geometryKeys.forEach((k) => {
       geometry[k] = (adjustments as any)[k];
     });
+    return geometry;
+  }, [
+    adjustments.crop,
+    adjustments.rotation,
+    adjustments.flipHorizontal,
+    adjustments.flipVertical,
+    adjustments.orientationSteps,
+    adjustments.transformDistortion,
+    adjustments.transformVertical,
+    adjustments.transformHorizontal,
+    adjustments.transformRotate,
+    adjustments.transformAspect,
+    adjustments.transformScale,
+    adjustments.transformXOffset,
+    adjustments.transformYOffset,
+    adjustments.lensDistortionAmount,
+    adjustments.lensVignetteAmount,
+    adjustments.lensTcaAmount,
+    adjustments.lensDistortionParams,
+    adjustments.lensMaker,
+    adjustments.lensModel,
+    adjustments.lensDistortionEnabled,
+    adjustments.lensTcaEnabled,
+    adjustments.lensVignetteEnabled,
+  ]);
+
+  const activeMaskDef = useMemo(() => {
+    if (activeRightPanel === Panel.Masks && activeMaskContainerId) {
+      return adjustments.masks?.find((c: MaskContainer) => c.id === activeMaskContainerId) ?? null;
+    } else if (activeRightPanel === Panel.Ai && activeAiPatchContainerId) {
+      return adjustments.aiPatches?.find((p: AiPatch) => p.id === activeAiPatchContainerId) ?? null;
+    }
+    return null;
+  }, [activeRightPanel, activeMaskContainerId, activeAiPatchContainerId, adjustments.masks, adjustments.aiPatches]);
+
+  const overlayTriggerHash = useMemo(() => {
+    if (!activeMaskDef) return null;
 
     const subMasks = activeMaskDef.subMasks?.map((sm: any) => {
       const { parameters, ...rest } = sm;
@@ -1402,15 +1431,13 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
       invert: activeMaskDef.invert,
       opacity: activeMaskDef.opacity,
       subMasks,
-      geometry,
+      geometry: geometrySnapshot,
       renderSize: { w: imageRenderSize.width, h: imageRenderSize.height },
       isGeneratingAiMask,
     });
   }, [
-    activeRightPanel,
-    activeMaskContainerId,
-    activeAiPatchContainerId,
-    adjustments,
+    activeMaskDef,
+    geometrySnapshot,
     imageRenderSize.width,
     imageRenderSize.height,
     isGeneratingAiMask,
@@ -1419,19 +1446,15 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
   useEffect(() => {
     let maskDefForOverlay = null;
 
-    if (activeRightPanel === Panel.Masks && activeMaskContainerId) {
-      const activeMask = adjustments.masks?.find((c: MaskContainer) => c.id === activeMaskContainerId);
-      if (activeMask) {
+    if (activeMaskDef) {
+      if (activeRightPanel === Panel.Masks) {
         maskDefForOverlay = {
-          ...activeMask,
+          ...activeMaskDef,
           adjustments: {},
         };
-      }
-    } else if (activeRightPanel === Panel.Ai && activeAiPatchContainerId) {
-      const activePatch = adjustments.aiPatches?.find((p: AiPatch) => p.id === activeAiPatchContainerId);
-      if (activePatch) {
+      } else if (activeRightPanel === Panel.Ai) {
         maskDefForOverlay = {
-          ...activePatch,
+          ...activeMaskDef,
           adjustments: {},
           opacity: 100,
         };
@@ -1439,14 +1462,11 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
     }
 
     requestMaskOverlay(maskDefForOverlay, imageRenderSize, adjustments);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     overlayTriggerHash,
     requestMaskOverlay,
-    activeRightPanel,
-    activeMaskContainerId,
-    activeAiPatchContainerId,
     imageRenderSize,
-    isGeneratingAiMask,
   ]);
 
   useEffect(() => {
