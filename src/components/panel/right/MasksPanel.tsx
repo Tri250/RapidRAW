@@ -761,12 +761,23 @@ export default function MasksPanel() {
     const imgW = isRotated ? selectedImage.height || 1000 : selectedImage.width || 1000;
     const imgH = isRotated ? selectedImage.width || 1000 : selectedImage.height || 1000;
 
+    // Apply SUB_MASK_CONFIG defaults for consistent parameter initialization
+    const config = SUB_MASK_CONFIG[type];
+    if (config && config.parameters) {
+      if (!subMask.parameters) subMask.parameters = {} as any;
+      config.parameters.forEach((param: any) => {
+        if (param.defaultValue !== undefined) {
+          (subMask.parameters as any)[param.key] = param.defaultValue / (param.multiplier || 1);
+        }
+      });
+    }
+
     if (type === Mask.Linear && subMask.parameters) {
-      subMask.parameters.range = Math.min(imgW, imgH) * 0.1;
+      (subMask.parameters as any).range = Math.min(imgW, imgH) * 0.1;
     }
 
     if (type === Mask.Linear || type === Mask.Radial || type === Mask.Color || type === Mask.Luminance) {
-      if (!subMask.parameters) subMask.parameters = {};
+      if (!subMask.parameters) subMask.parameters = {} as any;
       const params = subMask.parameters as any;
       params.isInitialDraw = true;
       if (type === Mask.Linear || type === Mask.Radial) {
@@ -787,7 +798,7 @@ export default function MasksPanel() {
     }
 
     if (type === Mask.AiDepth) {
-      if (!subMask.parameters) subMask.parameters = {};
+      if (!subMask.parameters) subMask.parameters = {} as any;
       const params = subMask.parameters as any;
       params.minDepth = 20;
       params.maxDepth = 100;

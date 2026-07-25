@@ -97,14 +97,14 @@ const SUB_MASK_CONFIG: any = {
   [Mask.Linear]: { parameters: [] },
   [Mask.AiSubject]: {
     parameters: [
-      { key: 'grow', min: -100, max: 100, step: 1, defaultValue: 50 },
-      { key: 'feather', min: 0, max: 100, step: 1, defaultValue: 25 },
+      { key: 'grow', min: -100, max: 100, step: 1, defaultValue: 0 },
+      { key: 'feather', min: 0, max: 100, step: 1, defaultValue: 0 },
     ],
   },
   [Mask.AiForeground]: {
     parameters: [
-      { key: 'grow', min: -100, max: 100, step: 1, defaultValue: 50 },
-      { key: 'feather', min: 0, max: 100, step: 1, defaultValue: 25 },
+      { key: 'grow', min: -100, max: 100, step: 1, defaultValue: 0 },
+      { key: 'feather', min: 0, max: 100, step: 1, defaultValue: 0 },
     ],
   },
   [Mask.AiSky]: {

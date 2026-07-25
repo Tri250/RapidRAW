@@ -67,6 +67,30 @@ const DEFAULT_SOURCES: GallerySource[] = [
     isLoading: false,
     error: null,
   },
+  {
+    url: 'https://cdn.jsdelivr.net/gh/fengyec2/OMaster-Community@main/presets/v2/vivo.json',
+    name: 'vivo 大师预设',
+    enabled: true,
+    presets: [],
+    isLoading: false,
+    error: null,
+  },
+  {
+    url: 'https://cdn.jsdelivr.net/gh/fengyec2/OMaster-Community@main/presets/v2/honor.json',
+    name: 'honor 大师预设',
+    enabled: true,
+    presets: [],
+    isLoading: false,
+    error: null,
+  },
+  {
+    url: 'https://cdn.jsdelivr.net/gh/fengyec2/OMaster-Community@main/presets/v2/realme.json',
+    name: 'realme 大师预设',
+    enabled: true,
+    presets: [],
+    isLoading: false,
+    error: null,
+  },
 ];
 
 const STORAGE_KEY = 'preset-gallery-sources';

@@ -194,6 +194,7 @@ const PresetCard = ({ preset, index }: PresetCardProps) => {
   return (
     <motion.div
       variants={itemVariants}
+      layout
       className="group relative"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -677,6 +678,7 @@ const SourceSection = ({ source }: SourceSectionProps) => {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
+          layout
           className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
         >
           {source.presets.map((preset, idx) => (
