@@ -125,7 +125,9 @@ pub async fn generate_ai_depth_mask(
 
     let cached_depth = {
         let mut ai_state_lock = state.ai_state.lock().unwrap();
-        let ai_state = ai_state_lock.as_mut().unwrap();
+        let ai_state = ai_state_lock
+            .as_mut()
+            .ok_or("AI state not initialized")?;
 
         if let Some(cached) = &ai_state.depth_map {
             if cached.path_hash == path_hash {
@@ -214,7 +216,9 @@ pub async fn generate_ai_subject_mask(
 
     let embeddings = {
         let mut ai_state_lock = state.ai_state.lock().unwrap();
-        let ai_state = ai_state_lock.as_mut().unwrap();
+        let ai_state = ai_state_lock
+            .as_mut()
+            .ok_or("AI state not initialized")?;
 
         if let Some(cached_embeddings) = &ai_state.embeddings {
             if cached_embeddings.path_hash == path_hash {
@@ -359,7 +363,9 @@ pub async fn precompute_ai_subject_mask(
     };
 
     let mut ai_state_lock = state.ai_state.lock().unwrap();
-    let ai_state = ai_state_lock.as_mut().unwrap();
+    let ai_state = ai_state_lock
+        .as_mut()
+        .ok_or("AI state not initialized")?;
 
     if let Some(cached_embeddings) = &ai_state.embeddings
         && cached_embeddings.path_hash == path_hash
@@ -710,15 +716,21 @@ pub async fn generate_ai_ratings_batch(
 // ---------------------------------------------------------------------------
 
 /// Replace the sky region using an existing sky mask with Poisson-like blending
-/// at the edges. `sky_mask` is a grayscale mask (0=keep original, 255=use sky).
-/// `sky_image_data` is the new sky image as raw RGBA bytes.
+/// Replace sky region using AI sky segmentation.
+/// `sky_prompt` can be used for AI connector inpainting; empty prompt uses default blue sky.
 /// `blend_amount` controls edge blending (0..1).
 #[tauri::command]
-pub fn generate_ai_sky_replace(
-    state: tauri::State<AppState>,
-    sky_mask: Vec<u8>,
-    sky_image_data: Vec<u8>,
+pub async fn generate_ai_sky_replace(
+    js_adjustments: serde_json::Value,
+    path: String,
+    sky_prompt: String,
     blend_amount: f32,
+    rotation: f32,
+    flip_horizontal: bool,
+    flip_vertical: bool,
+    orientation_steps: u8,
+    state: tauri::State<'_, AppState>,
+    app_handle: tauri::AppHandle,
 ) -> Result<Vec<u8>, String> {
     let loaded_image = state
         .original_image
@@ -732,31 +744,66 @@ pub fn generate_ai_sky_replace(
         return Err("Image has zero dimensions".to_string());
     }
 
+    // 1. Initialize AI models
+    let models = get_or_init_ai_models(&app_handle, &state.ai_state, &state.ai_init_lock)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // 2. Generate sky mask using sky segmentation model
+    let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
+    let sky_mask_img = run_sky_seg_model(warped_image.as_ref(), &models.sky_seg)
+        .map_err(|e| format!("Sky segmentation failed: {}", e))?;
+
+    // Convert GrayImage mask to Vec<u8> and ensure dimensions match original image
+    let sky_mask = if sky_mask_img.width() != w || sky_mask_img.height() != h {
+        image::imageops::resize(&sky_mask_img, w, h, image::imageops::FilterType::Triangle)
+            .into_raw()
+    } else {
+        sky_mask_img.into_raw()
+    };
+
+    // 3. Generate or select sky image
     let mut base_rgba = loaded_image.image.to_rgba8();
 
-    // Decode the sky image
-    let sky_img = image::load_from_memory(&sky_image_data)
-        .map_err(|e| format!("Failed to decode sky image: {}", e))?;
-    let sky_rgba = sky_img
-        .resize_exact(w, h, image::imageops::FilterType::Lanczos3)
-        .to_rgba8();
+    let sky_rgba = if !sky_prompt.is_empty() {
+        // Try to use AI connector for inpainting with the sky prompt
+        let settings = load_settings(app_handle.clone()).unwrap_or_default();
+        if let Some(address) = settings.ai_connector_address {
+            let mask_dynamic = image::DynamicImage::ImageLuma8(
+                image::GrayImage::from_raw(w, h, sky_mask.clone())
+                    .unwrap_or_else(|| image::GrayImage::new(w, h)),
+            );
+            match ai_connector::process_inpainting(
+                &address,
+                &path,
+                &loaded_image.image,
+                &mask_dynamic,
+                sky_prompt,
+                None,
+            )
+            .await
+            {
+                Ok(result) => result,
+                Err(_) => create_default_sky(w, h),
+            }
+        } else {
+            create_default_sky(w, h)
+        }
+    } else {
+        create_default_sky(w, h)
+    };
 
-    // Validate mask dimensions
-    if sky_mask.len() != (w as usize * h as usize) {
-        return Err(format!(
-            "Sky mask size {} does not match image {}x{}={}",
-            sky_mask.len(),
-            w,
-            h,
-            w as usize * h as usize
-        ));
-    }
+    // Resize sky image to match original dimensions if needed
+    let sky_rgba = if sky_rgba.width() != w || sky_rgba.height() != h {
+        image::imageops::resize(&sky_rgba, w, h, image::imageops::FilterType::Lanczos3)
+    } else {
+        sky_rgba
+    };
 
+    // 4. Blend using the sky mask with feathering
     let blend = blend_amount.clamp(0.0, 1.0);
-    let blend_radius = (blend * 10.0).round() as i32; // pixel radius for edge blending
+    let blend_radius = (blend * 10.0).round() as i32;
 
-    // Build a feathered mask from the binary sky_mask
-    // Apply a simple box blur for feathering
     let mut feathered = vec![0.0f32; (w * h) as usize];
     for y in 0..h {
         for x in 0..w {
@@ -765,13 +812,11 @@ pub fn generate_ai_sky_replace(
         }
     }
 
-    // Simple box blur for feathering
     if blend_radius > 0 {
         let mut blurred = vec![0.0f32; feathered.len()];
         let w_usize = w as usize;
         let h_usize = h as usize;
 
-        // Horizontal pass
         for y in 0..h_usize {
             for x in 0..w_usize {
                 let mut sum = 0.0f32;
@@ -785,7 +830,6 @@ pub fn generate_ai_sky_replace(
             }
         }
 
-        // Vertical pass
         for y in 0..h_usize {
             for x in 0..w_usize {
                 let mut sum = 0.0f32;
@@ -826,14 +870,39 @@ pub fn generate_ai_sky_replace(
     Ok(buf.into_inner())
 }
 
+/// Create a default blue sky gradient image.
+fn create_default_sky(w: u32, h: u32) -> image::RgbaImage {
+    let mut img = image::RgbaImage::new(w, h);
+    for y in 0..h {
+        for x in 0..w {
+            let t = y as f32 / h as f32;
+            let r = (135.0 * (1.0 - t) + 70.0 * t) as u8;
+            let g = (206.0 * (1.0 - t) + 130.0 * t) as u8;
+            let b = (235.0 * (1.0 - t) + 180.0 * t) as u8;
+            img.put_pixel(x, y, Rgba([r, g, b, 255]));
+        }
+    }
+    img
+}
+
 // ---------------------------------------------------------------------------
 // Background Removal
 // ---------------------------------------------------------------------------
 
-/// Remove background using the existing foreground mask from AI state.
-/// Produces an RGBA PNG with alpha channel from the mask.
+/// Remove background using AI depth estimation.
+/// Automatically initializes AI state and generates depth mask if not cached.
+/// Produces an RGBA PNG with alpha channel from the depth-based foreground mask.
 #[tauri::command]
-pub fn generate_ai_background_remove(state: tauri::State<AppState>) -> Result<Vec<u8>, String> {
+pub async fn generate_ai_background_remove(
+    js_adjustments: serde_json::Value,
+    path: String,
+    rotation: f32,
+    flip_horizontal: bool,
+    flip_vertical: bool,
+    orientation_steps: u8,
+    state: tauri::State<'_, AppState>,
+    app_handle: tauri::AppHandle,
+) -> Result<Vec<u8>, String> {
     let loaded_image = state
         .original_image
         .lock()
@@ -846,50 +915,88 @@ pub fn generate_ai_background_remove(state: tauri::State<AppState>) -> Result<Ve
         return Err("Image has zero dimensions".to_string());
     }
 
-    // Get the foreground mask from AI state via depth map
-    let foreground_mask = {
-        let ai_state_lock = state.ai_state.lock().unwrap();
-        let ai_state = ai_state_lock
-            .as_ref()
-            .ok_or("AI state not initialized. Please generate a depth mask first.")?;
+    // 1. Initialize AI models
+    let models = get_or_init_ai_models(&app_handle, &state.ai_state, &state.ai_init_lock)
+        .await
+        .map_err(|e| e.to_string())?;
 
-        if let Some(depth) = &ai_state.depth_map {
-            // Use depth map: treat closer objects (higher depth value) as foreground
-            let mut mask = depth.depth_image.clone();
-            // Threshold: pixels above 128 are foreground
-            for pixel in mask.pixels_mut() {
-                pixel[0] = if pixel[0] > 128 { 255 } else { 0 };
+    // 2. Compute path hash for depth cache
+    let path_hash = {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(path.as_bytes());
+        let mut geo_hasher = DefaultHasher::new();
+        for key in GEOMETRY_KEYS {
+            if let Some(val) = js_adjustments.get(key) {
+                key.hash(&mut geo_hasher);
+                val.to_string().hash(&mut geo_hasher);
             }
-            // Resize to match
-            image::imageops::resize(&mask, w, h, image::imageops::FilterType::Triangle)
-        } else {
-            return Err("No depth map available. Please generate a depth mask first.".to_string());
         }
+        hasher.update(&geo_hasher.finish().to_le_bytes());
+        hasher.finalize().to_hex().to_string()
     };
 
-    // Resize mask to match image dimensions
-    let mask_resized = if foreground_mask.width() != w || foreground_mask.height() != h {
-        image::imageops::resize(
-            &foreground_mask,
-            w,
-            h,
-            image::imageops::FilterType::Triangle,
-        )
-    } else {
-        foreground_mask
+    // 3. Generate or retrieve cached depth map
+    let foreground_mask = {
+        let mut ai_state_lock = state.ai_state.lock().unwrap();
+        let ai_state = ai_state_lock
+            .as_mut()
+            .ok_or("AI state not initialized")?;
+
+        let depth_img = if let Some(cached) = &ai_state.depth_map {
+            if cached.path_hash == path_hash {
+                cached.depth_image.clone()
+            } else {
+                drop(ai_state_lock); // release lock before async-like work
+                let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
+                let depth_img = run_depth_anything_model(warped_image.as_ref(), &models.depth_anything)
+                    .map_err(|e| e.to_string())?;
+                let new_cache = CachedDepthMap {
+                    path_hash: path_hash.clone(),
+                    depth_image: depth_img.clone(),
+                    original_size: (warped_image.width(), warped_image.height()),
+                };
+                let mut ai_state_lock = state.ai_state.lock().unwrap();
+                if let Some(ai_state) = ai_state_lock.as_mut() {
+                    ai_state.depth_map = Some(new_cache);
+                }
+                depth_img
+            }
+        } else {
+            drop(ai_state_lock); // release lock before running model
+            let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
+            let depth_img = run_depth_anything_model(warped_image.as_ref(), &models.depth_anything)
+                .map_err(|e| e.to_string())?;
+            let new_cache = CachedDepthMap {
+                path_hash: path_hash.clone(),
+                depth_image: depth_img.clone(),
+                original_size: (warped_image.width(), warped_image.height()),
+            };
+            let mut ai_state_lock = state.ai_state.lock().unwrap();
+            if let Some(ai_state) = ai_state_lock.as_mut() {
+                ai_state.depth_map = Some(new_cache);
+            }
+            depth_img
+        };
+
+        // Convert depth map to foreground mask: closer objects (higher depth) = foreground
+        let mut mask = depth_img.clone();
+        for pixel in mask.pixels_mut() {
+            pixel[0] = if pixel[0] > 128 { 255 } else { 0 };
+        }
+        image::imageops::resize(&mask, w, h, image::imageops::FilterType::Triangle)
     };
 
-    // Apply mask as alpha channel
+    // 4. Apply mask as alpha channel
     let mut rgba = loaded_image.image.to_rgba8();
     for y in 0..h {
         for x in 0..w {
-            let alpha = mask_resized.get_pixel(x, y)[0];
+            let alpha = foreground_mask.get_pixel(x, y)[0];
             let pixel = rgba.get_pixel_mut(x, y);
             pixel[3] = alpha;
         }
     }
 
-    // Encode as PNG
+    // 5. Encode as PNG
     let mut buf = Cursor::new(Vec::new());
     rgba.write_to(&mut buf, ImageFormat::Png)
         .map_err(|e| format!("Failed to encode result: {}", e))?;

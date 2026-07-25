@@ -752,64 +752,57 @@ export function useAiMasking() {
     }
   };
 
-  const handleGenerateAiSkyReplace = async (subMaskId: string, skyPrompt: string): Promise<boolean> => {
-    const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
-    if (!selectedImage?.path) return false;
+  const handleGenerateAiSkyReplace = async (skyPrompt: string = ''): Promise<string | null> => {
+    const { selectedImage, adjustments } = useEditorStore.getState();
+    if (!selectedImage?.path) return null;
     setEditor({ isGeneratingAi: true });
 
     try {
       const transformAdjustments = getTransformAdjustments(adjustments);
-      const newParameters = await invoke(Invokes.GenerateAiSkyReplace, {
+      const resultBytes: number[] = await invoke(Invokes.GenerateAiSkyReplace, {
         jsAdjustments: transformAdjustments,
         path: selectedImage.path,
-        subMaskId,
         skyPrompt,
+        blendAmount: 0.5,
         flipHorizontal: adjustments.flipHorizontal,
         flipVertical: adjustments.flipVertical,
         orientationSteps: adjustments.orientationSteps,
         rotation: adjustments.rotation,
-      }) as Record<string, any>;
-
-      const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
-      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
-      patchesSentToBackend.delete(subMaskId);
-      updateSubMask(subMaskId, { parameters: mergedParameters });
-      return true;
+      });
+      const tempPath: string = await invoke(Invokes.SaveTempFile, { bytes: resultBytes });
+      toast.success('AI Sky Replace completed');
+      return tempPath;
     } catch (error) {
       toast.error(`AI Sky Replace Failed: ${error}`);
-      return false;
+      return null;
     } finally {
       setEditor({ isGeneratingAi: false });
     }
   };
 
-  const handleGenerateAiBackgroundRemove = async (subMaskId: string): Promise<boolean> => {
-    const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
-    if (!selectedImage?.path) return false;
-    setEditor({ isGeneratingAiMask: true });
+  const handleGenerateAiBackgroundRemove = async (): Promise<string | null> => {
+    const { selectedImage, adjustments } = useEditorStore.getState();
+    if (!selectedImage?.path) return null;
+    setEditor({ isGeneratingAi: true });
 
     try {
       const transformAdjustments = getTransformAdjustments(adjustments);
-      const newParameters = await invoke(Invokes.GenerateAiBackgroundRemove, {
+      const resultBytes: number[] = await invoke(Invokes.GenerateAiBackgroundRemove, {
         jsAdjustments: transformAdjustments,
         path: selectedImage.path,
-        subMaskId,
         flipHorizontal: adjustments.flipHorizontal,
         flipVertical: adjustments.flipVertical,
         orientationSteps: adjustments.orientationSteps,
         rotation: adjustments.rotation,
-      }) as Record<string, any>;
-
-      const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
-      const mergedParameters = { ...((subMask?.parameters || {}) as Record<string, any>), ...newParameters };
-      patchesSentToBackend.delete(subMaskId);
-      updateSubMask(subMaskId, { parameters: mergedParameters });
-      return true;
+      });
+      const tempPath: string = await invoke(Invokes.SaveTempFile, { bytes: resultBytes });
+      toast.success('AI Background Remove completed');
+      return tempPath;
     } catch (error) {
       toast.error(`AI Background Remove Failed: ${error}`);
-      return false;
+      return null;
     } finally {
-      setEditor({ isGeneratingAiMask: false });
+      setEditor({ isGeneratingAi: false });
     }
   };
 

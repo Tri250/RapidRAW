@@ -1127,7 +1127,7 @@ export default function AIPanel() {
                       </button>
                       <button
                         className={`bg-surface text-text-primary rounded-lg p-2 flex flex-col items-center justify-center gap-2 aspect-square transition-colors ${isGeneratingAi ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card-active active:bg-accent/20'}`}
-                        onClick={() => !isGeneratingAi && handleGenerateAiSkyReplace('', '')}
+                        onClick={() => !isGeneratingAi && handleGenerateAiSkyReplace()}
                         disabled={isGeneratingAi}
                         data-tooltip={t('editor.ai.skyReplaceTooltip', { defaultValue: 'AI Sky Replace' })}
                       >
@@ -1138,7 +1138,7 @@ export default function AIPanel() {
                       </button>
                       <button
                         className={`bg-surface text-text-primary rounded-lg p-2 flex flex-col items-center justify-center gap-2 aspect-square transition-colors ${isGeneratingAi ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card-active active:bg-accent/20'}`}
-                        onClick={() => !isGeneratingAi && handleGenerateAiBackgroundRemove('')}
+                        onClick={() => !isGeneratingAi && handleGenerateAiBackgroundRemove()}
                         disabled={isGeneratingAi}
                         data-tooltip={t('editor.ai.bgRemoveTooltip', { defaultValue: 'AI Background Remove' })}
                       >
