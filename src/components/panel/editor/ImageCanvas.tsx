@@ -2730,9 +2730,16 @@ const ImageCanvas = memo(
     const currentTarget = finalPreviewUrl || selectedImage.thumbnailUrl || selectedImage.originalUrl;
     const baseIsReady = displayState.base === currentTarget && !displayState.fade;
 
-    const forceSvgFallback = isSliderDragging || !!showOriginal;
-
     const visiblePatch = interactivePatch ?? (baseIsReady ? null : retainedPatchRef.current);
+
+    // Force SVG fallback when there is a visible interactive/retained patch.
+    // The patch is a small region overlay that needs the full SVG base image
+    // behind it for context.  Without this, when WGPU is active the SVG base
+    // is hidden and the patch would float over an empty/incorrect background.
+    // We do NOT force fallback for isSliderDragging alone because WGPU_RENDER
+    // responses (backend renders directly to WGPU canvas) should NOT be
+    // covered by a stale SVG base layer.
+    const forceSvgFallback = !!visiblePatch;
 
     useEffect(() => {
       if (baseIsReady && !interactivePatch) {

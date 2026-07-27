@@ -287,6 +287,11 @@ export function useImageProcessing(
 
   const flushPipelineRetryTimerRef = useRef<number | null>(null);
 
+  // Keep a ref to the latest flushPipeline so that the setTimeout retry
+  // inside it always invokes the up-to-date closure (avoiding stale
+  // references when executeApplyAdjustments is recreated).
+  const flushPipelineRef = useRef<() => void>(() => {});
+
   const flushPipeline = useCallback(() => {
     if (!pendingApplyRef.current) return;
 
@@ -294,7 +299,8 @@ export function useImageProcessing(
       if (flushPipelineRetryTimerRef.current === null) {
         flushPipelineRetryTimerRef.current = window.setTimeout(() => {
           flushPipelineRetryTimerRef.current = null;
-          flushPipeline();
+          // Always invoke through the ref so we get the latest version.
+          flushPipelineRef.current();
         }, 8);
       }
       return;
@@ -313,10 +319,13 @@ export function useImageProcessing(
     executeApplyAdjustments(adjustments, true, targetRes).finally(() => {
       inFlightCountRef.current -= 1;
       if (pendingApplyRef.current) {
-        requestAnimationFrame(() => flushPipeline());
+        requestAnimationFrame(() => flushPipelineRef.current());
       }
     });
   }, [executeApplyAdjustments]);
+
+  // Keep the ref in sync after every (re)creation.
+  flushPipelineRef.current = flushPipeline;
 
   const applyAdjustments = useCallback(
     (currentAdjustments: Adjustments, dragging: boolean = false, targetRes?: number) => {

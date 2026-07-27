@@ -425,7 +425,12 @@ const Slider = ({
   const handleTouchEnd = () => {
     pendingTouchRef.current = null;
     suppressTouchChangeRef.current = false;
-    onDragStateChangeRef.current?.(false);
+    // Only notify drag-end if this slider was actually being dragged,
+    // otherwise a tap on another slider would incorrectly reset the
+    // shared isSliderDragging state while a different slider is active.
+    if (isDragging) {
+      onDragStateChangeRef.current?.(false);
+    }
   };
 
   const handleValueClick = () => {

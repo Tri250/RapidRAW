@@ -94,6 +94,11 @@ const ColorWheel = ({
   useEffect(() => {
     const handleInteractionEnd = () => {
       setIsWheelDragging(false);
+      // When the wheel drag ends, the overall dragging state depends on
+      // whether the internal sub-sliders (hue/sat/lum) are still active.
+      // Passing isSliderDragging (local state set by sub-slider callbacks)
+      // ensures the global isSliderDragging stays true if a sub-slider is
+      // still being dragged after the wheel interaction ends.
       onDragStateChange?.(isSliderDragging);
     };
     if (isWheelDragging) {
