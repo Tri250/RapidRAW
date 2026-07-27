@@ -391,16 +391,42 @@ export function useImageProcessing(
     originalSize,
   ]);
 
-  const requestHiFiZoom = useMemo(
-    () =>
-      debounce((currentAdjustments: Adjustments, targetRes: number) => {
-        if (targetRes > currentResRef.current) {
-          currentResRef.current = targetRes;
-          applyAdjustments(currentAdjustments, false, targetRes);
-        }
-      }, 30),
-    [applyAdjustments, currentResRef],
-  );
+  // Use ref + useEffect pattern instead of useMemo so that the OLD debounced
+  // function is properly cancelled when applyAdjustments changes.  With
+  // useMemo, the previous debounced timer could still fire with a stale
+  // applyAdjustments closure — e.g. after an image switch — producing a
+  // non-dragging full-resolution render that interferes with the new image's
+  // pipeline or with an active slider drag.
+  const requestHiFiZoomRef = useRef<ReturnType<typeof debounce> | null>(null);
+
+  // Cancel any pending hi-fi zoom when applyAdjustments changes (image
+  // switch, pipeline rebuild, etc.) and create a fresh debounced function.
+  useEffect(() => {
+    if (requestHiFiZoomRef.current) {
+      requestHiFiZoomRef.current.cancel();
+    }
+    requestHiFiZoomRef.current = debounce((currentAdjustments: Adjustments, targetRes: number) => {
+      if (targetRes > currentResRef.current) {
+        currentResRef.current = targetRes;
+        applyAdjustments(currentAdjustments, false, targetRes);
+      }
+    }, 30);
+    return () => {
+      requestHiFiZoomRef.current?.cancel();
+    };
+  }, [applyAdjustments, currentResRef]);
+
+  // Null-safe, stable-reference wrapper around the debounced function.
+  // requestHiFiZoomRef may be null on the first render before the
+  // useEffect above has populated it.  The wrapper always delegates to
+  // the ref, so callers never see a stale closure.
+  const requestHiFiZoom = useMemo(() => {
+    const fn = (currentAdjustments: Adjustments, targetRes: number) => {
+      requestHiFiZoomRef.current?.(currentAdjustments, targetRes);
+    };
+    fn.cancel = () => { requestHiFiZoomRef.current?.cancel(); };
+    return fn;
+  }, [requestHiFiZoomRef]);
 
   const requestHiFiOriginalZoom = useMemo(
     () =>
@@ -468,7 +494,7 @@ export function useImageProcessing(
       }
     }
     return () => {
-      requestHiFiZoom.cancel();
+      requestHiFiZoomRef.current?.cancel();
     };
     }, [
     displaySize.width,
@@ -545,6 +571,12 @@ export function useImageProcessing(
 
     return () => {
       if (dragIdleTimer.current) clearTimeout(dragIdleTimer.current);
+      // Cancel any pending hi-fi zoom that was scheduled from the
+      // firstRender path.  Without this, a 30 ms debounced
+      // requestHiFiZoom could fire after the user starts dragging,
+      // calling applyAdjustments(adj, false, targetRes) which clears
+      // pendingApplyRef and races with the drag pipeline.
+      requestHiFiZoomRef.current?.cancel();
     };
   }, [
     adjustments,
