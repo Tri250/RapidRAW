@@ -190,7 +190,7 @@ impl LabelingEngine {
     pub fn get_labels(&self, image_hash: &str) -> Vec<ImageLabel> {
         self.image_labels
             .get(image_hash)
-            .map(|v| v.iter().cloned().collect())
+            .map(|v| v.to_vec())
             .unwrap_or_default()
     }
 

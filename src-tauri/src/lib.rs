@@ -831,7 +831,7 @@ fn process_preview_job(
             &processing_image,
             new_transform_hash,
             RenderRequest {
-                adjustments: final_adjustments.clone(),
+                adjustments: final_adjustments,
                 mask_bitmaps: &mask_bitmaps,
                 lut: lut.clone(),
                 roi: pixel_roi,

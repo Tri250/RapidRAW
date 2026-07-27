@@ -1850,12 +1850,9 @@ fn emit_thumbnail_generated(
     rating: u8,
     is_edited: bool,
 ) {
-    let data_url = fs::read(thumbnail_path).ok().and_then(|bytes| {
+    let data_url = fs::read(thumbnail_path).ok().map(|bytes| {
         use base64::{Engine as _, engine::general_purpose::STANDARD};
-        Some(format!(
-            "data:image/jpeg;base64,{}",
-            STANDARD.encode(&bytes)
-        ))
+        format!("data:image/jpeg;base64,{}", STANDARD.encode(&bytes))
     });
 
     let payload = if let Some(data) = data_url {
