@@ -73,9 +73,9 @@ export function useImageProcessing(
     const { width: baseW, height: baseH, offsetX = 0, offsetY = 0, containerWidth, containerHeight } = baseRenderSize;
 
     if (!baseW || !baseH || !containerWidth || !containerHeight) return null;
-    if (scale <= 1.01) return null;
+    if (scale <= 1.005) return null;
 
-    const paddingPixels = 2.0;
+    const paddingPixels = 1.0;
     const paddingX = paddingPixels / baseW;
     const paddingY = paddingPixels / baseH;
 
@@ -113,7 +113,7 @@ export function useImageProcessing(
     const clampedW = Math.min(1 - clampedX, newRoiW);
     const clampedH = Math.min(1 - clampedY, newRoiH);
 
-    if (clampedW > 0.999 && clampedH > 0.999) return null;
+    if (clampedW > 0.9995 && clampedH > 0.9995) return null;
 
     return [clampedX, clampedY, clampedW, clampedH] as [number, number, number, number];
   }, [baseRenderSize, transformWrapperRef]);
@@ -584,8 +584,87 @@ export function useImageProcessing(
     };
   }, [showOriginal, selectedImage?.path, adjustments, transformedOriginalUrl, calculateTargetRes, setEditor]);
 
+  const performDeepSelfTest = useCallback(
+    async (): Promise<{ success: boolean; details: Record<string, { ok: boolean; message: string }> }> => {
+      const details: Record<string, { ok: boolean; message: string }> = {};
+      let overallSuccess = true;
+
+      const mark = (name: string, ok: boolean, message: string) => {
+        details[name] = { ok, message };
+        if (!ok) overallSuccess = false;
+      };
+
+      try {
+        const { selectedImage: img } = useEditorStore.getState();
+        if (!img?.path) {
+          mark('image_selected', false, 'No image selected for self-test');
+        } else {
+          mark('image_selected', true, `Image ready: ${img.path}`);
+        }
+
+        try {
+          await invoke(Invokes.IsGpuAdjustmentPipelineReady);
+          mark('gpu_pipeline_invoke', true, 'GPU pipeline invoke reachable');
+        } catch (e: any) {
+          mark('gpu_pipeline_invoke', false, `GPU pipeline invoke failed: ${e?.message || String(e)}`);
+        }
+
+        try {
+          const roi = calculateROI();
+          mark('roi_calculation', true, roi ? `ROI calculated: [${roi.map((v) => v.toFixed(4)).join(', ')}]` : 'ROI skipped (not zoomed)');
+        } catch (e: any) {
+          mark('roi_calculation', false, `ROI calculation error: ${e?.message || String(e)}`);
+        }
+
+        try {
+          const targetRes = calculateTargetRes();
+          mark('target_resolution', true, `Target resolution: ${targetRes}px`);
+        } catch (e: any) {
+          mark('target_resolution', false, `Target resolution error: ${e?.message || String(e)}`);
+        }
+
+        try {
+          const { adjustments: adj } = useEditorStore.getState();
+          const payload = { ...adj };
+          const buffer: ArrayBuffer = await invoke(Invokes.ApplyAdjustments, {
+            jsAdjustments: payload,
+            isInteractive: false,
+            targetResolution: 640,
+            roi: null,
+            computeWaveform: false,
+            activeWaveformChannel: null,
+          });
+          mark('preview_render', true, `Preview render OK (${buffer.byteLength} bytes)`);
+        } catch (e: any) {
+          mark('preview_render', false, `Preview render failed: ${e?.message || String(e)}`);
+        }
+
+        try {
+          const { adjustments: adj } = useEditorStore.getState();
+          await invoke(Invokes.GenerateUncroppedPreview, { jsAdjustments: adj });
+          mark('uncropped_preview', true, 'Uncropped preview generation OK');
+        } catch (e: any) {
+          mark('uncropped_preview', false, `Uncropped preview failed: ${e?.message || String(e)}`);
+        }
+
+        try {
+          const cacheSize = globalImageCache.size;
+          mark('image_cache', true, `Image cache active (${cacheSize} entries)`);
+        } catch (e: any) {
+          mark('image_cache', false, `Image cache error: ${e?.message || String(e)}`);
+        }
+      } catch (outerError: any) {
+        mark('self_test_framework', false, `Self-test framework error: ${outerError?.message || String(outerError)}`);
+      }
+
+      return { success: overallSuccess, details };
+    },
+    [calculateROI, calculateTargetRes],
+  );
+
   return {
     applyAdjustments,
     executeApplyAdjustments,
+    performDeepSelfTest,
   };
 }
