@@ -183,11 +183,22 @@ jobs:
         if: inputs.mobile == '' && runner.os == 'macOS'
         shell: bash
         run: |
-          if [[ -n "$APPLE_CERTIFICATE" ]]; then
-            echo "has_apple_secrets=true" >> "$GITHUB_OUTPUT"
+          # Validate that APPLE_CERTIFICATE is non-empty AND valid base64 with meaningful content.
+          # A secret key may exist but contain whitespace/empty value, which would pass -n
+          # but fail during actual codesign import.
+          CERT_LEN=${#APPLE_CERTIFICATE}
+          if [[ -n "$APPLE_CERTIFICATE" && "$CERT_LEN" -gt 100 ]]; then
+            # Verify it's valid base64 (at least decodable)
+            if echo "$APPLE_CERTIFICATE" | base64 -d >/dev/null 2>&1; then
+              echo "has_apple_secrets=true" >> "$GITHUB_OUTPUT"
+              echo "::notice::Apple signing secrets detected and valid (cert length: ${CERT_LEN})"
+            else
+              echo "has_apple_secrets=false" >> "$GITHUB_OUTPUT"
+              echo "::warning::APPLE_CERTIFICATE exists but is not valid base64; building unsigned macOS artifacts"
+            fi
           else
             echo "has_apple_secrets=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Apple signing secrets not configured; building unsigned macOS artifacts"
+            echo "::warning::Apple signing secrets not configured (cert length: ${CERT_LEN}); building unsigned macOS artifacts"
           fi
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
