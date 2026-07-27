@@ -199,9 +199,6 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID || '' }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD || '' }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID || '' }}
-          # When Apple signing secrets are missing, tell tauri-action to skip
-          # the signing step entirely and produce an unsigned .dmg / .app.
-          CI: '1'
         with:
           tagName: ${{ inputs.tag-name }}
           releaseName: 'RapidRAW v__VERSION__'
