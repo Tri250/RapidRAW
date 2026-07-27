@@ -218,7 +218,7 @@ jobs:
         if: inputs.mobile == 'android'
         shell: bash
         env:
-          CI: ''
+          CI: 'false'
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ORT_SKIP_DOWNLOAD: '1'
