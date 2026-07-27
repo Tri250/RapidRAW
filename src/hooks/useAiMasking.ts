@@ -30,12 +30,14 @@ const getTransformAdjustments = (adj: Adjustments) => ({
 });
 
 const findSubMask = (adjustments: Adjustments, subMaskId: string): SubMask | undefined => {
-  const fromMasks = adjustments.masks
-    ?.flatMap((m: MaskContainer) => m.subMasks)
+  const masks = Array.isArray(adjustments.masks) ? adjustments.masks : [];
+  const patches = Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : [];
+  const fromMasks = masks
+    .flatMap((m: MaskContainer) => Array.isArray(m.subMasks) ? m.subMasks : [])
     .find((sm: SubMask) => sm.id === subMaskId);
   if (fromMasks) return fromMasks;
-  return adjustments.aiPatches
-    ?.flatMap((p: AiPatch) => p.subMasks)
+  return patches
+    .flatMap((p: AiPatch) => Array.isArray(p.subMasks) ? p.subMasks : [])
     .find((sm: SubMask) => sm.id === subMaskId);
 };
 
@@ -92,8 +94,8 @@ export function useAiMasking() {
       const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path) return;
 
-      const patchId = adjustments.aiPatches.find((p: AiPatch) =>
-        p.subMasks.some((sm: SubMask) => sm.id === subMaskId),
+      const patchId = (Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : []).find((p: AiPatch) =>
+        Array.isArray(p.subMasks) && p.subMasks.some((sm: SubMask) => sm.id === subMaskId),
       )?.id;
       if (!patchId) return;
 
@@ -112,7 +114,7 @@ export function useAiMasking() {
       }, AI_CLEANUP_TIMEOUT_MS);
 
       try {
-        const patchDefinitionForBackend = adjustments.aiPatches.find((p: AiPatch) => p.id === patchId);
+        const patchDefinitionForBackend = (Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : []).find((p: AiPatch) => p.id === patchId);
 
         const newPatchDataJson: any = await invoke(Invokes.GenerateManualCleanupPatch, {
           currentAdjustments: adjustments,
@@ -150,7 +152,7 @@ export function useAiMasking() {
       const { selectedImage, adjustments, isGeneratingAi, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path || isGeneratingAi) return;
 
-      const patch: AiPatch | undefined = adjustments.aiPatches.find((p: AiPatch) => p.id === patchId);
+      const patch: AiPatch | undefined = (Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : []).find((p: AiPatch) => p.id === patchId);
       if (!patch) return;
 
       const patchDefinition = { ...patch, prompt };
@@ -247,8 +249,8 @@ export function useAiMasking() {
         }
       }
 
-      const patchId = adjustments.aiPatches.find((p: AiPatch) =>
-        p.subMasks.some((sm: SubMask) => sm.id === subMaskId),
+      const patchId = (Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : []).find((p: AiPatch) =>
+        Array.isArray(p.subMasks) && p.subMasks.some((sm: SubMask) => sm.id === subMaskId),
       )?.id;
       if (!patchId) return;
 
@@ -271,19 +273,20 @@ export function useAiMasking() {
           startPoint: [startPoint.x, startPoint.y],
         });
 
-        const subMaskToUpdate = adjustments.aiPatches
-          ?.find((p: AiPatch) => p.id === patchId)
-          ?.subMasks.find((sm: SubMask) => sm.id === subMaskId);
+        const aiPatchesArr = Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : [];
+        const subMaskToUpdate = aiPatchesArr
+          .find((p: AiPatch) => p.id === patchId)
+          ?.subMasks?.find((sm: SubMask) => sm.id === subMaskId);
         const finalSubMaskParams: any = { ...subMaskToUpdate?.parameters, ...newMaskParams };
         const updatedAdjustmentsForBackend = {
           ...adjustments,
-          aiPatches: adjustments.aiPatches.map((p: AiPatch) =>
+          aiPatches: aiPatchesArr.map((p: AiPatch) =>
             p.id === patchId
               ? {
                   ...p,
-                  subMasks: p.subMasks.map((sm: SubMask) =>
+                  subMasks: Array.isArray(p.subMasks) ? p.subMasks.map((sm: SubMask) =>
                     sm.id === subMaskId ? { ...sm, parameters: finalSubMaskParams } : sm,
-                  ),
+                  ) : [],
                 }
               : p,
           ),
@@ -500,6 +503,11 @@ export function useAiMasking() {
         }) as Record<string, any> | null | undefined;
         const newParameters = normalizeMaskData(rawNewParameters);
 
+        if (!newParameters.mask_data_base64) {
+          toast.error('AI Depth Mask: No depth data generated');
+          return;
+        }
+
         const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
         const mergedParameters = normalizeMaskData({
           ...((subMask?.parameters || {}) as Record<string, any>),
@@ -533,6 +541,11 @@ export function useAiMasking() {
         }) as Record<string, any> | null | undefined;
         const newParameters = normalizeMaskData(rawNewParameters);
 
+        if (!newParameters.mask_data_base64) {
+          toast.error('AI Foreground Mask: No foreground detected in image');
+          return;
+        }
+
         const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
         const mergedParameters = normalizeMaskData({
           ...((subMask?.parameters || {}) as Record<string, any>),
@@ -565,6 +578,11 @@ export function useAiMasking() {
           rotation: adjustments.rotation,
         }) as Record<string, any> | null | undefined;
         const newParameters = normalizeMaskData(rawNewParameters);
+
+        if (!newParameters.mask_data_base64) {
+          toast.error('AI Sky Mask: No sky detected in image');
+          return;
+        }
 
         const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
         const mergedParameters = normalizeMaskData({
@@ -615,9 +633,11 @@ export function useAiMasking() {
 
     // Read adjustments lazily inside the effect to avoid subscribing to the entire object
     const adjustments = useEditorStore.getState().adjustments;
+    const masksArr = Array.isArray(adjustments?.masks) ? adjustments.masks : [];
+    const patchesArr = Array.isArray(adjustments?.aiPatches) ? adjustments.aiPatches : [];
     const activeSubMask =
-      adjustments?.masks?.flatMap((m: MaskContainer) => m.subMasks).find((sm: SubMask) => sm.id === activeMaskId) ||
-      adjustments?.aiPatches?.flatMap((p: AiPatch) => p.subMasks).find((sm: SubMask) => sm.id === activeAiSubMaskId);
+      masksArr.flatMap((m: MaskContainer) => Array.isArray(m.subMasks) ? m.subMasks : []).find((sm: SubMask) => sm.id === activeMaskId) ||
+      patchesArr.flatMap((p: AiPatch) => Array.isArray(p.subMasks) ? p.subMasks : []).find((sm: SubMask) => sm.id === activeAiSubMaskId);
 
     if (activeSubMask?.type === 'ai-subject' && selectedImagePath) {
       debounceTimer = setTimeout(() => {
@@ -669,6 +689,12 @@ export function useAiMasking() {
         }) as Record<string, any> | null | undefined;
 
         const newParameters = normalizeMaskData(rawNewParameters);
+
+        if (!newParameters.mask_data_base64) {
+          toast.error('Color Range Mask: No matching colors found');
+          return;
+        }
+
         const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
         const mergedParameters = normalizeMaskData({
           ...((subMask?.parameters || {}) as Record<string, any>),
@@ -706,6 +732,12 @@ export function useAiMasking() {
         }) as Record<string, any> | null | undefined;
 
         const newParameters = normalizeMaskData(rawNewParameters);
+
+        if (!newParameters.mask_data_base64) {
+          toast.error('Luminance Range Mask: No matching luminance range found');
+          return;
+        }
+
         const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
         const mergedParameters = normalizeMaskData({
           ...((subMask?.parameters || {}) as Record<string, any>),
