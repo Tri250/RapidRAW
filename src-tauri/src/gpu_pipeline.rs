@@ -569,6 +569,16 @@ pub fn is_gpu_pipeline_ready() -> bool {
     GPU_PIPELINE_HANDLE.get_or_init().is_ok()
 }
 
+/// Tauri command: probe whether the lightweight GPU adjustment pipeline is
+/// available on this machine (adapter + device successfully initialized).
+/// Lets the frontend decide whether to expose GPU-accelerated quick-adjust
+/// entry points (e.g. ACES color science tools) without triggering a lazy
+/// init failure on every call.
+#[tauri::command]
+pub fn is_gpu_adjustment_pipeline_ready() -> bool {
+    is_gpu_pipeline_ready()
+}
+
 pub struct GpuPipelineHandle {
     inner: Arc<std::sync::Mutex<Option<GpuPipeline>>>,
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ArrowLeft, Loader2, Plus, RefreshCw, Trash2, X, ImageIcon,
   ChevronLeft, ChevronRight, Globe, Tag, Info, Camera, User,
-  Maximize2, Grid3X3,
+  Maximize2, Grid3X3, Download, Check, AlertCircle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -87,10 +87,12 @@ const SkeletonCard = () => (
 interface PresetCardProps {
   preset: GalleryPreset;
   index: number;
+  sourceUrl: string;
 }
 
-const PresetCard = ({ preset, index }: PresetCardProps) => {
+const PresetCard = ({ preset, index, sourceUrl }: PresetCardProps) => {
   const { t } = useTranslation();
+  const { downloadPreset, downloadStatus, downloadError } = usePresetGalleryStore();
   const [showGallery, setShowGallery] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [coverError, setCoverError] = useState(false);
@@ -191,6 +193,17 @@ const PresetCard = ({ preset, index }: PresetCardProps) => {
     return () => window.removeEventListener('keydown', handler);
   }, [showGallery, nextImage, prevImage]);
 
+  const downloadKey = `${sourceUrl}::${preset.name}`;
+  const status = downloadStatus[downloadKey] || 'idle';
+  const dError = downloadError[downloadKey];
+  const canDownload = !!(preset.sections && preset.sections.length > 0);
+
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (status === 'downloading') return;
+    await downloadPreset(sourceUrl, preset);
+  };
+
   return (
     <motion.div
       variants={itemVariants}
@@ -225,11 +238,30 @@ const PresetCard = ({ preset, index }: PresetCardProps) => {
             />
           </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-surface p-4">
+          <div className="w-full h-full flex flex-col items-center justify-center bg-surface p-4 text-center">
             <Camera size={28} className="text-text-secondary/40 mb-2" />
-            <Text variant={TextVariants.label} weight={TextWeights.medium} className="text-center text-text-secondary/60">
+            <Text variant={TextVariants.label} weight={TextWeights.medium} className="text-center text-text-secondary/60 mb-1">
               {preset.name}
             </Text>
+            {canDownload && (
+              <button
+                onClick={handleDownload}
+                disabled={status === 'downloading'}
+                className="mt-2 inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full
+                           bg-accent/10 hover:bg-accent/20 text-accent transition-colors disabled:opacity-60"
+              >
+                {status === 'downloading' ? (
+                  <Loader2 size={11} className="animate-spin" />
+                ) : status === 'success' ? (
+                  <Check size={11} />
+                ) : (
+                  <Download size={11} />
+                )}
+                {status === 'success'
+                  ? t('presetGallery.saved', { defaultValue: '已保存' })
+                  : t('presetGallery.saveToPreview', { defaultValue: '保存以预览' })}
+              </button>
+            )}
           </div>
         )}
 
@@ -292,6 +324,37 @@ const PresetCard = ({ preset, index }: PresetCardProps) => {
                       title={t('presetGallery.showDetails', '查看详情')}
                     >
                       <Info size={14} />
+                    </button>
+                  )}
+                  {canDownload && (
+                    <button
+                      onClick={handleDownload}
+                      disabled={status === 'downloading'}
+                      className={`p-1.5 rounded-lg backdrop-blur-sm transition-colors disabled:opacity-60
+                        ${status === 'success'
+                          ? 'bg-emerald-500/30 text-emerald-300'
+                          : status === 'error'
+                            ? 'bg-red-500/30 text-red-300 hover:bg-red-500/40'
+                            : 'bg-white/10 hover:bg-white/20 text-white/80'}`}
+                      title={
+                        status === 'downloading'
+                          ? t('presetGallery.downloading', { defaultValue: '保存中…' })
+                          : status === 'success'
+                            ? t('presetGallery.downloaded', { defaultValue: '已保存到 Community 文件夹' })
+                            : status === 'error'
+                              ? dError || t('presetGallery.downloadFailed', { defaultValue: '保存失败' })
+                              : t('presetGallery.download', { defaultValue: '保存到本地预设' })
+                      }
+                    >
+                      {status === 'downloading' ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : status === 'success' ? (
+                        <Check size={14} />
+                      ) : status === 'error' ? (
+                        <AlertCircle size={14} />
+                      ) : (
+                        <Download size={14} />
+                      )}
                     </button>
                   )}
                   <button
@@ -682,7 +745,7 @@ const SourceSection = ({ source }: SourceSectionProps) => {
           className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
         >
           {source.presets.map((preset, idx) => (
-            <PresetCard key={`${source.url}-${idx}`} preset={preset} index={idx} />
+            <PresetCard key={`${source.url}-${idx}`} preset={preset} index={idx} sourceUrl={source.url} />
           ))}
         </motion.div>
       )}

@@ -503,6 +503,73 @@ const PreviewModeSwitch = ({ mode, onModeChange }: PreviewModeSwitchProps) => {
   );
 };
 
+const GpuPipelineProbe = () => {
+  const { t } = useTranslation();
+  const [status, setStatus] = useState<'idle' | 'testing' | 'ready' | 'unavailable'>('idle');
+  const [error, setError] = useState<string | null>(null);
+
+  const runProbe = async () => {
+    setStatus('testing');
+    setError(null);
+    try {
+      const ready = (await invoke(Invokes.IsGpuAdjustmentPipelineReady)) as boolean;
+      setStatus(ready ? 'ready' : 'unavailable');
+      if (!ready) {
+        setError(
+          t('settings.gpu.unavailableReason', {
+            defaultValue: '当前 GPU 适配器无法初始化轻量计算管线，主管线仍可正常工作。',
+          }),
+        );
+      }
+    } catch (e: any) {
+      setStatus('unavailable');
+      setError(String(e?.message || e));
+    }
+  };
+
+  useEffect(() => {
+    void runProbe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="flex items-center gap-3 shrink-0">
+      {status === 'testing' && (
+        <span className="flex items-center gap-1.5 text-xs text-text-secondary">
+          <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+          {t('settings.gpu.testing', { defaultValue: '检测中…' })}
+        </span>
+      )}
+      {status === 'ready' && (
+        <span className="flex items-center gap-1.5 text-xs text-emerald-500">
+          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          {t('settings.gpu.ready', { defaultValue: '可用' })}
+        </span>
+      )}
+      {status === 'unavailable' && (
+        <span className="flex items-center gap-1.5 text-xs text-red-400" data-tooltip={error || undefined}>
+          <span className="w-2 h-2 rounded-full bg-red-400" />
+          {t('settings.gpu.unavailable', { defaultValue: '不可用' })}
+        </span>
+      )}
+      {status === 'idle' && (
+        <span className="flex items-center gap-1.5 text-xs text-text-secondary/60">
+          <span className="w-2 h-2 rounded-full bg-text-secondary/40" />
+          {t('settings.gpu.idle', { defaultValue: '未检测' })}
+        </span>
+      )}
+      <button
+        onClick={runProbe}
+        disabled={status === 'testing'}
+        className="p-1.5 rounded-full text-text-secondary hover:text-text-primary hover:bg-surface disabled:opacity-50"
+        data-tooltip={t('settings.gpu.retest', { defaultValue: '重新检测' })}
+      >
+        <Zap size={14} />
+      </button>
+    </div>
+  );
+};
+
 const PresetGallerySourceManager = () => {
   const { t } = useTranslation();
   const { sources, addSource, removeSource, toggleSource, fetchSourcePresets } = usePresetGalleryStore();
@@ -1310,13 +1377,45 @@ export default function SettingsPanel({
 
                 <div className="p-6 bg-surface rounded-xl shadow-md">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
+                    {t('settings.gpu.title', { defaultValue: 'GPU 加速与色彩科学' })}
+                  </Text>
+                  <Text className="mb-4">
+                    {t('settings.gpu.description', {
+                      defaultValue: '检测轻量 GPU 调整管线与 ACES 色彩科学工具的可用性。这些工具作为主管线的补充，用于一次性快速预览与色空间转换。',
+                    })}
+                  </Text>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-4 p-4 bg-bg-primary rounded-lg border border-border-color">
+                      <div className="min-w-0">
+                        <Text variant={TextVariants.heading} className="mb-1">
+                          {t('settings.gpu.pipelineStatus', { defaultValue: 'GPU 调整管线状态' })}
+                        </Text>
+                        <Text variant={TextVariants.small} color={TextColors.secondary}>
+                          {t('settings.gpu.pipelineStatusDesc', {
+                            defaultValue: '检测轻量计算管线是否可在当前 GPU 上初始化。',
+                          })}
+                        </Text>
+                      </div>
+                      <GpuPipelineProbe />
+                    </div>
+                    <div className="text-xs text-text-secondary/70 leading-relaxed">
+                      {t('settings.gpu.acesNote', {
+                        defaultValue:
+                          '注：ACES 色彩科学命令（color_convert_space / color_apply_aces_output / color_apply_aces_fitted 等）已注册到后端，可通过 useGpuPipeline hook 在自定义工作流中调用。',
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 bg-surface rounded-xl shadow-md">
+                  <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
                     {t('settings.adjustments.title')}
                   </Text>
                   <Text className="mb-4">{t('settings.adjustments.description')}</Text>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                     <Switch
                       label={t('settings.adjustments.chromaticAberration')}
-                      checked={appSettings?.adjustmentVisibility?.chromaticAberration ?? false}
+                      checked={appSettings?.adjustmentVisibility?.chromaticAberration ?? adjustmentVisibilityDefaults.chromaticAberration}
                       onChange={(checked) =>
                         onSettingsChange({
                           ...appSettings,
@@ -1329,7 +1428,7 @@ export default function SettingsPanel({
                     />
                     <Switch
                       label={t('settings.adjustments.grain')}
-                      checked={appSettings?.adjustmentVisibility?.grain ?? true}
+                      checked={appSettings?.adjustmentVisibility?.grain ?? adjustmentVisibilityDefaults.grain}
                       onChange={(checked) =>
                         onSettingsChange({
                           ...appSettings,
@@ -1342,7 +1441,7 @@ export default function SettingsPanel({
                     />
                     <Switch
                       label={t('settings.adjustments.colorCalibration')}
-                      checked={appSettings?.adjustmentVisibility?.colorCalibration ?? true}
+                      checked={appSettings?.adjustmentVisibility?.colorCalibration ?? adjustmentVisibilityDefaults.colorCalibration}
                       onChange={(checked) =>
                         onSettingsChange({
                           ...appSettings,
@@ -1355,13 +1454,52 @@ export default function SettingsPanel({
                     />
                     <Switch
                       label={t('settings.adjustments.noiseReduction')}
-                      checked={appSettings?.adjustmentVisibility?.noiseReduction ?? true}
+                      checked={appSettings?.adjustmentVisibility?.noiseReduction ?? adjustmentVisibilityDefaults.noiseReduction}
                       onChange={(checked) =>
                         onSettingsChange({
                           ...appSettings,
                           adjustmentVisibility: {
                             ...(appSettings?.adjustmentVisibility || adjustmentVisibilityDefaults),
                             noiseReduction: checked,
+                          },
+                        })
+                      }
+                    />
+                    <Switch
+                      label={t('settings.adjustments.sharpening', { defaultValue: '锐化' })}
+                      checked={appSettings?.adjustmentVisibility?.sharpening ?? adjustmentVisibilityDefaults.sharpening}
+                      onChange={(checked) =>
+                        onSettingsChange({
+                          ...appSettings,
+                          adjustmentVisibility: {
+                            ...(appSettings?.adjustmentVisibility || adjustmentVisibilityDefaults),
+                            sharpening: checked,
+                          },
+                        })
+                      }
+                    />
+                    <Switch
+                      label={t('settings.adjustments.presence', { defaultValue: '清晰度与去雾' })}
+                      checked={appSettings?.adjustmentVisibility?.presence ?? adjustmentVisibilityDefaults.presence}
+                      onChange={(checked) =>
+                        onSettingsChange({
+                          ...appSettings,
+                          adjustmentVisibility: {
+                            ...(appSettings?.adjustmentVisibility || adjustmentVisibilityDefaults),
+                            presence: checked,
+                          },
+                        })
+                      }
+                    />
+                    <Switch
+                      label={t('settings.adjustments.vignette', { defaultValue: '暗角' })}
+                      checked={appSettings?.adjustmentVisibility?.vignette ?? adjustmentVisibilityDefaults.vignette}
+                      onChange={(checked) =>
+                        onSettingsChange({
+                          ...appSettings,
+                          adjustmentVisibility: {
+                            ...(appSettings?.adjustmentVisibility || adjustmentVisibilityDefaults),
+                            vignette: checked,
                           },
                         })
                       }

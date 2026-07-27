@@ -1,4 +1,17 @@
 import { create } from 'zustand';
+import { invoke } from '@tauri-apps/api/core';
+import { Invokes } from '../components/ui/AppProperties';
+
+export interface GalleryPresetSectionItem {
+  label: string;
+  value: string;
+  span?: number;
+}
+
+export interface GalleryPresetSection {
+  title: string;
+  items: GalleryPresetSectionItem[];
+}
 
 export interface GalleryPreset {
   name: string;
@@ -8,7 +21,7 @@ export interface GalleryPreset {
   galleryFallback?: string[];
   author?: string;
   isNew?: boolean;
-  sections?: any[];
+  sections?: GalleryPresetSection[];
   tags?: string[];
   description?: { title: string; content: string };
 }
@@ -24,6 +37,9 @@ export interface GallerySource {
 
 interface PresetGalleryState {
   sources: GallerySource[];
+  /** Per-preset download status, keyed by `${sourceUrl}::${presetName}`. */
+  downloadStatus: Record<string, 'idle' | 'downloading' | 'success' | 'error'>;
+  downloadError: Record<string, string | null>;
 
   // Actions
   addSource: (url: string, name?: string) => void;
@@ -34,7 +50,77 @@ interface PresetGalleryState {
   fetchAllEnabledSources: () => Promise<void>;
   refreshAllSources: () => Promise<void>;
   setSources: (sources: GallerySource[]) => void;
+  downloadPreset: (sourceUrl: string, preset: GalleryPreset) => Promise<boolean>;
 }
+
+/**
+ * Convert OMaster v2 `sections` (label/value pairs) into a RapidRAW
+ * `adjustments` object. Mirrors the Rust `convert_params_to_adjustments`
+ * + `param_label_to_key` logic in lib.rs so gallery presets land in the
+ * local library with the same numeric normalization as CommunityPage.
+ */
+export const convertSectionsToAdjustments = (sections?: GalleryPresetSection[]): Record<string, number> => {
+  if (!sections || !Array.isArray(sections)) return {};
+  const adjustments: Record<string, number> = {};
+
+  for (const section of sections) {
+    if (!section?.items) continue;
+    for (const param of section.items) {
+      const valueStr = String(param.value ?? '').trim();
+      const num = parseFloat(valueStr);
+      if (Number.isNaN(num)) continue;
+
+      // Normalize based on the parameter type (mirror Rust logic)
+      let normalized: number;
+      switch (param.label) {
+        // Basic adjustments: scale from [-5, +5] to [-1, 1]
+        case 'saturation':
+        case 'hue':
+        case 'contrast':
+        case 'brightness':
+        case 'sharpness':
+        case 'clarity':
+        case 'tone_curve':
+          normalized = Math.max(-1, Math.min(1, num / 5));
+          break;
+        // Highlight/shadow: scale from [-5, +5] to [-100, 100]
+        case 'contrast_highlight':
+        case 'contrast_shadow':
+          normalized = Math.max(-100, Math.min(100, num * 20));
+          break;
+        // Grain: scale from [-5, +5] to [0, 100]
+        case 'grain':
+        case 'grain_size':
+          normalized = Math.max(0, Math.min(100, ((num + 5) / 10) * 100));
+          break;
+        default:
+          normalized = num;
+      }
+
+      // Map label to adjustment key (mirror Rust param_label_to_key)
+      let key: string;
+      switch (param.label) {
+        case 'saturation': key = 'saturation'; break;
+        case 'hue': key = 'hue'; break;
+        case 'contrast': key = 'contrast'; break;
+        case 'brightness': key = 'brightness'; break;
+        case 'sharpness': key = 'sharpness'; break;
+        case 'clarity': key = 'clarity'; break;
+        case 'tone_curve': key = 'toneCurve'; break;
+        case 'contrast_highlight': key = 'highlights'; break;
+        case 'contrast_shadow': key = 'shadows'; break;
+        case 'grain': key = 'grainAmount'; break;
+        case 'grain_size': key = 'grainSize'; break;
+        case 'filter': key = 'filter'; break;
+        default: key = param.label.toLowerCase().replace(/\s+/g, '_');
+      }
+
+      adjustments[key] = Math.round(normalized * 100) / 100;
+    }
+  }
+
+  return adjustments;
+};
 
 const DEFAULT_SOURCE_URL = 'https://cdn.jsdelivr.net/gh/fengyec2/OMaster-Community@main/presets/v2/oppo.json';
 
@@ -169,68 +255,128 @@ const resolvePath = (path: string, baseDir: string): string => {
  * - { presets: [...] } format (OMaster/OPPO style)
  * - Array format [...] (RapidRAW manifest style)
  */
-const parsePresetsFromJson = (data: any, baseDir: string): { presets: GalleryPreset[]; sourceName: string } => {
-  if (!data) return { presets: [], sourceName: '' };
+export interface PresetParseResult {
+  presets: GalleryPreset[];
+  sourceName: string;
+  /** Number of entries skipped due to schema validation failure. */
+  skipped: number;
+  /** Human-readable validation warnings for the first few skipped entries. */
+  warnings: string[];
+}
 
-  // Array format: data is directly an array of presets
+const isNonEmptyString = (v: any): v is string => typeof v === 'string' && v.trim().length > 0;
+const isStringArray = (v: any): v is any[] => Array.isArray(v);
+
+/**
+ * Normalize a raw `sections` value into the typed `GalleryPresetSection[]`
+ * shape. Drops items that don't match the `{ title, items: [{ label, value }] }`
+ * schema, so downstream consumers (download, detail panel) can trust the
+ * structure without re-validating.
+ */
+const normalizeSections = (raw: any): GalleryPresetSection[] | undefined => {
+  if (!isStringArray(raw)) return undefined;
+  const out: GalleryPresetSection[] = [];
+  for (const sec of raw) {
+    if (!sec || typeof sec !== 'object') continue;
+    const items = Array.isArray(sec.items) ? sec.items : [];
+    const normItems: GalleryPresetSectionItem[] = [];
+    for (const it of items) {
+      if (!it || typeof it !== 'object') continue;
+      const label = isNonEmptyString(it.label) ? it.label : isNonEmptyString(it.name) ? it.name : null;
+      const value = isNonEmptyString(it.value) ? it.value : it.value == null ? '' : String(it.value);
+      if (!label) continue;
+      normItems.push({ label, value, span: typeof it.span === 'number' ? it.span : undefined });
+    }
+    if (normItems.length === 0) continue;
+    out.push({
+      title: isNonEmptyString(sec.title) ? sec.title! : '',
+      items: normItems,
+    });
+  }
+  return out.length > 0 ? out : undefined;
+};
+
+const buildPreset = (p: any, baseDir: string): GalleryPreset | null => {
+  if (!p || typeof p !== 'object') return null;
+
+  const name = isNonEmptyString(p.name) ? p.name! : null;
+  if (!name) return null; // name is mandatory
+
+  const rawCover = p.coverPath || p.cover_path || p.cover_image || '';
+  const rawGallery: any[] = p.galleryImages || p.gallery_images || p.samples || [];
+  const sections = normalizeSections(p.sections);
+
+  // Must have at least a cover or sections to be useful
+  if (!rawCover && !sections && rawGallery.length === 0) return null;
+
+  const galleryImages = rawGallery
+    .map((img: any) => resolvePath(typeof img === 'string' ? img : img?.url || '', baseDir))
+    .filter(Boolean);
+  const galleryFallback = rawGallery
+    .map((img: any) => resolveFallbackPath(typeof img === 'string' ? img : img?.url || ''))
+    .filter(Boolean);
+
+  return {
+    name,
+    coverPath: resolvePath(rawCover, baseDir),
+    coverFallback: resolveFallbackPath(rawCover) || undefined,
+    galleryImages,
+    galleryFallback,
+    author: isNonEmptyString(p.author) ? p.author! : isNonEmptyString(p.creator) ? p.creator! : undefined,
+    isNew: p.isNew === true || p.is_new === true || undefined,
+    sections,
+    tags: Array.isArray(p.tags) ? p.tags.filter(isNonEmptyString) : undefined,
+    description:
+      p.description && typeof p.description === 'object' && isNonEmptyString(p.description.title)
+        ? { title: p.description.title, content: String(p.description.content || '') }
+        : undefined,
+  };
+};
+
+const parsePresetsFromJson = (data: any, baseDir: string): PresetParseResult => {
+  if (!data) return { presets: [], sourceName: '', skipped: 0, warnings: [] };
+
+  let rawPresets: any[] = [];
+  let sourceName = '';
+
   if (Array.isArray(data)) {
-    const presets: GalleryPreset[] = data.map((item: any) => {
-      const rawCover = item.coverPath || item.cover_image || '';
-      const rawGallery: any[] = item.galleryImages || item.gallery_images || item.samples || [];
-      return {
-        name: item.name || 'Untitled',
-        coverPath: resolvePath(rawCover, baseDir),
-        coverFallback: resolveFallbackPath(rawCover) || undefined,
-        galleryImages: rawGallery
-          .map((img: any) => resolvePath(typeof img === 'string' ? img : img.url || '', baseDir))
-          .filter(Boolean),
-        galleryFallback: rawGallery
-          .map((img: any) => resolveFallbackPath(typeof img === 'string' ? img : img.url || ''))
-          .filter(Boolean),
-        author: item.author || item.creator || undefined,
-        isNew: item.isNew || item.is_new || undefined,
-        sections: item.sections || undefined,
-        tags: item.tags || undefined,
-        description: item.description || undefined,
-      };
-    });
-    return { presets, sourceName: '' };
+    rawPresets = data;
+  } else if (typeof data === 'object') {
+    rawPresets = data.presets || data.data || [];
+    if (!Array.isArray(rawPresets)) rawPresets = [];
+    sourceName = isNonEmptyString(data.name) ? data.name! : isNonEmptyString(data.title) ? data.title! : '';
+  } else {
+    return { presets: [], sourceName: '', skipped: 0, warnings: [] };
   }
 
-  // Object format: { presets: [...], name: ... }
-  if (typeof data === 'object') {
-    const rawPresets: any[] = data.presets || data.data || [];
-    const sourceName = data.name || data.title || '';
+  const presets: GalleryPreset[] = [];
+  let skipped = 0;
+  const warnings: string[] = [];
 
-    const presets: GalleryPreset[] = rawPresets.map((p: any) => {
-      const rawCover = p.coverPath || p.cover_path || p.cover_image || '';
-      const rawGallery: any[] = p.galleryImages || p.gallery_images || p.samples || [];
-      return {
-        name: p.name || 'Untitled',
-        coverPath: resolvePath(rawCover, baseDir),
-        coverFallback: resolveFallbackPath(rawCover) || undefined,
-        galleryImages: rawGallery
-          .map((img: any) => resolvePath(typeof img === 'string' ? img : img.url || '', baseDir))
-          .filter(Boolean),
-        galleryFallback: rawGallery
-          .map((img: any) => resolveFallbackPath(typeof img === 'string' ? img : img.url || ''))
-          .filter(Boolean),
-        author: p.author || p.creator || undefined,
-        isNew: p.isNew || p.is_new || undefined,
-        sections: p.sections || undefined,
-        tags: p.tags || undefined,
-        description: p.description || undefined,
-      };
-    });
+  rawPresets.forEach((p, idx) => {
+    const built = buildPreset(p, baseDir);
+    if (built) {
+      presets.push(built);
+    } else {
+      skipped++;
+      if (warnings.length < 5) {
+        const hint = p && typeof p === 'object' && isNonEmptyString(p.name) ? p.name : `#${idx}`;
+        warnings.push(`跳过无效预设：${hint}`);
+      }
+    }
+  });
 
-    return { presets, sourceName };
+  if (skipped > 0 && warnings.length > 0) {
+    console.warn(`[PresetGallery] ${skipped} preset(s) skipped due to schema validation:`, warnings);
   }
 
-  return { presets: [], sourceName: '' };
+  return { presets, sourceName, skipped, warnings };
 };
 
 export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
   sources: loadSources(),
+  downloadStatus: {},
+  downloadError: {},
 
   addSource: (url, name) => {
     const { sources } = get();
@@ -288,13 +434,22 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
       // Get base directory for resolving relative paths
       const baseDir = url.substring(0, url.lastIndexOf('/') + 1);
 
-      const { presets, sourceName } = parsePresetsFromJson(data, baseDir);
+      const { presets, sourceName, skipped, warnings } = parsePresetsFromJson(data, baseDir);
       const finalName = sourceName || source?.name || url;
+
+      // Non-fatal: schema skipped some entries. Surface as a soft error so the
+      // UI can inform the user without blocking the successfully parsed presets.
+      const softError =
+        skipped > 0
+          ? warnings.length > 0
+            ? `${skipped} 项无效已跳过：${warnings.join('；')}${skipped > warnings.length ? '…' : ''}`
+            : `${skipped} 项无效已跳过`
+          : null;
 
       set((state) => {
         const newSources = state.sources.map((s) =>
           s.url === url
-            ? { ...s, presets, name: finalName, isLoading: false, error: null }
+            ? { ...s, presets, name: finalName, isLoading: false, error: softError }
             : s,
         );
         saveSources(newSources);
@@ -332,5 +487,39 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
   setSources: (sources) => {
     set({ sources });
     saveSources(sources);
+  },
+
+  downloadPreset: async (sourceUrl, preset) => {
+    const key = `${sourceUrl}::${preset.name}`;
+    set((state) => ({
+      downloadStatus: { ...state.downloadStatus, [key]: 'downloading' },
+      downloadError: { ...state.downloadError, [key]: null },
+    }));
+
+    try {
+      const adjustments = convertSectionsToAdjustments(preset.sections);
+      if (Object.keys(adjustments).length === 0) {
+        throw new Error('Preset has no adjustable parameters (sections empty or unparseable).');
+      }
+
+      await invoke(Invokes.SaveCommunityPreset, {
+        name: preset.name,
+        adjustments,
+        includeMasks: false,
+        includeCropTransform: false,
+        presetType: 'style',
+      });
+
+      set((state) => ({
+        downloadStatus: { ...state.downloadStatus, [key]: 'success' },
+      }));
+      return true;
+    } catch (err: any) {
+      set((state) => ({
+        downloadStatus: { ...state.downloadStatus, [key]: 'error' },
+        downloadError: { ...state.downloadError, [key]: err?.message || String(err) },
+      }));
+      return false;
+    }
   },
 }));

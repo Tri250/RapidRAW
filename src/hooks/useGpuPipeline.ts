@@ -41,10 +41,19 @@ export interface LutInfo {
 export function useGpuPipeline() {
   const gpuApplyAdjustments = useCallback(
     async (params: GpuAdjustmentParams): Promise<string> => {
-      return invoke(Invokes.GpuApplyAdjustments, params) as Promise<string>;
+      return invoke(Invokes.GpuApplyAdjustments, { ...params }) as Promise<string>;
     },
     [],
   );
+
+  /**
+   * Probe whether the lightweight GPU adjustment pipeline is initialized.
+   * Use this to decide whether to expose GPU-accelerated quick-adjust entry
+   * points without triggering a lazy init failure on every call.
+   */
+  const isGpuPipelineReady = useCallback(async (): Promise<boolean> => {
+    return invoke(Invokes.IsGpuAdjustmentPipelineReady) as Promise<boolean>;
+  }, []);
 
   const colorConvertSpace = useCallback(
     async (r: number, g: number, b: number, fromSpace: string, toSpace: string): Promise<ColorConversionResult> => {
@@ -101,6 +110,7 @@ export function useGpuPipeline() {
 
   return {
     gpuApplyAdjustments,
+    isGpuPipelineReady,
     colorConvertSpace,
     colorApplyAcesOutput,
     colorSrgbToLinear,
