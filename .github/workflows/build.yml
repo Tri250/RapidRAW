@@ -178,6 +178,20 @@ jobs:
           fi
           echo "platform=${patched_platform}" >> "$GITHUB_OUTPUT"
 
+      - id: check-apple-secrets
+        name: Check Apple signing secrets
+        if: inputs.mobile == '' && runner.os == 'macOS'
+        shell: bash
+        run: |
+          if [[ -n "$APPLE_CERTIFICATE" ]]; then
+            echo "has_apple_secrets=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_apple_secrets=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Apple signing secrets not configured; building unsigned macOS artifacts"
+          fi
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+
       - id: tauri-build
         name: Build with tauri-action
         if: inputs.mobile == ''
@@ -189,19 +203,18 @@ jobs:
           # or "invalid value '1' for '--ci'" errors.  Set to 'false' explicitly.
           CI: 'false'
           NO_STRIP: ${{ startsWith(inputs.platform, 'ubuntu') && 'true' || '' }}
-          # Code signing & macOS notarization: only forward secrets when they
-          # are actually configured.  An empty string still triggers the
-          # signing/notarization path in tauri-action, which then fails with
-          # "failed to import keychain certificate".  When secrets are absent,
-          # tauri-action builds unsigned artifacts (may trigger OS warnings).
+          # Tauri signing key (for update signatures, not code signing)
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Apple code signing: only set these env vars when secrets are actually
+          # configured.  Empty strings still trigger the signing path in tauri-action
+          # causing "failed to import keychain certificate" errors.
+          APPLE_CERTIFICATE: ${{ steps.check-apple-secrets.outputs.has_apple_secrets == 'true' && secrets.APPLE_CERTIFICATE || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ steps.check-apple-secrets.outputs.has_apple_secrets == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+          APPLE_SIGNING_IDENTITY: ${{ steps.check-apple-secrets.outputs.has_apple_secrets == 'true' && secrets.APPLE_SIGNING_IDENTITY || '' }}
+          APPLE_ID: ${{ steps.check-apple-secrets.outputs.has_apple_secrets == 'true' && secrets.APPLE_ID || '' }}
+          APPLE_PASSWORD: ${{ steps.check-apple-secrets.outputs.has_apple_secrets == 'true' && secrets.APPLE_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ steps.check-apple-secrets.outputs.has_apple_secrets == 'true' && secrets.APPLE_TEAM_ID || '' }}
         with:
           tagName: ${{ inputs.tag-name }}
           releaseName: 'RapidRAW v__VERSION__'
