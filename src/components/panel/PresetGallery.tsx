@@ -117,7 +117,7 @@ interface PresetCardProps {
   sourceUrl: string;
 }
 
-const PresetCard = ({ preset, index, sourceUrl }: PresetCardProps) => {
+const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) => {
   const { t } = useTranslation();
   const { downloadPreset, downloadStatus, downloadError } = usePresetGalleryStore();
   const [showGallery, setShowGallery] = useState(false);
@@ -660,7 +660,7 @@ const PresetCard = ({ preset, index, sourceUrl }: PresetCardProps) => {
       </AnimatePresence>
     </motion.div>
   );
-};
+});
 
 /* ────────── SourceSection ────────── */
 
