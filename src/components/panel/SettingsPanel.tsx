@@ -378,16 +378,104 @@ class CloudAuthErrorBoundary extends Component<
   }
 }
 
+interface SettingsErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class SettingsErrorBoundary extends Component<
+  { children: React.ReactNode; onBack?: () => void },
+  SettingsErrorBoundaryState
+> {
+  constructor(props: { children: React.ReactNode; onBack?: () => void }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): Partial<SettingsErrorBoundaryState> {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('[SettingsErrorBoundary] Settings panel error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col h-full w-full text-text-primary p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-full bg-error/10 text-error">
+              <XCircle size={24} />
+            </div>
+            <Text variant={TextVariants.display} color={TextColors.error}>
+              Settings Error
+            </Text>
+          </div>
+          <Text variant={TextVariants.heading} className="mb-4">
+            Something went wrong while loading settings.
+          </Text>
+          <Text variant={TextVariants.small} color={TextColors.secondary} className="mb-6">
+            You can try going back and opening settings again. If the problem persists, please restart the application.
+          </Text>
+          {this.state.error && (
+            <pre className="p-3 text-xs bg-bg-primary rounded-md max-h-48 overflow-auto text-text-secondary/70 mb-6 border border-border-color">
+              {this.state.error.message}
+            </pre>
+          )}
+          <div className="flex gap-3">
+            {this.props.onBack && (
+              <Button variant="primary" onClick={this.props.onBack}>
+                <ArrowLeft size={16} className="mr-2" /> Go Back
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              onClick={() => this.setState({ hasError: false, error: null })}
+            >
+              Try Again
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const CloudDashboard = () => {
-  const { user } = useUser();
-  const { getToken } = useAuth();
-  const { signOut } = useClerk();
+  let user: any = null;
+  let getToken: (() => Promise<string | null>) | null = null;
+  let signOutFn: (() => Promise<void>) | null = null;
+
+  try {
+    const userResult = useUser();
+    user = userResult?.user ?? null;
+  } catch (e) {
+    console.error('[CloudDashboard] useUser failed:', e);
+  }
+
+  try {
+    const authResult = useAuth();
+    getToken = authResult?.getToken ?? null;
+  } catch (e) {
+    console.error('[CloudDashboard] useAuth failed:', e);
+  }
+
+  try {
+    const clerkResult = useClerk();
+    signOutFn = clerkResult?.signOut ?? null;
+  } catch (e) {
+    console.error('[CloudDashboard] useClerk failed:', e);
+  }
+
   const [usage, setUsage] = useState<{ requests: number; limit: number; month: string } | null>(null);
   const { t } = useTranslation();
 
   useEffect(() => {
     const fetchUsage = async () => {
       try {
+        if (!getToken) return;
         const token = await getToken();
         if (!token) return;
         const res = await fetch('https://getrapidraw.com/api/usage', {
@@ -429,7 +517,13 @@ const CloudDashboard = () => {
           <Button
             variant="ghost"
             onClick={async () => {
-              await signOut();
+              try {
+                if (signOutFn) {
+                  await signOutFn();
+                }
+              } catch (e) {
+                console.error('[CloudDashboard] signOut failed:', e);
+              }
             }}
           >
             {t('settings.processing.ai.cloud.signedIn.logout')}
@@ -874,17 +968,21 @@ export default function SettingsPanel({
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const updateDpr = () => setDpr(window.devicePixelRatio);
+    try {
+      const updateDpr = () => setDpr(window.devicePixelRatio);
 
-    const mediaQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
-    mediaQuery.addEventListener('change', updateDpr);
+      const mediaQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+      mediaQuery.addEventListener('change', updateDpr);
 
-    window.addEventListener('resize', updateDpr);
+      window.addEventListener('resize', updateDpr);
 
-    return () => {
-      mediaQuery.removeEventListener('change', updateDpr);
-      window.removeEventListener('resize', updateDpr);
-    };
+      return () => {
+        mediaQuery.removeEventListener('change', updateDpr);
+        window.removeEventListener('resize', updateDpr);
+      };
+    } catch {
+      /* ignore DPR monitoring errors */
+    }
   }, []);
 
   const customAiTags = Array.from(new Set<string>(appSettings?.customAiTags || []));
@@ -928,9 +1026,15 @@ export default function SettingsPanel({
   }, []);
 
   useEffect(() => {
-    invoke<string[]>('get_lensfun_makers')
-      .then((result) => setLensMakers(Array.isArray(result) ? result : []))
-      .catch(() => setLensMakers([]));
+    const fetchLensMakers = async () => {
+      try {
+        const result = await invoke<string[]>('get_lensfun_makers');
+        setLensMakers(Array.isArray(result) ? result : []);
+      } catch {
+        setLensMakers([]);
+      }
+    };
+    fetchLensMakers();
   }, []);
 
   const handleProcessingSettingChange = async (key: string, value: any) => {
@@ -1260,7 +1364,7 @@ export default function SettingsPanel({
   }, [appSettings?.keybinds]);
 
   return (
-    <>
+    <SettingsErrorBoundary onBack={onBack}>
       <ConfirmModal {...confirmModalState} onClose={closeConfirmModal} />
       <div className="flex flex-col h-full w-full text-text-primary">
         <header className="shrink-0 flex flex-wrap items-center justify-between gap-y-4 mb-8 pt-4">
@@ -2489,8 +2593,6 @@ export default function SettingsPanel({
                                 <div className="w-full max-w-md">
                                   <SignIn
                                     routing="hash"
-                                    fallbackRedirectUrl="/"
-                                    forceRedirectUrl="/"
                                     appearance={{
                                       variables: {
                                         colorBackground: 'transparent',
@@ -2806,6 +2908,6 @@ export default function SettingsPanel({
           </AnimatePresence>
         </div>
       </div>
-    </>
+    </SettingsErrorBoundary>
   );
 }

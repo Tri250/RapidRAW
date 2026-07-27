@@ -309,8 +309,25 @@ export default function AIPanel() {
   const appSettings = useSettingsStore((s) => s.appSettings);
   const aiProvider = appSettings?.aiProvider || 'cpu';
 
-  const { user, isSignedIn } = useUser();
-  const { getToken } = useAuth();
+  let user: any = null;
+  let isSignedIn = false;
+  let getToken: (() => Promise<string | null>) | null = null;
+
+  try {
+    const userResult = useUser();
+    user = userResult?.user ?? null;
+    isSignedIn = userResult?.isSignedIn ?? false;
+  } catch (e) {
+    console.error('[AIPanel] useUser failed:', e);
+  }
+
+  try {
+    const authResult = useAuth();
+    getToken = authResult?.getToken ?? null;
+  } catch (e) {
+    console.error('[AIPanel] useAuth failed:', e);
+  }
+
   const isPro = user?.publicMetadata?.plan === 'pro';
   const [cloudUsage, setCloudUsage] = useState<{ requests: number; limit: number; month: string } | null>(null);
 

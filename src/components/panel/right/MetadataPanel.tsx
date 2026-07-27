@@ -69,12 +69,37 @@ const CAMERA_ICONS: Record<string, React.FC> = {
   LensModel: IconLens,
 };
 
+function safeStringifyExifValue(val: any): string {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (typeof val === 'object') {
+    if ('numerator' in val && 'denominator' in val && val.denominator !== 0) {
+      const n = Number(val.numerator);
+      const d = Number(val.denominator);
+      if (Number.isFinite(n) && Number.isFinite(d)) {
+        const result = n / d;
+        if (result < 1 && result > 0) {
+          return `${n}/${d}`;
+        }
+        return String(Number(result.toFixed(3)));
+      }
+    }
+    try {
+      return JSON.stringify(val);
+    } catch {
+      return '[object]';
+    }
+  }
+  return String(val);
+}
+
 function MetadataItem({ label, value }: MetaDataItemProps) {
   const { t } = useTranslation();
   const [isHovered, setIsHovered] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const strValue = String(value);
+  const strValue = safeStringifyExifValue(value);
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -306,9 +331,19 @@ export default function MetadataPanel() {
     const latRef = exif.GPSLatitudeRef;
     const lonStr = exif.GPSLongitude;
     const lonRef = exif.GPSLongitudeRef;
+    const gpsAlt = exif.GPSAltitude;
 
-    const gpsData: GPSData = { lat: null, lon: null, altitude: exif.GPSAltitude || null };
-    if (latStr && latRef && lonStr && lonRef) {
+    const gpsData: GPSData = {
+      lat: null,
+      lon: null,
+      altitude: typeof gpsAlt === 'number' ? gpsAlt : typeof gpsAlt === 'string' ? parseFloat(gpsAlt) : null,
+    };
+    if (
+      typeof latStr === 'string' &&
+      typeof latRef === 'string' &&
+      typeof lonStr === 'string' &&
+      typeof lonRef === 'string'
+    ) {
       const parsedLat = parseDms(latStr);
       const parsedLon = parseDms(lonStr);
       if (parsedLat !== null && parsedLon !== null) {
@@ -630,7 +665,7 @@ export default function MetadataPanel() {
                       : t('editor.metadata.fileInfo.emptyDimensions')}
                   </Text>
                   <Text variant={TextVariants.small} color={TextColors.secondary} className="truncate drop-shadow-sm">
-                    {selectedImage.exif?.DateTimeOriginal || '-'}
+                    {safeStringifyExifValue(selectedImage.exif?.DateTimeOriginal) || '-'}
                   </Text>
                 </div>
               </div>
@@ -724,7 +759,8 @@ export default function MetadataPanel() {
                     >
                       <div className="px-2 pb-3 pt-2 border-t border-surface/50 flex flex-col gap-0.5">
                         {EDITABLE_FIELDS.map((field) => {
-                          const rawValue = (selectedImage?.exif?.[field.key] as string) || '';
+                          const raw = selectedImage?.exif?.[field.key];
+                          const rawValue = typeof raw === 'string' ? raw : safeStringifyExifValue(raw);
                           const cleanValue = rawValue.replace(/^"|"$/g, '').trim();
                           const displayValue = cleanValue.toLowerCase() === 'default' ? '' : cleanValue;
                           return (

@@ -103,22 +103,45 @@ const DEFAULT_PARAMS: LensParams = {
   lensDistortionParams: null,
 };
 
+const parseExifNumber = (val: any): number | null => {
+  if (val === null || val === undefined) return null;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? null : parsed;
+  }
+  if (typeof val === 'object') {
+    if ('numerator' in val && 'denominator' in val && val.denominator !== 0) {
+      const n = Number(val.numerator);
+      const d = Number(val.denominator);
+      if (Number.isFinite(n) && Number.isFinite(d)) {
+        return n / d;
+      }
+    }
+    if ('n' in val && 'd' in val && val.d !== 0) {
+      const n = Number(val.n);
+      const d = Number(val.d);
+      if (Number.isFinite(n) && Number.isFinite(d)) {
+        return n / d;
+      }
+    }
+  }
+  return null;
+};
+
 const parseFocalLength = (exif: any): number | null => {
   if (!exif || !exif.FocalLength) return null;
-  const val = parseFloat(exif.FocalLength);
-  return isNaN(val) ? null : val;
+  return parseExifNumber(exif.FocalLength);
 };
 
 const parseAperture = (exif: any): number | null => {
   if (!exif || !exif.FNumber) return null;
-  const val = parseFloat(exif.FNumber);
-  return isNaN(val) ? null : val;
+  return parseExifNumber(exif.FNumber);
 };
 
 const parseDistance = (exif: any): number | null => {
   if (!exif || !exif.SubjectDistance) return null;
-  const val = parseFloat(exif.SubjectDistance);
-  return isNaN(val) ? null : val;
+  return parseExifNumber(exif.SubjectDistance);
 };
 
 const SLIDER_DIVISOR = 100.0;
