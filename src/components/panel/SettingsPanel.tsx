@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Component, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   Cloud,
@@ -319,6 +319,64 @@ const AiProviderSwitch = ({ selectedProvider, onProviderChange }: AiProviderSwit
     </div>
   );
 };
+
+interface CloudAuthErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class CloudAuthErrorBoundary extends Component<
+  { children: React.ReactNode },
+  CloudAuthErrorBoundaryState
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): Partial<CloudAuthErrorBoundaryState> {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('[CloudAuthErrorBoundary] Clerk component error:', error);
+  }
+
+  handleReset = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 bg-surface rounded-xl border border-border-color/50">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-full bg-error/10 text-error">
+              <XCircle size={20} />
+            </div>
+            <div className="flex-1">
+              <Text variant={TextVariants.heading} color={TextColors.error}>
+                Cloud login unavailable
+              </Text>
+              <Text variant={TextVariants.small} className="mt-1">
+                Please check your internet connection and try again. You can still use local processing features.
+              </Text>
+              {this.state.error && (
+                <pre className="mt-3 p-2 text-xs bg-bg-primary rounded-md max-h-24 overflow-auto text-text-secondary/70">
+                  {this.state.error.message}
+                </pre>
+              )}
+              <Button variant="ghost" className="mt-4 px-0 text-accent hover:underline" onClick={this.handleReset}>
+                Try again
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const CloudDashboard = () => {
   const { user } = useUser();
@@ -692,7 +750,6 @@ export default function SettingsPanel({
   onSettingsChange,
   rootPaths,
 }: SettingsPanelProps) {
-  const { user: _user } = useUser();
   const { t } = useTranslation();
   const osPlatform = useOsPlatform();
   const isDeviceSide = osPlatform === 'android';
@@ -2422,72 +2479,74 @@ export default function SettingsPanel({
                           </Text>
 
                           <div className="mt-8">
-                            <Show when="signed-in">
-                              <div className="p-6 bg-bg-primary rounded-xl border border-border-color shadow-inner">
-                                <CloudDashboard />
-                              </div>
-                            </Show>
-                            <Show when="signed-out">
-                              <div className="w-full max-w-md">
-                                <SignIn
-                                  routing="hash"
-                                  fallbackRedirectUrl="/"
-                                  forceRedirectUrl="/"
-                                  appearance={{
-                                    variables: {
-                                      colorBackground: 'transparent',
-                                      colorInput: 'transparent',
-                                      colorForeground: 'inherit',
-                                      colorInputForeground: 'inherit',
-                                      colorPrimaryForeground: 'inherit',
-                                      colorBorder: 'transparent',
-                                      colorShadow: 'none',
-                                      colorNeutral: 'inherit',
-                                    },
-                                    elements: {
-                                      rootBox: '',
-
-                                      cardBox: '!shadow-none !m-0 !p-0 !rounded-none',
-
-                                      card: '!bg-transparent !border-none !shadow-none !py-0 !px-1 !rounded-none',
-
-                                      header: '!hidden',
-
-                                      formFieldLabel: '!text-base !font-semibold !text-text-primary !block !mb-2',
-
-                                      formFieldAction:
-                                        '!text-text-secondary hover:!text-text-primary !transition-colors !no-underline hover:!underline',
-
-                                      formFieldInput:
-                                        '!bg-bg-primary !border !border-border-color !text-text-primary focus:!border-accent focus:!ring-1 focus:!ring-accent !rounded-md !px-3 !py-2',
-
-                                      formButtonPrimary:
-                                        '!bg-accent !text-button-text hover:!bg-accent/90 !shadow-none !transition-colors !rounded-md !mt-4 !py-2',
-
-                                      footer:
-                                        '!bg-transparent !p-0 !mt-4 opacity-50 hover:opacity-100 transition-opacity',
-                                      footerAction: '!hidden',
-
-                                      identityPreview: '!bg-bg-primary !border !border-border-color !rounded-md !mb-4',
-                                      identityPreviewText: '!text-text-primary !font-medium',
-                                      identityPreviewEditButtonIcon:
-                                        '!text-text-secondary hover:!text-text-primary !transition-colors',
-                                    },
-                                  }}
-                                />
-                                <div className="mt-6">
-                                  <Text variant={TextVariants.small}>
-                                    {t('settings.processing.ai.cloud.signedOut.noAccount')}{' '}
-                                    <button
-                                      onClick={() => open('https://www.getrapidraw.com/dashboard')}
-                                      className="text-accent hover:underline focus:outline-none"
-                                    >
-                                      {t('settings.processing.ai.cloud.signedOut.signup')}
-                                    </button>
-                                  </Text>
+                            <CloudAuthErrorBoundary>
+                              <Show when="signed-in">
+                                <div className="p-6 bg-bg-primary rounded-xl border border-border-color shadow-inner">
+                                  <CloudDashboard />
                                 </div>
-                              </div>
-                            </Show>
+                              </Show>
+                              <Show when="signed-out">
+                                <div className="w-full max-w-md">
+                                  <SignIn
+                                    routing="hash"
+                                    fallbackRedirectUrl="/"
+                                    forceRedirectUrl="/"
+                                    appearance={{
+                                      variables: {
+                                        colorBackground: 'transparent',
+                                        colorInput: 'transparent',
+                                        colorForeground: 'inherit',
+                                        colorInputForeground: 'inherit',
+                                        colorPrimaryForeground: 'inherit',
+                                        colorBorder: 'transparent',
+                                        colorShadow: 'none',
+                                        colorNeutral: 'inherit',
+                                      },
+                                      elements: {
+                                        rootBox: '',
+
+                                        cardBox: '!shadow-none !m-0 !p-0 !rounded-none',
+
+                                        card: '!bg-transparent !border-none !shadow-none !py-0 !px-1 !rounded-none',
+
+                                        header: '!hidden',
+
+                                        formFieldLabel: '!text-base !font-semibold !text-text-primary !block !mb-2',
+
+                                        formFieldAction:
+                                          '!text-text-secondary hover:!text-text-primary !transition-colors !no-underline hover:!underline',
+
+                                        formFieldInput:
+                                          '!bg-bg-primary !border !border-border-color !text-text-primary focus:!border-accent focus:!ring-1 focus:!ring-accent !rounded-md !px-3 !py-2',
+
+                                        formButtonPrimary:
+                                          '!bg-accent !text-button-text hover:!bg-accent/90 !shadow-none !transition-colors !rounded-md !mt-4 !py-2',
+
+                                        footer:
+                                          '!bg-transparent !p-0 !mt-4 opacity-50 hover:opacity-100 transition-opacity',
+                                        footerAction: '!hidden',
+
+                                        identityPreview: '!bg-bg-primary !border !border-border-color !rounded-md !mb-4',
+                                        identityPreviewText: '!text-text-primary !font-medium',
+                                        identityPreviewEditButtonIcon:
+                                          '!text-text-secondary hover:!text-text-primary !transition-colors',
+                                      },
+                                    }}
+                                  />
+                                  <div className="mt-6">
+                                    <Text variant={TextVariants.small}>
+                                      {t('settings.processing.ai.cloud.signedOut.noAccount')}{' '}
+                                      <button
+                                        onClick={() => open('https://www.getrapidraw.com/dashboard')}
+                                        className="text-accent hover:underline focus:outline-none"
+                                      >
+                                        {t('settings.processing.ai.cloud.signedOut.signup')}
+                                      </button>
+                                    </Text>
+                                  </div>
+                                </div>
+                              </Show>
+                            </CloudAuthErrorBoundary>
                           </div>
                         </motion.div>
                       )}

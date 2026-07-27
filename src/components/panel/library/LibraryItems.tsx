@@ -18,6 +18,42 @@ interface ImageLayer {
   opacity: number;
 }
 
+const safeStringifyExif = (val: any): string => {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (typeof val === 'object') {
+    if ('numerator' in val && 'denominator' in val && val.denominator !== 0) {
+      const n = Number(val.numerator);
+      const d = Number(val.denominator);
+      if (Number.isFinite(n) && Number.isFinite(d)) {
+        const result = n / d;
+        if (result < 1 && result > 0) {
+          return `${n}/${d}`;
+        }
+        return String(Number(result.toFixed(3)));
+      }
+    }
+    if ('n' in val && 'd' in val && val.d !== 0) {
+      const n = Number(val.n);
+      const d = Number(val.d);
+      if (Number.isFinite(n) && Number.isFinite(d)) {
+        const result = n / d;
+        if (result < 1 && result > 0) {
+          return `${n}/${d}`;
+        }
+        return String(Number(result.toFixed(3)));
+      }
+    }
+    try {
+      return JSON.stringify(val);
+    } catch {
+      return String(val);
+    }
+  }
+  return String(val);
+};
+
 const ThumbnailComponent = ({
   isActive,
   isSelected,
@@ -47,19 +83,16 @@ const ThumbnailComponent = ({
   const [showPlaceholder, setShowPlaceholder] = useState(false);
   const [layers, setLayers] = useState<ImageLayer[]>([]);
 
-  const [currentPath, setCurrentPath] = useState(path);
-  if (currentPath !== path) {
-    setCurrentPath(path);
-    setLayers([]);
-  }
-
   const pathRef = useRef(path);
   const hadDataOnPathChange = useRef(!!data);
 
-  if (pathRef.current !== path) {
-    pathRef.current = path;
-    hadDataOnPathChange.current = !!data;
-  }
+  useEffect(() => {
+    if (pathRef.current !== path) {
+      pathRef.current = path;
+      hadDataOnPathChange.current = !!data;
+      setLayers([]);
+    }
+  }, [path, data]);
 
   const { baseName, isVirtualCopy } = useMemo(() => {
     const fullFileName = path.split(/[\\/]/).pop() || '';
@@ -72,13 +105,14 @@ const ThumbnailComponent = ({
 
   const { shutter, fNumber, iso, focal } = useMemo(() => {
     const e = exif || {};
-    let fNum = e.FNumber ? String(e.FNumber) : '';
+    const fNumRaw = safeStringifyExif(e.FNumber);
+    let fNum = fNumRaw;
     if (fNum && !fNum.toLowerCase().startsWith('f')) fNum = `f/${fNum}`;
     return {
-      shutter: e.ExposureTime || '',
+      shutter: safeStringifyExif(e.ExposureTime),
       fNumber: fNum,
-      iso: e.PhotographicSensitivity || e.ISOSpeedRatings || '',
-      focal: e.FocalLengthIn35mmFilm || e.FocalLength || '',
+      iso: safeStringifyExif(e.PhotographicSensitivity || e.ISOSpeedRatings),
+      focal: safeStringifyExif(e.FocalLengthIn35mmFilm || e.FocalLength),
     };
   }, [exif]);
 
@@ -483,19 +517,16 @@ const ListItemComponent = ({
   const [showPlaceholder, setShowPlaceholder] = useState(false);
   const [layers, setLayers] = useState<ImageLayer[]>([]);
 
-  const [currentPath, setCurrentPath] = useState(path);
-  if (currentPath !== path) {
-    setCurrentPath(path);
-    setLayers([]);
-  }
-
   const pathRef = useRef(path);
   const hadDataOnPathChange = useRef(!!data);
 
-  if (pathRef.current !== path) {
-    pathRef.current = path;
-    hadDataOnPathChange.current = !!data;
-  }
+  useEffect(() => {
+    if (pathRef.current !== path) {
+      pathRef.current = path;
+      hadDataOnPathChange.current = !!data;
+      setLayers([]);
+    }
+  }, [path, data]);
 
   const { baseName, isVirtualCopy } = useMemo(() => {
     const fullFileName = path.split(/[\\/]/).pop() || '';
@@ -508,13 +539,14 @@ const ListItemComponent = ({
 
   const { shutter, fNumber, iso, focal } = useMemo(() => {
     const e = exif || {};
-    let fNum = e.FNumber ? String(e.FNumber) : '';
+    const fNumRaw = safeStringifyExif(e.FNumber);
+    let fNum = fNumRaw;
     if (fNum && !fNum.toLowerCase().startsWith('f')) fNum = `f/${fNum}`;
     return {
-      shutter: e.ExposureTime || '',
+      shutter: safeStringifyExif(e.ExposureTime),
       fNumber: fNum,
-      iso: e.PhotographicSensitivity || e.ISOSpeedRatings || '',
-      focal: e.FocalLengthIn35mmFilm || e.FocalLength || '',
+      iso: safeStringifyExif(e.PhotographicSensitivity || e.ISOSpeedRatings),
+      focal: safeStringifyExif(e.FocalLengthIn35mmFilm || e.FocalLength),
     };
   }, [exif]);
 
@@ -581,11 +613,26 @@ const ListItemComponent = ({
   const colorTag = tags?.find((t: string) => t.startsWith('color:'))?.substring(6);
   const colorLabel = COLOR_LABELS.find((c: Color) => c.name === colorTag);
 
-  const dateObj = new Date(modified > 1e11 ? modified : modified * 1000);
-  const dateStr =
-    dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) +
-    ' ' +
-    dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const dateStr = useMemo(() => {
+    let modifiedMs: number;
+    if (typeof modified === 'number' && Number.isFinite(modified)) {
+      modifiedMs = modified > 1e11 ? modified : modified * 1000;
+    } else if (typeof modified === 'string') {
+      const parsed = Date.parse(modified);
+      modifiedMs = Number.isFinite(parsed) ? parsed : Date.now();
+    } else {
+      modifiedMs = Date.now();
+    }
+    const dateObj = new Date(modifiedMs);
+    if (Number.isNaN(dateObj.getTime())) {
+      return '-';
+    }
+    return (
+      dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) +
+      ' ' +
+      dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    );
+  }, [modified]);
 
   const stateClass = isActive
     ? 'ring-1 ring-inset ring-accent bg-accent/10'

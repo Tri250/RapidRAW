@@ -798,13 +798,87 @@ function App() {
   );
 }
 
-const AppWrapper = () => (
-  <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} routerPush={(to) => {}} routerReplace={(to) => {}}>
-    <ContextMenuProvider>
-      <App />
-      <GlobalTooltip />
-    </ContextMenuProvider>
-  </ClerkProvider>
-);
+const AppWrapper = () => {
+  const pushHash = useCallback((to: string) => {
+    try {
+      let url = to;
+      if (!url || url === '/') {
+        url = window.location.pathname + window.location.search;
+      }
+      if (url.startsWith('/') && !url.startsWith('//')) {
+        const newUrl = new URL(url, window.location.origin);
+        window.history.pushState({}, '', newUrl.toString());
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      } else if (url.startsWith('http:') || url.startsWith('https:')) {
+        window.location.assign(url);
+      } else {
+        window.location.hash = url.startsWith('#') ? url : `#${url}`;
+      }
+    } catch (e) {
+      console.warn('[ClerkRouter] push failed:', e);
+      try {
+        window.location.hash = to;
+      } catch {
+        /* ignore */
+      }
+    }
+  }, []);
+
+  const replaceHash = useCallback((to: string) => {
+    try {
+      let url = to;
+      if (!url || url === '/') {
+        url = window.location.pathname + window.location.search;
+      }
+      if (url.startsWith('/') && !url.startsWith('//')) {
+        const newUrl = new URL(url, window.location.origin);
+        window.history.replaceState({}, '', newUrl.toString());
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      } else if (url.startsWith('http:') || url.startsWith('https:')) {
+        window.location.replace(url);
+      } else {
+        const currentUrl = new URL(window.location.href);
+        currentUrl.hash = url.startsWith('#') ? url.slice(1) : url;
+        window.history.replaceState({}, '', currentUrl.toString());
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      }
+    } catch (e) {
+      console.warn('[ClerkRouter] replace failed:', e);
+      try {
+        window.location.hash = to;
+      } catch {
+        /* ignore */
+      }
+    }
+  }, []);
+
+  const safeClerkProps = useMemo(() => {
+    const props: any = {
+      publishableKey: CLERK_PUBLISHABLE_KEY,
+      routerPush: pushHash,
+      routerReplace: replaceHash,
+    };
+    try {
+      if (typeof window !== 'undefined') {
+        const pathname = window.location.pathname || '/';
+        const search = window.location.search || '';
+        const hash = window.location.hash || '';
+        props.initialPath = pathname + search + hash;
+      }
+    } catch {
+      /* ignore */
+    }
+    return props;
+  }, [pushHash, replaceHash]);
+
+  return (
+    <ClerkProvider {...safeClerkProps}>
+      <ContextMenuProvider>
+        <App />
+        <GlobalTooltip />
+      </ContextMenuProvider>
+    </ClerkProvider>
+  );
+};
 
 export default AppWrapper;
