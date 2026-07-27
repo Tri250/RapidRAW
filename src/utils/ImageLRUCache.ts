@@ -55,6 +55,10 @@ export class ImageLRUCache {
     this.cache.set(key, entry);
   }
 
+  get size(): number {
+    return this.cache.size;
+  }
+
   isProtected(url: string): boolean {
     return this.protectedBlobUrls.has(url);
   }

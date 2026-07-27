@@ -68,6 +68,10 @@ interface EditorState {
   hasRenderedFirstFrame: boolean;
   patchesSentToBackend: Set<string>;
 
+  // Self-test
+  imageProcessingSelfTestRequest: number;
+  imageProcessingSelfTestResult: { success: boolean; details: Record<string, { ok: boolean; message: string }> } | null;
+
   // Clipboard
   copiedSectionAdjustments: any | null;
   copiedMask: MaskContainer | null;
@@ -131,6 +135,9 @@ export const useEditorStore = create<EditorState>((set) => ({
   isMaskControlHovered: false,
   hasRenderedFirstFrame: false,
   patchesSentToBackend: new Set<string>(),
+
+  imageProcessingSelfTestRequest: 0,
+  imageProcessingSelfTestResult: null,
 
   setEditor: (updater) => set((state) => (typeof updater === 'function' ? updater(state) : updater)),
 

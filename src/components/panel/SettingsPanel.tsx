@@ -22,6 +22,9 @@ import {
   Command,
   Zap,
   Globe,
+  Activity,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -50,6 +53,7 @@ import { TextColors, TextVariants, TextWeights } from '../../types/typography';
 import { useOsPlatform } from '../../hooks/useOsPlatform';
 import { open } from '@tauri-apps/plugin-shell';
 import { usePresetGalleryStore } from '../../store/usePresetGalleryStore';
+import { useEditorStore } from '../../store/useEditorStore';
 
 interface ConfirmModalState {
   confirmText: string;
@@ -747,6 +751,10 @@ export default function SettingsPanel({
   const [logPathError, setLogPathError] = useState(false);
   const [dpr, setDpr] = useState(() => (typeof window !== 'undefined' ? window.devicePixelRatio : 1));
 
+  const imageProcessingSelfTestRequest = useEditorStore((state) => state.imageProcessingSelfTestRequest);
+  const imageProcessingSelfTestResult = useEditorStore((state) => state.imageProcessingSelfTestResult);
+  const setEditor = useEditorStore((state) => state.setEditor);
+
   const settingCategories = useMemo(
     () => [
       { id: 'general', label: t('settings.categories.general'), icon: Settings },
@@ -863,7 +871,9 @@ export default function SettingsPanel({
   }, []);
 
   useEffect(() => {
-    invoke<string[]>('get_lensfun_makers').then(setLensMakers).catch(console.error);
+    invoke<string[]>('get_lensfun_makers')
+      .then((result) => setLensMakers(Array.isArray(result) ? result : []))
+      .catch(() => setLensMakers([]));
   }, []);
 
   const handleProcessingSettingChange = async (key: string, value: any) => {
@@ -929,8 +939,8 @@ export default function SettingsPanel({
     setLensModels([]);
     if (maker) {
       invoke('get_lensfun_lenses_for_maker', { maker })
-        .then((l: any) => setLensModels(l))
-        .catch(console.error);
+        .then((l: any) => setLensModels(Array.isArray(l) ? l : []))
+        .catch(() => setLensModels([]));
     }
   };
 
@@ -2547,6 +2557,106 @@ export default function SettingsPanel({
                       message=""
                       title={t('settings.data.logs')}
                     />
+                  </div>
+                </div>
+
+                <div id="settings-selftest" className="p-6 bg-surface rounded-xl shadow-md scroll-mt-20">
+                  <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
+                    {t('settings.selftest.title', { defaultValue: '图像处理深度自检' })}
+                  </Text>
+                  <Text className="mb-4">
+                    {t('settings.selftest.description', {
+                      defaultValue:
+                        '运行全面深度自检以验证 GPU 管线、ROI 计算、预览渲染、缓存等图像处理链路组件的状态。',
+                    })}
+                  </Text>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Button
+                        onClick={() =>
+                          setEditor((state) => ({
+                            imageProcessingSelfTestRequest: state.imageProcessingSelfTestRequest + 1,
+                            imageProcessingSelfTestResult: null,
+                          }))
+                        }
+                        disabled={imageProcessingSelfTestRequest > 0 && !imageProcessingSelfTestResult}
+                      >
+                        <Activity size={16} className="mr-2" />
+                        {t('settings.selftest.run', { defaultValue: '运行深度自检' })}
+                      </Button>
+                      {imageProcessingSelfTestRequest > 0 && !imageProcessingSelfTestResult && (
+                        <span className="flex items-center gap-1.5 text-xs text-text-secondary">
+                          <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+                          {t('settings.selftest.running', { defaultValue: '检测中…' })}
+                        </span>
+                      )}
+                    </div>
+
+                    <AnimatePresence>
+                      {imageProcessingSelfTestResult && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3, ease: 'easeInOut' }}
+                          className="overflow-hidden"
+                        >
+                          <div
+                            className={`p-4 rounded-lg border ${
+                              imageProcessingSelfTestResult.success
+                                ? 'bg-emerald-900/10 border-emerald-500/50'
+                                : 'bg-red-900/10 border-red-500/50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-3">
+                              {imageProcessingSelfTestResult.success ? (
+                                <CheckCircle2 size={18} className="text-emerald-500" />
+                              ) : (
+                                <XCircle size={18} className="text-red-400" />
+                              )}
+                              <Text
+                                color={
+                                  imageProcessingSelfTestResult.success ? TextColors.success : TextColors.error
+                                }
+                                weight={TextWeights.semibold}
+                              >
+                                {imageProcessingSelfTestResult.success
+                                  ? t('settings.selftest.allPassed', { defaultValue: '所有检测项通过' })
+                                  : t('settings.selftest.someFailed', { defaultValue: '部分检测项未通过' })}
+                              </Text>
+                            </div>
+                            <div className="space-y-2">
+                              {Object.entries(imageProcessingSelfTestResult.details).map(([name, detail]) => (
+                                <div
+                                  key={name}
+                                  className={`flex items-start gap-2 text-sm p-2 rounded-md ${
+                                    detail.ok ? 'bg-emerald-500/5' : 'bg-red-500/5'
+                                  }`}
+                                >
+                                  {detail.ok ? (
+                                    <CheckCircle2 size={14} className="text-emerald-500 mt-0.5 shrink-0" />
+                                  ) : (
+                                    <XCircle size={14} className="text-red-400 mt-0.5 shrink-0" />
+                                  )}
+                                  <div className="min-w-0">
+                                    <Text
+                                      variant={TextVariants.small}
+                                      color={detail.ok ? TextColors.success : TextColors.error}
+                                      className="font-medium"
+                                    >
+                                      {name}
+                                    </Text>
+                                    <Text variant={TextVariants.small} className="break-words">
+                                      {detail.message}
+                                    </Text>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
               </motion.div>
