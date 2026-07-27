@@ -185,9 +185,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # GitHub Actions sets CI=true by default, which tauri-cli misinterprets
-          # as the --ci flag, causing "invalid value '1' for '--ci'" errors.
-          # Unset it to prevent the clash.
-          CI: ''
+          # as the --ci flag, causing "a value is required for '--ci' but none was supplied"
+          # or "invalid value '1' for '--ci'" errors.  Set to 'false' explicitly.
+          CI: 'false'
           NO_STRIP: ${{ startsWith(inputs.platform, 'ubuntu') && 'true' || '' }}
           # Code signing & macOS notarization are optional.
           # When the secrets are absent, tauri-action builds unsigned artifacts
