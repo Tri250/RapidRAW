@@ -591,10 +591,10 @@ pub fn reset_gpu_adjustment_pipeline() {
 }
 
 /// Three-state pipeline cache:
-/// - `None`: never attempted
-/// - `Some(Ok(pipeline))`: successfully initialized
-/// - `Some(Err(error))`: initialization failed; cached to avoid retry storms
-enum PipelineState {
+/// - `Uninit`: never attempted
+/// - `Ready(pipeline)`: successfully initialized
+/// - `Failed(error)`: initialization failed; cached to avoid retry storms
+pub enum PipelineState {
     Uninit,
     Ready(GpuPipeline),
     Failed(String),

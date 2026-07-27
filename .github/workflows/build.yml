@@ -184,6 +184,10 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GitHub Actions sets CI=true by default, which tauri-cli misinterprets
+          # as the --ci flag, causing "invalid value '1' for '--ci'" errors.
+          # Unset it to prevent the clash.
+          CI: ''
           NO_STRIP: ${{ startsWith(inputs.platform, 'ubuntu') && 'true' || '' }}
           # Code signing & macOS notarization are optional.
           # When the secrets are absent, tauri-action builds unsigned artifacts
@@ -214,6 +218,7 @@ jobs:
         if: inputs.mobile == 'android'
         shell: bash
         env:
+          CI: ''
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ORT_SKIP_DOWNLOAD: '1'
