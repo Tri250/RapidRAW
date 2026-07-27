@@ -285,9 +285,25 @@ export function useImageProcessing(
     [selectedImage?.path, calculateROI, isWaveformVisible, setEditor, previewJobIdRef, latestRenderedJobIdRef],
   );
 
+  const flushPipelineRetryTimerRef = useRef<number | null>(null);
+
   const flushPipeline = useCallback(() => {
-    if (inFlightCountRef.current >= 3) return;
     if (!pendingApplyRef.current) return;
+
+    if (inFlightCountRef.current >= 3) {
+      if (flushPipelineRetryTimerRef.current === null) {
+        flushPipelineRetryTimerRef.current = window.setTimeout(() => {
+          flushPipelineRetryTimerRef.current = null;
+          flushPipeline();
+        }, 8);
+      }
+      return;
+    }
+
+    if (flushPipelineRetryTimerRef.current !== null) {
+      window.clearTimeout(flushPipelineRetryTimerRef.current);
+      flushPipelineRetryTimerRef.current = null;
+    }
 
     const { adjustments, targetRes } = pendingApplyRef.current;
     pendingApplyRef.current = null;
@@ -406,6 +422,10 @@ export function useImageProcessing(
         clearTimeout(dragIdleTimer.current);
         dragIdleTimer.current = null;
       }
+      if (flushPipelineRetryTimerRef.current !== null) {
+        window.clearTimeout(flushPipelineRetryTimerRef.current);
+        flushPipelineRetryTimerRef.current = null;
+      }
     };
   }, [requestHiFiZoom, requestHiFiOriginalZoom]);
 
@@ -413,6 +433,10 @@ export function useImageProcessing(
   // count from the previous image doesn't block the new image's pipeline.
   useEffect(() => {
     inFlightCountRef.current = 0;
+    if (flushPipelineRetryTimerRef.current !== null) {
+      window.clearTimeout(flushPipelineRetryTimerRef.current);
+      flushPipelineRetryTimerRef.current = null;
+    }
   }, [selectedImage?.path]);
 
   useEffect(() => {

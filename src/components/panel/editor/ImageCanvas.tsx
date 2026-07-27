@@ -2730,6 +2730,8 @@ const ImageCanvas = memo(
     const currentTarget = finalPreviewUrl || selectedImage.thumbnailUrl || selectedImage.originalUrl;
     const baseIsReady = displayState.base === currentTarget && !displayState.fade;
 
+    const forceSvgFallback = isSliderDragging || !!showOriginal;
+
     const visiblePatch = interactivePatch ?? (baseIsReady ? null : retainedPatchRef.current);
 
     useEffect(() => {
@@ -2880,7 +2882,7 @@ const ImageCanvas = memo(
                 {/* Show SVG fallback when wgpu is not active, OR when wgpu is active
                     but no actual image data is available (finalPreviewUrl is null).
                     This prevents blank display when wgpu fails to render properly. */}
-                {displayState.base && (!isWgpuActive || !safeFinalPreview) && (
+                {displayState.base && (!isWgpuActive || !safeFinalPreview || forceSvgFallback) && (
                   <image
                     href={displayState.base}
                     x="0"
@@ -2901,7 +2903,7 @@ const ImageCanvas = memo(
                   />
                 )}
 
-                {displayState.fade && (!isWgpuActive || !safeFinalPreview) && (
+                {displayState.fade && (!isWgpuActive || !safeFinalPreview || forceSvgFallback) && (
                   <image
                     href={displayState.fade}
                     x="0"

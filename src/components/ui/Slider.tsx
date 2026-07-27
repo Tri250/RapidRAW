@@ -108,6 +108,9 @@ const Slider = ({
   snapToStepRef.current = snapToStep;
   rangeRef.current = { min, max };
 
+  const onDragStateChangeRef = useRef(onDragStateChange);
+  onDragStateChangeRef.current = onDragStateChange;
+
   useEffect(() => {
     onDragStateChange(isDragging);
   }, [isDragging, onDragStateChange]);
@@ -207,6 +210,7 @@ const Slider = ({
       lastUpTime.current = Date.now();
       pendingTouchRef.current = null;
       suppressTouchChangeRef.current = false;
+      onDragStateChangeRef.current?.(false);
       setIsDragging(false);
     };
 
@@ -327,6 +331,7 @@ const Slider = ({
     accumulatedValueRef.current = rawValue;
     lastPointerXRef.current = e.clientX;
 
+    onDragStateChangeRef.current?.(true);
     setIsDragging(true);
     setDisplayValue(snappedValue);
     onChange({ target: { value: snappedValue } });
@@ -411,6 +416,7 @@ const Slider = ({
       e.preventDefault();
     }
 
+    onDragStateChangeRef.current?.(true);
     setIsDragging(true);
     setDisplayValue(snappedValue);
     onChange({ target: { value: snappedValue } });
@@ -419,6 +425,7 @@ const Slider = ({
   const handleTouchEnd = () => {
     pendingTouchRef.current = null;
     suppressTouchChangeRef.current = false;
+    onDragStateChangeRef.current?.(false);
   };
 
   const handleValueClick = () => {
