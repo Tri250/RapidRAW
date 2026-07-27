@@ -63,10 +63,21 @@ export const convertSectionsToAdjustments = (sections?: GalleryPresetSection[]):
   if (!sections || !Array.isArray(sections)) return {};
   const adjustments: Record<string, number> = {};
 
+  // Professional/camera parameters that should be skipped (not image adjustments)
+  const PROFESSIONAL_LABELS = new Set([
+    'ISO', 'ISO感光度', '快门', '快门速度', 'EV', '白平衡', 'WB白平衡',
+    'AF对焦模式', 'M测光模式', '曝光补偿',
+  ]);
+
   for (const section of sections) {
     if (!section?.items) continue;
     for (const param of section.items) {
       const valueStr = String(param.value ?? '').trim();
+      // Skip professional labels that aren't image adjustments
+      if (PROFESSIONAL_LABELS.has(param.label)) continue;
+      // Skip non-numeric values like "Auto", "MF", "AF-S", "矩阵测光", "开", "无"
+      // and fractional values like "1/200" (shutter speed leaks)
+      if (!/^-?\d+(\.\d+)?$/.test(valueStr)) continue;
       const num = parseFloat(valueStr);
       if (Number.isNaN(num)) continue;
 
@@ -93,6 +104,45 @@ export const convertSectionsToAdjustments = (sections?: GalleryPresetSection[]):
         case 'grain_size':
           normalized = Math.max(0, Math.min(100, ((num + 5) / 10) * 100));
           break;
+        // Chinese labels from vivo/honor/OPPO: scale from [-100, +100] range
+        // (vivo/OPPO use ±20 for basic, ±100 for shadow/highlight)
+        case '曝光':
+        case '亮度':
+          normalized = Math.max(-1, Math.min(1, num / 100));
+          break;
+        case '对比度':
+          normalized = Math.max(-1, Math.min(1, num / 100));
+          break;
+        case '高光':
+          normalized = Math.max(-100, Math.min(100, num));
+          break;
+        case '阴影':
+          normalized = Math.max(-100, Math.min(100, num));
+          break;
+        case '饱和度':
+          normalized = Math.max(-1, Math.min(1, num / 100));
+          break;
+        case '色温':
+        case '冷暖':
+          normalized = Math.max(-100, Math.min(100, num));
+          break;
+        case '锐度':
+          normalized = Math.max(-1, Math.min(1, num / 100));
+          break;
+        case '光感':
+        case '柔光':
+          normalized = Math.max(-1, Math.min(1, num / 100));
+          break;
+        case '暗角':
+          normalized = Math.max(-100, Math.min(100, num));
+          break;
+        // vivo extra labels
+        case '色调':
+          normalized = Math.max(-100, Math.min(100, num));
+          break;
+        case '青品':
+          normalized = Math.max(-100, Math.min(100, num));
+          break;
         default:
           normalized = num;
       }
@@ -112,6 +162,22 @@ export const convertSectionsToAdjustments = (sections?: GalleryPresetSection[]):
         case 'grain': key = 'grainAmount'; break;
         case 'grain_size': key = 'grainSize'; break;
         case 'filter': key = 'filter'; break;
+        // Chinese labels from vivo/honor/OPPO community presets
+        case '曝光': key = 'brightness'; break;
+        case '亮度': key = 'brightness'; break;
+        case '对比度': key = 'contrast'; break;
+        case '高光': key = 'highlights'; break;
+        case '阴影': key = 'shadows'; break;
+        case '饱和度': key = 'saturation'; break;
+        case '色温': key = 'temperature'; break;
+        case '锐度': key = 'sharpness'; break;
+        case '光感': key = 'clarity'; break;
+        case '色调曲线': key = 'toneCurve'; break;
+        case '暗角': key = 'vignette'; break;
+        case '柔光': key = 'clarity'; break;
+        case '冷暖': key = 'temperature'; break;
+        case '色调': key = 'tint'; break;
+        case '青品': key = 'tint'; break;
         default: key = param.label.toLowerCase().replace(/\s+/g, '_');
       }
 
@@ -187,7 +253,7 @@ const loadSources = (): GallerySource[] => {
     if (stored) {
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((s: any) => ({
+        const storedSources = parsed.map((s: any) => ({
           url: s.url || '',
           name: s.name || s.url || '',
           enabled: s.enabled !== false,
@@ -195,6 +261,14 @@ const loadSources = (): GallerySource[] => {
           isLoading: false,
           error: null,
         }));
+        // Merge in any DEFAULT_SOURCES that are missing from localStorage
+        // so new sources added in app updates automatically appear.
+        const storedUrls = new Set(storedSources.map((s) => s.url));
+        const missingDefaults = DEFAULT_SOURCES.filter((d) => !storedUrls.has(d.url));
+        if (missingDefaults.length > 0) {
+          return [...storedSources, ...missingDefaults];
+        }
+        return storedSources;
       }
     }
   } catch {
@@ -344,6 +418,10 @@ const buildPreset = (p: any, baseDir: string): GalleryPreset | null => {
   // Must have at least a cover or sections to be useful
   if (!rawCover && !sections && rawGallery.length === 0) return null;
 
+  // Detect common placeholder filenames that won't resolve to real images
+  const isPlaceholder = (p: string) =>
+    typeof p === 'string' && /placeholder\.(webp|png|jpg|jpeg|gif)/i.test(p.trim());
+
   const galleryImages = rawGallery
     .map((img: any) => resolvePath(typeof img === 'string' ? img : img?.url || '', baseDir))
     .filter(Boolean);
@@ -351,12 +429,28 @@ const buildPreset = (p: any, baseDir: string): GalleryPreset | null => {
     .map((img: any) => resolveFallbackPath(typeof img === 'string' ? img : img?.url || ''))
     .filter(Boolean);
 
+  const resolvedCover = resolvePath(rawCover, baseDir);
+  const coverIsPlaceholder = isPlaceholder(rawCover);
+
+  // If cover is a placeholder, try fallback CDN; if that also fails, set empty
+  // so the UI can show the fallback text/initial rendering instead of a broken image
+  const effectiveCoverPath = coverIsPlaceholder ? '' : resolvedCover;
+  const effectiveCoverFallback = coverIsPlaceholder
+    ? (resolveFallbackPath(rawCover) || undefined)
+    : (resolveFallbackPath(rawCover) || undefined);
+
+  // Filter out placeholder gallery images too
+  const effectiveGalleryImages = galleryImages.length > 0 && !rawGallery.every((img: any) => isPlaceholder(typeof img === 'string' ? img : img?.url || ''))
+    ? galleryImages
+    : [];
+  const effectiveGalleryFallback = effectiveGalleryImages.length > 0 ? galleryFallback : [];
+
   return {
     name,
-    coverPath: resolvePath(rawCover, baseDir),
-    coverFallback: resolveFallbackPath(rawCover) || undefined,
-    galleryImages,
-    galleryFallback,
+    coverPath: effectiveCoverPath,
+    coverFallback: effectiveCoverFallback,
+    galleryImages: effectiveGalleryImages,
+    galleryFallback: effectiveGalleryFallback,
     author: isNonEmptyString(p.author) ? p.author! : isNonEmptyString(p.creator) ? p.creator! : undefined,
     isNew: p.isNew === true || p.is_new === true || undefined,
     sections,
@@ -565,16 +659,17 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
 
     try {
       const adjustments = convertSectionsToAdjustments(preset.sections);
-      if (Object.keys(adjustments).length === 0) {
-        throw new Error('Preset has no adjustable parameters (sections empty or unparseable).');
-      }
 
+      // If no image adjustment params could be extracted (e.g. honor.json
+      // presets only have professional camera settings like ISO/shutter),
+      // still allow saving with an empty adjustments object so the preset
+      // name + description + tags are preserved as a reference.
       await invoke(Invokes.SaveCommunityPreset, {
         name: preset.name,
-        adjustments,
+        adjustments: Object.keys(adjustments).length > 0 ? adjustments : {},
         includeMasks: false,
         includeCropTransform: false,
-        presetType: 'style',
+        presetType: Object.keys(adjustments).length > 0 ? 'style' : 'reference',
       });
 
       set((state) => ({

@@ -44,6 +44,9 @@ const skeletonVariants = {
 const SECTION_TITLES: Record<string, string> = {
   '@string/section_color_grading': '色彩调整',
   '@string/param_pro_adjust': '专业参数',
+  '专业参数': '专业参数',
+  '基本调节': '基本调节',
+  '色彩调节': '色彩调节',
 };
 
 const PARAM_LABELS: Record<string, string> = {
@@ -60,6 +63,30 @@ const PARAM_LABELS: Record<string, string> = {
   '@string/param_exposure': '曝光',
   '@string/param_color_temp': '色温',
   '@string/param_tone': '色调',
+  // vivo / honor Chinese labels
+  '曝光': '曝光',
+  '亮度': '亮度',
+  '对比度': '对比度',
+  '高光': '高光',
+  '阴影': '阴影',
+  '光感': '光感',
+  '饱和度': '饱和度',
+  '色温': '色温',
+  '锐度': '锐度',
+  '冷暖': '冷暖',
+  '青品': '青品',
+  '暗角': '暗角',
+  '色调': '色调',
+  '柔光': '柔光',
+  // honor professional labels
+  'ISO感光度': 'ISO',
+  '快门速度': '快门',
+  'AF对焦模式': '对焦模式',
+  'WB白平衡': '白平衡',
+  'M测光模式': '测光模式',
+  '白平衡': '白平衡',
+  '曝光补偿': '曝光补偿',
+  'EV': 'EV',
 };
 
 const translateLabel = (label: string): string => {
