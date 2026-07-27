@@ -206,9 +206,10 @@ jobs:
           # Tauri signing key (for update signatures, not code signing)
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # Apple code signing: only set these env vars when secrets are actually
-          # configured.  Empty strings still trigger the signing path in tauri-action
-          # causing "failed to import keychain certificate" errors.
+          # Apple code signing: only set env vars when Apple secrets are
+          # actually configured.  tauri-action interprets ANY non-empty value
+          # (even an empty string if the var is present) as "sign this build",
+          # so we must avoid setting them at all when secrets are missing.
           APPLE_CERTIFICATE: ${{ steps.check-apple-secrets.outputs.has_apple_secrets == 'true' && secrets.APPLE_CERTIFICATE || '' }}
           APPLE_CERTIFICATE_PASSWORD: ${{ steps.check-apple-secrets.outputs.has_apple_secrets == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
           APPLE_SIGNING_IDENTITY: ${{ steps.check-apple-secrets.outputs.has_apple_secrets == 'true' && secrets.APPLE_SIGNING_IDENTITY || '' }}
@@ -221,7 +222,7 @@ jobs:
           releaseBody: 'See the assets to download and install this version.'
           releaseDraft: false
           prerelease: false
-          args: --verbose${{ inputs.build-args && format(' {0}', inputs.build-args) || '' }}${{ inputs.target != '' && format(' --target {0}', inputs.target) || '' }}
+          args: --verbose${{ inputs.build-args && format(' {0}', inputs.build-args) || '' }}${{ inputs.target != '' && format(' --target {0}', inputs.target) || '' }}${{ runner.os == 'macOS' && steps.check-apple-secrets.outputs.has_apple_secrets != 'true' && ' --bundles app' || '' }}
           assetNamePattern: ${{ steps.patch-release-name.outputs.platform }}
           releaseId: ${{ inputs.release-id }}
           retryAttempts: 3
