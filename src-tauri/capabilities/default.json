@@ -11,10 +11,24 @@
     "core:window:allow-minimize",
     "core:window:allow-close",
     "core:window:allow-toggle-maximize",
-    "process:default",
-    "os:allow-os-type",
     "core:window:allow-set-fullscreen",
     "core:window:allow-set-decorations",
-    "shell:default"
+    "core:window:allow-set-size",
+    "core:window:allow-set-position",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-set-focus",
+    "core:window:allow-set-title",
+    "core:window:allow-destroy",
+    "core:window:allow-is-maximized",
+    "core:window:allow-inner-size",
+    "core:window:allow-outer-size",
+    "core:window:allow-inner-position",
+    "core:window:allow-outer-position",
+    "process:default",
+    "process:allow-restart",
+    "os:allow-os-type",
+    "shell:default",
+    "shell:allow-open"
   ]
 }

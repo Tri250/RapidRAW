@@ -6,6 +6,15 @@ import './styles.css';
 
 installFrontendLogBridge();
 
+// Global unhandled promise rejection handler to prevent silent crashes
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('[Global] Unhandled promise rejection:', event.reason);
+    // Prevent default browser handling which may crash the app
+    event.preventDefault();
+  });
+}
+
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
