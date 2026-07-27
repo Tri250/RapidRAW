@@ -1683,7 +1683,10 @@
       "description": "Hide adjustment sections you don't use often to simplify the editing panel. Your settings will be preserved and applied even when hidden.",
       "grain": "Grain",
       "noiseReduction": "Noise Reduction",
-      "title": "Adjustments Visibility"
+      "presence": "Presence",
+      "sharpening": "Sharpening",
+      "title": "Adjustments Visibility",
+      "vignette": "Vignette"
     },
     "categories": {
       "general": "General",

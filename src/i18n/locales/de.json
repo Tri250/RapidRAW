@@ -1362,7 +1362,10 @@
       "description": "Blenden Sie Bereiche aus, die Sie nicht oft verwenden, um das Panel zu vereinfachen. Ihre Einstellungen bleiben erhalten und werden weiterhin angewendet.",
       "grain": "Körnung",
       "noiseReduction": "Rauschreduzierung",
-      "title": "Sichtbarkeit von Anpassungen"
+      "presence": "Präsenz",
+      "sharpening": "Schärfen",
+      "title": "Sichtbarkeit von Anpassungen",
+      "vignette": "Vignettierung"
     },
     "categories": {
       "general": "Allgemein",

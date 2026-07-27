@@ -1362,7 +1362,10 @@
       "description": "Oculte as seções de ajuste que você não usa com frequência para simplificar o painel de edição. Suas configurações serão preservadas e aplicadas mesmo quando ocultas.",
       "grain": "Granulação",
       "noiseReduction": "Redução de Ruído",
-      "title": "Visibilidade dos Ajustes"
+      "presence": "Presença",
+      "sharpening": "Nitidez",
+      "title": "Visibilidade dos Ajustes",
+      "vignette": "Vinheta"
     },
     "categories": {
       "general": "Geral",

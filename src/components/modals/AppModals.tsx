@@ -227,7 +227,7 @@ export default function AppModals(props: AppModalsProps) {
           isOpen={negativeModalState.isOpen}
           onClose={() => setUI((state) => ({ negativeModalState: { ...state.negativeModalState, isOpen: false } }))}
           targetPaths={negativeModalState.targetPaths}
-          onSave={(savedPaths) => {
+          onSave={(savedPaths: string[]) => {
             props.refreshImageList().then(() => {
               if (selectedImage && negativeModalState.targetPaths.includes(selectedImage.path) && savedPaths.length > 0) {
                 props.handleImageSelect(savedPaths[0]);
@@ -321,7 +321,7 @@ export default function AppModals(props: AppModalsProps) {
           error={cullingModalState.error}
           imagePaths={cullingModalState.pathsToCull}
           thumbnails={thumbnails}
-          onApply={(action, paths) => {
+          onApply={(action: string, paths: string[]) => {
             if (action === 'reject') {
               props.handleSetColorLabel('red', paths);
             } else if (action === 'rate_zero') {
@@ -333,7 +333,7 @@ export default function AppModals(props: AppModalsProps) {
               cullingModalState: { isOpen: false, progress: null, suggestions: null, error: null, pathsToCull: [] },
             });
           }}
-          onError={(err) => {
+          onError={(err: string | null) => {
             setUI((state) => ({ cullingModalState: { ...state.cullingModalState, error: err, progress: null } }));
           }}
         />

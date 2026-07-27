@@ -1362,7 +1362,10 @@
       "description": "자주 사용하지 않는 조정 섹션을 숨겨 편집 패널을 간소화합니다. 숨겨진 상태에서도 설정은 유지되고 적용됩니다.",
       "grain": "그레인",
       "noiseReduction": "노이즈 감소",
-      "title": "조정 표시"
+      "presence": "프레즌스",
+      "sharpening": "샤프닝",
+      "title": "조정 표시",
+      "vignette": "비네트"
     },
     "categories": {
       "general": "일반",

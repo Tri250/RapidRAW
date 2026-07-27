@@ -1729,7 +1729,10 @@
       "description": "隐藏不常用的调整部分以简化编辑面板。即使隐藏，您的设置也会被保留和应用。",
       "grain": "颗粒",
       "noiseReduction": "降噪",
-      "title": "调整可见性"
+      "presence": "质感",
+      "sharpening": "锐化",
+      "title": "调整可见性",
+      "vignette": "暗角"
     },
     "categories": {
       "general": "通用",

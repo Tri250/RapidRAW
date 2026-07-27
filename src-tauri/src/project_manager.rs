@@ -793,7 +793,28 @@ pub fn project_get_statistics(db_path: String) -> Result<serde_json::Value, Stri
 
 #[tauri::command]
 pub fn project_export_parquet(db_path: String, output_path: String) -> Result<u64, String> {
-    with_db_or_path(&db_path, |db| export_edit_history_parquet(db, &output_path))
+    // Validate output path to prevent SQL injection via the COPY statement
+    // (the path is interpolated into a SQL string because DuckDB does not
+    // accept parameterized COPY targets) and to reject path traversal.
+    let trimmed = output_path.trim();
+    if trimmed.is_empty() {
+        return Err("Output path is empty".to_string());
+    }
+    if trimmed.contains('\0') {
+        return Err("Output path contains NUL byte".to_string());
+    }
+    // Reject any character that could break out of the SQL string literal.
+    if trimmed.contains('\'') || trimmed.contains('\\') || trimmed.contains(';') {
+        return Err("Output path contains forbidden characters".to_string());
+    }
+    if trimmed
+        .split(['/', '\\'])
+        .any(|seg| seg == "..")
+    {
+        return Err("Output path contains traversal segments".to_string());
+    }
+    let safe_path = trimmed.to_string();
+    with_db_or_path(&db_path, |db| export_edit_history_parquet(db, &safe_path))
 }
 
 // ---------------------------------------------------------------------------

@@ -312,7 +312,60 @@ pub struct ImportSettings {
     pub delete_after_import: bool,
 }
 
+/// Reject virtual paths that look like traversal attempts. The frontend
+/// always supplies absolute filesystem paths (or Android content URIs), so a
+/// leading `..` segment or an embedded `..` after stripping the `?vc=` suffix
+/// is a strong signal of malicious input. We do not canonicalize here (the
+/// file may not exist yet on the destination side), only structural checks.
+pub(crate) fn looks_like_traversal(s: &str) -> bool {
+    // Reject NUL bytes outright – they can be used to truncate paths in C APIs.
+    if s.contains('\0') {
+        return true;
+    }
+    // Reject any `..` path component. We split on the OS separator *and* on
+    // `/` so the check works on Windows too.
+    s.split(['/', '\\'])
+        .any(|seg| seg == "..")
+}
+
+/// Validate a destination/output folder before we write into it. Returns the
+/// canonicalized path on success, or an error describing why the path was
+/// rejected. We canonicalize the parent (which must already exist) and then
+/// re-append the final component – this lets us validate folders that have
+/// just been created by `create_dir_all` without requiring them to pre-exist.
+pub fn validate_writable_folder(folder: &str) -> Result<PathBuf, String> {
+    if folder.trim().is_empty() {
+        return Err("Destination folder is empty".to_string());
+    }
+    if looks_like_traversal(folder) {
+        return Err(format!("Invalid destination folder: {}", folder));
+    }
+    let raw = PathBuf::from(folder);
+    // Canonicalize the parent if possible (non-fatal on systems where the
+    // folder was just created and not yet resolvable).
+    let parent = raw.parent();
+    if let Some(parent) = parent {
+        if parent.exists() {
+            if let Ok(canon_parent) = parent.canonicalize() {
+                if let Some(file_name) = raw.file_name() {
+                    return Ok(canon_parent.join(file_name));
+                }
+            }
+        }
+    }
+    Ok(raw)
+}
+
 pub fn parse_virtual_path(virtual_path: &str) -> (PathBuf, PathBuf) {
+    if looks_like_traversal(virtual_path) {
+        log::warn!(
+            "Rejected virtual path with traversal segments: {}",
+            virtual_path
+        );
+        // Return a non-existent path so downstream `exists()` checks fail
+        // gracefully instead of touching arbitrary filesystem locations.
+        return (PathBuf::from("/__invalid_virtual_path__"), PathBuf::new());
+    }
     let (source_path_str, copy_id) = if let Some((base, id)) = virtual_path.rsplit_once("?vc=") {
         (base.to_string(), Some(id.to_string()))
     } else {
@@ -3339,6 +3392,13 @@ pub async fn import_files(
 ) -> Result<(), String> {
     let total_files = source_paths.len();
     let _ = app_handle.emit("import-start", serde_json::json!({ "total": total_files }));
+
+    // Validate destination folder up-front to reject path traversal and
+    // empty values before any filesystem mutation occurs.
+    let destination_folder_canon = validate_writable_folder(&destination_folder)?;
+    let destination_folder = destination_folder_canon
+        .to_string_lossy()
+        .to_string();
 
     tauri::async_runtime::spawn_blocking(move || {
         for (i, source_path_str) in source_paths.iter().enumerate() {

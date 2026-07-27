@@ -1362,7 +1362,10 @@
       "description": "Masquez les sections d'ajustement que vous n'utilisez pas souvent pour simplifier le panneau de retouche. Vos paramètres seront conservés et appliqués même s'ils sont masqués.",
       "grain": "Grain",
       "noiseReduction": "Réduction du bruit",
-      "title": "Visibilité des ajustements"
+      "presence": "Présence",
+      "sharpening": "Netteté",
+      "title": "Visibilité des ajustements",
+      "vignette": "Vignette"
     },
     "categories": {
       "general": "Général",

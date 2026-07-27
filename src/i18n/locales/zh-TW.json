@@ -1362,7 +1362,10 @@
       "description": "隱藏不常用的調整部分以簡化編輯面板。即使隱藏，您的設定也會被保留和應用。",
       "grain": "顆粒",
       "noiseReduction": "降噪",
-      "title": "調整可見性"
+      "presence": "質感",
+      "sharpening": "銳化",
+      "title": "調整可見性",
+      "vignette": "暗角"
     },
     "categories": {
       "general": "通用",
