@@ -41,8 +41,10 @@ on:
 jobs:
   build:
     runs-on: ${{ inputs.platform }}
+    timeout-minutes: 90
     permissions:
       contents: write
+      actions: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -83,7 +85,8 @@ jobs:
             libssl-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev \
-            patchelf
+            patchelf \
+            libxdo-dev
 
       - name: Install LLVM and Clang (Windows)
         if: runner.os == 'Windows'
@@ -122,18 +125,38 @@ jobs:
 
       - name: Setup Android signing
         if: inputs.mobile == 'android' && github.event_name != 'pull_request'
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
+          set -euo pipefail
           cd src-tauri/gen/android
-          keytool -genkey -v \
-            -keystore "$RUNNER_TEMP/rapidraw-release.jks" \
-            -keyalg RSA -keysize 2048 -validity 36500 \
-            -alias rapidraw \
-            -storepass android123 \
-            -keypass android123 \
-            -dname "CN=RAW工坊, OU=Dev, O=RAW工坊, ST=China, C=CN" \
-            -noprompt
-          echo "keyAlias=rapidraw" > keystore.properties
-          echo "password=android123" >> keystore.properties
+          if [[ -n "$ANDROID_KEYSTORE_BASE64" ]]; then
+            # Use the production keystore from secrets (stable across builds)
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/rapidraw-release.jks"
+            key_alias="${ANDROID_KEY_ALIAS:-rapidraw}"
+            key_pass="${ANDROID_KEYSTORE_PASSWORD:-rapidraw}"
+          else
+            # Fallback: generate an ephemeral keystore for this build only.
+            # NOTE: APKs signed with this keystore cannot upgrade over releases
+            # signed with a different keystore. Configure ANDROID_KEYSTORE_BASE64
+            # secret for production releases.
+            echo "::warning::ANDROID_KEYSTORE_BASE64 secret not set; using ephemeral keystore. Production releases should configure this secret."
+            keytool -genkey -v \
+              -keystore "$RUNNER_TEMP/rapidraw-release.jks" \
+              -keyalg RSA -keysize 2048 -validity 36500 \
+              -alias rapidraw \
+              -storepass rapidraw \
+              -keypass rapidraw \
+              -dname "CN=RAW工坊, OU=Dev, O=RAW工坊, ST=China, C=CN" \
+              -noprompt
+            key_alias="rapidraw"
+            key_pass="rapidraw"
+          fi
+          echo "keyAlias=${key_alias}" > keystore.properties
+          echo "password=${key_pass}" >> keystore.properties
           echo "storeFile=$RUNNER_TEMP/rapidraw-release.jks" >> keystore.properties
 
       - id: patch-release-name
@@ -162,6 +185,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NO_STRIP: ${{ startsWith(inputs.platform, 'ubuntu') && 'true' || '' }}
+          # Code signing (optional - secrets must be configured by repo owner).
+          # When secrets are absent, Tauri builds unsigned artifacts which still
+          # function but trigger SmartScreen/Gatekeeper warnings.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # macOS code signing & notarization (optional)
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: ${{ inputs.tag-name }}
           releaseName: 'RapidRAW v__VERSION__'
@@ -230,14 +265,29 @@ jobs:
           tag_name="${{ inputs.tag-name }}"
           version="${tag_name#v}"
 
-          if ! gh release view "$tag_name" >/dev/null 2>&1; then
-            gh release create "$tag_name" \
+          # Race-safe release creation with retry (TOCTOU between matrix jobs)
+          for i in 1 2 3 4 5; do
+            if gh release view "$tag_name" >/dev/null 2>&1; then
+              break
+            fi
+            if gh release create "$tag_name" \
               --title "RapidRAW v${version}" \
               --notes "See the assets to download and install this version. Full release notes available on the Release page." \
-              --latest
-          fi
-          sleep 5
-          gh release upload "$tag_name" "$RUNNER_TEMP"/android-release-assets/* --clobber
+              --latest 2>/dev/null; then
+              break
+            fi
+            sleep $((i * 5))
+          done
+
+          # Retry upload as well (concurrent uploads may collide)
+          for i in 1 2 3; do
+            if gh release upload "$tag_name" "$RUNNER_TEMP"/android-release-assets/* --clobber; then
+              exit 0
+            fi
+            sleep $((i * 5))
+          done
+          echo "::error::Failed to upload Android release assets after 3 attempts"
+          exit 1
 
       - name: Upload Android Artifacts
         if: inputs.mobile == 'android' && inputs.tag-name == ''
@@ -252,7 +302,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Upload Windows Artifacts
-        if: startsWith(inputs.platform, 'windows') && inputs.release-id == '' && inputs.mobile == ''
+        if: startsWith(inputs.platform, 'windows') && inputs.upload-artifacts != false && inputs.mobile == ''
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.asset-prefix }}_${{ inputs.platform }}${{ inputs.target && format('_{0}', inputs.target) || '' }}_artifacts
@@ -264,7 +314,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Upload Linux/macOS Artifacts
-        if: ${{ !startsWith(inputs.platform, 'windows') && inputs.release-id == '' && inputs.mobile == '' }}
+        if: ${{ !startsWith(inputs.platform, 'windows') && inputs.upload-artifacts != false && inputs.mobile == '' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.asset-prefix }}_${{ inputs.platform }}${{ inputs.target && format('_{0}', inputs.target) || '' }}_artifacts

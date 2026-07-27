@@ -42,7 +42,7 @@ interface PresetGalleryState {
   downloadError: Record<string, string | null>;
 
   // Actions
-  addSource: (url: string, name?: string) => void;
+  addSource: (url: string, name?: string) => boolean;
   removeSource: (url: string) => void;
   toggleSource: (url: string) => void;
   updateSourceName: (url: string, name: string) => void;
@@ -264,6 +264,41 @@ export interface PresetParseResult {
   warnings: string[];
 }
 
+/**
+ * Whitelist of allowed hostnames for preset source URLs. Mirrors the
+ * `connect-src` directive in tauri.conf.json CSP. Prevents SSRF by rejecting
+ * private/loopback addresses and unknown hosts before fetch.
+ */
+const ALLOWED_SOURCE_HOSTS = new Set<string>([
+  'raw.githubusercontent.com',
+  'cdn.jsdelivr.net',
+  'huggingface.co',
+  'cdn.fky.ltd',
+  'getrapidraw.com',
+  'www.getrapidraw.com',
+]);
+
+const isAllowedSourceUrl = (url: string): boolean => {
+  if (typeof url !== 'string' || url.length === 0) return false;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  // Only HTTPS allowed (no http, no file, no data)
+  if (parsed.protocol !== 'https:') return false;
+  // Reject userinfo (embedded credentials)
+  if (parsed.username || parsed.password) return false;
+  // Reject explicit port numbers (only standard 443 implicit)
+  if (parsed.port !== '') return false;
+  // Hostname must be in whitelist (subdomain matching for getrapidraw.com)
+  const host = parsed.hostname.toLowerCase();
+  if (ALLOWED_SOURCE_HOSTS.has(host)) return true;
+  if (host.endsWith('.getrapidraw.com')) return true;
+  return false;
+};
+
 const isNonEmptyString = (v: any): v is string => typeof v === 'string' && v.trim().length > 0;
 const isStringArray = (v: any): v is any[] => Array.isArray(v);
 
@@ -380,7 +415,16 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
 
   addSource: (url, name) => {
     const { sources } = get();
-    if (sources.some((s) => s.url === url)) return;
+    if (sources.some((s) => s.url === url)) return false;
+
+    // URL whitelist: only allow HTTPS URLs from known preset CDNs to prevent
+    // SSRF (e.g. http://169.254.169.254/ cloud metadata, internal network scan).
+    // The CSP also restricts connect-src, but defense in depth is cheap here.
+    if (!isAllowedSourceUrl(url)) {
+      console.warn(`[PresetGallery] Rejected source URL (not whitelisted): ${url}`);
+      return false;
+    }
+
     const newSources = [
       ...sources,
       { url, name: name || url, enabled: true, presets: [], isLoading: false, error: null },
@@ -388,13 +432,23 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
     set({ sources: newSources });
     saveSources(newSources);
     get().fetchSourcePresets(url);
+    return true;
   },
 
   removeSource: (url) => {
     set((state) => {
       const newSources = state.sources.filter((s) => s.url !== url);
+      // Also purge download status/error entries belonging to this source
+      // to prevent the Record from growing unbounded over time.
+      const prefix = `${url}::`;
+      const newDownloadStatus = Object.fromEntries(
+        Object.entries(state.downloadStatus).filter(([k]) => !k.startsWith(prefix)),
+      );
+      const newDownloadError = Object.fromEntries(
+        Object.entries(state.downloadError).filter(([k]) => !k.startsWith(prefix)),
+      );
       saveSources(newSources);
-      return { sources: newSources };
+      return { sources: newSources, downloadStatus: newDownloadStatus, downloadError: newDownloadError };
     });
   },
 
@@ -423,13 +477,19 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
       sources: state.sources.map((s) => (s.url === url ? { ...s, isLoading: true, error: null } : s)),
     }));
 
+    // 20s timeout via AbortController so a stalled CDN doesn't hang UI forever
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+
     try {
       const response = await fetch(url, {
         mode: 'cors',
         headers: { 'Accept': 'application/json' },
+        signal: controller.signal,
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       const data = await response.json();
+      clearTimeout(timeoutId);
 
       // Get base directory for resolving relative paths
       const baseDir = url.substring(0, url.lastIndexOf('/') + 1);
@@ -456,9 +516,14 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
         return { sources: newSources };
       });
     } catch (err: any) {
+      clearTimeout(timeoutId);
+      const isAbort = err?.name === 'AbortError';
+      const message = isAbort
+        ? `请求超时（20 秒），请检查网络或更换数据源`
+        : err.message || String(err);
       set((state) => {
         const newSources = state.sources.map((s) =>
-          s.url === url ? { ...s, isLoading: false, error: err.message || String(err) } : s,
+          s.url === url ? { ...s, isLoading: false, error: message } : s,
         );
         saveSources(newSources);
         return { sources: newSources };
@@ -477,9 +542,11 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
     const { sources } = get();
     // Force refresh all enabled sources regardless of existing data
     const enabledSources = sources.filter((s) => s.enabled);
-    // Clear existing presets first to allow re-fetch
+    // Clear existing presets AND download status (since preset identities may change)
     set((state) => ({
       sources: state.sources.map((s) => (s.enabled ? { ...s, presets: [], error: null } : s)),
+      downloadStatus: {},
+      downloadError: {},
     }));
     await Promise.all(enabledSources.map((s) => get().fetchSourcePresets(s.url)));
   },

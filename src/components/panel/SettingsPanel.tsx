@@ -508,10 +508,13 @@ const GpuPipelineProbe = () => {
   const [status, setStatus] = useState<'idle' | 'testing' | 'ready' | 'unavailable'>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  const runProbe = async () => {
+  const runProbe = useCallback(async (resetFirst: boolean = false) => {
     setStatus('testing');
     setError(null);
     try {
+      if (resetFirst) {
+        await invoke(Invokes.ResetGpuAdjustmentPipeline);
+      }
       const ready = (await invoke(Invokes.IsGpuAdjustmentPipelineReady)) as boolean;
       setStatus(ready ? 'ready' : 'unavailable');
       if (!ready) {
@@ -525,12 +528,36 @@ const GpuPipelineProbe = () => {
       setStatus('unavailable');
       setError(String(e?.message || e));
     }
-  };
+  }, [t]);
 
   useEffect(() => {
-    void runProbe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    let cancelled = false;
+    const probe = async () => {
+      setStatus('testing');
+      try {
+        const ready = (await invoke(Invokes.IsGpuAdjustmentPipelineReady)) as boolean;
+        if (!cancelled) {
+          setStatus(ready ? 'ready' : 'unavailable');
+          if (!ready) {
+            setError(
+              t('settings.gpu.unavailableReason', {
+                defaultValue: '当前 GPU 适配器无法初始化轻量计算管线，主管线仍可正常工作。',
+              }),
+            );
+          }
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          setStatus('unavailable');
+          setError(String(e?.message || e));
+        }
+      }
+    };
+    void probe();
+    return () => {
+      cancelled = true;
+    };
+  }, [t]);
 
   return (
     <div className="flex items-center gap-3 shrink-0">
@@ -559,10 +586,10 @@ const GpuPipelineProbe = () => {
         </span>
       )}
       <button
-        onClick={runProbe}
+        onClick={() => runProbe(true)}
         disabled={status === 'testing'}
         className="p-1.5 rounded-full text-text-secondary hover:text-text-primary hover:bg-surface disabled:opacity-50"
-        data-tooltip={t('settings.gpu.retest', { defaultValue: '重新检测' })}
+        data-tooltip={t('settings.gpu.retest', { defaultValue: '重新检测（清除缓存重试）' })}
       >
         <Zap size={14} />
       </button>

@@ -779,9 +779,23 @@ export default function PresetGallery({ onBack }: PresetGalleryProps) {
   const handleAddSource = () => {
     const trimmed = newUrl.trim();
     if (!trimmed) return;
-    addSource(trimmed);
-    setNewUrl('');
-    setShowAddSource(false);
+    const accepted = addSource(trimmed);
+    if (accepted) {
+      setNewUrl('');
+      setShowAddSource(false);
+    } else {
+      // URL rejected — keep input + panel open so user can correct.
+      // A more polished UI would show an inline error; for now rely on the
+      // console warning emitted by the store.
+      if (inputRef.current) {
+        inputRef.current.setAttribute(
+          'title',
+          t('presetGallery.addSourceRejected', {
+            defaultValue: '仅支持 HTTPS 且来自受信任域名（github.com、jsdelivr.net、getrapidraw.com 等）的源',
+          }),
+        );
+      }
+    }
   };
 
   const enabledSources = sources.filter((s) => s.enabled);

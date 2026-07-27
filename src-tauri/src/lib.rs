@@ -2972,6 +2972,7 @@ pub fn run() {
             // ── New P0/P1/P2 commands ──
             gpu_pipeline::gpu_apply_adjustments,
             gpu_pipeline::is_gpu_adjustment_pipeline_ready,
+            gpu_pipeline::reset_gpu_adjustment_pipeline,
             color_science::color_convert_space,
             color_science::color_apply_aces_output,
             color_science::color_srgb_to_linear,

@@ -565,8 +565,11 @@ use once_cell::sync::Lazy;
 static GPU_PIPELINE_HANDLE: Lazy<GpuPipelineHandle> = Lazy::new(|| GpuPipelineHandle::new());
 
 /// Returns true if the global GPU pipeline was successfully initialized.
+/// On failure, the error is cached so subsequent probes don't re-attempt the
+/// expensive GPU init sequence on every call (which could take seconds on
+/// misbehaving drivers or headless VMs).
 pub fn is_gpu_pipeline_ready() -> bool {
-    GPU_PIPELINE_HANDLE.get_or_init().is_ok()
+    GPU_PIPELINE_HANDLE.is_ready()
 }
 
 /// Tauri command: probe whether the lightweight GPU adjustment pipeline is
@@ -579,29 +582,73 @@ pub fn is_gpu_adjustment_pipeline_ready() -> bool {
     is_gpu_pipeline_ready()
 }
 
+/// Tauri command: clear any cached failure state and force a fresh GPU init
+/// probe on the next call. Exposed as a "重新检测" (re-test) entry point so
+/// users can retry after a driver update or dock/undock without restarting.
+#[tauri::command]
+pub fn reset_gpu_adjustment_pipeline() {
+    GPU_PIPELINE_HANDLE.reset();
+}
+
+/// Three-state pipeline cache:
+/// - `None`: never attempted
+/// - `Some(Ok(pipeline))`: successfully initialized
+/// - `Some(Err(error))`: initialization failed; cached to avoid retry storms
+enum PipelineState {
+    Uninit,
+    Ready(GpuPipeline),
+    Failed(String),
+}
+
 pub struct GpuPipelineHandle {
-    inner: Arc<std::sync::Mutex<Option<GpuPipeline>>>,
+    inner: Arc<std::sync::Mutex<PipelineState>>,
 }
 
 impl GpuPipelineHandle {
     /// Create a new empty handle.
     pub fn new() -> Self {
         Self {
-            inner: Arc::new(std::sync::Mutex::new(None)),
+            inner: Arc::new(std::sync::Mutex::new(PipelineState::Uninit)),
         }
     }
 
     /// Lazily initialize the pipeline on first use, returning a locked guard.
-    pub fn get_or_init(&self) -> Result<std::sync::MutexGuard<'_, Option<GpuPipeline>>> {
+    /// Failures are cached so the expensive init sequence only runs once.
+    pub fn get_or_init(&self) -> Result<std::sync::MutexGuard<'_, PipelineState>> {
         let mut guard = self.inner.lock().unwrap_or_else(|e| {
             log::warn!("Mutex poisoned");
             e.into_inner()
         });
-        if guard.is_none() {
-            let pipeline = GpuPipeline::init()?;
-            *guard = Some(pipeline);
+        if matches!(*guard, PipelineState::Uninit) {
+            match GpuPipeline::init() {
+                Ok(p) => *guard = PipelineState::Ready(p),
+                Err(e) => {
+                    let msg = format!("{:?}", e);
+                    log::warn!("GPU pipeline init failed: {}", msg);
+                    *guard = PipelineState::Failed(msg);
+                }
+            }
         }
         Ok(guard)
+    }
+
+    /// Quick readiness check without acquiring the full guard semantics.
+    /// Triggers lazy init on first call, then returns cached state.
+    pub fn is_ready(&self) -> bool {
+        match self.get_or_init() {
+            Ok(guard) => matches!(*guard, PipelineState::Ready(_)),
+            Err(_) => false,
+        }
+    }
+
+    /// Reset to uninitialized state, clearing any cached failure. The next
+    /// `get_or_init` / `is_ready` call will re-attempt initialization.
+    pub fn reset(&self) {
+        let mut guard = self.inner.lock().unwrap_or_else(|e| {
+            log::warn!("Mutex poisoned");
+            e.into_inner()
+        });
+        *guard = PipelineState::Uninit;
     }
 }
 
@@ -660,8 +707,8 @@ pub fn gpu_apply_adjustments(
     };
 
     // Try to get or init the GPU pipeline from the global singleton.
-    // On first failure, the error is logged and the original image is returned.
-    // On subsequent calls the pipeline is already initialized.
+    // get_or_init never returns Err (failures are cached as Failed state),
+    // but we still need to inspect the cached state to decide what to do.
     let guard = match GPU_PIPELINE_HANDLE.get_or_init() {
         Ok(g) => g,
         Err(e) => {
@@ -673,12 +720,14 @@ pub fn gpu_apply_adjustments(
         }
     };
 
-    let pipeline = match guard.as_ref() {
-        Some(p) => p,
-        None => {
-            log::warn!(
-                "GPU pipeline not available – returning error so caller can fall back to CPU"
-            );
+    let pipeline = match &*guard {
+        PipelineState::Ready(p) => p,
+        PipelineState::Failed(msg) => {
+            log::warn!("GPU pipeline unavailable (cached failure): {}", msg);
+            return Err(format!("GPU pipeline unavailable: {}", msg));
+        }
+        PipelineState::Uninit => {
+            // Should not happen — get_or_init transitions out of Uninit.
             return Err("GPU pipeline not initialized".to_string());
         }
     };

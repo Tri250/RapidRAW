@@ -156,6 +156,7 @@ export enum Invokes {
   // ── P0: GPU compute pipeline ──
   GpuApplyAdjustments = 'gpu_apply_adjustments',
   IsGpuAdjustmentPipelineReady = 'is_gpu_adjustment_pipeline_ready',
+  ResetGpuAdjustmentPipeline = 'reset_gpu_adjustment_pipeline',
   // ── P1: Color science (ACES) ──
   ColorConvertSpace = 'color_convert_space',
   ColorApplyAcesOutput = 'color_apply_aces_output',

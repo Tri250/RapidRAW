@@ -52,44 +52,82 @@ export function useGpuPipeline() {
    * points without triggering a lazy init failure on every call.
    */
   const isGpuPipelineReady = useCallback(async (): Promise<boolean> => {
-    return invoke(Invokes.IsGpuAdjustmentPipelineReady) as Promise<boolean>;
+    try {
+      return (await invoke(Invokes.IsGpuAdjustmentPipelineReady)) as boolean;
+    } catch (err) {
+      console.warn('[useGpuPipeline] isGpuPipelineReady failed:', err);
+      return false;
+    }
   }, []);
+
+  /**
+   * Clear any cached GPU init failure and force a fresh probe on next
+   * isGpuPipelineReady call. Use after driver updates or GPU hotplug.
+   */
+  const resetGpuPipeline = useCallback(async (): Promise<void> => {
+    try {
+      await invoke(Invokes.ResetGpuAdjustmentPipeline);
+    } catch (err) {
+      console.warn('[useGpuPipeline] resetGpuPipeline failed:', err);
+    }
+  }, []);
+
+  /**
+   * Safely extract an RGB triple from an invoke result. If the backend returns
+   * a malformed payload (wrong length, non-array, NaN values), fall back to
+   * the input values rather than throwing and bubbling to React render.
+   */
+  const safeRgb = (result: unknown, fallback: [number, number, number]): ColorConversionResult => {
+    if (!Array.isArray(result) || result.length < 3) {
+      console.warn('[useGpuPipeline] color conversion returned malformed payload, using fallback');
+      return { r: fallback[0], g: fallback[1], b: fallback[2] };
+    }
+    const r = Number(result[0]);
+    const g = Number(result[1]);
+    const b = Number(result[2]);
+    if (!Number.isFinite(r) || !Number.isFinite(g) || !Number.isFinite(b)) {
+      console.warn('[useGpuPipeline] color conversion returned non-finite values, using fallback');
+      return { r: fallback[0], g: fallback[1], b: fallback[2] };
+    }
+    return { r, g, b };
+  };
 
   const colorConvertSpace = useCallback(
     async (r: number, g: number, b: number, fromSpace: string, toSpace: string): Promise<ColorConversionResult> => {
-      const result = (await invoke(Invokes.ColorConvertSpace, { r, g, b, fromSpace, toSpace })) as number[];
-      return { r: result[0], g: result[1], b: result[2] };
+      const result = await invoke(Invokes.ColorConvertSpace, { r, g, b, fromSpace, toSpace });
+      return safeRgb(result, [r, g, b]);
     },
     [],
   );
 
   const colorApplyAcesOutput = useCallback(
     async (r: number, g: number, b: number, targetSpace: string): Promise<ColorConversionResult> => {
-      const result = (await invoke(Invokes.ColorApplyAcesOutput, { r, g, b, targetSpace })) as number[];
-      return { r: result[0], g: result[1], b: result[2] };
+      const result = await invoke(Invokes.ColorApplyAcesOutput, { r, g, b, targetSpace });
+      return safeRgb(result, [r, g, b]);
     },
     [],
   );
 
   const colorSrgbToLinear = useCallback(
     async (r: number, g: number, b: number): Promise<ColorConversionResult> => {
-      const result = (await invoke(Invokes.ColorSrgbToLinear, { r, g, b })) as number[];
-      return { r: result[0], g: result[1], b: result[2] };
+      const result = await invoke(Invokes.ColorSrgbToLinear, { r, g, b });
+      return safeRgb(result, [r, g, b]);
     },
     [],
   );
 
   const colorLinearToSrgb = useCallback(
     async (r: number, g: number, b: number): Promise<ColorConversionResult> => {
-      const result = (await invoke(Invokes.ColorLinearToSrgb, { r, g, b })) as number[];
-      return { r: result[0], g: result[1], b: result[2] };
+      const result = await invoke(Invokes.ColorLinearToSrgb, { r, g, b });
+      return safeRgb(result, [r, g, b]);
     },
     [],
   );
 
   const colorApplyAcesFitted = useCallback(
     async (value: number): Promise<number> => {
-      return invoke(Invokes.ColorApplyAcesFitted, { value }) as Promise<number>;
+      const result = (await invoke(Invokes.ColorApplyAcesFitted, { value })) as number;
+      return Number.isFinite(result) ? result : value;
     },
     [],
   );
@@ -111,6 +149,7 @@ export function useGpuPipeline() {
   return {
     gpuApplyAdjustments,
     isGpuPipelineReady,
+    resetGpuPipeline,
     colorConvertSpace,
     colorApplyAcesOutput,
     colorSrgbToLinear,
