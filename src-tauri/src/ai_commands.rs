@@ -125,9 +125,7 @@ pub async fn generate_ai_depth_mask(
 
     let cached_depth = {
         let mut ai_state_lock = state.ai_state.lock().unwrap();
-        let ai_state = ai_state_lock
-            .as_mut()
-            .ok_or("AI state not initialized")?;
+        let ai_state = ai_state_lock.as_mut().ok_or("AI state not initialized")?;
 
         if let Some(cached) = &ai_state.depth_map {
             if cached.path_hash == path_hash {
@@ -216,9 +214,7 @@ pub async fn generate_ai_subject_mask(
 
     let embeddings = {
         let mut ai_state_lock = state.ai_state.lock().unwrap();
-        let ai_state = ai_state_lock
-            .as_mut()
-            .ok_or("AI state not initialized")?;
+        let ai_state = ai_state_lock.as_mut().ok_or("AI state not initialized")?;
 
         if let Some(cached_embeddings) = &ai_state.embeddings {
             if cached_embeddings.path_hash == path_hash {
@@ -363,9 +359,7 @@ pub async fn precompute_ai_subject_mask(
     };
 
     let mut ai_state_lock = state.ai_state.lock().unwrap();
-    let ai_state = ai_state_lock
-        .as_mut()
-        .ok_or("AI state not initialized")?;
+    let ai_state = ai_state_lock.as_mut().ok_or("AI state not initialized")?;
 
     if let Some(cached_embeddings) = &ai_state.embeddings
         && cached_embeddings.path_hash == path_hash
@@ -938,9 +932,7 @@ pub async fn generate_ai_background_remove(
     // 3. Generate or retrieve cached depth map
     let foreground_mask = {
         let mut ai_state_lock = state.ai_state.lock().unwrap();
-        let ai_state = ai_state_lock
-            .as_mut()
-            .ok_or("AI state not initialized")?;
+        let ai_state = ai_state_lock.as_mut().ok_or("AI state not initialized")?;
 
         let depth_img = if let Some(cached) = &ai_state.depth_map {
             if cached.path_hash == path_hash {
@@ -948,8 +940,9 @@ pub async fn generate_ai_background_remove(
             } else {
                 drop(ai_state_lock); // release lock before async-like work
                 let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
-                let depth_img = run_depth_anything_model(warped_image.as_ref(), &models.depth_anything)
-                    .map_err(|e| e.to_string())?;
+                let depth_img =
+                    run_depth_anything_model(warped_image.as_ref(), &models.depth_anything)
+                        .map_err(|e| e.to_string())?;
                 let new_cache = CachedDepthMap {
                     path_hash: path_hash.clone(),
                     depth_image: depth_img.clone(),

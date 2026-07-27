@@ -81,7 +81,9 @@ fn download_and_verify(
                                 std::thread::sleep(std::time::Duration::from_secs(wait));
                                 continue;
                             }
-                            return Err(format!("Could not verify file after download: {}", e).into());
+                            return Err(
+                                format!("Could not verify file after download: {}", e).into()
+                            );
                         }
                     }
                 } else {
@@ -98,7 +100,9 @@ fn download_and_verify(
                         std::thread::sleep(std::time::Duration::from_secs(wait));
                         continue;
                     }
-                    return Err(format!("Download failed with status {}: {}", status, error_body).into());
+                    return Err(
+                        format!("Download failed with status {}: {}", status, error_body).into(),
+                    );
                 }
             }
             Err(e) => {

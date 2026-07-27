@@ -17,8 +17,7 @@ use tauri::Manager;
 use crate::AppState;
 use crate::exif_processing;
 use crate::file_management::{
-    generate_filename_from_template, parse_virtual_path, read_file_mapped,
-    validate_writable_folder,
+    generate_filename_from_template, parse_virtual_path, read_file_mapped, validate_writable_folder,
 };
 use crate::formats::is_raw_file;
 use crate::image_loader::{
@@ -791,9 +790,7 @@ pub async fn export_images(
     // Validate output path up-front to reject path traversal and empty
     // values before any work is queued.
     let output_folder_canon = validate_writable_folder(&output_folder_or_file)?;
-    let output_folder_or_file = output_folder_canon
-        .to_string_lossy()
-        .to_string();
+    let output_folder_or_file = output_folder_canon.to_string_lossy().to_string();
 
     let available_cores = std::thread::available_parallelism()
         .map(|n| n.get())

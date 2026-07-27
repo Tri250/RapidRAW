@@ -807,10 +807,7 @@ pub fn project_export_parquet(db_path: String, output_path: String) -> Result<u6
     if trimmed.contains('\'') || trimmed.contains('\\') || trimmed.contains(';') {
         return Err("Output path contains forbidden characters".to_string());
     }
-    if trimmed
-        .split(['/', '\\'])
-        .any(|seg| seg == "..")
-    {
+    if trimmed.split(['/', '\\']).any(|seg| seg == "..") {
         return Err("Output path contains traversal segments".to_string());
     }
     let safe_path = trimmed.to_string();

@@ -324,8 +324,7 @@ pub(crate) fn looks_like_traversal(s: &str) -> bool {
     }
     // Reject any `..` path component. We split on the OS separator *and* on
     // `/` so the check works on Windows too.
-    s.split(['/', '\\'])
-        .any(|seg| seg == "..")
+    s.split(['/', '\\']).any(|seg| seg == "..")
 }
 
 /// Validate a destination/output folder before we write into it. Returns the
@@ -1851,15 +1850,13 @@ fn emit_thumbnail_generated(
     rating: u8,
     is_edited: bool,
 ) {
-    let data_url = fs::read(thumbnail_path)
-        .ok()
-        .and_then(|bytes| {
-            use base64::{Engine as _, engine::general_purpose::STANDARD};
-            Some(format!(
-                "data:image/jpeg;base64,{}",
-                STANDARD.encode(&bytes)
-            ))
-        });
+    let data_url = fs::read(thumbnail_path).ok().and_then(|bytes| {
+        use base64::{Engine as _, engine::general_purpose::STANDARD};
+        Some(format!(
+            "data:image/jpeg;base64,{}",
+            STANDARD.encode(&bytes)
+        ))
+    });
 
     let payload = if let Some(data) = data_url {
         serde_json::json!({
@@ -3396,9 +3393,7 @@ pub async fn import_files(
     // Validate destination folder up-front to reject path traversal and
     // empty values before any filesystem mutation occurs.
     let destination_folder_canon = validate_writable_folder(&destination_folder)?;
-    let destination_folder = destination_folder_canon
-        .to_string_lossy()
-        .to_string();
+    let destination_folder = destination_folder_canon.to_string_lossy().to_string();
 
     tauri::async_runtime::spawn_blocking(move || {
         for (i, source_path_str) in source_paths.iter().enumerate() {
