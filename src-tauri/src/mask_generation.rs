@@ -1560,20 +1560,41 @@ pub fn get_cached_or_generate_mask(
 // ---------------------------------------------------------------------------
 
 /// Generate a mask based on HSL color range selection.
-/// Parameters are in HSL space: center_hue (0..360), center_sat (0..1), center_lum (0..1)
-/// and their respective ranges. `feather` controls edge smoothness.
+///
+/// Two parameter styles are supported and unified internally:
+/// * **Frontend / ImageCanvas style** (preferred, when `target_x >= 0`):
+///   `hue_center` (0..360), `hue_range` (0..180),
+///   `sat_min` (0..100) / `sat_max` (0..100),
+///   `lum_min` (0..100) / `lum_max` (0..100).
+///   The pixel at (`target_x`, `target_y`) is used as the HSL anchor and
+///   `tolerance` inflates all three ranges.
+/// * **Center/range style** (when `target_x < 0`, legacy):
+///   `center_hue`, `center_sat`, `center_lum` + `hue_range`/`sat_range`/`lum_range`.
+///
+/// Both styles produce a mask in the same HSL-distance / min-max format.
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub fn generate_color_range_mask(
     state: tauri::State<AppState>,
-    center_hue: f32,
-    center_sat: f32,
-    center_lum: f32,
-    hue_range: f32,
-    sat_range: f32,
-    lum_range: f32,
-    feather: f32,
-) -> Result<Vec<u8>, String> {
+    js_adjustments: Option<serde_json::Value>,
+    path: Option<String>,
+    target_x: Option<i32>,
+    target_y: Option<i32>,
+    hue_center: Option<f32>,
+    hue_range: Option<f32>,
+    sat_min: Option<f32>,
+    sat_max: Option<f32>,
+    lum_min: Option<f32>,
+    lum_max: Option<f32>,
+    tolerance: Option<f32>,
+    feather: Option<f32>,
+    center_hue: Option<f32>,
+    center_sat: Option<f32>,
+    center_lum: Option<f32>,
+    sat_range: Option<f32>,
+    lum_range: Option<f32>,
+) -> Result<AiSkyMaskParameters, String> {
+    let _ = (js_adjustments, path); // silence unused
     let loaded_image = state
         .original_image
         .lock()
@@ -1587,8 +1608,76 @@ pub fn generate_color_range_mask(
     }
 
     let rgba = loaded_image.image.to_rgba8();
+    let feather_v = feather.unwrap_or(10.0).clamp(0.0, 100.0);
+    let tol = tolerance.unwrap_or(20.0).max(0.0) / 100.0;
 
-    // Compute raw mask based on HSL distance
+    // ── Unify input to (h_lo, h_hi), (s_lo, s_hi), (l_lo, l_hi) ──
+    let tx = target_x.unwrap_or(-1);
+    let ty = target_y.unwrap_or(-1);
+    let (h_lo, h_hi, s_lo, s_hi, l_lo, l_hi) = if tx >= 0 && ty >= 0 {
+        // ── Frontend / ImageCanvas style: use (hueCenter, ranges, tolerance) ──
+        // Sample anchor pixel at (target_x, target_y) to obtain HSL baseline.
+        let ax = (tx as u32).min(w.saturating_sub(1));
+        let ay = (ty as u32).min(h.saturating_sub(1));
+        let anchor_px = rgba.get_pixel(ax, ay);
+        let (a_rf, a_gf, a_bf) = (
+            anchor_px[0] as f32 / 255.0,
+            anchor_px[1] as f32 / 255.0,
+            anchor_px[2] as f32 / 255.0,
+        );
+        let (ah, as_, al) = rgb_to_hsl_internal(a_rf, a_gf, a_bf);
+
+        // If the user provided explicit hueCenter, use it; otherwise the anchor.
+        let hc = hue_center
+            .unwrap_or(ah)
+            .rem_euclid(360.0);
+        // Default hue half-range: 30° (matches the default parameters?.hueRange ?? 30)
+        let h_half = hue_range.unwrap_or(30.0).clamp(0.0, 180.0);
+        let tol_h = tol * 40.0;
+
+        let s_min_pct = sat_min.unwrap_or(10.0).clamp(0.0, 100.0) / 100.0;
+        let s_max_pct = sat_max.unwrap_or(100.0).clamp(0.0, 100.0) / 100.0;
+        let l_min_pct = lum_min.unwrap_or(10.0).clamp(0.0, 100.0) / 100.0;
+        let l_max_pct = lum_max.unwrap_or(90.0).clamp(0.0, 100.0) / 100.0;
+
+        // Anchor-driven overlap: user ranges ∩ (anchor ± tolerance*default_range)
+        let tol_s = tol * 0.2;
+        let tol_l = tol * 0.2;
+        let s_min = s_min_pct.min(as_ - tol_s).max(0.0);
+        let s_max = s_max_pct.max(as_ + tol_s).min(1.0);
+        let l_min = l_min_pct.min(al - tol_l).max(0.0);
+        let l_max = l_max_pct.max(al + tol_l).min(1.0);
+
+        (
+            (hc - h_half - tol_h).rem_euclid(360.0),
+            (hc + h_half + tol_h).rem_euclid(360.0),
+            s_min,
+            s_max,
+            l_min,
+            l_max,
+        )
+    } else {
+        // ── Legacy center/range style ──
+        let ch = center_hue.unwrap_or(0.0).rem_euclid(360.0);
+        let cs = center_sat.unwrap_or(0.5).clamp(0.0, 1.0);
+        let cl = center_lum.unwrap_or(0.5).clamp(0.0, 1.0);
+        let hr = hue_range.unwrap_or(30.0).max(0.0);
+        let sr = sat_range.unwrap_or(0.3).max(0.0);
+        let lr = lum_range.unwrap_or(0.3).max(0.0);
+        (
+            (ch - hr).rem_euclid(360.0),
+            (ch + hr).rem_euclid(360.0),
+            (cs - sr).max(0.0),
+            (cs + sr).min(1.0),
+            (cl - lr).max(0.0),
+            (cl + lr).min(1.0),
+        )
+    };
+
+    // Hue is circular: detect 0° wrap-around
+    let hue_wraps = h_lo > h_hi;
+
+    // Compute raw mask
     let mut mask_data = vec![0u8; (w * h) as usize];
 
     for y in 0..h {
@@ -1599,35 +1688,27 @@ pub fn generate_color_range_mask(
                 pixel[1] as f32 / 255.0,
                 pixel[2] as f32 / 255.0,
             );
-
             let (hue, sat, lum) = rgb_to_hsl_internal(rf, gf, bf);
 
-            // Hue distance (circular)
-            let hue_diff = (hue - center_hue).abs();
-            let hue_diff = hue_diff.min(360.0 - hue_diff);
-            let hue_weight = if hue_range > 0.0 {
-                (1.0 - hue_diff / hue_range).clamp(0.0, 1.0)
-            } else if hue_diff < 1.0 {
+            // Hue weight (handle 0° wrap)
+            let h_in = if hue_wraps {
+                hue >= h_lo || hue <= h_hi
+            } else {
+                hue >= h_lo && hue <= h_hi
+            };
+            let hue_weight = if h_in {
                 1.0
             } else {
                 0.0
             };
 
-            // Saturation distance
-            let sat_diff = (sat - center_sat).abs();
-            let sat_weight = if sat_range > 0.0 {
-                (1.0 - sat_diff / sat_range).clamp(0.0, 1.0)
-            } else if sat_diff < 0.01 {
+            let sat_weight = if sat >= s_lo && sat <= s_hi {
                 1.0
             } else {
                 0.0
             };
 
-            // Lightness distance
-            let lum_diff = (lum - center_lum).abs();
-            let lum_weight = if lum_range > 0.0 {
-                (1.0 - lum_diff / lum_range).clamp(0.0, 1.0)
-            } else if lum_diff < 0.01 {
+            let lum_weight = if lum >= l_lo && lum <= l_hi {
                 1.0
             } else {
                 0.0
@@ -1640,15 +1721,38 @@ pub fn generate_color_range_mask(
     }
 
     // Apply feathering (Gaussian blur)
-    if feather > 0.0 {
+    if feather_v > 0.0 {
         let gray_mask = GrayImage::from_raw(w, h, mask_data.clone())
             .ok_or("Failed to create gray image for feathering")?;
-        let sigma = feather * w.min(h) as f32 * 0.005;
+        let sigma = feather_v / 100.0 * w.min(h) as f32 * 0.01;
         let blurred = imageproc::filter::gaussian_blur_f32(&gray_mask, sigma.max(0.01));
         mask_data = blurred.into_raw();
     }
 
-    Ok(mask_data)
+    // Encode to PNG base64 data-URL for frontend compatibility (expects mask_data_base64 field)
+    let gray_img = GrayImage::from_raw(w, h, mask_data).ok_or("Failed to build final GrayImage")?;
+    let mut png_buf: Vec<u8> = Vec::with_capacity((w * h) as usize * 2);
+    {
+        let mut cur = Cursor::new(&mut png_buf);
+        image::codecs::png::PngEncoder::new(&mut cur)
+            .write_image(
+                gray_img.as_raw(),
+                gray_img.width(),
+                gray_img.height(),
+                image::ExtendedColorType::L8,
+            )
+            .map_err(|e| format!("PNG encode failed: {}", e))?;
+    }
+    let b64 = general_purpose::STANDARD.encode(&png_buf);
+    let data_url = format!("data:image/png;base64,{}", b64);
+
+    Ok(AiSkyMaskParameters {
+        mask_data_base64: Some(data_url),
+        rotation: None,
+        flip_horizontal: None,
+        flip_vertical: None,
+        orientation_steps: None,
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -1656,15 +1760,28 @@ pub fn generate_color_range_mask(
 // ---------------------------------------------------------------------------
 
 /// Generate a mask based on luminance range.
-/// Pixels with luminance between min_lum and max_lum get full selection,
-/// with Gaussian falloff at the boundaries controlled by `feather`.
+///
+/// Two styles are supported:
+/// * **Frontend / ImageCanvas style** (when `target_x >= 0` or explicit `lum_min`/`lum_max` pct given):
+///   `lum_min`, `lum_max` are on a 0..100 percent scale, `tolerance` expands the band,
+///   `target_x` / `target_y` provide an optional anchor sample.
+/// * **Legacy style**: `min_lum` and `max_lum` are in the 0..1 linear range.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn generate_luminance_range_mask(
     state: tauri::State<AppState>,
-    min_lum: f32,
-    max_lum: f32,
-    feather: f32,
-) -> Result<Vec<u8>, String> {
+    js_adjustments: Option<serde_json::Value>,
+    path: Option<String>,
+    target_x: Option<i32>,
+    target_y: Option<i32>,
+    lum_min: Option<f32>,
+    lum_max: Option<f32>,
+    tolerance: Option<f32>,
+    feather: Option<f32>,
+    min_lum: Option<f32>,
+    max_lum: Option<f32>,
+) -> Result<AiDepthMaskParameters, String> {
+    let _ = (js_adjustments, path, target_x, target_y);
     let loaded_image = state
         .original_image
         .lock()
@@ -1679,9 +1796,28 @@ pub fn generate_luminance_range_mask(
 
     let rgba = loaded_image.image.to_rgba8();
 
-    let min_l = min_lum.clamp(0.0, 1.0);
-    let max_l = max_lum.clamp(0.0, 1.0);
-    let feather_sigma = feather.clamp(0.0, 1.0) * 0.1; // Gaussian sigma for transition
+    // ── Unify input style ──
+    // Frontend ImageCanvas style uses (lum_min..lum_max) 0..100 pct with tolerance expansion.
+    // Legacy style uses (min_lum..max_lum) in 0..1 linear.
+    let frontend_style = lum_min.is_some() || lum_max.is_some();
+    let feather_v = feather.unwrap_or(10.0).clamp(0.0, 100.0);
+    let tol_v = tolerance.unwrap_or(20.0).max(0.0) / 100.0;
+
+    let (min_l, max_l): (f32, f32) = if frontend_style {
+        let mut l_min_pct = lum_min.unwrap_or(10.0).clamp(0.0, 100.0) / 100.0;
+        let mut l_max_pct = lum_max.unwrap_or(90.0).clamp(0.0, 100.0) / 100.0;
+        // tolerance expansion
+        let band = (l_max_pct - l_min_pct).max(0.01);
+        let expand = band * tol_v + 0.02;
+        l_min_pct = (l_min_pct - expand).max(0.0);
+        l_max_pct = (l_max_pct + expand).min(1.0);
+        (l_min_pct, l_max_pct)
+    } else {
+        let ml = min_lum.unwrap_or(0.0).clamp(0.0, 1.0);
+        let mx = max_lum.unwrap_or(1.0).clamp(0.0, 1.0);
+        (ml.min(mx), ml.max(mx))
+    };
+    let feather_sigma = feather_v / 100.0 * 0.3; // Gaussian sigma for transition
 
     let mut mask_data = vec![0u8; (w * h) as usize];
 
@@ -1712,15 +1848,43 @@ pub fn generate_luminance_range_mask(
     }
 
     // Apply additional feathering blur if requested
-    if feather > 0.0 {
+    if feather_v > 0.0 {
         let gray_mask = GrayImage::from_raw(w, h, mask_data.clone())
             .ok_or("Failed to create gray image for feathering")?;
-        let sigma = feather * w.min(h) as f32 * 0.005;
+        let sigma = feather_v / 100.0 * w.min(h) as f32 * 0.01;
         let blurred = imageproc::filter::gaussian_blur_f32(&gray_mask, sigma.max(0.01));
         mask_data = blurred.into_raw();
     }
 
-    Ok(mask_data)
+    // Encode to PNG base64 data-URL for frontend compatibility (expects mask_data_base64 field)
+    let gray_img = GrayImage::from_raw(w, h, mask_data).ok_or("Failed to build final GrayImage (luminance)")?;
+    let mut png_buf: Vec<u8> = Vec::with_capacity((w * h) as usize * 2);
+    {
+        let mut cur = Cursor::new(&mut png_buf);
+        image::codecs::png::PngEncoder::new(&mut cur)
+            .write_image(
+                gray_img.as_raw(),
+                gray_img.width(),
+                gray_img.height(),
+                image::ExtendedColorType::L8,
+            )
+            .map_err(|e| format!("PNG encode failed: {}", e))?;
+    }
+    let b64 = general_purpose::STANDARD.encode(&png_buf);
+    let data_url = format!("data:image/png;base64,{}", b64);
+
+    Ok(AiDepthMaskParameters {
+        mask_data_base64: Some(data_url),
+        min_depth: 0.0,
+        max_depth: 100.0,
+        min_fade: 0.0,
+        max_fade: 0.0,
+        feather: feather_v,
+        rotation: None,
+        flip_horizontal: None,
+        flip_vertical: None,
+        orientation_steps: None,
+    })
 }
 
 // ---------------------------------------------------------------------------

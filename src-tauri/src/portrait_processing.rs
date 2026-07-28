@@ -1895,31 +1895,28 @@ pub fn apply_hair_adjust(
                 let (rf, gf, bf) = rgb_to_f32(pixel[0], pixel[1], pixel[2]);
                 let (hue, sat, lum) = rgb_to_hsl(rf, gf, bf);
 
-                // Bug #11: improved hair heuristic.
-                // Old: lum < 0.35 || (lum < 0.55 && sat < 0.25)
-                //   → matched all dark objects (clothing, furniture, shadows).
-                // New: tighter constraints that better isolate hair.
+                // ── Hair heuristic (comprehensive, Bug #11 + vivid-hair + extended-skin fixes) ──
                 let is_dark = lum < 0.40;
                 let is_low_sat = sat < 0.30 && lum < 0.55;
-                // Light hair: blonde / gold (warm yellow, medium-high luminance)
                 let is_light_hair = lum > 0.45 && sat < 0.45 && hue > 35.0 && hue < 70.0;
-                // White / silver / gray hair (high luminance, very low saturation)
                 let is_white_hair = lum > 0.55 && sat < 0.15;
-                // Hair typically has R ≈ G ≈ B (neutral dark) or warm brown tint.
-                // Exclude obvious skin tones and strong colors.
-                let is_not_skin = !(hue < 40.0 && sat > 0.15 && lum > 0.25);
-                let is_not_strong_color = sat < 0.55;
-                let is_hair = (is_dark || is_low_sat || is_light_hair || is_white_hair)
-                    && is_not_skin
-                    && is_not_strong_color;
+                // ── Fix #1: Vivid colored hair (red/blue/purple/pink) should be INCLUDED ──
+                //   Old code used `sat < 0.55` and EXCLUDED bright dyes.
+                let is_vivid_hair_hue = sat > 0.50
+                    && ((hue > 300.0 && hue <= 360.0)
+                        || (hue >= 0.0 && hue < 30.0)
+                        || (hue > 200.0 && hue < 280.0));
+                let has_hair_hint = is_dark || is_low_sat || is_light_hair || is_white_hair || is_vivid_hair_hue;
 
-                if !is_hair {
+                // ── Fix #2: Expand skin-hue exclusion to cover warm skin range 0..50° + 350..360° ──
+                let skin_hue = (hue < 50.0) || (hue > 350.0);
+                let is_not_skin = !(skin_hue && sat > 0.12 && lum > 0.20);
+
+                if !(has_hair_hint && is_not_skin) {
                     continue;
                 }
 
-                // Local texture check: hair has fine texture (high local variance),
-                // while dark clothing is often uniform. Compute a 3×3 gradient
-                // variance; if too smooth, skip (likely fabric/shadow).
+                // ── Fix #3: Lower texture threshold from 0.02 to 0.008 for silky straight hair ──
                 let gx = if x > 0 && x < w - 1 {
                     let pl = rgba.get_pixel(x - 1, y);
                     let pr = rgba.get_pixel(x + 1, y);
@@ -1939,13 +1936,10 @@ pub fn apply_hair_adjust(
                     0.0
                 };
                 let edge_mag = (gx + gy) / (255.0 * 3.0);
-                // Hair typically has some texture; very smooth dark regions
-                // are likely clothing/fabric.
-                if edge_mag < 0.02 && sat < 0.15 {
+                if edge_mag < 0.008 && sat < 0.15 {
                     continue;
                 }
 
-                // Distance from face center for falloff
                 let fcx = fx as f32 + fw as f32 / 2.0;
                 let fcy = fy as f32 + fh as f32 / 2.0;
                 let dx = x as f32 - fcx;
@@ -1958,9 +1952,27 @@ pub fn apply_hair_adjust(
                 }
                 let weight = 1.0 - dist_sq;
 
+                // ── Fix #4: Inject minimum saturation for white/silver hair (sat<0.15) so dyeing it is visible ──
+                let effective_sat = if is_white_hair && hue_delta.abs() > 1.0 {
+                    sat.max(0.25)
+                } else {
+                    sat
+                };
+
+                // ── Fix #5: Use multiplicative brightness (luminance * factor) instead of additive luma shift,
+                //           with soft knee protection for values > 0.8 to avoid highlight blowout. ──
+                let bright_factor = 1.0 + bright; // e.g. -50% → 0.5×, +50% → 1.5×
+                let raw_lum = lum * bright_factor;
+                let new_lum = if raw_lum > 0.8 && bright_factor > 1.0 {
+                    let over = raw_lum - 0.8;
+                    let soft_over = over * 0.3;
+                    (0.8 + soft_over).min(1.0)
+                } else {
+                    raw_lum.clamp(0.0, 1.0)
+                };
+
                 let new_hue = (hue + hue_delta * weight).rem_euclid(360.0);
-                let new_lum = (lum + bright * weight).clamp(0.0, 1.0);
-                let (nr, ng, nb) = hsl_to_rgb(new_hue, sat, new_lum);
+                let (nr, ng, nb) = hsl_to_rgb(new_hue, effective_sat, new_lum);
                 let (r8, g8, b8) = f32_to_rgb(nr, ng, nb);
                 rgba.put_pixel(x, y, Rgba([r8, g8, b8, pixel[3]]));
             }
