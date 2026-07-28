@@ -77,6 +77,25 @@ pub async fn generate_ai_sky_mask(
 
     let full_mask_image =
         run_sky_seg_model(warped_image.as_ref(), &models.sky_seg).map_err(|e| e.to_string())?;
+
+    // Detect "no sky" case: if fewer than 0.1% of pixels are bright (above 128/255),
+    // the model found no meaningful sky region. Return None so the frontend can show
+    // the "No sky detected" toast instead of storing an effectively-empty mask.
+    let total_pixels = (full_mask_image.width() * full_mask_image.height()) as usize;
+    let bright_pixels = full_mask_image
+        .pixels()
+        .filter(|p| p[0] > 128)
+        .count();
+    if total_pixels > 0 && (bright_pixels as f32 / total_pixels as f32) < 0.001 {
+        return Ok(AiSkyMaskParameters {
+            mask_data_base64: None,
+            rotation: Some(rotation),
+            flip_horizontal: Some(flip_horizontal),
+            flip_vertical: Some(flip_vertical),
+            orientation_steps: Some(orientation_steps),
+        });
+    }
+
     let base64_data = encode_to_base64_png(&full_mask_image)?;
 
     Ok(AiSkyMaskParameters {
@@ -318,6 +337,25 @@ pub async fn generate_ai_subject_mask(
         unrotated_end_point,
     )
     .map_err(|e| e.to_string())?;
+
+    // Detect "no subject" case: SAM decoder produces a binary mask (0 or 255).
+    // If no pixel is non-zero, no subject was detected. Return None so the
+    // frontend can show the "No subject detected" toast.
+    let has_subject = mask_bitmap.pixels().any(|p| p[0] > 0);
+    if !has_subject {
+        return Ok(AiSubjectMaskParameters {
+            start_x: start_point.0,
+            start_y: start_point.1,
+            end_x: end_point.0,
+            end_y: end_point.1,
+            mask_data_base64: None,
+            rotation: Some(rotation),
+            flip_horizontal: Some(flip_horizontal),
+            flip_vertical: Some(flip_vertical),
+            orientation_steps: Some(orientation_steps),
+        });
+    }
+
     let base64_data = encode_to_base64_png(&mask_bitmap)?;
 
     Ok(AiSubjectMaskParameters {
@@ -883,17 +921,16 @@ fn create_default_sky(w: u32, h: u32) -> image::RgbaImage {
 // Background Removal
 // ---------------------------------------------------------------------------
 
-/// Remove background using AI depth estimation.
-/// Automatically initializes AI state and generates depth mask if not cached.
-/// Produces an RGBA PNG with alpha channel from the depth-based foreground mask.
+/// Remove background using AI salient-object segmentation (u2netp).
+/// Produces an RGBA PNG with alpha channel from the foreground mask.
 #[tauri::command]
 pub async fn generate_ai_background_remove(
     js_adjustments: serde_json::Value,
-    path: String,
-    rotation: f32,
-    flip_horizontal: bool,
-    flip_vertical: bool,
-    orientation_steps: u8,
+    _path: String,
+    _rotation: f32,
+    _flip_horizontal: bool,
+    _flip_vertical: bool,
+    _orientation_steps: u8,
     state: tauri::State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<Vec<u8>, String> {
@@ -914,72 +951,21 @@ pub async fn generate_ai_background_remove(
         .await
         .map_err(|e| e.to_string())?;
 
-    // 2. Compute path hash for depth cache
-    let path_hash = {
-        let mut hasher = blake3::Hasher::new();
-        hasher.update(path.as_bytes());
-        let mut geo_hasher = DefaultHasher::new();
-        for key in GEOMETRY_KEYS {
-            if let Some(val) = js_adjustments.get(key) {
-                key.hash(&mut geo_hasher);
-                val.to_string().hash(&mut geo_hasher);
-            }
-        }
-        hasher.update(&geo_hasher.finish().to_le_bytes());
-        hasher.finalize().to_hex().to_string()
+    // 2. Generate foreground mask using u2netp (dedicated salient-object/foreground
+    //    segmentation model). This is more accurate for background removal than the
+    //    depth-estimation model used previously.
+    let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
+    let fg_mask_img = run_u2netp_model(warped_image.as_ref(), &models.u2netp)
+        .map_err(|e| format!("Foreground segmentation failed: {}", e))?;
+
+    // Resize mask to match original image dimensions if needed
+    let foreground_mask = if fg_mask_img.width() != w || fg_mask_img.height() != h {
+        image::imageops::resize(&fg_mask_img, w, h, image::imageops::FilterType::Triangle)
+    } else {
+        fg_mask_img
     };
 
-    // 3. Generate or retrieve cached depth map
-    let foreground_mask = {
-        let mut ai_state_lock = state.ai_state.lock().unwrap();
-        let ai_state = ai_state_lock.as_mut().ok_or("AI state not initialized")?;
-
-        let depth_img = if let Some(cached) = &ai_state.depth_map {
-            if cached.path_hash == path_hash {
-                cached.depth_image.clone()
-            } else {
-                drop(ai_state_lock); // release lock before async-like work
-                let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
-                let depth_img =
-                    run_depth_anything_model(warped_image.as_ref(), &models.depth_anything)
-                        .map_err(|e| e.to_string())?;
-                let new_cache = CachedDepthMap {
-                    path_hash: path_hash.clone(),
-                    depth_image: depth_img.clone(),
-                    original_size: (warped_image.width(), warped_image.height()),
-                };
-                let mut ai_state_lock = state.ai_state.lock().unwrap();
-                if let Some(ai_state) = ai_state_lock.as_mut() {
-                    ai_state.depth_map = Some(new_cache);
-                }
-                depth_img
-            }
-        } else {
-            drop(ai_state_lock); // release lock before running model
-            let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
-            let depth_img = run_depth_anything_model(warped_image.as_ref(), &models.depth_anything)
-                .map_err(|e| e.to_string())?;
-            let new_cache = CachedDepthMap {
-                path_hash: path_hash.clone(),
-                depth_image: depth_img.clone(),
-                original_size: (warped_image.width(), warped_image.height()),
-            };
-            let mut ai_state_lock = state.ai_state.lock().unwrap();
-            if let Some(ai_state) = ai_state_lock.as_mut() {
-                ai_state.depth_map = Some(new_cache);
-            }
-            depth_img
-        };
-
-        // Convert depth map to foreground mask: closer objects (higher depth) = foreground
-        let mut mask = depth_img.clone();
-        for pixel in mask.pixels_mut() {
-            pixel[0] = if pixel[0] > 128 { 255 } else { 0 };
-        }
-        image::imageops::resize(&mask, w, h, image::imageops::FilterType::Triangle)
-    };
-
-    // 4. Apply mask as alpha channel
+    // 3. Apply mask as alpha channel (background becomes transparent)
     let mut rgba = loaded_image.image.to_rgba8();
     for y in 0..h {
         for x in 0..w {
@@ -989,7 +975,7 @@ pub async fn generate_ai_background_remove(
         }
     }
 
-    // 5. Encode as PNG
+    // 4. Encode as PNG
     let mut buf = Cursor::new(Vec::new());
     rgba.write_to(&mut buf, ImageFormat::Png)
         .map_err(|e| format!("Failed to encode result: {}", e))?;

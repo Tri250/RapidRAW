@@ -1131,40 +1131,51 @@ export default function AIPanel() {
                     <Text variant={TextVariants.heading} className="mb-2">
                       {t('editor.ai.enhancementTitle')}
                     </Text>
-                    <div className="grid grid-cols-3 gap-2" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        className={`bg-surface text-text-primary rounded-lg p-2 flex flex-col items-center justify-center gap-2 aspect-square transition-colors ${isGeneratingAi ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card-active active:bg-accent/20'}`}
-                        onClick={() => !isGeneratingAi && handleApplySuperResolution(2.0)}
-                        disabled={isGeneratingAi}
+                    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                      <div
+                        className={`bg-surface rounded-lg p-3 transition-colors ${isGeneratingAi ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card-active'}`}
                         data-tooltip={t('editor.ai.superResolutionTooltip')}
                       >
-                        <span className="text-lg font-bold">2x</span>
-                        <Text as="span" variant={TextVariants.small} color={TextColors.primary}>
+                        <Text as="div" variant={TextVariants.small} weight={TextWeights.medium} className="mb-2 text-center">
                           {t('editor.ai.superResolution')}
                         </Text>
-                      </button>
-                      <button
-                        className={`bg-surface text-text-primary rounded-lg p-2 flex flex-col items-center justify-center gap-2 aspect-square transition-colors ${isGeneratingAi ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card-active active:bg-accent/20'}`}
-                        onClick={() => !isGeneratingAi && handleGenerateAiSkyReplace()}
-                        disabled={isGeneratingAi}
-                        data-tooltip={t('editor.ai.skyReplaceTooltip', { defaultValue: 'AI Sky Replace' })}
-                      >
-                        <CloudSun size={20} />
-                        <Text as="span" variant={TextVariants.small} color={TextColors.primary}>
-                          {t('editor.ai.skyReplace', { defaultValue: 'Sky Replace' })}
-                        </Text>
-                      </button>
-                      <button
-                        className={`bg-surface text-text-primary rounded-lg p-2 flex flex-col items-center justify-center gap-2 aspect-square transition-colors ${isGeneratingAi ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card-active active:bg-accent/20'}`}
-                        onClick={() => !isGeneratingAi && handleGenerateAiBackgroundRemove()}
-                        disabled={isGeneratingAi}
-                        data-tooltip={t('editor.ai.bgRemoveTooltip', { defaultValue: 'AI Background Remove' })}
-                      >
-                        <Eraser size={20} />
-                        <Text as="span" variant={TextVariants.small} color={TextColors.primary}>
-                          {t('editor.ai.bgRemove', { defaultValue: 'BG Remove' })}
-                        </Text>
-                      </button>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {([2, 3, 4] as const).map((s) => (
+                            <button
+                              key={s}
+                              className={`bg-bg-tertiary text-text-primary rounded-md py-1.5 text-sm font-bold transition-colors ${isGeneratingAi ? 'cursor-not-allowed' : 'hover:bg-accent/20 active:bg-accent/30'}`}
+                              onClick={() => !isGeneratingAi && handleApplySuperResolution(s)}
+                              disabled={isGeneratingAi}
+                            >
+                              {s}x
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          className={`bg-surface text-text-primary rounded-lg p-2 flex flex-col items-center justify-center gap-2 aspect-square transition-colors ${isGeneratingAi ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card-active active:bg-accent/20'}`}
+                          onClick={() => !isGeneratingAi && handleGenerateAiSkyReplace()}
+                          disabled={isGeneratingAi}
+                          data-tooltip={t('editor.ai.skyReplaceTooltip', { defaultValue: 'AI Sky Replace' })}
+                        >
+                          <CloudSun size={20} />
+                          <Text as="span" variant={TextVariants.small} color={TextColors.primary}>
+                            {t('editor.ai.skyReplace', { defaultValue: 'Sky Replace' })}
+                          </Text>
+                        </button>
+                        <button
+                          className={`bg-surface text-text-primary rounded-lg p-2 flex flex-col items-center justify-center gap-2 aspect-square transition-colors ${isGeneratingAi ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card-active active:bg-accent/20'}`}
+                          onClick={() => !isGeneratingAi && handleGenerateAiBackgroundRemove()}
+                          disabled={isGeneratingAi}
+                          data-tooltip={t('editor.ai.bgRemoveTooltip', { defaultValue: 'AI Background Remove' })}
+                        >
+                          <Eraser size={20} />
+                          <Text as="span" variant={TextVariants.small} color={TextColors.primary}>
+                            {t('editor.ai.bgRemove', { defaultValue: 'BG Remove' })}
+                          </Text>
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}

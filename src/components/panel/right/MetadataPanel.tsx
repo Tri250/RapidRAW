@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Check, ChevronDown, ChevronRight, Loader2, Plus, Sparkles, Star, Tag, X, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -308,6 +308,10 @@ export default function MetadataPanel() {
   const [aiRatingLoading, setAiRatingLoading] = useState(false);
   const [aiRatingResult, setAiRatingResult] = useState<{ rating: number; description: string; tags: string[] } | null>(null);
   const [aiRatingApplied, setAiRatingApplied] = useState(false);
+  // Cancellation token for in-flight AI rating requests. Incremented whenever
+  // the selected image changes or a new request is started, so stale responses
+  // (e.g. after switching images) won't overwrite the current panel state.
+  const aiRatingReqIdRef = useRef(0);
   const selectedImage = useEditorStore((s) => s.selectedImage);
   const multiSelectedPaths = useLibraryStore((s) => s.multiSelectedPaths);
   const imageList = useLibraryStore((s) => s.imageList);
@@ -463,6 +467,9 @@ export default function MetadataPanel() {
 
   const handleGenerateAiRating = async () => {
     if (!selectedImage || aiRatingLoading) return;
+    // Mark this request as the active one; any previously in-flight request
+    // becomes stale and its result will be ignored on resolve.
+    const reqId = ++aiRatingReqIdRef.current;
     setAiRatingLoading(true);
     setAiRatingResult(null);
     setAiRatingApplied(false);
@@ -471,12 +478,18 @@ export default function MetadataPanel() {
         Invokes.GenerateAiRating,
         { path: selectedImage.path },
       );
+      // Ignore the response if a newer request has started or the user
+      // switched to a different image while this one was in flight.
+      if (reqId !== aiRatingReqIdRef.current) return;
       setAiRatingResult(result);
     } catch (err) {
       console.error('AI rating failed:', err);
-      toast.error(t('editor.aiRating.generate') + ' ' + String(err));
+      if (reqId !== aiRatingReqIdRef.current) return;
+      toast.error(t('editor.aiRating.error', { error: String(err) }));
     } finally {
-      setAiRatingLoading(false);
+      if (reqId === aiRatingReqIdRef.current) {
+        setAiRatingLoading(false);
+      }
     }
   };
 
@@ -494,25 +507,30 @@ export default function MetadataPanel() {
         });
         return { imageRatings: newRatings };
       });
-      // Write description and tags to EXIF UserComment
+      // Write description and tags to EXIF UserComment (await so errors surface
+      // and the success toast only fires once the write actually completed).
       const commentParts: string[] = [];
       if (aiRatingResult.description) commentParts.push(aiRatingResult.description);
       if (aiRatingResult.tags.length > 0) commentParts.push(`Tags: ${aiRatingResult.tags.join(', ')}`);
       if (commentParts.length > 0) {
-        handleUpdateExif(targetPaths, { UserComment: commentParts.join(' | ') });
+        await handleUpdateExif(targetPaths, { UserComment: commentParts.join(' | ') });
       }
       setAiRatingApplied(true);
       toast.success(t('editor.aiRating.applied'));
     } catch (err) {
       console.error('Failed to apply AI rating to EXIF:', err);
-      toast.error(String(err));
+      toast.error(t('editor.aiRating.applyError', { error: String(err) }));
     }
   };
 
-  // Reset AI rating result when selected image changes
+  // Reset AI rating result when selected image changes. Also invalidate any
+  // in-flight request so its (stale) result won't be applied to the new image,
+  // and clear the loading state so the new image's button is usable.
   useEffect(() => {
+    aiRatingReqIdRef.current++;
     setAiRatingResult(null);
     setAiRatingApplied(false);
+    setAiRatingLoading(false);
   }, [selectedImage?.path]);
 
   const LensIcon = CAMERA_ICONS['LensModel'];

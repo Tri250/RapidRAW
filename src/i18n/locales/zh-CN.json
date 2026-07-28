@@ -432,7 +432,7 @@
       "generativeEditTitle": "生成式编辑",
       "enhancementTitle": "AI 图像增强",
       "superResolution": "超分辨率",
-      "superResolutionTooltip": "使用 AI 超分辨率将图像放大 2 倍",
+      "superResolutionTooltip": "使用 AI 超分辨率将图像放大（2x/3x/4x）",
       "skyReplace": "天空替换",
       "skyReplaceTooltip": "AI 自动替换天空",
       "bgRemove": "背景移除",
@@ -949,7 +949,9 @@
       "applyToExif": "应用到 EXIF",
       "applied": "已写入 EXIF",
       "batchProgress": "正在评分 {{current}}/{{total}}...",
-      "batchComplete": "完成 {{count}} 张图片评分"
+      "batchComplete": "完成 {{count}} 张图片评分",
+      "error": "生成评分失败：{{error}}",
+      "applyError": "应用评分到 EXIF 失败：{{error}}"
     },
     "presets": {
       "amount": "数量",
@@ -1012,6 +1014,10 @@
       "groups": {
         "recommended": "推荐",
         "my": "我的"
+      },
+      "autoAdjust": {
+        "label": "智能优化",
+        "tooltip": "AI自动优化图片调整参数"
       }
     },
     "switcher": {

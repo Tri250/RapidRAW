@@ -705,7 +705,26 @@
         "folder": "Ordner",
         "preset": "Vorgabe",
         "style": "Stil",
-        "tool": "Werkzeug"
+        "tool": "Werkzeug",
+        "portrait": "Porträt",
+        "color": "Farbe",
+        "ai-color": "AI-Farbe",
+        "combined": "Kombiniert"
+      },
+      "filters": {
+        "all": "Alle",
+        "portrait": "Porträt",
+        "color": "Farbe",
+        "ai-color": "AI-Farbe",
+        "combined": "Kombiniert"
+      },
+      "groups": {
+        "recommended": "Empfohlen",
+        "my": "Meine Vorgaben"
+      },
+      "autoAdjust": {
+        "label": "Smart-Optimierung",
+        "tooltip": "KI-autoptimierte Bildanpassungen"
       }
     },
     "switcher": {

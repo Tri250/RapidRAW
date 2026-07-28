@@ -716,9 +716,7 @@ function App() {
                   requestThumbnails={requestThumbnails}
                   onBatchRate={(rating, paths) => handleRate(rating, paths)}
                   onBatchExport={(paths) => {
-                    const firstPath = paths[0];
-                    if (firstPath) handleImageSelect(firstPath);
-                    setUI((state: any) => ({ isLibraryExportPanelVisible: !state.isLibraryExportPanelVisible }));
+                    setUI({ isLibraryExportPanelVisible: true });
                   }}
                   onBatchDelete={(paths) => executeDelete(paths, { includeAssociated: false })}
                   onBatchAddToAlbum={(paths) => {

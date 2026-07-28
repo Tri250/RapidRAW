@@ -49,6 +49,8 @@ interface ImageCanvasProps {
   isRotationActive?: boolean;
   maskOverlayUrl: string | null;
   onGenerateAiMask(id: string | null, start: Coord, end: Coord): void;
+  onGenerateColorRangeMask?(subMaskId: string, parameters: any): void;
+  onGenerateLuminanceRangeMask?(subMaskId: string, parameters: any): void;
   onLiveMaskPreview?: (previewMaskDef: any) => void;
   onManualCleanup?(subMaskId: string, sourceX: number, sourceY: number): Promise<void> | void;
   onQuickErase(subMaskId: string | null, startPoint: Coord, endpoint: Coord): void;
@@ -1277,6 +1279,8 @@ const ImageCanvas = memo(
     isRotationActive,
     maskOverlayUrl,
     onGenerateAiMask,
+    onGenerateColorRangeMask,
+    onGenerateLuminanceRangeMask,
     onLiveMaskPreview,
     onManualCleanup,
     onQuickErase,
@@ -1952,6 +1956,14 @@ const ImageCanvas = memo(
 
           const activeId = isMasking ? activeMaskId : activeAiSubMaskId;
           updateSubMask(activeId, { parameters: newParams });
+
+          if (activeId) {
+            if (activeSubMask.type === Mask.Color && onGenerateColorRangeMask) {
+              onGenerateColorRangeMask(activeId, newParams);
+            } else if (activeSubMask.type === Mask.Luminance && onGenerateLuminanceRangeMask) {
+              onGenerateLuminanceRangeMask(activeId, newParams);
+            }
+          }
           return;
         }
 
@@ -3178,6 +3190,46 @@ const ImageCanvas = memo(
                             y={cursorPreview.y}
                           />
                         )}
+                      {(adjustments.portrait?.blemishSpots?.length ?? 0) > 0 &&
+                        adjustments.portrait!.blemishSpots!.map((spot, i) => {
+                          const imgW = effectiveImageDimensions.width;
+                          const imgH = effectiveImageDimensions.height;
+                          const px = spot.x * imgW;
+                          const py = spot.y * imgH;
+                          const r = Math.max(
+                            4,
+                            spot.radius * Math.min(imgW, imgH) * imageRenderSize.scale,
+                          );
+                          const sx = (px - cropX) * imageRenderSize.scale;
+                          const sy = (py - cropY) * imageRenderSize.scale;
+                          return (
+                            <Group key={`blemish-${i}`} listening={false}>
+                              <Circle
+                                x={sx}
+                                y={sy}
+                                radius={r + 1.5}
+                                fill="rgba(255,255,255,0.85)"
+                                perfectDrawEnabled={false}
+                              />
+                              <Circle
+                                x={sx}
+                                y={sy}
+                                radius={r}
+                                fill="#ef4444"
+                                stroke="#b91c1c"
+                                strokeWidth={1}
+                                perfectDrawEnabled={false}
+                              />
+                              <Circle
+                                x={sx - r * 0.3}
+                                y={sy - r * 0.3}
+                                radius={r * 0.3}
+                                fill="rgba(255,255,255,0.4)"
+                                perfectDrawEnabled={false}
+                              />
+                            </Group>
+                          );
+                        })}
                     </Group>
                   </Group>
                 </Layer>

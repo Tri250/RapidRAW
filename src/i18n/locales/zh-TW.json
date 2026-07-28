@@ -705,7 +705,26 @@
         "folder": "資料夾",
         "preset": "預設",
         "style": "風格",
-        "tool": "工具"
+        "tool": "工具",
+        "portrait": "人像",
+        "color": "色彩",
+        "ai-color": "AI色彩",
+        "combined": "組合"
+      },
+      "filters": {
+        "all": "全部預設",
+        "portrait": "人像預設",
+        "color": "色彩預設",
+        "ai-color": "AI色彩預設",
+        "combined": "組合預設"
+      },
+      "groups": {
+        "recommended": "推薦",
+        "my": "我的"
+      },
+      "autoAdjust": {
+        "label": "智慧最佳化",
+        "tooltip": "AI自動最佳化圖片調整參數"
       }
     },
     "switcher": {

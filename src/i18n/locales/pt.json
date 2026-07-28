@@ -705,7 +705,26 @@
         "folder": "Pasta",
         "preset": "Predefinição",
         "style": "Estilo",
-        "tool": "Ferramenta"
+        "tool": "Ferramenta",
+        "portrait": "Retrato",
+        "color": "Cor",
+        "ai-color": "Cor IA",
+        "combined": "Combinado"
+      },
+      "filters": {
+        "all": "Tudo",
+        "portrait": "Retrato",
+        "color": "Cor",
+        "ai-color": "Cor IA",
+        "combined": "Combinado"
+      },
+      "groups": {
+        "recommended": "Recomendado",
+        "my": "Minhas predefinições"
+      },
+      "autoAdjust": {
+        "label": "Otimização inteligente",
+        "tooltip": "Otimização automática por IA"
       }
     },
     "switcher": {

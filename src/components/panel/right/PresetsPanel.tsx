@@ -33,6 +33,8 @@ import {
   Wrench,
   Palette,
   Settings2,
+  Wand2,
+  Sparkles,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
@@ -523,9 +525,10 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
   const { t, i18n } = useTranslation();
   const selectedImage = useEditorStore((s) => s.selectedImage);
   const adjustments = useEditorStore((s) => s.adjustments);
+  const isGeneratingAi = useEditorStore((s) => s.isGeneratingAi);
   const activePanel = useUIStore((s) => s.activeRightPanel);
   const setEditor = useEditorStore((s) => s.setEditor);
-  const { setAdjustments } = useEditorActions();
+  const { setAdjustments, handleAutoAdjustments } = useEditorActions();
   const osPlatform = useOsPlatform();
   const isDeviceSide = osPlatform === 'android';
 
@@ -561,7 +564,12 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
   const [presetIntensity, setPresetIntensity] = useState<number>(100);
   const [baseAdjustments, setBaseAdjustments] = useState<Adjustments | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'portrait' | 'color' | 'ai-color' | 'combined'>('all');
-  const [activeGroup, setActiveGroup] = useState<'recommended' | 'my'>('my');
+  const [activeGroup, setActiveGroup] = useState<'recommended' | 'my'>('recommended');
+
+  // Built-in preset active state (separate from user presets)
+  const [activeBuiltInPresetId, setActiveBuiltInPresetId] = useState<string | null>(null);
+  const [builtInPresetIntensity, setBuiltInPresetIntensity] = useState<number>(100);
+  const [builtInBaseAdjustments, setBuiltInBaseAdjustments] = useState<Adjustments | null>(null);
 
   const previewsRef = useRef(previews);
   previewsRef.current = previews;
@@ -845,6 +853,9 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
 
       setActivePresetId(null);
       setBaseAdjustments(null);
+      setActiveBuiltInPresetId(null);
+      setBuiltInBaseAdjustments(null);
+      setBuiltInPresetIntensity(100);
 
       if (isPathChanged && selectedImage?.path) {
         currentImagePathRef.current = selectedImage.path;
@@ -1267,6 +1278,23 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
 
   const handleApplyBuiltInPreset = useCallback(
     (builtIn: BuiltInPreset) => {
+      // Toggle off if clicking the same built-in preset
+      if (activeBuiltInPresetId === builtIn.id) {
+        setActiveBuiltInPresetId(null);
+        if (builtInBaseAdjustments) {
+          setAdjustments(builtInBaseAdjustments);
+        }
+        setBuiltInBaseAdjustments(null);
+        setBuiltInPresetIntensity(100);
+        return;
+      }
+
+      // Capture current adjustments as baseline for intensity mixing
+      setBuiltInBaseAdjustments(adjustments);
+      setActiveBuiltInPresetId(builtIn.id);
+      setBuiltInPresetIntensity(100);
+
+      // Apply the built-in preset adjustments (tool semantics: additive)
       setAdjustments((prev: Adjustments) => ({
         ...prev,
         ...builtIn.adjustments,
@@ -1276,7 +1304,20 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
         },
       }));
     },
-    [setAdjustments],
+    [setAdjustments, adjustments, activeBuiltInPresetId, builtInBaseAdjustments],
+  );
+
+  const handleBuiltInIntensityChange = useCallback(
+    (builtIn: BuiltInPreset, intensity: number) => {
+      const clamped = Math.max(0, Math.min(200, Math.round(intensity)));
+      setBuiltInPresetIntensity(clamped);
+      setAdjustments((prev: Adjustments) => {
+        const baseline = builtInBaseAdjustments ?? prev;
+        const mixed = mixAdjustments(builtIn.adjustments, clamped, baseline, baseline);
+        return { ...prev, ...mixed };
+      });
+    },
+    [setAdjustments, builtInBaseAdjustments],
   );
 
   return (
@@ -1285,6 +1326,14 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
         <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface">
           <Text variant={TextVariants.title}>{t('editor.presets.title')}</Text>
           <div className="flex items-center gap-1">
+            <button
+              className={`p-2 rounded-full hover:bg-surface transition-colors ${isGeneratingAi || !selectedImage?.isReady ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={isGeneratingAi || !selectedImage?.isReady}
+              onClick={handleAutoAdjustments}
+              data-tooltip={t('editor.presets.autoAdjust.tooltip')}
+            >
+              {isGeneratingAi ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+            </button>
             {!isDeviceSide && (
             <button
               className="p-2 rounded-full hover:bg-surface transition-colors"
@@ -1403,6 +1452,7 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
                     };
                     const typeColor = presetTypeColors[builtIn.type] || 'bg-slate-500/90';
                     const typeLabel = presetTypeLabels[builtIn.type] || '';
+                    const isActiveBuiltIn = activeBuiltInPresetId === builtIn.id;
                     return (
                       <motion.div
                         animate="visible"
@@ -1415,15 +1465,25 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
                       >
                         <div
                           onClick={() => handleApplyBuiltInPreset(builtIn)}
-                          className="flex flex-col p-2 rounded-lg bg-surface cursor-pointer hover:bg-card-active transition-colors"
+                          className={clsx(
+                            'flex flex-col p-2 rounded-lg cursor-pointer transition-colors',
+                            isActiveBuiltIn ? 'bg-accent/15 ring-1 ring-accent/40' : 'bg-surface hover:bg-card-active',
+                          )}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-20 h-14 bg-bg-tertiary rounded-md flex items-center justify-center shrink-0">
-                              <Palette size={20} className="text-text-secondary" />
+                            <div className={clsx(
+                              'w-20 h-14 rounded-md flex items-center justify-center shrink-0',
+                              isActiveBuiltIn ? 'bg-accent/20' : 'bg-bg-tertiary',
+                            )}>
+                              {builtIn.type === 'ai-color' ? (
+                                <Wand2 size={20} className={isActiveBuiltIn ? 'text-accent' : 'text-violet-400'} />
+                              ) : (
+                                <Palette size={20} className={isActiveBuiltIn ? 'text-accent' : 'text-text-secondary'} />
+                              )}
                             </div>
                             <div className="grow min-w-0 flex flex-col justify-center">
                               <div className="flex items-center gap-1.5">
-                                <Text weight={TextWeights.medium} className="truncate">
+                                <Text weight={TextWeights.medium} className={clsx('truncate', isActiveBuiltIn && 'text-accent')}>
                                   {i18n.language === 'zh-CN' || i18n.language === 'zh' ? builtIn.nameZh : builtIn.name}
                                 </Text>
                                 {typeLabel && (
@@ -1437,6 +1497,32 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
                               </Text>
                             </div>
                           </div>
+                          <AnimatePresence initial={false}>
+                            {isActiveBuiltIn && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                                className="w-full cursor-auto overflow-hidden"
+                                onClick={(e: any) => e.stopPropagation()}
+                                onPointerDown={(e: any) => e.stopPropagation()}
+                              >
+                                <div className="mt-3 px-1 pb-1">
+                                  <Slider
+                                    min={0}
+                                    max={200}
+                                    defaultValue={100}
+                                    value={builtInPresetIntensity}
+                                    onChange={(e: any) => handleBuiltInIntensityChange(builtIn, Number(e.target.value))}
+                                    onDragStateChange={handleDragStateChange}
+                                    label={t('editor.presets.amount')}
+                                    step={1}
+                                  />
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       </motion.div>
                     );

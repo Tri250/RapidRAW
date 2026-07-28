@@ -432,7 +432,7 @@
       "generativeEditTitle": "Generative Edit",
       "enhancementTitle": "AI Enhancement",
       "superResolution": "Super Resolution",
-      "superResolutionTooltip": "Use AI super resolution to upscale image by 2x",
+      "superResolutionTooltip": "Use AI super resolution to upscale image (2x/3x/4x)",
       "skyReplace": "Sky Replace",
       "skyReplaceTooltip": "AI Sky Replace",
       "bgRemove": "BG Remove",
@@ -918,7 +918,9 @@
       "applyToExif": "Apply to EXIF",
       "applied": "Written to EXIF",
       "batchProgress": "Rating {{current}}/{{total}}...",
-      "batchComplete": "Completed rating for {{count}} images"
+      "batchComplete": "Completed rating for {{count}} images",
+      "error": "Failed to generate rating: {{error}}",
+      "applyError": "Failed to apply rating to EXIF: {{error}}"
     },
     "presets": {
       "amount": "Amount",
@@ -965,7 +967,26 @@
         "folder": "Folder",
         "preset": "Preset",
         "style": "Style",
-        "tool": "Tool"
+        "tool": "Tool",
+        "portrait": "Portrait",
+        "color": "Color",
+        "ai-color": "AI Color",
+        "combined": "Combined"
+      },
+      "filters": {
+        "all": "All",
+        "portrait": "Portrait",
+        "color": "Color",
+        "ai-color": "AI Color",
+        "combined": "Combined"
+      },
+      "groups": {
+        "recommended": "Recommended",
+        "my": "My Presets"
+      },
+      "autoAdjust": {
+        "label": "Smart Optimize",
+        "tooltip": "AI auto-optimize image adjustments"
       }
     },
     "switcher": {

@@ -1596,7 +1596,7 @@ pub struct GlobalAdjustments {
 
     pub has_lut: u32,
     pub lut_intensity: f32,
-    pub tonemapper_mode: u32,
+    pub tonemapper_mode: f32,
     _pad_lut2: f32,
     _pad_lut3: f32,
     _pad_lut4: f32,
@@ -2387,7 +2387,7 @@ fn get_global_adjustments_from_json(
         lut_intensity,
 
         tonemapper_mode: tonemapper_override
-            .unwrap_or_else(|| if tone_mapper == "agx" { 1 } else { 0 }),
+            .unwrap_or_else(|| if tone_mapper == "agx" { 1.0 } else { 0.0 }),
         _pad_lut2: 0.0,
         _pad_lut3: 0.0,
         _pad_lut4: 0.0,
