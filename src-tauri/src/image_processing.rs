@@ -2386,8 +2386,13 @@ fn get_global_adjustments_from_json(
         has_lut,
         lut_intensity,
 
-        tonemapper_mode: tonemapper_override
-            .unwrap_or_else(|| if tone_mapper == "agx" { 1.0 } else { 0.0 }),
+        tonemapper_mode: tonemapper_override.unwrap_or_else(|| {
+            if tone_mapper == "agx" {
+                1.0_f32
+            } else {
+                0.0_f32
+            }
+        }),
         _pad_lut2: 0.0,
         _pad_lut3: 0.0,
         _pad_lut4: 0.0,

@@ -1702,7 +1702,7 @@ pub fn generate_color_range_mask(
 
             let combined = hue_weight * sat_weight * lum_weight;
             let idx = (y * w + x) as usize;
-            mask_data[idx] = (combined * 255.0).round().clamp(0.0, 255.0) as u8;
+            mask_data[idx] = (combined * 255.0_f32).round().clamp(0.0_f32, 255.0_f32) as u8;
         }
     }
 
@@ -1717,19 +1717,11 @@ pub fn generate_color_range_mask(
 
     // Encode to PNG base64 data-URL for frontend compatibility (expects mask_data_base64 field)
     let gray_img = GrayImage::from_raw(w, h, mask_data).ok_or("Failed to build final GrayImage")?;
-    let mut png_buf: Vec<u8> = Vec::with_capacity((w * h) as usize * 2);
-    {
-        let mut cur = Cursor::new(&mut png_buf);
-        image::codecs::png::PngEncoder::new(&mut cur)
-            .write_image(
-                gray_img.as_raw(),
-                gray_img.width(),
-                gray_img.height(),
-                image::ExtendedColorType::L8,
-            )
-            .map_err(|e| format!("PNG encode failed: {}", e))?;
-    }
-    let b64 = general_purpose::STANDARD.encode(&png_buf);
+    let mut png_buf = Cursor::new(Vec::new());
+    gray_img
+        .write_to(&mut png_buf, ImageFormat::Png)
+        .map_err(|e| format!("PNG encode failed: {}", e))?;
+    let b64 = general_purpose::STANDARD.encode(png_buf.get_ref());
     let data_url = format!("data:image/png;base64,{}", b64);
 
     Ok(AiSkyMaskParameters {
