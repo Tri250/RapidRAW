@@ -2,7 +2,9 @@ use crate::ai_processing::{
     AiDepthMaskParameters, AiForegroundMaskParameters, AiSkyMaskParameters, AiSubjectMaskParameters,
 };
 use base64::{Engine as _, engine::general_purpose};
-use image::{DynamicImage, GenericImageView, GrayImage, ImageEncoder, ImageFormat, Luma, Rgba, RgbaImage};
+use image::{
+    DynamicImage, GenericImageView, GrayImage, ImageEncoder, ImageFormat, Luma, Rgba, RgbaImage,
+};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

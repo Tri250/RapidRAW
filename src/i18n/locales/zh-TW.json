@@ -67,13 +67,13 @@
       "whiteBalance": "白平衡"
     },
     "curves": {
-      "channelTitle": "{{channel}} 通道",
       "channels": {
         "blue": "藍色",
         "green": "綠色",
         "luma": "亮度",
         "red": "紅色"
       },
+      "channelTitle": "{{channel}} 通道",
       "copyParametric": "複製 {{channel}} 參數曲線",
       "copyPoint": "複製 {{channel}} 點曲線",
       "curveDataUnavailable": "曲線資料不可用。",
@@ -171,6 +171,7 @@
       "yellow": "黃色"
     },
     "editor": {
+      "aiBatchRating": "",
       "autoAdjust": "自動調整影像",
       "cancel": "取消",
       "colorLabel": "顏色標籤",
@@ -302,13 +303,6 @@
         "toggleAnalytics": "切換分析顯示"
       }
     },
-    "colorPanel": {
-      "title": "色彩"
-    },
-    "portraitPanel": {
-      "title": "人像",
-      "brushSize": "筆刷大小"
-    },
     "ai": {
       "actions": {
         "addNewComponent": "新增新元件",
@@ -333,6 +327,8 @@
         "switchToSubtract": "切換到減去"
       },
       "addNewEdit": "新增新編輯",
+      "bgRemove": "",
+      "bgRemoveTooltip": "",
       "brush": {
         "add": "新增",
         "erase": "擦除",
@@ -361,13 +357,14 @@
       "dropzoneText": "拖放到此處以建立新編輯",
       "editSettingsTitle": "編輯設定",
       "editsTitle": "編輯",
+      "enhancementTitle": "",
       "generativeEditTitle": "生成式編輯",
       "inpaintingTitle": "影像修復",
       "manualCleanupTitle": "手動清理",
       "mode": {
         "add": "新增",
-        "sub": "減去",
-        "inter": "相交"
+        "inter": "相交",
+        "sub": "減去"
       },
       "noImageSelected": "未選擇影像。",
       "params": {
@@ -379,7 +376,9 @@
         "aiEdit_one": "AI 編輯 {{count}}",
         "aiEdit_other": "AI 編輯 {{count}}",
         "clone": "仿製 {{count}}",
+        "clone_other": "",
         "heal": "修復 {{count}}",
+        "heal_other": "",
         "invertedName": "{{name}} 反轉",
         "quickErase": "快速擦除 {{count}}",
         "quickErase_one": "快速擦除 {{count}}",
@@ -404,7 +403,26 @@
         "quickEraseDesc": "填充選區以移除物件。",
         "selectionPropertiesTitle": "選區屬性",
         "useBasicInpaint": "使用基礎影像修復"
-      }
+      },
+      "skyReplace": "",
+      "skyReplaceTooltip": "",
+      "superResolution": "",
+      "superResolutionTooltip": ""
+    },
+    "aiRating": {
+      "applied": "",
+      "applyError": "",
+      "applying": "",
+      "applyToExif": "",
+      "batchComplete_other": "",
+      "batchProgress": "",
+      "description": "",
+      "error": "",
+      "generate": "",
+      "title": ""
+    },
+    "colorPanel": {
+      "title": "色彩"
     },
     "crop": {
       "aspectRatioHeading": "寬高比",
@@ -500,6 +518,7 @@
       "rotationHeading": "旋轉",
       "title": "裁剪與變換",
       "tooltips": {
+        "autoStraightenHorizon": "",
         "compositionOverlay": "構圖疊加",
         "flipHoriz": "水平翻轉影像",
         "flipVert": "垂直翻轉影像",
@@ -645,14 +664,15 @@
         "clickToOpenTooltip": "點選在新標籤頁中開啟地圖",
         "latitude": "緯度",
         "longitude": "經度",
+        "offlineFallback": "",
         "openExternal": "開啟地圖",
         "title": "GPS 位置"
       },
       "organization": {
         "addTagPlaceholder": "新增標籤...",
         "colorLabel": "顏色標籤",
-        "noTags": "無標籤",
         "none": "無",
+        "noTags": "無標籤",
         "rating": "評分",
         "ratingLabels": "評分與標籤",
         "tags": "標籤",
@@ -660,8 +680,57 @@
       },
       "title": "後設資料"
     },
+    "portraitPanel": {
+      "attributes": {
+        "all": "",
+        "child": "",
+        "elderFemale": "",
+        "elderMale": "",
+        "female": "",
+        "male": "",
+        "single": ""
+      },
+      "blemishActive": "",
+      "blemishCount_other": "",
+      "blemishHint": "",
+      "blemishRemoval": "",
+      "blemishStart": "",
+      "blemishUndo": "",
+      "blush": "",
+      "bodyHeightAmount": "",
+      "bodyReshape": "",
+      "bodySlimAmount": "",
+      "bodySymmetry": "",
+      "brushSize": "筆刷大小",
+      "eyeBrightenAmount": "",
+      "eyebrow": "",
+      "eyeEnhance": "",
+      "eyeEnlargeAmount": "",
+      "faceReshape": "",
+      "faceSlimAmount": "",
+      "foreheadAmount": "",
+      "hairAdjust": "",
+      "hairBrightness": "",
+      "hairHueShift": "",
+      "jawAmount": "",
+      "legLengthAmount": "",
+      "lipstick": "",
+      "makeup": "",
+      "oneClickBeauty": "",
+      "skinSmoothing": "",
+      "skinSmoothingDetailPreserve": "",
+      "skinSmoothingStrength": "",
+      "teethWhiten": "",
+      "teethWhitenBrightness": "",
+      "teethWhitenDesaturate": "",
+      "title": "人像"
+    },
     "presets": {
       "amount": "數量",
+      "autoAdjust": {
+        "label": "智慧最佳化",
+        "tooltip": "AI自動最佳化圖片調整參數"
+      },
       "dialog": {
         "allPresetFiles": "所有預設檔案",
         "exportAllTitle": "匯出所有預設",
@@ -670,6 +739,17 @@
         "legacyPreset": "舊版預設",
         "presetFile": "預設檔案",
         "rapidRawPreset": "RapidRAW 預設"
+      },
+      "filters": {
+        "ai-color": "AI色彩預設",
+        "all": "全部預設",
+        "color": "色彩預設",
+        "combined": "組合預設",
+        "portrait": "人像預設"
+      },
+      "groups": {
+        "my": "我的",
+        "recommended": "推薦"
       },
       "menu": {
         "configurePreset": "配置預設",
@@ -702,29 +782,14 @@
         "saveNew": "儲存為新預設"
       },
       "types": {
+        "ai-color": "AI色彩",
+        "color": "色彩",
+        "combined": "組合",
         "folder": "資料夾",
+        "portrait": "人像",
         "preset": "預設",
         "style": "風格",
-        "tool": "工具",
-        "portrait": "人像",
-        "color": "色彩",
-        "ai-color": "AI色彩",
-        "combined": "組合"
-      },
-      "filters": {
-        "all": "全部預設",
-        "portrait": "人像預設",
-        "color": "色彩預設",
-        "ai-color": "AI色彩預設",
-        "combined": "組合預設"
-      },
-      "groups": {
-        "recommended": "推薦",
-        "my": "我的"
-      },
-      "autoAdjust": {
-        "label": "智慧最佳化",
-        "tooltip": "AI自動最佳化圖片調整參數"
+        "tool": "工具"
       }
     },
     "switcher": {
@@ -810,6 +875,10 @@
       "metadata": "後設資料",
       "watermark": "水印"
     },
+    "share": {
+      "button": "",
+      "title": ""
+    },
     "status": {
       "cancelExport": "取消匯出",
       "cancelled": "匯出已取消",
@@ -817,12 +886,12 @@
       "estimatedSize": "預計檔案大小：約 {{size}}",
       "estimatedTotalSize": "預計總大小：約 {{size}}",
       "estimatingSize": "正在估算大小...",
+      "exporting": "匯出中…",
+      "exportingProgress": "匯出中…（{{current}}/{{total}}）",
       "exportMultiple": "匯出 {{count}} {{label}}",
       "exportMultiple_one": "匯出 {{count}} {{label}}",
       "exportMultiple_other": "匯出 {{count}} {{label}}",
       "exportSingle": "匯出 {{label}}",
-      "exporting": "匯出中…",
-      "exportingProgress": "匯出中…（{{current}}/{{total}}）",
       "failed": "匯出失敗",
       "noImageSelected": "未選擇要匯出的影像。",
       "noImagesSelected": "未選擇影像。",
@@ -851,21 +920,38 @@
     }
   },
   "library": {
+    "batch": {
+      "addToAlbum": "",
+      "delete": "",
+      "export": "",
+      "rate": "",
+      "selected_other": ""
+    },
     "community": {
       "actionSave": "儲存",
       "actionSaved": "已儲存",
       "actionSaving": "儲存中...",
+      "fetchError": "",
       "fetchingPresets": "正在從 GitHub 取得預設...",
       "footerHeading": "想讓您的預設被推薦？",
       "footerLinkText": "在 GitHub 上建立 Issue",
       "headerDesc": "發現社群建立的預設。",
       "headerTitle": "社群預設",
+      "noPresets": "",
+      "noPreview": "",
       "presetBy": "作者 {{creator}}",
+      "presetCount": "",
+      "refresh": "",
+      "retry": "",
       "searchPlaceholder": "搜尋預設...",
       "sortBy": "排序方式：",
       "sortMethods": {
         "name": "名稱（A-Z）"
       }
+    },
+    "favorites": {
+      "added": "",
+      "removed": ""
     },
     "filters": {
       "edited": {
@@ -984,10 +1070,34 @@
       "tooltipShutterSpeed": "快門速度",
       "tooltipVirtualCopy": "虛擬副本"
     },
+    "nav": {
+      "communityPresets": "",
+      "library": "",
+      "onlineSamples": ""
+    },
     "search": {
+      "advancedFilter": "",
+      "aiTagSuggestion": "",
+      "cameraModel": "",
+      "dateFrom": "",
+      "dateRange": "",
+      "dateTo": "",
+      "focalLength": "",
       "noResults": "未找到結果",
       "noResultsAiHint": " 如需更全面的搜尋，請在設定中啟用自動標籤。",
-      "noResultsDesc": "無法根據檔名或標籤找到影像。"
+      "noResultsDesc": "無法根據檔名或標籤找到影像。",
+      "suggestions": ""
+    },
+    "smartAlbum": {
+      "addField": "",
+      "conditions": "",
+      "create": "",
+      "createButton": "",
+      "name": "",
+      "preview_other": "",
+      "valueFalse": "",
+      "valuePlaceholder": "",
+      "valueTrue": ""
     },
     "sort": {
       "aperture": "光圈",
@@ -1003,9 +1113,9 @@
     "splash": {
       "addFolder": "新增資料夾",
       "brand": "RAW工坊",
-      "creditLine": "由「带娃的小陳工」為中國攝影者精心打造",
       "continueSession": "繼續會話",
       "contribute": "在 GitHub 上貢獻",
+      "creditLine": "由「带娃的小陳工」為中國攝影者精心打造",
       "descriptionAndroid": "一款極速、GPU 加速的 RAW 影像編輯器。開啟相簿以開始。",
       "descriptionDesktop": "一款極速、GPU 加速的 RAW 影像編輯器。開啟資料夾以開始。",
       "donate": "在 Ko-Fi 上捐贈",
@@ -1151,9 +1261,9 @@
     "createFolder": {
       "cancel": "取消",
       "create": "建立",
+      "invalidChars": "資料夾名稱不能包含：< > : \" / \\ | ? * 或控制字元",
       "placeholder": "輸入資料夾名稱...",
-      "title": "建立新資料夾",
-      "invalidChars": "資料夾名稱不能包含：< > : \" / \\ | ? * 或控制字元"
+      "title": "建立新資料夾"
     },
     "createGroup": {
       "placeholder": "輸入組名稱..."
@@ -1165,9 +1275,9 @@
       "applyButton_one": "應用到 1 張影像",
       "applyButton_other": "應用到 {{count}} 張影像",
       "bestImage": "最佳影像",
+      "blurryImagesTab": "模糊影像",
       "blurThreshold": "模糊臨界值",
       "blurThresholdDesc": "銳度評分低於此值的影像將被標記。值越高越嚴格。",
-      "blurryImagesTab": "模糊影像",
       "cancel": "取消",
       "close": "關閉",
       "cullingFailed": "篩選失敗",
@@ -1332,6 +1442,7 @@
       "cancel": "取消",
       "fileNamingTemplate": "檔案命名模板",
       "newName": "新名稱",
+      "overwriteWarning": "",
       "save": "儲存",
       "titleMultiple": "重新命名 {{count}} 張影像",
       "titleMultiple_one": "重新命名 {{count}} 張影像",
@@ -1351,6 +1462,7 @@
       "amount": "數量",
       "apply": "應用",
       "aspect": "縱橫比",
+      "autoCropTooltip": "切換自動裁剪",
       "cancel": "取消",
       "compareTooltip": "按住以對比",
       "distortion": "畸變",
@@ -1366,13 +1478,38 @@
       "title": "變換",
       "toggleGridTooltip": "切換網格",
       "toggleHelperLinesTooltip": "切換輔助線",
-      "autoCropTooltip": "切換自動裁剪",
       "vertical": "垂直",
       "xAxis": "X 軸",
       "yAxis": "Y 軸",
       "zoomInTooltip": "放大",
       "zoomOutTooltip": "縮小"
     }
+  },
+  "presetGallery": {
+    "add": "",
+    "addSource": "",
+    "addSourcePlaceholder": "",
+    "addSourceRejected": "",
+    "backToLibrary": "",
+    "download": "",
+    "downloaded": "",
+    "downloadFailed": "",
+    "downloading": "",
+    "imageLoadFailed": "",
+    "images": "",
+    "noPresets": "",
+    "noSources": "",
+    "noSourcesDesc": "",
+    "presets": "",
+    "refresh": "",
+    "refreshAll": "",
+    "removeSource": "",
+    "retry": "",
+    "saved": "",
+    "saveToPreview": "",
+    "showDetails": "",
+    "title": "",
+    "viewGallery": ""
   },
   "settings": {
     "adjustments": {
@@ -1390,6 +1527,11 @@
       "general": "通用",
       "processing": "處理",
       "shortcuts": "控制"
+    },
+    "contact": {
+      "description": "",
+      "heading": "",
+      "title": ""
     },
     "controls": {
       "keyboardTitle": "鍵盤控制",
@@ -1480,6 +1622,19 @@
       "xmpSync": "XMP 後設資料同步",
       "xmpSyncDesc": "將評分、顏色標籤和標籤同步到標準 XMP 附屬檔案，以便與其他照片編輯器相容。"
     },
+    "gpu": {
+      "acesNote": "",
+      "description": "",
+      "idle": "",
+      "pipelineStatus": "",
+      "pipelineStatusDesc": "",
+      "ready": "",
+      "retest": "",
+      "testing": "",
+      "title": "",
+      "unavailable": "",
+      "unavailableReason": ""
+    },
     "keybinds": {
       "actions": {
         "brush_size_down": "減小畫筆大小",
@@ -1550,6 +1705,16 @@
       "saved": "已儲存的鏡頭",
       "title": "我的鏡頭"
     },
+    "presetGallery": {
+      "addSource": "",
+      "addSourcePlaceholder": "",
+      "description": "",
+      "disabled": "",
+      "enabled": "",
+      "noSources": "",
+      "removeSource": "",
+      "title": ""
+    },
     "processing": {
       "ai": {
         "cloud": {
@@ -1601,6 +1766,8 @@
         },
         "title": "生成式 AI"
       },
+      "aiMirror": "",
+      "aiMirrorDesc": "",
       "backend": "處理後端",
       "backendDesc": "選擇圖形 API。推薦使用「自動」。在某些系統上可能解決崩潰問題。",
       "backends": {
@@ -1688,11 +1855,19 @@
       "workerThreads": "縮圖工作執行緒數",
       "workerThreadsDesc": "用於生成縮圖的並行執行緒數。較高的值可加快相簿載入速度，但會佔用更多 CPU 和記憶體。"
     },
+    "selftest": {
+      "allPassed": "",
+      "description": "",
+      "run": "",
+      "running": "",
+      "someFailed": "",
+      "title": ""
+    },
     "tagging": {
       "addCustomPlaceholder": "新增自定義 AI 標籤（逗號分隔）...",
       "addCustomTooltip": "新增 AI 標籤",
-      "addShortcutTooltip": "新增快捷方式",
       "addShortcutsPlaceholder": "新增快捷方式（逗號分隔）...",
+      "addShortcutTooltip": "新增快捷方式",
       "aiTagging": "AI 標籤",
       "aiTaggingDesc": "使用 AI（CLIP）模型啟用自動影像標籤。這將下載額外的模型，並在瀏覽資料夾時影響效能。標籤用於搜尋資料夾。",
       "amount": "數量",

@@ -67,13 +67,13 @@
       "whiteBalance": "ホワイトバランス"
     },
     "curves": {
-      "channelTitle": "{{channel}} チャンネル",
       "channels": {
         "blue": "ブルー",
         "green": "グリーン",
         "luma": "ルミナンス",
         "red": "レッド"
       },
+      "channelTitle": "{{channel}} チャンネル",
       "copyParametric": "{{channel}} パラメトリックカーブをコピー",
       "copyPoint": "{{channel}} ポイントカーブをコピー",
       "curveDataUnavailable": "カーブデータがありません。",
@@ -171,6 +171,7 @@
       "yellow": "イエロー"
     },
     "editor": {
+      "aiBatchRating": "",
       "autoAdjust": "画像を自動補正",
       "cancel": "キャンセル",
       "colorLabel": "カラーラベル",
@@ -302,13 +303,6 @@
         "toggleAnalytics": "アナリティクス表示の切り替え"
       }
     },
-    "colorPanel": {
-      "title": "カラー"
-    },
-    "portraitPanel": {
-      "title": "ポートレート",
-      "brushSize": "ブラシサイズ"
-    },
     "ai": {
       "actions": {
         "addNewComponent": "新しいコンポーネントを追加",
@@ -333,6 +327,8 @@
         "switchToSubtract": "減算に切り替え"
       },
       "addNewEdit": "新しい編集を追加",
+      "bgRemove": "",
+      "bgRemoveTooltip": "",
       "brush": {
         "add": "追加",
         "erase": "消去",
@@ -361,13 +357,14 @@
       "dropzoneText": "ここにドロップして新しい編集を作成",
       "editSettingsTitle": "編集設定",
       "editsTitle": "編集一覧",
+      "enhancementTitle": "",
       "generativeEditTitle": "生成編集",
       "inpaintingTitle": "インペインティング",
       "manualCleanupTitle": "手動クリーンアップ",
       "mode": {
         "add": "追加",
-        "sub": "削除",
-        "inter": "交差"
+        "inter": "交差",
+        "sub": "削除"
       },
       "noImageSelected": "画像が選択されていません。",
       "params": {
@@ -379,7 +376,9 @@
         "aiEdit_one": "AI編集 {{count}}",
         "aiEdit_other": "AI編集 {{count}}",
         "clone": "クローン {{count}}",
+        "clone_other": "",
         "heal": "修復 {{count}}",
+        "heal_other": "",
         "invertedName": "{{name}} 反転",
         "quickErase": "クイック消去 {{count}}",
         "quickErase_one": "クイック消去 {{count}}",
@@ -404,7 +403,26 @@
         "quickEraseDesc": "選択範囲を塗りつぶしてオブジェクトを削除します。",
         "selectionPropertiesTitle": "選択範囲のプロパティ",
         "useBasicInpaint": "簡易インペインティングを使用"
-      }
+      },
+      "skyReplace": "",
+      "skyReplaceTooltip": "",
+      "superResolution": "",
+      "superResolutionTooltip": ""
+    },
+    "aiRating": {
+      "applied": "",
+      "applyError": "",
+      "applying": "",
+      "applyToExif": "",
+      "batchComplete_other": "",
+      "batchProgress": "",
+      "description": "",
+      "error": "",
+      "generate": "",
+      "title": ""
+    },
+    "colorPanel": {
+      "title": "カラー"
     },
     "crop": {
       "aspectRatioHeading": "アスペクト比",
@@ -500,6 +518,7 @@
       "rotationHeading": "回転",
       "title": "切り抜きと変形",
       "tooltips": {
+        "autoStraightenHorizon": "",
         "compositionOverlay": "構図ガイド",
         "flipHoriz": "画像を水平方向に反転",
         "flipVert": "画像を垂直方向に反転",
@@ -645,14 +664,15 @@
         "clickToOpenTooltip": "クリックして新しいタブで地図を表示",
         "latitude": "緯度",
         "longitude": "経度",
+        "offlineFallback": "",
         "openExternal": "地図を開く",
         "title": "GPS位置情報"
       },
       "organization": {
         "addTagPlaceholder": "タグを追加...",
         "colorLabel": "カラーラベル",
-        "noTags": "タグなし",
         "none": "なし",
+        "noTags": "タグなし",
         "rating": "評価",
         "ratingLabels": "評価とラベル",
         "tags": "タグ",
@@ -660,8 +680,57 @@
       },
       "title": "メタデータ"
     },
+    "portraitPanel": {
+      "attributes": {
+        "all": "",
+        "child": "",
+        "elderFemale": "",
+        "elderMale": "",
+        "female": "",
+        "male": "",
+        "single": ""
+      },
+      "blemishActive": "",
+      "blemishCount_other": "",
+      "blemishHint": "",
+      "blemishRemoval": "",
+      "blemishStart": "",
+      "blemishUndo": "",
+      "blush": "",
+      "bodyHeightAmount": "",
+      "bodyReshape": "",
+      "bodySlimAmount": "",
+      "bodySymmetry": "",
+      "brushSize": "ブラシサイズ",
+      "eyeBrightenAmount": "",
+      "eyebrow": "",
+      "eyeEnhance": "",
+      "eyeEnlargeAmount": "",
+      "faceReshape": "",
+      "faceSlimAmount": "",
+      "foreheadAmount": "",
+      "hairAdjust": "",
+      "hairBrightness": "",
+      "hairHueShift": "",
+      "jawAmount": "",
+      "legLengthAmount": "",
+      "lipstick": "",
+      "makeup": "",
+      "oneClickBeauty": "",
+      "skinSmoothing": "",
+      "skinSmoothingDetailPreserve": "",
+      "skinSmoothingStrength": "",
+      "teethWhiten": "",
+      "teethWhitenBrightness": "",
+      "teethWhitenDesaturate": "",
+      "title": "ポートレート"
+    },
     "presets": {
       "amount": "適用量",
+      "autoAdjust": {
+        "label": "スマート最適化",
+        "tooltip": "AI自動最適化"
+      },
       "dialog": {
         "allPresetFiles": "すべてのプリセットファイル",
         "exportAllTitle": "すべてのプリセットを書き出し",
@@ -670,6 +739,17 @@
         "legacyPreset": "レガシープリセット",
         "presetFile": "プリセットファイル",
         "rapidRawPreset": "RapidRAWプリセット"
+      },
+      "filters": {
+        "ai-color": "AIカラー",
+        "all": "すべて",
+        "color": "カラー",
+        "combined": "コンビネーション",
+        "portrait": "ポートレート"
+      },
+      "groups": {
+        "my": "マイプリセット",
+        "recommended": "おすすめ"
       },
       "menu": {
         "configurePreset": "プリセットを構成",
@@ -702,29 +782,14 @@
         "saveNew": "新規プリセットとして保存"
       },
       "types": {
+        "ai-color": "AIカラー",
+        "color": "カラー",
+        "combined": "コンビネーション",
         "folder": "フォルダ",
+        "portrait": "ポートレート",
         "preset": "プリセット",
         "style": "スタイル",
-        "tool": "ツール",
-        "portrait": "ポートレート",
-        "color": "カラー",
-        "ai-color": "AIカラー",
-        "combined": "コンビネーション"
-      },
-      "filters": {
-        "all": "すべて",
-        "portrait": "ポートレート",
-        "color": "カラー",
-        "ai-color": "AIカラー",
-        "combined": "コンビネーション"
-      },
-      "groups": {
-        "recommended": "おすすめ",
-        "my": "マイプリセット"
-      },
-      "autoAdjust": {
-        "label": "スマート最適化",
-        "tooltip": "AI自動最適化"
+        "tool": "ツール"
       }
     },
     "switcher": {
@@ -810,6 +875,10 @@
       "metadata": "メタデータ",
       "watermark": "ウォーターマーク"
     },
+    "share": {
+      "button": "",
+      "title": ""
+    },
     "status": {
       "cancelExport": "書き出しをキャンセル",
       "cancelled": "書き出しがキャンセルされました",
@@ -817,12 +886,12 @@
       "estimatedSize": "推定ファイルサイズ: ~{{size}}",
       "estimatedTotalSize": "推定合計サイズ: ~{{size}}",
       "estimatingSize": "サイズを推定中...",
+      "exporting": "書き出し中…",
+      "exportingProgress": "書き出し中… ({{current}}/{{total}})",
       "exportMultiple": "{{count}} 件の {{label}} を書き出し",
       "exportMultiple_one": "{{count}} 件 of {{label}} を書き出し",
       "exportMultiple_other": "{{count}} 件の {{label}} を書き出し",
       "exportSingle": "{{label}} を書き出し",
-      "exporting": "書き出し中…",
-      "exportingProgress": "書き出し中… ({{current}}/{{total}})",
       "failed": "書き出しに失敗しました",
       "noImageSelected": "書き出す画像が選択されていません。",
       "noImagesSelected": "画像が選択されていません。",
@@ -850,21 +919,38 @@
     }
   },
   "library": {
+    "batch": {
+      "addToAlbum": "",
+      "delete": "",
+      "export": "",
+      "rate": "",
+      "selected_other": ""
+    },
     "community": {
       "actionSave": "保存",
       "actionSaved": "保存済み",
       "actionSaving": "保存中...",
+      "fetchError": "",
       "fetchingPresets": "GitHubからプリセットを取得中...",
       "footerHeading": "あなたのプリセットを掲載しませんか？",
       "footerLinkText": "GitHubでIssueを作成してください",
       "headerDesc": "コミュニティによって作成されたプリセットをご覧ください。",
       "headerTitle": "コミュニティプリセット",
+      "noPresets": "",
+      "noPreview": "",
       "presetBy": "作成者: {{creator}}",
+      "presetCount": "",
+      "refresh": "",
+      "retry": "",
       "searchPlaceholder": "プリセットを検索...",
       "sortBy": "並べ替え基準:",
       "sortMethods": {
         "name": "名前 (A-Z)"
       }
+    },
+    "favorites": {
+      "added": "",
+      "removed": ""
     },
     "filters": {
       "edited": {
@@ -983,10 +1069,34 @@
       "tooltipShutterSpeed": "シャッタースピード",
       "tooltipVirtualCopy": "仮想コピー"
     },
+    "nav": {
+      "communityPresets": "",
+      "library": "",
+      "onlineSamples": ""
+    },
     "search": {
+      "advancedFilter": "",
+      "aiTagSuggestion": "",
+      "cameraModel": "",
+      "dateFrom": "",
+      "dateRange": "",
+      "dateTo": "",
+      "focalLength": "",
       "noResults": "結果が見つかりません",
       "noResultsAiHint": " より包括的な検索を行うには、設定で自動タグ付けを有効にしてください。",
-      "noResultsDesc": "ファイル名またはタグに基づく画像が見つかりませんでした。"
+      "noResultsDesc": "ファイル名またはタグに基づく画像が見つかりませんでした。",
+      "suggestions": ""
+    },
+    "smartAlbum": {
+      "addField": "",
+      "conditions": "",
+      "create": "",
+      "createButton": "",
+      "name": "",
+      "preview_other": "",
+      "valueFalse": "",
+      "valuePlaceholder": "",
+      "valueTrue": ""
     },
     "sort": {
       "aperture": "絞り値",
@@ -1002,9 +1112,9 @@
     "splash": {
       "addFolder": "フォルダを追加",
       "brand": "RapidRAW",
-      "creditLine": "中国人フォトグラファーのために「带娃的小陈工」が丁寧に作りました",
       "continueSession": "セッションを続行",
       "contribute": "GitHubで貢献する",
+      "creditLine": "中国人フォトグラファーのために「带娃的小陈工」が丁寧に作りました",
       "descriptionAndroid": "圧倒的に高速な、GPUアクセラレーション対応RAW画像エディタ。ライブラリを開いて始めましょう。",
       "descriptionDesktop": "圧倒的に高速な、GPUアクセラレーション対応RAW画像エディタ。フォルダを開いて始めましょう。",
       "donate": "Ko-fiで寄付する",
@@ -1150,9 +1260,9 @@
     "createFolder": {
       "cancel": "キャンセル",
       "create": "作成",
+      "invalidChars": "フォルダ名に次の文字は使用できません：< > : \" / \\ | ? * および制御文字",
       "placeholder": "フォルダ名を入力...",
-      "title": "新規フォルダの作成",
-      "invalidChars": "フォルダ名に次の文字は使用できません：< > : \" / \\ | ? * および制御文字"
+      "title": "新規フォルダの作成"
     },
     "createGroup": {
       "placeholder": "グループ名を入力..."
@@ -1164,9 +1274,9 @@
       "applyButton_one": "1 枚の画像に適用",
       "applyButton_other": "{{count}} 枚の画像に適用",
       "bestImage": "ベスト画像",
+      "blurryImagesTab": "ぼやけた画像",
       "blurThreshold": "ブレのしきい値",
       "blurThresholdDesc": "この値以下のシャープネススコアを持つ画像にフラグを立てます。高いほど厳密になります。",
-      "blurryImagesTab": "ぼやけた画像",
       "cancel": "キャンセル",
       "close": "閉じる",
       "cullingFailed": "選別失敗",
@@ -1331,6 +1441,7 @@
       "cancel": "キャンセル",
       "fileNamingTemplate": "ファイル命名テンプレート",
       "newName": "新しい名前",
+      "overwriteWarning": "",
       "save": "保存",
       "titleMultiple": "{{count}} 件の画像名を変更",
       "titleMultiple_one": "{{count}} 件の画像名を変更",
@@ -1350,6 +1461,7 @@
       "amount": "適用量",
       "apply": "適用",
       "aspect": "アスペクト比",
+      "autoCropTooltip": "自動クロップ切替",
       "cancel": "キャンセル",
       "compareTooltip": "長押しで比較",
       "distortion": "歪み歪正",
@@ -1365,13 +1477,38 @@
       "title": "変形",
       "toggleGridTooltip": "グリッドを切り替え",
       "toggleHelperLinesTooltip": "ヘルプラインを切り替え",
-      "autoCropTooltip": "自動クロップ切替",
       "vertical": "垂直方向",
       "xAxis": "X軸",
       "yAxis": "Y軸",
       "zoomInTooltip": "拡大",
       "zoomOutTooltip": "縮小"
     }
+  },
+  "presetGallery": {
+    "add": "",
+    "addSource": "",
+    "addSourcePlaceholder": "",
+    "addSourceRejected": "",
+    "backToLibrary": "",
+    "download": "",
+    "downloaded": "",
+    "downloadFailed": "",
+    "downloading": "",
+    "imageLoadFailed": "",
+    "images": "",
+    "noPresets": "",
+    "noSources": "",
+    "noSourcesDesc": "",
+    "presets": "",
+    "refresh": "",
+    "refreshAll": "",
+    "removeSource": "",
+    "retry": "",
+    "saved": "",
+    "saveToPreview": "",
+    "showDetails": "",
+    "title": "",
+    "viewGallery": ""
   },
   "settings": {
     "adjustments": {
@@ -1389,6 +1526,11 @@
       "general": "一般",
       "processing": "画像処理",
       "shortcuts": "操作設定"
+    },
+    "contact": {
+      "description": "",
+      "heading": "",
+      "title": ""
     },
     "controls": {
       "keyboardTitle": "キーボードショートカット",
@@ -1479,6 +1621,19 @@
       "xmpSync": "XMPメタデータ同期",
       "xmpSyncDesc": "他の写真編集ソフトとの互換性のために、評価、カラーラベル、タグを標準のXMPサイドカーファイルと同期します。"
     },
+    "gpu": {
+      "acesNote": "",
+      "description": "",
+      "idle": "",
+      "pipelineStatus": "",
+      "pipelineStatusDesc": "",
+      "ready": "",
+      "retest": "",
+      "testing": "",
+      "title": "",
+      "unavailable": "",
+      "unavailableReason": ""
+    },
     "keybinds": {
       "actions": {
         "brush_size_down": "ブラシサイズを縮小",
@@ -1549,6 +1704,16 @@
       "saved": "登録されたレンズ",
       "title": "マイレンズ"
     },
+    "presetGallery": {
+      "addSource": "",
+      "addSourcePlaceholder": "",
+      "description": "",
+      "disabled": "",
+      "enabled": "",
+      "noSources": "",
+      "removeSource": "",
+      "title": ""
+    },
     "processing": {
       "ai": {
         "cloud": {
@@ -1600,6 +1765,8 @@
         },
         "title": "生成AI"
       },
+      "aiMirror": "",
+      "aiMirrorDesc": "",
       "backend": "処理バックエンド",
       "backendDesc": "グラフィックスAPIを選択します。「自動」を推奨します。一部のシステムでのクラッシュを回避できる場合があります。",
       "backends": {
@@ -1687,11 +1854,19 @@
       "workerThreads": "サムネイルワーカー数",
       "workerThreadsDesc": "サムネイル作成に使用する並行スレッドの数。値を大きくするとライブラリのロードが速くなりますが、CPUとメモリを多く使用します。"
     },
+    "selftest": {
+      "allPassed": "",
+      "description": "",
+      "run": "",
+      "running": "",
+      "someFailed": "",
+      "title": ""
+    },
     "tagging": {
       "addCustomPlaceholder": "カスタムAIタグを入力（カンマ区切り）...",
       "addCustomTooltip": "AIタグを追加",
-      "addShortcutTooltip": "ショートカットを追加",
       "addShortcutsPlaceholder": "ショートカットを入力（カンマ区切り）...",
+      "addShortcutTooltip": "ショートカットを追加",
       "aiTagging": "AIタグ付け",
       "aiTaggingDesc": "AI（CLIP）モデルを使用した自動画像タグ付けを有効にします。追加のモデルがダウンロードされ、フォルダ閲覧時のパフォーマンスに影響します。タグはフォルダ内検索に使用されます。",
       "amount": "適用度",

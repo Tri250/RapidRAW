@@ -67,13 +67,13 @@
       "whiteBalance": "Weißabgleich"
     },
     "curves": {
-      "channelTitle": "{{channel}}-Kanal",
       "channels": {
         "blue": "Blau",
         "green": "Grün",
         "luma": "Luma",
         "red": "Rot"
       },
+      "channelTitle": "{{channel}}-Kanal",
       "copyParametric": "Parametrische {{channel}}-Kurve kopieren",
       "copyPoint": "Punktkurve ({{channel}}) kopieren",
       "curveDataUnavailable": "Kurvendaten nicht verfügbar.",
@@ -171,6 +171,7 @@
       "yellow": "Gelb"
     },
     "editor": {
+      "aiBatchRating": "",
       "autoAdjust": "Bild autom. anpassen",
       "cancel": "Abbrechen",
       "colorLabel": "Farbmarkierung",
@@ -302,13 +303,6 @@
         "toggleAnalytics": "Analyseanzeige umschalten"
       }
     },
-    "colorPanel": {
-      "title": "Farbe"
-    },
-    "portraitPanel": {
-      "title": "Porträt",
-      "brushSize": "Pinselgröße"
-    },
     "ai": {
       "actions": {
         "addNewComponent": "Neue Komponente hinzufügen",
@@ -333,6 +327,8 @@
         "switchToSubtract": "Zu Subtrahieren wechseln"
       },
       "addNewEdit": "Neue Bearbeitung hinzufügen",
+      "bgRemove": "",
+      "bgRemoveTooltip": "",
       "brush": {
         "add": "Hinzufügen",
         "erase": "Löschen",
@@ -361,13 +357,14 @@
       "dropzoneText": "Hier ablegen, um eine neue Bearbeitung zu erstellen",
       "editSettingsTitle": "Bearbeitungseinstellungen",
       "editsTitle": "Bearbeitungen",
+      "enhancementTitle": "",
       "generativeEditTitle": "Generative Bearbeitung",
       "inpaintingTitle": "Reparieren",
       "manualCleanupTitle": "Manuelle Bereinigung",
       "mode": {
         "add": "Hinzufügen",
-        "sub": "Entfernen",
-        "inter": "Schnitt"
+        "inter": "Schnitt",
+        "sub": "Entfernen"
       },
       "noImageSelected": "Kein Bild ausgewählt.",
       "params": {
@@ -379,7 +376,11 @@
         "aiEdit_one": "KI-Bearbeitung {{count}}",
         "aiEdit_other": "KI-Bearbeitung {{count}}",
         "clone": "Klonen {{count}}",
+        "clone_one": "",
+        "clone_other": "",
         "heal": "Reparieren {{count}}",
+        "heal_one": "",
+        "heal_other": "",
         "invertedName": "{{name}} umgekehrt",
         "quickErase": "Schnelles Löschen {{count}}",
         "quickErase_one": "Schnelles Löschen {{count}}",
@@ -404,7 +405,27 @@
         "quickEraseDesc": "Auswahl füllen, um das Objekt zu entfernen.",
         "selectionPropertiesTitle": "Auswahleigenschaften",
         "useBasicInpaint": "Einfaches Reparieren verwenden"
-      }
+      },
+      "skyReplace": "",
+      "skyReplaceTooltip": "",
+      "superResolution": "",
+      "superResolutionTooltip": ""
+    },
+    "aiRating": {
+      "applied": "",
+      "applyError": "",
+      "applying": "",
+      "applyToExif": "",
+      "batchComplete_one": "",
+      "batchComplete_other": "",
+      "batchProgress": "",
+      "description": "",
+      "error": "",
+      "generate": "",
+      "title": ""
+    },
+    "colorPanel": {
+      "title": "Farbe"
     },
     "crop": {
       "aspectRatioHeading": "Seitenverhältnis",
@@ -500,6 +521,7 @@
       "rotationHeading": "Drehung",
       "title": "Zuschnitt & Form",
       "tooltips": {
+        "autoStraightenHorizon": "",
         "compositionOverlay": "Kompositions-Überlagerung",
         "flipHoriz": "Bild horizontal spiegeln",
         "flipVert": "Bild vertikal spiegeln",
@@ -645,14 +667,15 @@
         "clickToOpenTooltip": "Klicken, um die Karte in neuem Tab zu öffnen",
         "latitude": "Breitengrad",
         "longitude": "Längengrad",
+        "offlineFallback": "",
         "openExternal": "Karte öffnen",
         "title": "GPS-Standort"
       },
       "organization": {
         "addTagPlaceholder": "Tag hinzufügen...",
         "colorLabel": "Farbmarkierung",
-        "noTags": "Keine Tags",
         "none": "Keine",
+        "noTags": "Keine Tags",
         "rating": "Bewertung",
         "ratingLabels": "Bewertung & Markierungen",
         "tags": "Tags",
@@ -660,8 +683,58 @@
       },
       "title": "Metadaten"
     },
+    "portraitPanel": {
+      "attributes": {
+        "all": "",
+        "child": "",
+        "elderFemale": "",
+        "elderMale": "",
+        "female": "",
+        "male": "",
+        "single": ""
+      },
+      "blemishActive": "",
+      "blemishCount_one": "",
+      "blemishCount_other": "",
+      "blemishHint": "",
+      "blemishRemoval": "",
+      "blemishStart": "",
+      "blemishUndo": "",
+      "blush": "",
+      "bodyHeightAmount": "",
+      "bodyReshape": "",
+      "bodySlimAmount": "",
+      "bodySymmetry": "",
+      "brushSize": "Pinselgröße",
+      "eyeBrightenAmount": "",
+      "eyebrow": "",
+      "eyeEnhance": "",
+      "eyeEnlargeAmount": "",
+      "faceReshape": "",
+      "faceSlimAmount": "",
+      "foreheadAmount": "",
+      "hairAdjust": "",
+      "hairBrightness": "",
+      "hairHueShift": "",
+      "jawAmount": "",
+      "legLengthAmount": "",
+      "lipstick": "",
+      "makeup": "",
+      "oneClickBeauty": "",
+      "skinSmoothing": "",
+      "skinSmoothingDetailPreserve": "",
+      "skinSmoothingStrength": "",
+      "teethWhiten": "",
+      "teethWhitenBrightness": "",
+      "teethWhitenDesaturate": "",
+      "title": "Porträt"
+    },
     "presets": {
       "amount": "Stärke",
+      "autoAdjust": {
+        "label": "Smart-Optimierung",
+        "tooltip": "KI-autoptimierte Bildanpassungen"
+      },
       "dialog": {
         "allPresetFiles": "Alle Vorgabendateien",
         "exportAllTitle": "Alle Vorgaben exportieren",
@@ -670,6 +743,17 @@
         "legacyPreset": "Alte Vorgabe",
         "presetFile": "Vorgabendatei",
         "rapidRawPreset": "RapidRAW Vorgabe"
+      },
+      "filters": {
+        "ai-color": "AI-Farbe",
+        "all": "Alle",
+        "color": "Farbe",
+        "combined": "Kombiniert",
+        "portrait": "Porträt"
+      },
+      "groups": {
+        "my": "Meine Vorgaben",
+        "recommended": "Empfohlen"
       },
       "menu": {
         "configurePreset": "Vorgabe konfigurieren",
@@ -702,29 +786,14 @@
         "saveNew": "Als neue Vorgabe speichern"
       },
       "types": {
+        "ai-color": "AI-Farbe",
+        "color": "Farbe",
+        "combined": "Kombiniert",
         "folder": "Ordner",
+        "portrait": "Porträt",
         "preset": "Vorgabe",
         "style": "Stil",
-        "tool": "Werkzeug",
-        "portrait": "Porträt",
-        "color": "Farbe",
-        "ai-color": "AI-Farbe",
-        "combined": "Kombiniert"
-      },
-      "filters": {
-        "all": "Alle",
-        "portrait": "Porträt",
-        "color": "Farbe",
-        "ai-color": "AI-Farbe",
-        "combined": "Kombiniert"
-      },
-      "groups": {
-        "recommended": "Empfohlen",
-        "my": "Meine Vorgaben"
-      },
-      "autoAdjust": {
-        "label": "Smart-Optimierung",
-        "tooltip": "KI-autoptimierte Bildanpassungen"
+        "tool": "Werkzeug"
       }
     },
     "switcher": {
@@ -810,6 +879,10 @@
       "metadata": "Metadaten",
       "watermark": "Wasserzeichen"
     },
+    "share": {
+      "button": "",
+      "title": ""
+    },
     "status": {
       "cancelExport": "Export abbrechen",
       "cancelled": "Export abgebrochen",
@@ -817,12 +890,12 @@
       "estimatedSize": "Geschätzte Dateigröße: ~{{size}}",
       "estimatedTotalSize": "Geschätzte Gesamtgröße: ~{{size}}",
       "estimatingSize": "Größe wird geschätzt...",
+      "exporting": "Wird exportiert…",
+      "exportingProgress": "Wird exportiert… ({{current}}/{{total}})",
       "exportMultiple": "Exportiere {{count}} {{label}}",
       "exportMultiple_one": "Exportiere {{count}} {{label}}",
       "exportMultiple_other": "Exportiere {{count}} {{label}}",
       "exportSingle": "{{label}} exportieren",
-      "exporting": "Wird exportiert…",
-      "exportingProgress": "Wird exportiert… ({{current}}/{{total}})",
       "failed": "Export fehlgeschlagen",
       "noImageSelected": "Kein Bild zum Exportieren ausgewählt.",
       "noImagesSelected": "Keine Bilder ausgewählt.",
@@ -851,21 +924,39 @@
     }
   },
   "library": {
+    "batch": {
+      "addToAlbum": "",
+      "delete": "",
+      "export": "",
+      "rate": "",
+      "selected_one": "",
+      "selected_other": ""
+    },
     "community": {
       "actionSave": "Speichern",
       "actionSaved": "Gespeichert",
       "actionSaving": "Speichert...",
+      "fetchError": "",
       "fetchingPresets": "Vorgaben werden von GitHub abgerufen...",
       "footerHeading": "Möchten Sie Ihre Vorgabe hier sehen?",
       "footerLinkText": "Erstellen Sie ein Issue auf GitHub",
       "headerDesc": "Entdecken Sie Vorgaben, die von der Community erstellt wurden.",
       "headerTitle": "Community-Vorgaben",
+      "noPresets": "",
+      "noPreview": "",
       "presetBy": "von {{creator}}",
+      "presetCount": "",
+      "refresh": "",
+      "retry": "",
       "searchPlaceholder": "Vorgaben durchsuchen...",
       "sortBy": "Sortieren nach:",
       "sortMethods": {
         "name": "Name (A-Z)"
       }
+    },
+    "favorites": {
+      "added": "",
+      "removed": ""
     },
     "filters": {
       "edited": {
@@ -984,10 +1075,35 @@
       "tooltipShutterSpeed": "Verschlusszeit",
       "tooltipVirtualCopy": "Virtuelle Kopie"
     },
+    "nav": {
+      "communityPresets": "",
+      "library": "",
+      "onlineSamples": ""
+    },
     "search": {
+      "advancedFilter": "",
+      "aiTagSuggestion": "",
+      "cameraModel": "",
+      "dateFrom": "",
+      "dateRange": "",
+      "dateTo": "",
+      "focalLength": "",
       "noResults": "Keine Ergebnisse gefunden",
       "noResultsAiHint": " Für eine umfassendere Suche aktivieren Sie das automatische Tagging in den Einstellungen.",
-      "noResultsDesc": "Es konnte kein Bild basierend auf Dateinamen oder Tags gefunden werden."
+      "noResultsDesc": "Es konnte kein Bild basierend auf Dateinamen oder Tags gefunden werden.",
+      "suggestions": ""
+    },
+    "smartAlbum": {
+      "addField": "",
+      "conditions": "",
+      "create": "",
+      "createButton": "",
+      "name": "",
+      "preview_one": "",
+      "preview_other": "",
+      "valueFalse": "",
+      "valuePlaceholder": "",
+      "valueTrue": ""
     },
     "sort": {
       "aperture": "Blende",
@@ -1003,9 +1119,9 @@
     "splash": {
       "addFolder": "Ordner hinzufügen",
       "brand": "RapidRAW",
-      "creditLine": "Entwickelt von '带娃的小陈工' für chinesische Fotografen",
       "continueSession": "Sitzung fortsetzen",
       "contribute": "Auf GitHub beitragen",
+      "creditLine": "Entwickelt von '带娃的小陈工' für chinesische Fotografen",
       "descriptionAndroid": "Ein blitzschneller, GPU-beschleunigter RAW-Bildeditor. Öffnen Sie die Bibliothek, um zu beginnen.",
       "descriptionDesktop": "Ein blitzschneller, GPU-beschleunigter RAW-Bildeditor. Öffnen Sie einen Ordner, um zu beginnen.",
       "donate": "Spenden auf Ko-Fi",
@@ -1151,9 +1267,9 @@
     "createFolder": {
       "cancel": "Abbrechen",
       "create": "Erstellen",
+      "invalidChars": "Ordnername darf nicht enthalten: < > : \" / \\ | ? * oder Steuerzeichen",
       "placeholder": "Ordnernamen eingeben...",
-      "title": "Neuen Ordner erstellen",
-      "invalidChars": "Ordnername darf nicht enthalten: < > : \" / \\ | ? * oder Steuerzeichen"
+      "title": "Neuen Ordner erstellen"
     },
     "createGroup": {
       "placeholder": "Gruppennamen eingeben..."
@@ -1165,9 +1281,9 @@
       "applyButton_one": "Auf 1 Bild anwenden",
       "applyButton_other": "Auf {{count}} Bilder anwenden",
       "bestImage": "Bestes Bild",
+      "blurryImagesTab": "Unscharfe Bilder",
       "blurThreshold": "Unschärfe-Schwellenwert",
       "blurThresholdDesc": "Bilder mit einem Schärfewert unter diesem Wert werden markiert. Höher ist strenger.",
-      "blurryImagesTab": "Unscharfe Bilder",
       "cancel": "Abbrechen",
       "close": "Schließen",
       "cullingFailed": "Aussortieren fehlgeschlagen",
@@ -1332,6 +1448,7 @@
       "cancel": "Abbrechen",
       "fileNamingTemplate": "Dateibenennungsvorlage",
       "newName": "Neuer Name",
+      "overwriteWarning": "",
       "save": "Speichern",
       "titleMultiple": "{{count}} Bilder umbenennen",
       "titleMultiple_one": "{{count}} Bild umbenennen",
@@ -1351,6 +1468,7 @@
       "amount": "Betrag",
       "apply": "Anwenden",
       "aspect": "Seitenverhältnis",
+      "autoCropTooltip": "Auto-Zuschnitt umschalten",
       "cancel": "Abbrechen",
       "compareTooltip": "Halten zum Vergleichen",
       "distortion": "Verzerrung",
@@ -1366,13 +1484,38 @@
       "title": "Transformieren",
       "toggleGridTooltip": "Raster umschalten",
       "toggleHelperLinesTooltip": "Hilfslinien umschalten",
-      "autoCropTooltip": "Auto-Zuschnitt umschalten",
       "vertical": "Vertikal",
       "xAxis": "X-Achse",
       "yAxis": "Y-Achse",
       "zoomInTooltip": "Vergrößern",
       "zoomOutTooltip": "Verkleinern"
     }
+  },
+  "presetGallery": {
+    "add": "",
+    "addSource": "",
+    "addSourcePlaceholder": "",
+    "addSourceRejected": "",
+    "backToLibrary": "",
+    "download": "",
+    "downloaded": "",
+    "downloadFailed": "",
+    "downloading": "",
+    "imageLoadFailed": "",
+    "images": "",
+    "noPresets": "",
+    "noSources": "",
+    "noSourcesDesc": "",
+    "presets": "",
+    "refresh": "",
+    "refreshAll": "",
+    "removeSource": "",
+    "retry": "",
+    "saved": "",
+    "saveToPreview": "",
+    "showDetails": "",
+    "title": "",
+    "viewGallery": ""
   },
   "settings": {
     "adjustments": {
@@ -1390,6 +1533,11 @@
       "general": "Allgemein",
       "processing": "Verarbeitung",
       "shortcuts": "Steuerung"
+    },
+    "contact": {
+      "description": "",
+      "heading": "",
+      "title": ""
     },
     "controls": {
       "keyboardTitle": "Tastatursteuerung",
@@ -1480,6 +1628,19 @@
       "xmpSync": "XMP-Metadaten-Sync",
       "xmpSyncDesc": "Synchronisieren Sie Bewertungen, Farbmarkierungen und Tags in Standard-XMP-Filialdateien für Kompatibilität mit anderen Foto-Editoren."
     },
+    "gpu": {
+      "acesNote": "",
+      "description": "",
+      "idle": "",
+      "pipelineStatus": "",
+      "pipelineStatusDesc": "",
+      "ready": "",
+      "retest": "",
+      "testing": "",
+      "title": "",
+      "unavailable": "",
+      "unavailableReason": ""
+    },
     "keybinds": {
       "actions": {
         "brush_size_down": "Pinselgröße verringern",
@@ -1550,6 +1711,16 @@
       "saved": "Gespeicherte Objektive",
       "title": "Meine Objektive"
     },
+    "presetGallery": {
+      "addSource": "",
+      "addSourcePlaceholder": "",
+      "description": "",
+      "disabled": "",
+      "enabled": "",
+      "noSources": "",
+      "removeSource": "",
+      "title": ""
+    },
     "processing": {
       "ai": {
         "cloud": {
@@ -1601,6 +1772,8 @@
         },
         "title": "Generative KI"
       },
+      "aiMirror": "",
+      "aiMirrorDesc": "",
       "backend": "Verarbeitungs-Backend",
       "backendDesc": "Wählen Sie die Grafik-API. 'Auto' wird empfohlen. Kann Abstürze auf einigen Systemen beheben.",
       "backends": {
@@ -1688,11 +1861,19 @@
       "workerThreads": "Miniaturbild-Worker-Threads",
       "workerThreadsDesc": "Anzahl der parallelen Threads zur Generierung von Miniaturbildern. Höhere Werte beschleunigen das Laden der Bibliothek, nutzen aber mehr CPU & RAM."
     },
+    "selftest": {
+      "allPassed": "",
+      "description": "",
+      "run": "",
+      "running": "",
+      "someFailed": "",
+      "title": ""
+    },
     "tagging": {
       "addCustomPlaceholder": "Benutzerdefinierte KI-Tags hinzufügen (kommagetrennt)...",
       "addCustomTooltip": "KI-Tag hinzufügen",
-      "addShortcutTooltip": "Shortcut hinzufügen",
       "addShortcutsPlaceholder": "Shortcuts hinzufügen (kommagetrennt)...",
+      "addShortcutTooltip": "Shortcut hinzufügen",
       "aiTagging": "KI-Tagging",
       "aiTaggingDesc": "Aktiviert automatisches Bild-Tagging mit einem KI-Modell (CLIP). Dies lädt ein zusätzliches Modell herunter und beeinträchtigt die Leistung beim Durchsuchen.",
       "amount": "Betrag",
