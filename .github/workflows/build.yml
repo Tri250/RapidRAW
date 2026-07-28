@@ -203,6 +203,17 @@ jobs:
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
 
+      - name: Set Apple signing env vars
+        if: inputs.mobile == '' && runner.os == 'macOS' && steps.check-apple-secrets.outputs.has_apple_secrets == 'true'
+        shell: bash
+        run: |
+          echo "APPLE_CERTIFICATE=${{ secrets.APPLE_CERTIFICATE }}" >> "$GITHUB_ENV"
+          echo "APPLE_CERTIFICATE_PASSWORD=${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "APPLE_SIGNING_IDENTITY=${{ secrets.APPLE_SIGNING_IDENTITY }}" >> "$GITHUB_ENV"
+          echo "APPLE_ID=${{ secrets.APPLE_ID }}" >> "$GITHUB_ENV"
+          echo "APPLE_PASSWORD=${{ secrets.APPLE_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "APPLE_TEAM_ID=${{ secrets.APPLE_TEAM_ID }}" >> "$GITHUB_ENV"
+
       - id: tauri-build
         name: Build with tauri-action
         if: inputs.mobile == ''
@@ -217,16 +228,10 @@ jobs:
           # Tauri signing key (for update signatures, not code signing)
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # Apple code signing: only set env vars when Apple secrets are
-          # actually configured.  tauri-action interprets ANY non-empty value
-          # (even an empty string if the var is present) as "sign this build",
-          # so we must avoid setting them at all when secrets are missing.
-          APPLE_CERTIFICATE: ${{ steps.check-apple-secrets.outputs.has_apple_secrets == 'true' && secrets.APPLE_CERTIFICATE || '' }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ steps.check-apple-secrets.outputs.has_apple_secrets == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
-          APPLE_SIGNING_IDENTITY: ${{ steps.check-apple-secrets.outputs.has_apple_secrets == 'true' && secrets.APPLE_SIGNING_IDENTITY || '' }}
-          APPLE_ID: ${{ steps.check-apple-secrets.outputs.has_apple_secrets == 'true' && secrets.APPLE_ID || '' }}
-          APPLE_PASSWORD: ${{ steps.check-apple-secrets.outputs.has_apple_secrets == 'true' && secrets.APPLE_PASSWORD || '' }}
-          APPLE_TEAM_ID: ${{ steps.check-apple-secrets.outputs.has_apple_secrets == 'true' && secrets.APPLE_TEAM_ID || '' }}
+          # Apple code signing env vars are set conditionally via GITHUB_ENV
+          # in the "Set Apple signing env vars" step above. Do NOT set them
+          # here with || '' because tauri-action treats ANY present env var
+          # (even empty) as an instruction to code-sign.
         with:
           tagName: ${{ inputs.tag-name }}
           releaseName: 'RapidRAW v__VERSION__'
