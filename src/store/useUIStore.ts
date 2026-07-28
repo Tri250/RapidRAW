@@ -86,7 +86,6 @@ interface UIState {
   isLayoutReady: boolean;
   uiVisibility: UiVisibility;
   isLibraryExportPanelVisible: boolean;
-  showSettingsPanel: boolean;
 
   // Dimensions
   leftPanelWidth: number;
@@ -143,7 +142,6 @@ export const useUIStore = create<UIState>((set, get) => ({
   isLayoutReady: false,
   uiVisibility: { folderTree: true, filmstrip: true },
   isLibraryExportPanelVisible: false,
-  showSettingsPanel: false,
 
   leftPanelWidth: 256,
   rightPanelWidth: 320,

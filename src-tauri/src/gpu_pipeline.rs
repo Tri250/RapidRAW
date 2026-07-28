@@ -577,17 +577,32 @@ pub fn is_gpu_pipeline_ready() -> bool {
 /// Lets the frontend decide whether to expose GPU-accelerated quick-adjust
 /// entry points (e.g. ACES color science tools) without triggering a lazy
 /// init failure on every call.
+///
+/// On Android, wgpu init can block the main thread (pollster::block_on) and
+/// cause an ANR or native crash. Short-circuit to `false` to avoid this.
 #[tauri::command]
 pub fn is_gpu_adjustment_pipeline_ready() -> bool {
-    is_gpu_pipeline_ready()
+    #[cfg(target_os = "android")]
+    {
+        false
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        is_gpu_pipeline_ready()
+    }
 }
 
 /// Tauri command: clear any cached failure state and force a fresh GPU init
 /// probe on the next call. Exposed as a "重新检测" (re-test) entry point so
 /// users can retry after a driver update or dock/undock without restarting.
+///
+/// On Android, the GPU pipeline is disabled, so this is a no-op.
 #[tauri::command]
 pub fn reset_gpu_adjustment_pipeline() {
-    GPU_PIPELINE_HANDLE.reset();
+    #[cfg(not(target_os = "android"))]
+    {
+        GPU_PIPELINE_HANDLE.reset();
+    }
 }
 
 /// Three-state pipeline cache:

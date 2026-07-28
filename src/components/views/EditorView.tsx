@@ -16,7 +16,6 @@ import PresetsPanel from '../panel/right/PresetsPanel';
 import ExportPanel from '../panel/right/ExportPanel';
 import ColorPanelSwitcher from '../panel/right/ColorPanelSwitcher';
 import PortraitPanelSwitcher from '../panel/right/PortraitPanelSwitcher';
-import SettingsPanel from '../panel/SettingsPanel';
 import AndroidBottomNav from '../ui/AndroidBottomNav';
 
 import { useEditorStore } from '../../store/useEditorStore';
@@ -104,7 +103,6 @@ export default function EditorView({
     activeRightPanel,
     renderedRightPanel,
     slideDirection,
-    showSettingsPanel,
     setUI,
   } = useUIStore(
     useShallow((state) => ({
@@ -116,7 +114,6 @@ export default function EditorView({
       activeRightPanel: state.activeRightPanel,
       renderedRightPanel: state.renderedRightPanel,
       slideDirection: state.slideDirection,
-      showSettingsPanel: state.showSettingsPanel,
       setUI: state.setUI,
     })),
   );
@@ -209,24 +206,7 @@ export default function EditorView({
 
   const editorRightPanelContent = (
     <AnimatePresence mode="wait" custom={slideDirection}>
-      {showSettingsPanel ? (
-        <motion.div
-          animate="animate"
-          className="h-full w-full overflow-y-auto custom-scrollbar p-4"
-          custom={slideDirection}
-          exit="exit"
-          initial="initial"
-          key="settings"
-          variants={panelVariants}
-        >
-          <SettingsPanel
-            appSettings={appSettings}
-            onBack={() => setUI({ showSettingsPanel: false })}
-            onSettingsChange={handleSettingsChange}
-            rootPaths={rootPaths}
-          />
-        </motion.div>
-      ) : activeRightPanel ? (
+      {activeRightPanel ? (
         <motion.div
           animate="animate"
           className="h-full w-full"
@@ -285,7 +265,7 @@ export default function EditorView({
             ? {
                 height: isFullScreen
                   ? '0px'
-                  : `${(activeRightPanel || showSettingsPanel) ? compactEditorPanelHeight : compactEditorPanelCollapsedHeight}px`,
+                  : `${activeRightPanel ? compactEditorPanelHeight : compactEditorPanelCollapsedHeight}px`,
                 opacity: isFullScreen ? 0 : 1,
               }
             : {
@@ -296,7 +276,7 @@ export default function EditorView({
       >
         {isCompactPortrait ? (
           <>
-            {(activeRightPanel || showSettingsPanel) && !isFullScreen && (
+            {activeRightPanel && !isFullScreen && (
               <Resizer
                 direction={Orientation.Horizontal}
                 onMouseDown={createResizeHandler('compact', compactEditorPanelHeight)}
@@ -324,7 +304,7 @@ export default function EditorView({
                   'h-full overflow-hidden',
                   !isResizing && !isInstantTransition && 'transition-all duration-300 ease-in-out',
                 )}
-                style={{ width: (activeRightPanel || showSettingsPanel) ? `${rightPanelWidth}px` : '0px' }}
+                style={{ width: activeRightPanel ? `${rightPanelWidth}px` : '0px' }}
               >
                 <div style={{ width: `${rightPanelWidth}px` }} className="h-full">
                   {editorRightPanelContent}
@@ -333,7 +313,7 @@ export default function EditorView({
               <div
                 className={clsx(
                   'h-full border-l transition-colors',
-                  (activeRightPanel || showSettingsPanel) ? 'border-surface' : 'border-transparent',
+                  activeRightPanel ? 'border-surface' : 'border-transparent',
                 )}
               >
                 <RightPanelSwitcher

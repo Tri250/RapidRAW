@@ -627,13 +627,14 @@ const PreviewModeSwitch = ({ mode, onModeChange }: PreviewModeSwitchProps) => {
   );
 };
 
-const GpuPipelineProbe = () => {
+const GpuPipelineProbe = ({ isAndroid = false }: { isAndroid?: boolean }) => {
   const { t } = useTranslation();
   const [status, setStatus] = useState<'idle' | 'testing' | 'ready' | 'unavailable'>('idle');
   const [error, setError] = useState<string | null>(null);
 
   const runProbe = useCallback(
     async (resetFirst: boolean = false) => {
+      if (isAndroid) return;
       setStatus('testing');
       setError(null);
       try {
@@ -654,10 +655,19 @@ const GpuPipelineProbe = () => {
         setError(String(e?.message || e));
       }
     },
-    [t],
+    [t, isAndroid],
   );
 
   useEffect(() => {
+    if (isAndroid) {
+      setStatus('unavailable');
+      setError(
+        t('settings.gpu.unavailableReason', {
+          defaultValue: '当前 GPU 适配器无法初始化轻量计算管线，主管线仍可正常工作。',
+        }),
+      );
+      return;
+    }
     let cancelled = false;
     const probe = async () => {
       setStatus('testing');
@@ -684,7 +694,7 @@ const GpuPipelineProbe = () => {
     return () => {
       cancelled = true;
     };
-  }, [t]);
+  }, [t, isAndroid]);
 
   return (
     <div className="flex items-center gap-3 shrink-0">
@@ -1580,7 +1590,7 @@ export default function SettingsPanel({
                           })}
                         </Text>
                       </div>
-                      <GpuPipelineProbe />
+                      <GpuPipelineProbe isAndroid={isDeviceSide} />
                     </div>
                     <div className="text-xs text-text-secondary/70 leading-relaxed">
                       {t('settings.gpu.acesNote', {
