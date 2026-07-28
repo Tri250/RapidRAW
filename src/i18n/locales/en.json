@@ -432,7 +432,7 @@
       "generativeEditTitle": "Generative Edit",
       "enhancementTitle": "AI Enhancement",
       "superResolution": "Super Resolution",
-      "superResolutionTooltip": "Use AI super resolution to upscale image by 2x",
+      "superResolutionTooltip": "Use AI super resolution to upscale image (2x/3x/4x)",
       "skyReplace": "Sky Replace",
       "skyReplaceTooltip": "AI Sky Replace",
       "bgRemove": "BG Remove",
@@ -965,7 +965,26 @@
         "folder": "Folder",
         "preset": "Preset",
         "style": "Style",
-        "tool": "Tool"
+        "tool": "Tool",
+        "portrait": "Portrait",
+        "color": "Color",
+        "ai-color": "AI Color",
+        "combined": "Combined"
+      },
+      "filters": {
+        "all": "All",
+        "portrait": "Portrait",
+        "color": "Color",
+        "ai-color": "AI Color",
+        "combined": "Combined"
+      },
+      "groups": {
+        "recommended": "Recommended",
+        "my": "My Presets"
+      },
+      "autoAdjust": {
+        "label": "Smart Optimize",
+        "tooltip": "AI auto-optimize image adjustments"
       }
     },
     "switcher": {

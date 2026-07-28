@@ -705,7 +705,26 @@
         "folder": "폴더",
         "preset": "프리셋",
         "style": "스타일",
-        "tool": "도구"
+        "tool": "도구",
+        "portrait": "인물",
+        "color": "색상",
+        "ai-color": "AI 색상",
+        "combined": "조합"
+      },
+      "filters": {
+        "all": "전체",
+        "portrait": "인물",
+        "color": "색상",
+        "ai-color": "AI 색상",
+        "combined": "조합"
+      },
+      "groups": {
+        "recommended": "추천",
+        "my": "내 프리셋"
+      },
+      "autoAdjust": {
+        "label": "스마트 최적화",
+        "tooltip": "AI 자동 최적화"
       }
     },
     "switcher": {

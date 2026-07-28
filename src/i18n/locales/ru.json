@@ -705,7 +705,26 @@
         "folder": "Папка",
         "preset": "Псет",
         "style": "Стиль",
-        "tool": "Инструмент"
+        "tool": "Инструмент",
+        "portrait": "Портрет",
+        "color": "Цвет",
+        "ai-color": "AI-цвет",
+        "combined": "Комбинированный"
+      },
+      "filters": {
+        "all": "Все",
+        "portrait": "Портрет",
+        "color": "Цвет",
+        "ai-color": "AI-цвет",
+        "combined": "Комбинированный"
+      },
+      "groups": {
+        "recommended": "Рекомендуемые",
+        "my": "Мои пресеты"
+      },
+      "autoAdjust": {
+        "label": "Умная оптимизация",
+        "tooltip": "Автоматическая оптимизация ИИ"
       }
     },
     "switcher": {

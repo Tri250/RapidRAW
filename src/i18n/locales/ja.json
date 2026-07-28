@@ -705,7 +705,26 @@
         "folder": "フォルダ",
         "preset": "プリセット",
         "style": "スタイル",
-        "tool": "ツール"
+        "tool": "ツール",
+        "portrait": "ポートレート",
+        "color": "カラー",
+        "ai-color": "AIカラー",
+        "combined": "コンビネーション"
+      },
+      "filters": {
+        "all": "すべて",
+        "portrait": "ポートレート",
+        "color": "カラー",
+        "ai-color": "AIカラー",
+        "combined": "コンビネーション"
+      },
+      "groups": {
+        "recommended": "おすすめ",
+        "my": "マイプリセット"
+      },
+      "autoAdjust": {
+        "label": "スマート最適化",
+        "tooltip": "AI自動最適化"
       }
     },
     "switcher": {

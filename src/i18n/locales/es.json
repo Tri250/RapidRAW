@@ -705,7 +705,26 @@
         "folder": "Carpeta",
         "preset": "Ajuste preestablecido",
         "style": "Estilo",
-        "tool": "Herramienta"
+        "tool": "Herramienta",
+        "portrait": "Retrato",
+        "color": "Color",
+        "ai-color": "Color IA",
+        "combined": "Combinado"
+      },
+      "filters": {
+        "all": "Todo",
+        "portrait": "Retrato",
+        "color": "Color",
+        "ai-color": "Color IA",
+        "combined": "Combinado"
+      },
+      "groups": {
+        "recommended": "Recomendado",
+        "my": "Mis ajustes"
+      },
+      "autoAdjust": {
+        "label": "Optimización inteligente",
+        "tooltip": "Optimización automática con IA"
       }
     },
     "switcher": {

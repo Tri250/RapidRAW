@@ -705,7 +705,26 @@
         "folder": "Dossier",
         "preset": "Paramètre prédéfini",
         "style": "Style",
-        "tool": "Outil"
+        "tool": "Outil",
+        "portrait": "Portrait",
+        "color": "Couleur",
+        "ai-color": "Couleur IA",
+        "combined": "Combiné"
+      },
+      "filters": {
+        "all": "Tout",
+        "portrait": "Portrait",
+        "color": "Couleur",
+        "ai-color": "Couleur IA",
+        "combined": "Combiné"
+      },
+      "groups": {
+        "recommended": "Recommandé",
+        "my": "Mes paramètres"
+      },
+      "autoAdjust": {
+        "label": "Optimisation intelligente",
+        "tooltip": "Optimisation automatique par IA"
       }
     },
     "switcher": {

@@ -214,6 +214,11 @@ export default function LibraryGrid(props: any) {
     if (!isAndroid) return;
     const touch = e.touches[0];
     longPressStartRef.current = { x: touch.clientX, y: touch.clientY };
+    // Resolve the image path immediately at touch-start time to avoid stale DOM references
+    // after the list potentially re-renders during the 500ms long-press timeout
+    const target = e.target as HTMLElement;
+    const imageEl = target.closest('[data-image-path]') as HTMLElement | null;
+    const resolvedPath = imageEl?.dataset.imagePath || '';
     clearLongPress();
     longPressTimerRef.current = window.setTimeout(() => {
       if (!longPressStartRef.current) return;
@@ -223,11 +228,7 @@ export default function LibraryGrid(props: any) {
         preventDefault: () => {},
         stopPropagation: () => {},
       } as any;
-      // Find the actual image path from the touched element
-      const target = e.target as HTMLElement;
-      const imageEl = target.closest('[data-image-path]') as HTMLElement | null;
-      const path = imageEl?.dataset.imagePath || '';
-      onContextMenu?.(simulatedEvent, path);
+      onContextMenu?.(simulatedEvent, resolvedPath);
       longPressStartRef.current = null;
     }, LONG_PRESS_DURATION);
   }, [isAndroid, onContextMenu, clearLongPress]);

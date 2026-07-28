@@ -602,7 +602,7 @@ export function useAiMasking() {
 
   const handleApplySuperResolution = useCallback(
     async (scale: number = 2.0) => {
-      const { selectedImage } = useEditorStore.getState();
+      const { selectedImage, originalSize } = useEditorStore.getState();
       if (!selectedImage?.path) {
         toast.error('No image selected for super resolution');
         return;
@@ -611,9 +611,44 @@ export function useAiMasking() {
       setEditor({ isGeneratingAi: true });
       try {
         const resultBytes: number[] = await invoke(Invokes.ApplySuperResolution, { scale });
-        const tempPath: string = await invoke(Invokes.SaveTempFile, { bytes: resultBytes });
-        toast.success(`Super resolution saved to: ${tempPath}`);
-        return tempPath;
+        const uint8 = new Uint8Array(resultBytes);
+        const blob = new Blob([uint8], { type: 'image/png' });
+        const url = URL.createObjectURL(blob);
+
+        // Decode PNG dimensions from the result bytes (PNG header contains width/height at offset 16)
+        let newWidth = Math.round((originalSize?.width || selectedImage.width || 0) * scale);
+        let newHeight = Math.round((originalSize?.height || selectedImage.height || 0) * scale);
+        if (uint8.length > 24) {
+          const dv = new DataView(uint8.buffer, uint8.byteOffset, uint8.byteLength);
+          // PNG IHDR chunk: width at byte 16, height at byte 20 (big-endian)
+          const pngW = dv.getUint32(16, false);
+          const pngH = dv.getUint32(20, false);
+          if (pngW > 0 && pngH > 0) {
+            newWidth = pngW;
+            newHeight = pngH;
+          }
+        }
+
+        setEditor((state) => {
+          // Revoke previous preview URL
+          const prevUrl = state.finalPreviewUrl;
+          if (prevUrl && prevUrl.startsWith('blob:')) {
+            setTimeout(() => URL.revokeObjectURL(prevUrl), 100);
+          }
+          return {
+            finalPreviewUrl: url,
+            originalSize: { width: newWidth, height: newHeight },
+            selectedImage: state.selectedImage
+              ? {
+                  ...state.selectedImage,
+                  width: newWidth,
+                  height: newHeight,
+                }
+              : state.selectedImage,
+          };
+        });
+
+        toast.success(`Super resolution ${scale}x applied (${newWidth}×${newHeight})`);
       } catch (err: any) {
         toast.error(`Super Resolution Failed: ${err.message || String(err)}`);
       } finally {
@@ -855,9 +890,20 @@ export function useAiMasking() {
           orientationSteps: adjustments.orientationSteps,
           rotation: adjustments.rotation,
         });
-        const tempPath: string = await invoke(Invokes.SaveTempFile, { bytes: resultBytes });
+        const uint8 = new Uint8Array(resultBytes);
+        const blob = new Blob([uint8], { type: 'image/png' });
+        const url = URL.createObjectURL(blob);
+
+        setEditor((state) => {
+          const prevUrl = state.finalPreviewUrl;
+          if (prevUrl && prevUrl.startsWith('blob:')) {
+            setTimeout(() => URL.revokeObjectURL(prevUrl), 100);
+          }
+          return { finalPreviewUrl: url };
+        });
+
         toast.success('AI Sky Replace completed');
-        return tempPath;
+        return url;
       } catch (error) {
         toast.error(`AI Sky Replace Failed: ${error}`);
         return null;
@@ -884,9 +930,20 @@ export function useAiMasking() {
           orientationSteps: adjustments.orientationSteps,
           rotation: adjustments.rotation,
         });
-        const tempPath: string = await invoke(Invokes.SaveTempFile, { bytes: resultBytes });
+        const uint8 = new Uint8Array(resultBytes);
+        const blob = new Blob([uint8], { type: 'image/png' });
+        const url = URL.createObjectURL(blob);
+
+        setEditor((state) => {
+          const prevUrl = state.finalPreviewUrl;
+          if (prevUrl && prevUrl.startsWith('blob:')) {
+            setTimeout(() => URL.revokeObjectURL(prevUrl), 100);
+          }
+          return { finalPreviewUrl: url };
+        });
+
         toast.success('AI Background Remove completed');
-        return tempPath;
+        return url;
       } catch (error) {
         toast.error(`AI Background Remove Failed: ${error}`);
         return null;

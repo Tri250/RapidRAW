@@ -743,7 +743,26 @@
         "folder": "Folder",
         "preset": "Preset",
         "style": "Styl",
-        "tool": "Narzędzie"
+        "tool": "Narzędzie",
+        "portrait": "Portret",
+        "color": "Kolor",
+        "ai-color": "Kolor AI",
+        "combined": "Połączony"
+      },
+      "filters": {
+        "all": "Wszystkie",
+        "portrait": "Portret",
+        "color": "Kolor",
+        "ai-color": "Kolor AI",
+        "combined": "Połączony"
+      },
+      "groups": {
+        "recommended": "Zalecane",
+        "my": "Moje presety"
+      },
+      "autoAdjust": {
+        "label": "Inteligentna optymalizacja",
+        "tooltip": "Automatyczna optymalizacja AI"
       }
     },
     "switcher": {

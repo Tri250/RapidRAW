@@ -705,7 +705,26 @@
         "folder": "Cartella",
         "preset": "Predefinito",
         "style": "Stile",
-        "tool": "Strumento"
+        "tool": "Strumento",
+        "portrait": "Ritratto",
+        "color": "Colore",
+        "ai-color": "Colore IA",
+        "combined": "Combinato"
+      },
+      "filters": {
+        "all": "Tutto",
+        "portrait": "Ritratto",
+        "color": "Colore",
+        "ai-color": "Colore IA",
+        "combined": "Combinato"
+      },
+      "groups": {
+        "recommended": "Consigliato",
+        "my": "I miei preset"
+      },
+      "autoAdjust": {
+        "label": "Ottimizzazione intelligente",
+        "tooltip": "Ottimizzazione automatica IA"
       }
     },
     "switcher": {
