@@ -11,7 +11,7 @@ use wgpu::util::{DeviceExt, TextureDataOrder};
 
 use crate::image_processing::{AllAdjustments, GpuContext, MAX_MASKS};
 use crate::lut_processing::Lut;
-use crate::{AppState, GpuImageCache};
+use crate::{AppState, GpuImageCache, MutexResilient};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Roi {
@@ -166,7 +166,7 @@ pub fn get_or_init_gpu_context(
     #[cfg(not(any(target_os = "android", target_os = "linux")))]
     let app_handle = _app_handle;
 
-    let mut context_lock = state.gpu_context.lock().unwrap();
+    let mut context_lock = state.gpu_context.lock_resilient();
     if let Some(context) = &*context_lock {
         return Ok(context.clone());
     }
@@ -188,7 +188,7 @@ pub fn get_or_init_gpu_context(
         instance_desc.backends = wgpu::Backends::PRIMARY;
     }
 
-    let flag_path = state.gpu_crash_flag_path.lock().unwrap().clone();
+    let flag_path = state.gpu_crash_flag_path.lock_resilient().clone();
     if let Some(p) = &flag_path {
         if let Some(parent) = p.parent() {
             let _ = std::fs::create_dir_all(parent);
@@ -1687,7 +1687,7 @@ fn process_and_get_dynamic_image_inner(
 
     let mut reallocated = false;
 
-    let mut processor_lock = state.gpu_processor.lock().unwrap();
+    let mut processor_lock = state.gpu_processor.lock_resilient();
     let mut needs_new_processor = false;
     let new_width = (width + 255) & !255;
     let new_height = (height + 255) & !255;
@@ -1767,7 +1767,7 @@ fn process_and_get_dynamic_image_inner(
         display.current_bind_group = Some(bind_group);
     }
 
-    let mut cache_lock = state.gpu_image_cache.lock().unwrap();
+    let mut cache_lock = state.gpu_image_cache.lock_resilient();
     let mut needs_new_cache = false;
 
     if let Some(cache) = &*cache_lock {

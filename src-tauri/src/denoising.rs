@@ -1,3 +1,4 @@
+use crate::MutexResilient;
 use crate::app_settings::load_settings;
 use crate::app_state::AppState;
 use crate::file_management::parse_virtual_path;
@@ -78,7 +79,7 @@ pub async fn apply_denoising(
     let result = tokio::task::spawn_blocking(move || {
         denoise_image(path_str, intensity, method, app_handle.clone(), ai_session)
             .map(|(image, _)| {
-                *denoise_result_handle.lock().unwrap() = Some(image);
+                *denoise_result_handle.lock_resilient() = Some(image);
             })
             .map_err(|e| {
                 let _ = app_handle.emit("denoise-error", e.clone());
@@ -200,7 +201,7 @@ pub async fn save_denoised_image(
     original_path_str: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<String, String> {
-    let denoised_image = state.denoise_result.lock().unwrap().take().ok_or_else(|| {
+    let denoised_image = state.denoise_result.lock_resilient().take().ok_or_else(|| {
         "No denoised image found in memory. It might have already been saved or cleared."
             .to_string()
     })?;

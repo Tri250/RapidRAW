@@ -7,6 +7,7 @@ use std::io::Cursor;
 use base64::{Engine as _, engine::general_purpose};
 use image::{GenericImageView, GrayImage, ImageFormat, Rgba};
 
+use crate::MutexResilient;
 use crate::ai_connector;
 use crate::ai_processing::{
     AiDepthMaskParameters, AiForegroundMaskParameters, AiSkyMaskParameters,
@@ -140,7 +141,7 @@ pub async fn generate_ai_depth_mask(
     };
 
     let cached_depth = {
-        let mut ai_state_lock = state.ai_state.lock().unwrap();
+        let mut ai_state_lock = state.ai_state.lock_resilient();
         let ai_state = ai_state_lock.as_mut().ok_or("AI state not initialized")?;
 
         if let Some(cached) = &ai_state.depth_map {
@@ -229,7 +230,7 @@ pub async fn generate_ai_subject_mask(
     };
 
     let embeddings = {
-        let mut ai_state_lock = state.ai_state.lock().unwrap();
+        let mut ai_state_lock = state.ai_state.lock_resilient();
         let ai_state = ai_state_lock.as_mut().ok_or("AI state not initialized")?;
 
         if let Some(cached_embeddings) = &ai_state.embeddings {
@@ -393,7 +394,7 @@ pub async fn precompute_ai_subject_mask(
         hasher.finalize().to_hex().to_string()
     };
 
-    let mut ai_state_lock = state.ai_state.lock().unwrap();
+    let mut ai_state_lock = state.ai_state.lock_resilient();
     let ai_state = ai_state_lock.as_mut().ok_or("AI state not initialized")?;
 
     if let Some(cached_embeddings) = &ai_state.embeddings
@@ -763,8 +764,7 @@ pub async fn generate_ai_sky_replace(
 ) -> Result<Vec<u8>, String> {
     let loaded_image = state
         .original_image
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .clone()
         .ok_or("No original image loaded")?;
 
@@ -933,8 +933,7 @@ pub async fn generate_ai_background_remove(
 ) -> Result<Vec<u8>, String> {
     let loaded_image = state
         .original_image
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .clone()
         .ok_or("No original image loaded")?;
 
@@ -993,8 +992,7 @@ pub async fn apply_super_resolution(
 ) -> Result<Vec<u8>, String> {
     let loaded_image = state
         .original_image
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .clone()
         .ok_or("No original image loaded")?;
 

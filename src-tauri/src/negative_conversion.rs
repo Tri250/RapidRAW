@@ -1,3 +1,4 @@
+use crate::MutexResilient;
 use crate::file_management::{parse_virtual_path, read_file_mapped};
 use crate::image_loader::load_base_image_from_bytes;
 use base64::{Engine as _, engine::general_purpose};
@@ -214,13 +215,13 @@ pub async fn preview_negative_conversion(
     let cache_key = hasher.finish();
 
     let base_image_for_processing = {
-        let mut cache = state.geometry_cache.lock().unwrap();
+        let mut cache = state.geometry_cache.lock_resilient();
 
         if let Some(cached_img) = cache.get(&cache_key) {
             cached_img.clone()
         } else {
             let image_to_downscale = {
-                let original_lock = state.original_image.lock().unwrap();
+                let original_lock = state.original_image.lock_resilient();
                 if let Some(loaded) = original_lock.as_ref() {
                     if loaded.path == source_path_str {
                         loaded.image.clone().as_ref().clone()

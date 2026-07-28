@@ -1,3 +1,4 @@
+use crate::MutexResilient;
 use crate::app_settings::load_settings;
 use crate::app_state::AppState;
 use crate::file_management::parse_virtual_path;
@@ -97,7 +98,7 @@ pub async fn stitch_panorama(
                 let base64_str = general_purpose::STANDARD.encode(buf.get_ref());
                 let final_base64 = format!("data:image/png;base64,{}", base64_str);
 
-                *panorama_result_handle.lock().unwrap() = Some(panorama_image);
+                *panorama_result_handle.lock_resilient() = Some(panorama_image);
 
                 let _ = app_handle.emit(
                     "panorama-complete",
