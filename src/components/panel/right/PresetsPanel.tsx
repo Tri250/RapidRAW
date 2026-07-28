@@ -564,7 +564,7 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
   const [presetIntensity, setPresetIntensity] = useState<number>(100);
   const [baseAdjustments, setBaseAdjustments] = useState<Adjustments | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'portrait' | 'color' | 'ai-color' | 'combined'>('all');
-  const [activeGroup, setActiveGroup] = useState<'recommended' | 'my'>('my');
+  const [activeGroup, setActiveGroup] = useState<'recommended' | 'my'>('recommended');
 
   // Built-in preset active state (separate from user presets)
   const [activeBuiltInPresetId, setActiveBuiltInPresetId] = useState<string | null>(null);

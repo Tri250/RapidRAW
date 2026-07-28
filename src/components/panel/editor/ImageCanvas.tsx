@@ -49,6 +49,8 @@ interface ImageCanvasProps {
   isRotationActive?: boolean;
   maskOverlayUrl: string | null;
   onGenerateAiMask(id: string | null, start: Coord, end: Coord): void;
+  onGenerateColorRangeMask?(subMaskId: string, parameters: any): void;
+  onGenerateLuminanceRangeMask?(subMaskId: string, parameters: any): void;
   onLiveMaskPreview?: (previewMaskDef: any) => void;
   onManualCleanup?(subMaskId: string, sourceX: number, sourceY: number): Promise<void> | void;
   onQuickErase(subMaskId: string | null, startPoint: Coord, endpoint: Coord): void;
@@ -1277,6 +1279,8 @@ const ImageCanvas = memo(
     isRotationActive,
     maskOverlayUrl,
     onGenerateAiMask,
+    onGenerateColorRangeMask,
+    onGenerateLuminanceRangeMask,
     onLiveMaskPreview,
     onManualCleanup,
     onQuickErase,
@@ -1952,6 +1956,14 @@ const ImageCanvas = memo(
 
           const activeId = isMasking ? activeMaskId : activeAiSubMaskId;
           updateSubMask(activeId, { parameters: newParams });
+
+          if (activeId) {
+            if (activeSubMask.type === Mask.Color && onGenerateColorRangeMask) {
+              onGenerateColorRangeMask(activeId, newParams);
+            } else if (activeSubMask.type === Mask.Luminance && onGenerateLuminanceRangeMask) {
+              onGenerateLuminanceRangeMask(activeId, newParams);
+            }
+          }
           return;
         }
 

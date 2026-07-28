@@ -154,7 +154,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
     [debouncedSetHistory, setEditor],
   );
 
-  const { handleGenerateAiMask, handleQuickErase, handleManualCleanup } = useAiMasking();
+  const { handleGenerateAiMask, handleQuickErase, handleManualCleanup, handleGenerateColorRangeMask, handleGenerateLuminanceRangeMask } = useAiMasking();
 
   const [crop, setCrop] = useState<Crop | null>(null);
   const prevCropParams = useRef<any>(null);
@@ -2113,6 +2113,8 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
             isSliderDragging={isSliderDragging}
             maskOverlayUrl={maskOverlayUrl}
             onGenerateAiMask={handleGenerateAiMask}
+            onGenerateColorRangeMask={handleGenerateColorRangeMask}
+            onGenerateLuminanceRangeMask={handleGenerateLuminanceRangeMask}
             onSelectAiPatchContainer={handleSelectAiPatchContainer}
             onSelectMaskContainer={handleSelectMaskContainer}
             onLiveMaskPreview={handleLiveMaskPreview}

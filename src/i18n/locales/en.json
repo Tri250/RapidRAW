@@ -918,7 +918,9 @@
       "applyToExif": "Apply to EXIF",
       "applied": "Written to EXIF",
       "batchProgress": "Rating {{current}}/{{total}}...",
-      "batchComplete": "Completed rating for {{count}} images"
+      "batchComplete": "Completed rating for {{count}} images",
+      "error": "Failed to generate rating: {{error}}",
+      "applyError": "Failed to apply rating to EXIF: {{error}}"
     },
     "presets": {
       "amount": "Amount",

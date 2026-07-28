@@ -206,8 +206,12 @@ pub async fn generate_manual_cleanup_patch(
             }
         }
     } else {
-        let bw = (max_x - min_x + 3).min(img_w_usize);
-        let bh = (max_y - min_y + 3).min(img_h_usize);
+        // Padding of 1 pixel on each side around the mask bounding box so the
+        // Poisson solver has a proper boundary ring. Previously this was clamped
+        // to the image dimensions, which silently dropped mask columns/rows when
+        // the mask touched the image edge.
+        let bw = max_x - min_x + 3;
+        let bh = max_y - min_y + 3;
 
         if bw < 3 || bh < 3 {
             return Err("Heal region too small to process.".to_string());
@@ -237,31 +241,55 @@ pub async fn generate_manual_cleanup_patch(
 
         let mut omega_coords = Vec::with_capacity(bw * bh);
 
-        for y in 1..(bh - 1) {
-            for x in 1..(bw - 1) {
+        // Detect boundary cells across the whole buffer (including the outer
+        // ring x==0 / y==0 / x==bw-1 / y==bh-1). The previous loop only covered
+        // 1..bw-1 / 1..bh-1, so when the mask was not touching the image edge
+        // the valid image pixels just outside the mask were left as v=0 instead
+        // of being seeded with (dest - src), producing a visible seam.
+        for y in 0..bh {
+            for x in 0..bw {
                 if region[y * bw + x] == 0 {
-                    if region[(y - 1) * bw + x] == 1
-                        || region[(y + 1) * bw + x] == 1
-                        || region[y * bw + x - 1] == 1
-                        || region[y * bw + x + 1] == 1
-                    {
+                    let mut is_boundary = false;
+                    if y > 0 && region[(y - 1) * bw + x] == 1 {
+                        is_boundary = true;
+                    }
+                    if y + 1 < bh && region[(y + 1) * bw + x] == 1 {
+                        is_boundary = true;
+                    }
+                    if x > 0 && region[y * bw + x - 1] == 1 {
+                        is_boundary = true;
+                    }
+                    if x + 1 < bw && region[y * bw + x + 1] == 1 {
+                        is_boundary = true;
+                    }
+
+                    if is_boundary {
                         region[y * bw + x] = 2;
 
-                        let img_x = (min_x as i32 + x as i32 - 1) as u32;
-                        let img_y = (min_y as i32 + y as i32 - 1) as u32;
+                        let img_x = min_x as i32 + x as i32 - 1;
+                        let img_y = min_y as i32 + y as i32 - 1;
 
-                        let src_x = (img_x as i32 + offset_x).clamp(0, img_w as i32 - 1) as u32;
-                        let src_y = (img_y as i32 + offset_y).clamp(0, img_h as i32 - 1) as u32;
+                        // Only seed the boundary value when the pixel is inside
+                        // the image. Pixels outside (mask touching the image
+                        // edge) keep v=0, acting as a Neumann boundary.
+                        if img_x >= 0 && img_x < img_w as i32 && img_y >= 0 && img_y < img_h as i32 {
+                            let src_x = (img_x + offset_x).clamp(0, img_w as i32 - 1) as u32;
+                            let src_y = (img_y + offset_y).clamp(0, img_h as i32 - 1) as u32;
 
-                        let dest_px = source_image.get_pixel(img_x, img_y);
-                        let src_px = source_image.get_pixel(src_x, src_y);
+                            let dest_px = source_image.get_pixel(img_x as u32, img_y as u32);
+                            let src_px = source_image.get_pixel(src_x, src_y);
 
-                        v_r[y * bw + x] = dest_px[0] as f32 - src_px[0] as f32;
-                        v_g[y * bw + x] = dest_px[1] as f32 - src_px[1] as f32;
-                        v_b[y * bw + x] = dest_px[2] as f32 - src_px[2] as f32;
+                            v_r[y * bw + x] = dest_px[0] as f32 - src_px[0] as f32;
+                            v_g[y * bw + x] = dest_px[1] as f32 - src_px[1] as f32;
+                            v_b[y * bw + x] = dest_px[2] as f32 - src_px[2] as f32;
+                        }
                     }
                 } else if region[y * bw + x] == 1 {
-                    omega_coords.push((x, y));
+                    // Only enqueue omega cells whose 4 neighbours are within
+                    // the buffer so the SOR neighbour access is always safe.
+                    if y > 0 && y + 1 < bh && x > 0 && x + 1 < bw {
+                        omega_coords.push((x, y));
+                    }
                 }
             }
         }

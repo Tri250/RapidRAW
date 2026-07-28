@@ -237,6 +237,10 @@ export function useAiMasking() {
       }
       const abortController = new AbortController();
       quickEraseAbortRef.current = abortController;
+      const quickEraseTimeout = setTimeout(() => {
+        abortController.abort();
+        toast.error('Quick Erase timed out – operation took too long');
+      }, AI_GENERATIVE_TIMEOUT_MS);
 
       // Device-side fix: for local/cpu mode, token is not needed. Only fetch for cloud mode.
       const aiProvider = useSettingsStore.getState().appSettings?.aiProvider || 'cpu';
@@ -252,7 +256,10 @@ export function useAiMasking() {
       const patchId = (Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : []).find((p: AiPatch) =>
         Array.isArray(p.subMasks) && p.subMasks.some((sm: SubMask) => sm.id === subMaskId),
       )?.id;
-      if (!patchId) return;
+      if (!patchId) {
+        clearTimeout(quickEraseTimeout);
+        return;
+      }
 
       setEditor({ isGeneratingAi: true });
       setAdjustments((prev: Adjustments) => ({
@@ -272,6 +279,7 @@ export function useAiMasking() {
           rotation: adjustments.rotation,
           startPoint: [startPoint.x, startPoint.y],
         });
+        if (abortController.signal.aborted) return;
 
         const aiPatchesArr = Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : [];
         const subMaskToUpdate = aiPatchesArr
@@ -300,6 +308,7 @@ export function useAiMasking() {
           useFastInpaint: true,
           token: token || null,
         });
+        if (abortController.signal.aborted) return;
 
         const newPatchData = JSON.parse(newPatchDataJson);
         patchesSentToBackend.delete(patchId);
@@ -321,16 +330,14 @@ export function useAiMasking() {
         }));
         setEditor({ activeAiPatchContainerId: null, activeAiSubMaskId: null });
       } catch (err: any) {
-        if (err.name === 'AbortError') {
-          // Request was cancelled due to a new request; don't show error toast.
-          return;
-        }
+        if (abortController.signal.aborted) return;
         toast.error(`Quick Erase Failed: ${err.message || String(err)}`);
         setAdjustments((prev: Adjustments) => ({
           ...prev,
           aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
         }));
       } finally {
+        clearTimeout(quickEraseTimeout);
         setEditor({ isGeneratingAi: false });
       }
     },
@@ -554,7 +561,7 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
-        toast.error(`AI Mask Failed: ${error}`);
+        toast.error(`AI Foreground Mask Failed: ${error}`);
       } finally {
         setEditor({ isGeneratingAiMask: false });
       }
@@ -717,6 +724,10 @@ export function useAiMasking() {
           lumMin: parameters?.lumMin ?? 10,
           lumMax: parameters?.lumMax ?? 90,
           feather: parameters?.feather ?? 10,
+          tolerance: parameters?.tolerance ?? 20,
+          grow: parameters?.grow ?? 0,
+          targetX: parameters?.targetX ?? -1,
+          targetY: parameters?.targetY ?? -1,
           flipHorizontal: adjustments.flipHorizontal,
           flipVertical: adjustments.flipVertical,
           orientationSteps: adjustments.orientationSteps,
@@ -760,6 +771,10 @@ export function useAiMasking() {
           lumMin: parameters?.lumMin ?? 0,
           lumMax: parameters?.lumMax ?? 50,
           feather: parameters?.feather ?? 10,
+          tolerance: parameters?.tolerance ?? 20,
+          grow: parameters?.grow ?? 0,
+          targetX: parameters?.targetX ?? -1,
+          targetY: parameters?.targetY ?? -1,
           flipHorizontal: adjustments.flipHorizontal,
           flipVertical: adjustments.flipVertical,
           orientationSteps: adjustments.orientationSteps,
@@ -874,8 +889,18 @@ export function useAiMasking() {
 
   const handleGenerateAiSkyReplace = useCallback(
     async (skyPrompt: string = ''): Promise<string | null> => {
-      const { selectedImage, adjustments } = useEditorStore.getState();
-      if (!selectedImage?.path) return null;
+      const { selectedImage, adjustments, isGeneratingAi } = useEditorStore.getState();
+      if (!selectedImage?.path || isGeneratingAi) return null;
+
+      // Cancel any previous generative AI request and set up timeout.
+      generativeAbortRef.current?.abort();
+      const genAbort = new AbortController();
+      generativeAbortRef.current = genAbort;
+      const genTimeout = setTimeout(() => {
+        genAbort.abort();
+        toast.error('AI Sky Replace timed out – operation took too long');
+      }, AI_GENERATIVE_TIMEOUT_MS);
+
       setEditor({ isGeneratingAi: true });
 
       try {
@@ -890,6 +915,8 @@ export function useAiMasking() {
           orientationSteps: adjustments.orientationSteps,
           rotation: adjustments.rotation,
         });
+        if (genAbort.signal.aborted) return null;
+
         const uint8 = new Uint8Array(resultBytes);
         const blob = new Blob([uint8], { type: 'image/png' });
         const url = URL.createObjectURL(blob);
@@ -905,9 +932,11 @@ export function useAiMasking() {
         toast.success('AI Sky Replace completed');
         return url;
       } catch (error) {
+        if (genAbort.signal.aborted) return null;
         toast.error(`AI Sky Replace Failed: ${error}`);
         return null;
       } finally {
+        clearTimeout(genTimeout);
         setEditor({ isGeneratingAi: false });
       }
     },
@@ -916,8 +945,18 @@ export function useAiMasking() {
 
   const handleGenerateAiBackgroundRemove = useCallback(
     async (): Promise<string | null> => {
-      const { selectedImage, adjustments } = useEditorStore.getState();
-      if (!selectedImage?.path) return null;
+      const { selectedImage, adjustments, isGeneratingAi } = useEditorStore.getState();
+      if (!selectedImage?.path || isGeneratingAi) return null;
+
+      // Cancel any previous generative AI request and set up timeout.
+      generativeAbortRef.current?.abort();
+      const genAbort = new AbortController();
+      generativeAbortRef.current = genAbort;
+      const genTimeout = setTimeout(() => {
+        genAbort.abort();
+        toast.error('AI Background Remove timed out – operation took too long');
+      }, AI_GENERATIVE_TIMEOUT_MS);
+
       setEditor({ isGeneratingAi: true });
 
       try {
@@ -930,6 +969,8 @@ export function useAiMasking() {
           orientationSteps: adjustments.orientationSteps,
           rotation: adjustments.rotation,
         });
+        if (genAbort.signal.aborted) return null;
+
         const uint8 = new Uint8Array(resultBytes);
         const blob = new Blob([uint8], { type: 'image/png' });
         const url = URL.createObjectURL(blob);
@@ -945,9 +986,11 @@ export function useAiMasking() {
         toast.success('AI Background Remove completed');
         return url;
       } catch (error) {
+        if (genAbort.signal.aborted) return null;
         toast.error(`AI Background Remove Failed: ${error}`);
         return null;
       } finally {
+        clearTimeout(genTimeout);
         setEditor({ isGeneratingAi: false });
       }
     },

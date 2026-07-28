@@ -949,7 +949,9 @@
       "applyToExif": "应用到 EXIF",
       "applied": "已写入 EXIF",
       "batchProgress": "正在评分 {{current}}/{{total}}...",
-      "batchComplete": "完成 {{count}} 张图片评分"
+      "batchComplete": "完成 {{count}} 张图片评分",
+      "error": "生成评分失败：{{error}}",
+      "applyError": "应用评分到 EXIF 失败：{{error}}"
     },
     "presets": {
       "amount": "数量",
