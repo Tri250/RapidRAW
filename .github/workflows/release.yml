@@ -7,12 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       tag-name:
-        description: 'Tag name for release (e.g. v1.8.19)'
+        description: 'Tag name for release (e.g. v1.8.21)'
         required: true
         type: string
 
 permissions:
-  contents: read
+  contents: write
+  actions: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -25,8 +26,23 @@ jobs:
   version-sync-check:
     name: Verify version sync
     runs-on: ubuntu-latest
+    outputs:
+      resolved-tag: ${{ steps.resolve-tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag-name || github.ref_name }}
+
+      - name: Resolve tag name
+        id: resolve-tag
+        shell: bash
+        run: |
+          # For workflow_dispatch use the input, for tag push use the ref name
+          TAG="${{ inputs.tag-name || github.ref_name }}"
+          # Strip leading refs/tags/ if present
+          TAG="${TAG#refs/tags/}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Resolved tag: ${TAG}"
 
       - name: Check version consistency
         shell: bash
@@ -89,7 +105,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       release-id: ${{ github.event.release.id || '' }}
-      tag-name: ${{ inputs.tag-name || github.event.release.tag_name || github.ref_name }}
+      tag-name: ${{ needs.version-sync-check.outputs.resolved-tag }}
       platform: ${{ matrix.platform }}
       target: ${{ matrix.target }}
       build-args: ${{ matrix.build-args }}

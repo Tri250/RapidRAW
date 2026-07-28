@@ -106,7 +106,7 @@ fn resilient_lock<'a, T>(mutex: &'a Mutex<T>) -> MutexGuard<'a, T> {
 }
 
 /// Trait extension to allow `.lock_resilient()` on Arc<Mutex<T>> for ergonomics.
-trait MutexResilient<T> {
+pub trait MutexResilient<T> {
     fn lock_resilient(&self) -> MutexGuard<'_, T>;
 }
 

@@ -17,7 +17,7 @@ pub use crate::gpu_processing::{
     RenderRequest, get_or_init_gpu_context, process_and_get_dynamic_image,
     process_and_get_dynamic_image_with_analytics,
 };
-use crate::{AppState, mask_generation::MaskDefinition};
+use crate::{AppState, MutexResilient, mask_generation::MaskDefinition};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 
 /// Maximum total pixels allowed for CPU-intensive image processing.
@@ -3578,8 +3578,7 @@ pub fn calculate_auto_adjustments(
 ) -> Result<serde_json::Value, String> {
     let original_image = state
         .original_image
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .as_ref()
         .ok_or("No image loaded for auto adjustments")?
         .image
@@ -3609,8 +3608,7 @@ pub struct HorizonLine {
 pub fn detect_horizon_lines(state: tauri::State<AppState>) -> Result<Vec<HorizonLine>, String> {
     let loaded_image = state
         .original_image
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .clone()
         .ok_or("No original image loaded")?;
 

@@ -13,6 +13,7 @@ use crate::ai_processing::{
     get_or_init_lama_model,
 };
 use crate::app_state::AppState;
+use crate::MutexResilient;
 
 // ---------------------------------------------------------------------------
 // Operation enum — every AI operation the service supports
@@ -642,7 +643,7 @@ async fn run_face_landmark(
         "Detecting faces…",
     );
 
-    let mut detector = detector_arc.lock().unwrap();
+    let mut detector = detector_arc.lock_resilient();
     let faces = detector.detect_all(image).map_err(|e| anyhow!("{}", e))?;
     drop(detector);
 

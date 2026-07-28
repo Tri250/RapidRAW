@@ -14,6 +14,7 @@ use std::sync::Arc; // Required for parallel rasterization
 
 use crate::app_state::AppState;
 use crate::get_cached_full_warped_image;
+use crate::MutexResilient;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(crate = "serde")]
@@ -1597,8 +1598,7 @@ pub fn generate_color_range_mask(
     let _ = (js_adjustments, path); // silence unused
     let loaded_image = state
         .original_image
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .clone()
         .ok_or("No original image loaded")?;
 
@@ -1784,8 +1784,7 @@ pub fn generate_luminance_range_mask(
     let _ = (js_adjustments, path, target_x, target_y);
     let loaded_image = state
         .original_image
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .clone()
         .ok_or("No original image loaded")?;
 
