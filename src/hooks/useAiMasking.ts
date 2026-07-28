@@ -50,10 +50,12 @@ export function useAiMasking() {
   const quickEraseAbortRef = useRef<AbortController | null>(null);
   const generativeAbortRef = useRef<AbortController | null>(null);
   const cleanupAbortRef = useRef<AbortController | null>(null);
+  const maskAbortRef = useRef<AbortController | null>(null);
 
-  // AI operation timeout (30s for cleanup, 60s for generative replace).
+  // AI operation timeout (30s for cleanup, 60s for generative replace, 45s for mask operations).
   const AI_CLEANUP_TIMEOUT_MS = 30_000;
   const AI_GENERATIVE_TIMEOUT_MS = 60_000;
+  const AI_MASK_TIMEOUT_MS = 45_000;
 
   // Cleanup abort controllers on unmount.
   useEffect(() => {
@@ -61,6 +63,7 @@ export function useAiMasking() {
       quickEraseAbortRef.current?.abort();
       generativeAbortRef.current?.abort();
       cleanupAbortRef.current?.abort();
+      maskAbortRef.current?.abort();
     };
   }, []);
 
@@ -124,7 +127,13 @@ export function useAiMasking() {
           sourcePoint: [sourceX, sourceY],
         });
 
-        if (cleanupAbort.signal.aborted) return;
+        if (cleanupAbort.signal.aborted) {
+          setAdjustments((prev: Adjustments) => ({
+            ...prev,
+            aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
+          }));
+          return;
+        }
 
         const newPatchData = JSON.parse(newPatchDataJson);
         patchesSentToBackend.delete(patchId);
@@ -136,7 +145,13 @@ export function useAiMasking() {
           ),
         }));
       } catch (err: any) {
-        if (err.name === 'AbortError' || cleanupAbort.signal.aborted) return;
+        if (err.name === 'AbortError' || cleanupAbort.signal.aborted) {
+          setAdjustments((prev: Adjustments) => ({
+            ...prev,
+            aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
+          }));
+          return;
+        }
         toast.error(`Cleanup Failed: ${err.message || String(err)}`);
         setAdjustments((prev: Adjustments) => ({
           ...prev,
@@ -196,7 +211,13 @@ export function useAiMasking() {
           token: token || null,
         });
 
-        if (genAbort.signal.aborted) return;
+        if (genAbort.signal.aborted) {
+          setAdjustments((prev: Adjustments) => ({
+            ...prev,
+            aiPatches: prev.aiPatches.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
+          }));
+          return;
+        }
 
         const newPatchData = JSON.parse(newPatchDataJson);
         patchesSentToBackend.delete(patchId);
@@ -216,7 +237,13 @@ export function useAiMasking() {
         }));
         setEditor({ activeAiPatchContainerId: null, activeAiSubMaskId: null });
       } catch (err: any) {
-        if (err.name === 'AbortError' || genAbort.signal.aborted) return;
+        if (err.name === 'AbortError' || genAbort.signal.aborted) {
+          setAdjustments((prev: Adjustments) => ({
+            ...prev,
+            aiPatches: prev.aiPatches.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
+          }));
+          return;
+        }
         toast.error(`AI Replace Failed: ${err}`);
         setAdjustments((prev: Adjustments) => ({
           ...prev,
@@ -283,7 +310,13 @@ export function useAiMasking() {
           rotation: adjustments.rotation,
           startPoint: [startPoint.x, startPoint.y],
         });
-        if (abortController.signal.aborted) return;
+        if (abortController.signal.aborted) {
+          setAdjustments((prev: Adjustments) => ({
+            ...prev,
+            aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
+          }));
+          return;
+        }
 
         const aiPatchesArr = Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : [];
         const subMaskToUpdate = aiPatchesArr
@@ -314,7 +347,13 @@ export function useAiMasking() {
           useFastInpaint: true,
           token: token || null,
         });
-        if (abortController.signal.aborted) return;
+        if (abortController.signal.aborted) {
+          setAdjustments((prev: Adjustments) => ({
+            ...prev,
+            aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
+          }));
+          return;
+        }
 
         const newPatchData = JSON.parse(newPatchDataJson);
         patchesSentToBackend.delete(patchId);
@@ -336,7 +375,13 @@ export function useAiMasking() {
         }));
         setEditor({ activeAiPatchContainerId: null, activeAiSubMaskId: null });
       } catch (err: any) {
-        if (abortController.signal.aborted) return;
+        if (abortController.signal.aborted) {
+          setAdjustments((prev: Adjustments) => ({
+            ...prev,
+            aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
+          }));
+          return;
+        }
         toast.error(`Quick Erase Failed: ${err.message || String(err)}`);
         setAdjustments((prev: Adjustments) => ({
           ...prev,
@@ -392,6 +437,15 @@ export function useAiMasking() {
     async (subMaskId: string, startPoint: Coord, endPoint: Coord) => {
       const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path) return;
+
+      maskAbortRef.current?.abort();
+      const maskAbort = new AbortController();
+      maskAbortRef.current = maskAbort;
+      const maskTimeout = setTimeout(() => {
+        maskAbort.abort();
+        toast.error('AI Mask timed out – operation took too long');
+      }, AI_MASK_TIMEOUT_MS);
+
       setEditor({ isGeneratingAiMask: true });
 
       try {
@@ -407,6 +461,8 @@ export function useAiMasking() {
           startPoint: [startPoint.x, startPoint.y],
         })) as Record<string, any> | null | undefined;
 
+        if (maskAbort.signal.aborted) return;
+
         const newParameters = normalizeMaskData(rawNewParameters);
         if (!newParameters.mask_data_base64) {
           toast.error('AI Mask: No mask data generated');
@@ -421,8 +477,10 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
+        if (maskAbort.signal.aborted) return;
         toast.error(`AI Mask Failed: ${error}`);
       } finally {
+        clearTimeout(maskTimeout);
         setEditor({ isGeneratingAiMask: false });
       }
     },
@@ -447,6 +505,15 @@ export function useAiMasking() {
     async (subMaskId: string) => {
       const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path) return;
+
+      maskAbortRef.current?.abort();
+      const maskAbort = new AbortController();
+      maskAbortRef.current = maskAbort;
+      const maskTimeout = setTimeout(() => {
+        maskAbort.abort();
+        toast.error('AI Subject Mask timed out – operation took too long');
+      }, AI_MASK_TIMEOUT_MS);
+
       setEditor({ isGeneratingAiMask: true });
 
       try {
@@ -471,6 +538,8 @@ export function useAiMasking() {
           startPoint: [startPoint.x, startPoint.y],
         })) as Record<string, any> | null | undefined;
 
+        if (maskAbort.signal.aborted) return;
+
         const newParameters = normalizeMaskData(rawNewParameters);
 
         if (!newParameters.mask_data_base64) {
@@ -486,8 +555,10 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
+        if (maskAbort.signal.aborted) return;
         toast.error(`AI Subject Mask Failed: ${error}`);
       } finally {
+        clearTimeout(maskTimeout);
         setEditor({ isGeneratingAiMask: false });
       }
     },
@@ -498,6 +569,15 @@ export function useAiMasking() {
     async (subMaskId: string, parameters: any) => {
       const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path) return;
+
+      maskAbortRef.current?.abort();
+      const maskAbort = new AbortController();
+      maskAbortRef.current = maskAbort;
+      const maskTimeout = setTimeout(() => {
+        maskAbort.abort();
+        toast.error('AI Depth Mask timed out – operation took too long');
+      }, AI_MASK_TIMEOUT_MS);
+
       setEditor({ isGeneratingAiMask: true });
 
       try {
@@ -515,6 +595,9 @@ export function useAiMasking() {
           orientationSteps: adjustments.orientationSteps,
           rotation: adjustments.rotation,
         })) as Record<string, any> | null | undefined;
+
+        if (maskAbort.signal.aborted) return;
+
         const newParameters = normalizeMaskData(rawNewParameters);
 
         if (!newParameters.mask_data_base64) {
@@ -530,8 +613,10 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
+        if (maskAbort.signal.aborted) return;
         toast.error(`AI Depth Mask Failed: ${error}`);
       } finally {
+        clearTimeout(maskTimeout);
         setEditor({ isGeneratingAiMask: false });
       }
     },
@@ -542,6 +627,15 @@ export function useAiMasking() {
     async (subMaskId: string) => {
       const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path) return;
+
+      maskAbortRef.current?.abort();
+      const maskAbort = new AbortController();
+      maskAbortRef.current = maskAbort;
+      const maskTimeout = setTimeout(() => {
+        maskAbort.abort();
+        toast.error('AI Foreground Mask timed out – operation took too long');
+      }, AI_MASK_TIMEOUT_MS);
+
       setEditor({ isGeneratingAiMask: true });
 
       try {
@@ -553,6 +647,9 @@ export function useAiMasking() {
           orientationSteps: adjustments.orientationSteps,
           rotation: adjustments.rotation,
         })) as Record<string, any> | null | undefined;
+
+        if (maskAbort.signal.aborted) return;
+
         const newParameters = normalizeMaskData(rawNewParameters);
 
         if (!newParameters.mask_data_base64) {
@@ -568,8 +665,10 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
+        if (maskAbort.signal.aborted) return;
         toast.error(`AI Foreground Mask Failed: ${error}`);
       } finally {
+        clearTimeout(maskTimeout);
         setEditor({ isGeneratingAiMask: false });
       }
     },
@@ -580,6 +679,15 @@ export function useAiMasking() {
     async (subMaskId: string) => {
       const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path) return;
+
+      maskAbortRef.current?.abort();
+      const maskAbort = new AbortController();
+      maskAbortRef.current = maskAbort;
+      const maskTimeout = setTimeout(() => {
+        maskAbort.abort();
+        toast.error('AI Sky Mask timed out – operation took too long');
+      }, AI_MASK_TIMEOUT_MS);
+
       setEditor({ isGeneratingAiMask: true });
 
       try {
@@ -591,6 +699,9 @@ export function useAiMasking() {
           orientationSteps: adjustments.orientationSteps,
           rotation: adjustments.rotation,
         })) as Record<string, any> | null | undefined;
+
+        if (maskAbort.signal.aborted) return;
+
         const newParameters = normalizeMaskData(rawNewParameters);
 
         if (!newParameters.mask_data_base64) {
@@ -606,8 +717,10 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
+        if (maskAbort.signal.aborted) return;
         toast.error(`AI Sky Mask Failed: ${error}`);
       } finally {
+        clearTimeout(maskTimeout);
         setEditor({ isGeneratingAiMask: false });
       }
     },
@@ -622,9 +735,19 @@ export function useAiMasking() {
         return;
       }
 
+      generativeAbortRef.current?.abort();
+      const genAbort = new AbortController();
+      generativeAbortRef.current = genAbort;
+      const genTimeout = setTimeout(() => {
+        genAbort.abort();
+        toast.error('Super Resolution timed out – operation took too long');
+      }, AI_GENERATIVE_TIMEOUT_MS);
+
       setEditor({ isGeneratingAi: true });
       try {
         const resultBytes: number[] = await invoke(Invokes.ApplySuperResolution, { scale });
+        if (genAbort.signal.aborted) return;
+
         const uint8 = new Uint8Array(resultBytes);
         const blob = new Blob([uint8], { type: 'image/png' });
         const url = URL.createObjectURL(blob);
@@ -664,8 +787,10 @@ export function useAiMasking() {
 
         toast.success(`Super resolution ${scale}x applied (${newWidth}×${newHeight})`);
       } catch (err: any) {
+        if (genAbort.signal.aborted) return;
         toast.error(`Super Resolution Failed: ${err.message || String(err)}`);
       } finally {
+        clearTimeout(genTimeout);
         setEditor({ isGeneratingAi: false });
       }
     },
@@ -721,6 +846,15 @@ export function useAiMasking() {
     async (subMaskId: string, parameters: any) => {
       const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path) return;
+
+      maskAbortRef.current?.abort();
+      const maskAbort = new AbortController();
+      maskAbortRef.current = maskAbort;
+      const maskTimeout = setTimeout(() => {
+        maskAbort.abort();
+        toast.error('Color Range Mask timed out – operation took too long');
+      }, AI_MASK_TIMEOUT_MS);
+
       setEditor({ isGeneratingAiMask: true });
 
       try {
@@ -745,6 +879,8 @@ export function useAiMasking() {
           rotation: adjustments.rotation,
         })) as Record<string, any> | null | undefined;
 
+        if (maskAbort.signal.aborted) return;
+
         const newParameters = normalizeMaskData(rawNewParameters);
 
         if (!newParameters.mask_data_base64) {
@@ -760,8 +896,10 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
+        if (maskAbort.signal.aborted) return;
         toast.error(`Color Range Mask Failed: ${error}`);
       } finally {
+        clearTimeout(maskTimeout);
         setEditor({ isGeneratingAiMask: false });
       }
     },
@@ -772,6 +910,15 @@ export function useAiMasking() {
     async (subMaskId: string, parameters: any) => {
       const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path) return;
+
+      maskAbortRef.current?.abort();
+      const maskAbort = new AbortController();
+      maskAbortRef.current = maskAbort;
+      const maskTimeout = setTimeout(() => {
+        maskAbort.abort();
+        toast.error('Luminance Range Mask timed out – operation took too long');
+      }, AI_MASK_TIMEOUT_MS);
+
       setEditor({ isGeneratingAiMask: true });
 
       try {
@@ -792,6 +939,8 @@ export function useAiMasking() {
           rotation: adjustments.rotation,
         })) as Record<string, any> | null | undefined;
 
+        if (maskAbort.signal.aborted) return;
+
         const newParameters = normalizeMaskData(rawNewParameters);
 
         if (!newParameters.mask_data_base64) {
@@ -807,8 +956,10 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
+        if (maskAbort.signal.aborted) return;
         toast.error(`Luminance Range Mask Failed: ${error}`);
       } finally {
+        clearTimeout(maskTimeout);
         setEditor({ isGeneratingAiMask: false });
       }
     },
@@ -819,6 +970,14 @@ export function useAiMasking() {
     async (subMaskId: string, feather: number) => {
       const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path) return;
+
+      maskAbortRef.current?.abort();
+      const maskAbort = new AbortController();
+      maskAbortRef.current = maskAbort;
+      const maskTimeout = setTimeout(() => {
+        maskAbort.abort();
+        toast.error('Mask Feather timed out – operation took too long');
+      }, AI_MASK_TIMEOUT_MS);
 
       try {
         const transformAdjustments = getTransformAdjustments(adjustments);
@@ -833,6 +992,8 @@ export function useAiMasking() {
           rotation: adjustments.rotation,
         })) as Record<string, any> | null | undefined;
 
+        if (maskAbort.signal.aborted) return;
+
         const newParameters = normalizeMaskData(rawNewParameters);
         const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
         const mergedParameters = normalizeMaskData({
@@ -842,7 +1003,10 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
+        if (maskAbort.signal.aborted) return;
         toast.error(`Mask Feather Failed: ${error}`);
+      } finally {
+        clearTimeout(maskTimeout);
       }
     },
     [setEditor, updateSubMask],
@@ -851,6 +1015,13 @@ export function useAiMasking() {
   const handleAutoStraightenHorizon = useCallback(async (): Promise<number | null> => {
     const { selectedImage, adjustments } = useEditorStore.getState();
     if (!selectedImage?.path) return null;
+
+    maskAbortRef.current?.abort();
+    const maskAbort = new AbortController();
+    maskAbortRef.current = maskAbort;
+    const maskTimeout = setTimeout(() => {
+      maskAbort.abort();
+    }, AI_MASK_TIMEOUT_MS);
 
     try {
       const transformAdjustments = getTransformAdjustments(adjustments);
@@ -863,16 +1034,27 @@ export function useAiMasking() {
         rotation: adjustments.rotation,
       })) as number;
 
+      if (maskAbort.signal.aborted) return null;
       return horizonAngle;
     } catch (error) {
+      if (maskAbort.signal.aborted) return null;
       toast.error(`Auto Straighten Failed: ${error}`);
       return null;
+    } finally {
+      clearTimeout(maskTimeout);
     }
   }, []);
 
   const handleDetectHorizonLines = useCallback(async (): Promise<any[] | null> => {
     const { selectedImage, adjustments } = useEditorStore.getState();
     if (!selectedImage?.path) return null;
+
+    maskAbortRef.current?.abort();
+    const maskAbort = new AbortController();
+    maskAbortRef.current = maskAbort;
+    const maskTimeout = setTimeout(() => {
+      maskAbort.abort();
+    }, AI_MASK_TIMEOUT_MS);
 
     try {
       const transformAdjustments = getTransformAdjustments(adjustments);
@@ -885,10 +1067,14 @@ export function useAiMasking() {
         rotation: adjustments.rotation,
       })) as any[];
 
+      if (maskAbort.signal.aborted) return null;
       return Array.isArray(lines) ? lines : null;
     } catch (error) {
+      if (maskAbort.signal.aborted) return null;
       toast.error(`Horizon Detection Failed: ${error}`);
       return null;
+    } finally {
+      clearTimeout(maskTimeout);
     }
   }, []);
 

@@ -113,6 +113,7 @@ jobs:
       asset-prefix: ${{ matrix.asset-prefix }}
       mobile: ${{ matrix.mobile }}
       upload-artifacts: false
+      ref: ${{ needs.version-sync-check.outputs.resolved-tag }}
     secrets: inherit
     permissions:
       contents: write

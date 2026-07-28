@@ -322,20 +322,14 @@ export default function AIPanel() {
   let isSignedIn = false;
   let getToken: (() => Promise<string | null>) | null = null;
 
-  try {
-    const userResult = useUser();
-    user = userResult?.user ?? null;
-    isSignedIn = userResult?.isSignedIn ?? false;
-  } catch (e) {
-    console.error('[AIPanel] useUser failed:', e);
-  }
+  // Call hooks unconditionally to comply with React's rules of hooks.
+  // Clerk provider wraps the app; if unavailable the values remain null/false.
+  const userResult = useUser();
+  user = userResult?.user ?? null;
+  isSignedIn = userResult?.isSignedIn ?? false;
 
-  try {
-    const authResult = useAuth();
-    getToken = authResult?.getToken ?? null;
-  } catch (e) {
-    console.error('[AIPanel] useAuth failed:', e);
-  }
+  const authResult = useAuth();
+  getToken = authResult?.getToken ?? null;
 
   const isPro = user?.publicMetadata?.plan === 'pro';
   const [cloudUsage, setCloudUsage] = useState<{ requests: number; limit: number; month: string } | null>(null);
