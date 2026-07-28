@@ -9,6 +9,7 @@ import {
   Info,
   SwatchBook,
   FileInput,
+  Settings,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -24,6 +25,7 @@ interface NavItem {
   panel: Panel | null;
   icon: typeof Home;
   labelKey: string;
+  isSpecial?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -37,20 +39,27 @@ const navItems: NavItem[] = [
   { panel: Panel.Metadata, icon: Info, labelKey: 'editor.android.bottomNav.metadata' },
   { panel: Panel.Presets, icon: SwatchBook, labelKey: 'editor.android.bottomNav.presets' },
   { panel: Panel.Export, icon: FileInput, labelKey: 'editor.android.bottomNav.export' },
+  { panel: Panel.Settings, icon: Settings, labelKey: 'settings.general.title', isSpecial: true },
 ];
 
 export default function AndroidBottomNav({ isAndroid }: AndroidBottomNavProps) {
   const { t } = useTranslation();
   const activeRightPanel = useUIStore((s) => s.activeRightPanel);
   const setRightPanel = useUIStore((s) => s.setRightPanel);
+  const showSettingsPanel = useUIStore((s) => s.showSettingsPanel);
+  const setUI = useUIStore((s) => s.setUI);
 
   if (!isAndroid) return null;
 
   return (
     <div className="flex items-center shrink-0 h-14 bg-bg-secondary border-t border-border-color overflow-x-auto scrollbar-hide">
       <div className="flex items-center justify-around min-w-full px-1">
-        {navItems.map(({ panel, icon: Icon, labelKey }) => {
-          const isActive = panel ? activeRightPanel === panel : activeRightPanel === null;
+        {navItems.map(({ panel, icon: Icon, labelKey, isSpecial }) => {
+          const isActive = isSpecial
+            ? showSettingsPanel
+            : panel
+              ? activeRightPanel === panel && !showSettingsPanel
+              : activeRightPanel === null && !showSettingsPanel;
           return (
             <button
               key={labelKey}
@@ -59,9 +68,14 @@ export default function AndroidBottomNav({ isAndroid }: AndroidBottomNavProps) {
                 isActive ? 'text-accent' : 'text-text-secondary',
               )}
               onClick={() => {
-                if (panel === null) {
+                if (isSpecial) {
+                  // Toggle settings panel
+                  setUI({ showSettingsPanel: !showSettingsPanel });
+                } else if (panel === null) {
+                  setUI({ showSettingsPanel: false });
                   setRightPanel(null);
                 } else {
+                  setUI({ showSettingsPanel: false });
                   setRightPanel(activeRightPanel === panel ? null : panel);
                 }
               }}

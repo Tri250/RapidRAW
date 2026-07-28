@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
 import SettingsPanel from './SettingsPanel';
+import { useUIStore } from '../../store/useUIStore';
 import { ThemeProps, THEMES, DEFAULT_THEME_ID } from '../../utils/themes';
 import {
   AppSettings,
@@ -96,7 +97,8 @@ export interface ColumnWidths {
 
 export default function MainLibrary(props: MainLibraryProps) {
   const { t } = useTranslation();
-  const [showSettings, setShowSettings] = useState(false);
+  const showSettings = useUIStore((s) => s.showSettingsPanel);
+  const setUIShowSettings = useUIStore((s) => s.setUI);
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
   const [appVersion, setAppVersion] = useState('');
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
@@ -274,7 +276,7 @@ export default function MainLibrary(props: MainLibraryProps) {
               {showSettings ? (
                 <SettingsPanel
                   appSettings={props.appSettings}
-                  onBack={() => setShowSettings(false)}
+                  onBack={() => setUIShowSettings({ showSettingsPanel: false })}
                   onLibraryRefresh={props.onLibraryRefresh}
                   onSettingsChange={props.onSettingsChange}
                   rootPaths={props.rootPaths}
@@ -328,7 +330,7 @@ export default function MainLibrary(props: MainLibraryProps) {
                         </Button>
                         <Button
                           className="px-3 bg-surface text-text-primary shadow-md h-11"
-                          onClick={() => setShowSettings(true)}
+                          onClick={() => setUIShowSettings({ showSettingsPanel: true })}
                           size="lg"
                           data-tooltip={t('settings.general.title')}
                           variant="ghost"
@@ -361,7 +363,7 @@ export default function MainLibrary(props: MainLibraryProps) {
         <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
           <SettingsPanel
             appSettings={props.appSettings}
-            onBack={() => setShowSettings(false)}
+            onBack={() => setUIShowSettings({ showSettingsPanel: false })}
             onLibraryRefresh={props.onLibraryRefresh}
             onSettingsChange={props.onSettingsChange}
             rootPaths={props.rootPaths}
@@ -460,7 +462,7 @@ export default function MainLibrary(props: MainLibraryProps) {
                 )}
                 <Button
                   className="h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center"
-                  onClick={() => setShowSettings(true)}
+                  onClick={() => setUIShowSettings({ showSettingsPanel: true })}
                   data-tooltip={t('settings.general.title')}
                 >
                   <Settings className="w-8 h-8" />

@@ -217,6 +217,7 @@ export enum Panel {
   Metadata = 'metadata',
   Portrait = 'portrait',
   Presets = 'presets',
+  Settings = 'settings',
 }
 
 export enum RawStatus {

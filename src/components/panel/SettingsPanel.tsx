@@ -95,7 +95,7 @@ interface SettingItemProps {
 interface SettingsPanelProps {
   appSettings: any;
   onBack(): void;
-  onLibraryRefresh(): void;
+  onLibraryRefresh?(): void;
   onSettingsChange(settings: any): Promise<void>;
   rootPaths: string[];
 }
@@ -1132,7 +1132,7 @@ export default function SettingsPanel({
         totalCount += count;
       }
       setClearMessage(t('settings.data.statuses.sidecarSuccess', { count: totalCount }));
-      onLibraryRefresh();
+      onLibraryRefresh?.();
     } catch (err: any) {
       console.error('Failed to clear sidecars:', err);
       setClearMessage(`Error: ${err}`);
@@ -1165,7 +1165,7 @@ export default function SettingsPanel({
         totalCount += count;
       }
       setAiTagsClearMessage(t('settings.data.statuses.aiSuccess', { count: totalCount }));
-      onLibraryRefresh();
+      onLibraryRefresh?.();
     } catch (err: any) {
       console.error('Failed to clear AI tags:', err);
       setAiTagsClearMessage(`Error: ${err}`);
@@ -1198,7 +1198,7 @@ export default function SettingsPanel({
         totalCount += count;
       }
       setTagsClearMessage(t('settings.data.statuses.allSuccess', { count: totalCount }));
-      onLibraryRefresh();
+      onLibraryRefresh?.();
     } catch (err: any) {
       console.error('Failed to clear tags:', err);
       setTagsClearMessage(`Error: ${err}`);
@@ -1232,7 +1232,7 @@ export default function SettingsPanel({
     try {
       await invoke(Invokes.ClearThumbnailCache);
       setCacheClearMessage(t('settings.data.statuses.cacheSuccess'));
-      onLibraryRefresh();
+      onLibraryRefresh?.();
     } catch (err: any) {
       console.error('Failed to clear thumbnail cache:', err);
       setCacheClearMessage(`Error: ${err}`);
