@@ -129,31 +129,6 @@ const EditorToolbar = memo(
         }
       }
 
-      const safeStringifyExif = (val: any): string => {
-        if (val === null || val === undefined) return '';
-        if (typeof val === 'string') return val;
-        if (typeof val === 'number' || typeof val === 'boolean') return String(val);
-        if (typeof val === 'object') {
-          if ('numerator' in val && 'denominator' in val && val.denominator !== 0) {
-            const n = Number(val.numerator);
-            const d = Number(val.denominator);
-            if (Number.isFinite(n) && Number.isFinite(d)) {
-              const result = n / d;
-              if (result < 1 && result > 0) {
-                return `${n}/${d}`;
-              }
-              return String(Number(result.toFixed(3)));
-            }
-          }
-          try {
-            return JSON.stringify(val);
-          } catch {
-            return '[object]';
-          }
-        }
-        return String(val);
-      };
-
       const data = {
         iso: safeStringifyExif(exif.PhotographicSensitivity || exif.ISO),
         fNumber: fNum,
