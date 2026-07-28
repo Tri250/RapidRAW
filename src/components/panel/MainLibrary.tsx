@@ -357,6 +357,18 @@ export default function MainLibrary(props: MainLibraryProps) {
 
   return (
     <div className="flex-1 flex flex-col h-full min-w-0 bg-bg-secondary rounded-lg overflow-hidden">
+      {showSettings && props.appSettings ? (
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+          <SettingsPanel
+            appSettings={props.appSettings}
+            onBack={() => setShowSettings(false)}
+            onLibraryRefresh={props.onLibraryRefresh}
+            onSettingsChange={props.onSettingsChange}
+            rootPaths={props.rootPaths}
+          />
+        </div>
+      ) : (
+      <>
       <header
         className="p-4 pb-0 shrink-0 flex flex-col border-b border-surface gap-2"
         onMouseEnter={() => setIsProgressHovered(true)}
@@ -442,6 +454,13 @@ export default function MainLibrary(props: MainLibraryProps) {
               {showAdvancedFilter && <div className="absolute -top-1 -right-1 bg-accent rounded-full w-3 h-3" />}
             </Button>
           )}
+          <Button
+            className="h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center"
+            onClick={() => setShowSettings(true)}
+            data-tooltip={t('settings.general.title')}
+          >
+            <Settings className="w-8 h-8" />
+          </Button>
           <Button
             className="h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center"
             onClick={props.onGoHome}
@@ -533,6 +552,8 @@ export default function MainLibrary(props: MainLibraryProps) {
         >
           <FolderInput className="w-6 h-6" />
         </Button>
+      )}
+      </>
       )}
     </div>
   );

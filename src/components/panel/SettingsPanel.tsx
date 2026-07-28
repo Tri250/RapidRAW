@@ -445,30 +445,9 @@ class SettingsErrorBoundary extends Component<
 }
 
 const CloudDashboard = () => {
-  let user: any = null;
-  let getToken: (() => Promise<string | null>) | null = null;
-  let signOutFn: (() => Promise<void>) | null = null;
-
-  try {
-    const userResult = useUser();
-    user = userResult?.user ?? null;
-  } catch (e) {
-    console.error('[CloudDashboard] useUser failed:', e);
-  }
-
-  try {
-    const authResult = useAuth();
-    getToken = authResult?.getToken ?? null;
-  } catch (e) {
-    console.error('[CloudDashboard] useAuth failed:', e);
-  }
-
-  try {
-    const clerkResult = useClerk();
-    signOutFn = clerkResult?.signOut ?? null;
-  } catch (e) {
-    console.error('[CloudDashboard] useClerk failed:', e);
-  }
+  const { user } = useUser();
+  const { getToken } = useAuth();
+  const { signOut: signOutFn } = useClerk();
 
   const [usage, setUsage] = useState<{ requests: number; limit: number; month: string } | null>(null);
   const { t } = useTranslation();
@@ -476,7 +455,6 @@ const CloudDashboard = () => {
   useEffect(() => {
     const fetchUsage = async () => {
       try {
-        if (!getToken) return;
         const token = await getToken();
         if (!token) return;
         const res = await fetch('https://getrapidraw.com/api/usage', {
@@ -519,9 +497,7 @@ const CloudDashboard = () => {
             variant="ghost"
             onClick={async () => {
               try {
-                if (signOutFn) {
-                  await signOutFn();
-                }
+                await signOutFn();
               } catch (e) {
                 console.error('[CloudDashboard] signOut failed:', e);
               }
