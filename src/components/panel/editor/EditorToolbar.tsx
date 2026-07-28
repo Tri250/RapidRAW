@@ -68,9 +68,52 @@ const EditorToolbar = memo(
 
       const exif = selectedImage.exif || {};
 
-      let fNum = exif.FNumber;
-      if (fNum) {
-        const fStr = String(fNum);
+      const safeStringifyExif = (val: any): string => {
+        if (val === null || val === undefined) return '';
+        if (typeof val === 'string') return val;
+        if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+        if (typeof val === 'object') {
+          if ('numerator' in val && 'denominator' in val && val.denominator !== 0) {
+            const n = Number(val.numerator);
+            const d = Number(val.denominator);
+            if (Number.isFinite(n) && Number.isFinite(d)) {
+              const result = n / d;
+              if (result < 1 && result > 0) {
+                return `${n}/${d}`;
+              }
+              return String(Number(result.toFixed(3)));
+            }
+          }
+          try {
+            return JSON.stringify(val);
+          } catch {
+            return '[object]';
+          }
+        }
+        return String(val);
+      };
+
+      const parseExifNum = (val: any): number | null => {
+        if (val === null || val === undefined) return null;
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') {
+          const parsed = parseFloat(val);
+          return isNaN(parsed) ? null : parsed;
+        }
+        if (typeof val === 'object') {
+          if ('numerator' in val && 'denominator' in val && val.denominator !== 0) {
+            const n = Number(val.numerator);
+            const d = Number(val.denominator);
+            if (Number.isFinite(n) && Number.isFinite(d)) return n / d;
+          }
+        }
+        return null;
+      };
+
+      let fNum = null;
+      const fNumParsed = parseExifNum(exif.FNumber);
+      if (fNumParsed !== null) {
+        const fStr = String(fNumParsed);
         fNum = fStr.toLowerCase().startsWith('f') ? fStr : `f/${fStr}`;
       }
 

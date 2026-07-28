@@ -232,28 +232,68 @@ const EDITABLE_FIELDS = [
   { key: 'UserComment', label: 'comments' },
 ];
 
+function parseExifNumber(val: any): number | null {
+  if (val === null || val === undefined) return null;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? null : parsed;
+  }
+  if (typeof val === 'object') {
+    if ('numerator' in val && 'denominator' in val && val.denominator !== 0) {
+      const n = Number(val.numerator);
+      const d = Number(val.denominator);
+      if (Number.isFinite(n) && Number.isFinite(d)) return n / d;
+    }
+    if ('n' in val && 'd' in val && val.d !== 0) {
+      const n = Number(val.n);
+      const d = Number(val.d);
+      if (Number.isFinite(n) && Number.isFinite(d)) return n / d;
+    }
+  }
+  return null;
+}
+
 const KEY_CAMERA_SETTINGS_MAP: CameraSettings = {
   FNumber: {
     format: (value: number) => {
-      const fStr = String(value);
+      const num = parseExifNumber(value);
+      if (num === null) return String(value);
+      const fStr = String(num);
       return fStr.toLowerCase().startsWith('f') ? fStr : `f/${fStr}`;
     },
     label: 'Aperture',
   },
   ExposureTime: {
-    format: (value: number) => (String(value).endsWith('s') ? value : `${value}s`),
+    format: (value: number) => {
+      const num = parseExifNumber(value);
+      if (num === null) return String(value);
+      return String(num).endsWith('s') ? String(num) : `${num}s`;
+    },
     label: 'Shutter Speed',
   },
   PhotographicSensitivity: {
-    format: (value: number) => `${value}`,
+    format: (value: number) => {
+      const num = parseExifNumber(value);
+      return num !== null ? `${num}` : String(value);
+    },
     label: 'ISO',
   },
   FocalLengthIn35mmFilm: {
-    format: (value: number) => (String(value).endsWith('mm') ? value : `${value} mm`),
+    format: (value: number) => {
+      const num = parseExifNumber(value);
+      if (num === null) return String(value);
+      return String(num).endsWith('mm') ? String(num) : `${num} mm`;
+    },
     label: 'Focal Length',
   },
   LensModel: {
-    format: (value: number) => String(value).replace(/"/g, ''),
+    format: (value: any) => {
+      if (typeof value === 'object' && value !== null) {
+        try { return JSON.stringify(value); } catch { return String(value); }
+      }
+      return String(value).replace(/"/g, '');
+    },
     label: 'Lens',
   },
 };
@@ -309,7 +349,7 @@ export default function MetadataPanel() {
           hasValue && KEY_CAMERA_SETTINGS_MAP[key].format
             ? KEY_CAMERA_SETTINGS_MAP[key].format!(value as number)
             : hasValue
-              ? value
+              ? safeStringifyExifValue(value)
               : '-',
       };
     });
@@ -321,9 +361,9 @@ export default function MetadataPanel() {
       label: t('editor.metadata.camera.lens'),
       value:
         hasLensValue && KEY_CAMERA_SETTINGS_MAP['LensModel'].format
-          ? KEY_CAMERA_SETTINGS_MAP['LensModel'].format(lensValue as number)
+          ? KEY_CAMERA_SETTINGS_MAP['LensModel'].format(lensValue as any)
           : hasLensValue
-            ? lensValue
+            ? safeStringifyExifValue(lensValue)
             : '-',
     };
 
