@@ -2205,7 +2205,7 @@ function SettingsPanel({
 }: any) {
   const { t } = useTranslation();
   const { showContextMenu } = useContextMenu();
-  const { theme } = useSettingsStore((state) => ({ theme: state.theme }));
+  const { theme } = useSettingsStore(useShallow((state) => ({ theme: state.theme })));
   const isActive = !!container;
   const presetButtonRef = useRef<HTMLButtonElement>(null);
 

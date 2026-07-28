@@ -114,7 +114,7 @@ jobs:
 
       - name: Setup Android NDK
         if: inputs.mobile == 'android'
-        uses: nttld/setup-ndk@v1
+        uses: nttld/setup-ndk@v2
         id: setup-ndk
         with:
           ndk-version: r26d
@@ -251,10 +251,19 @@ jobs:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ORT_SKIP_DOWNLOAD: '1'
-          ORT_LIB_LOCATION: ${{ format('{0}/src-tauri/libs/arm64-v8a', github.workspace) }}
           ORT_STRATEGY: manual
         run: |
           set -euo pipefail
+          # Map Rust target triple to Android ABI name for ORT lib path
+          case "${{ inputs.target }}" in
+            aarch64-linux-android) abi="arm64-v8a" ;;
+            armv7-linux-androideabi) abi="armeabi-v7a" ;;
+            i686-linux-android) abi="x86" ;;
+            x86_64-linux-android) abi="x86_64" ;;
+            *) abi="arm64-v8a" ;;
+          esac
+          export ORT_LIB_LOCATION="${{ github.workspace }}/src-tauri/libs/${abi}"
+          echo "Using ORT_LIB_LOCATION=$ORT_LIB_LOCATION (abi=$abi)"
           # tauri android build --target accepts short names (aarch64, armv7, i686, x86_64)
           # while Rust toolchain setup needs the full triple (e.g. aarch64-linux-android)
           target_arg=""

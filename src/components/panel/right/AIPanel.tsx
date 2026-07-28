@@ -343,6 +343,7 @@ export default function AIPanel() {
 
     const fetchUsage = async () => {
       try {
+        if (!getToken) return;
         const token = await getToken();
         if (!token) return;
 

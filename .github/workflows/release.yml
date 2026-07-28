@@ -11,12 +11,41 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  # Pre-release gate: ensure version numbers are consistent across
+  # package.json, tauri.conf.json and Cargo.toml before kicking off
+  # the expensive multi-platform build matrix.
+  version-sync-check:
+    name: Verify version sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check version consistency
+        shell: bash
+        run: |
+          set -euo pipefail
+          pkg_version="$(node -e "console.log(require('./package.json').version)")"
+          tauri_version="$(node -e "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8')); console.log(c.version || '')")"
+          cargo_version="$(grep -m1 '^version' src-tauri/Cargo.toml | sed -E 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*$/\1/')"
+          echo "package.json:      ${pkg_version}"
+          echo "tauri.conf.json:   ${tauri_version}"
+          echo "Cargo.toml:        ${cargo_version}"
+          if [[ "$pkg_version" != "$tauri_version" || "$pkg_version" != "$cargo_version" ]]; then
+            echo "::error::Version mismatch detected. All three files must have the same version."
+            exit 1
+          fi
+          echo "::notice::All version sources are in sync: v${pkg_version}"
+
   release:
+    needs: version-sync-check
     strategy:
       fail-fast: false
       matrix:
@@ -67,6 +96,7 @@ jobs:
       asset-name-pattern: '[name]_v[version]_[platform]_[arch][ext]'
       asset-prefix: ${{ matrix.asset-prefix }}
       mobile: ${{ matrix.mobile }}
+      upload-artifacts: false
     secrets: inherit
     permissions:
       contents: write

@@ -32,6 +32,7 @@ import Text from '../ui/Text';
 import { TEXT_COLOR_KEYS, TextColors, TextVariants, TextWeights } from '../../types/typography';
 import { useLibraryStore } from '../../store/useLibraryStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { useShallow } from 'zustand/react/shallow';
 import { AlbumItem, AlbumGroup, Album, Invokes, FolderTreeSort, SortDirection } from '../ui/AppProperties';
 
 export interface FolderTree {
@@ -615,7 +616,12 @@ export default function FolderTree({
   isInstantTransition,
 }: FolderTreeProps) {
   const { t } = useTranslation();
-  const { appSettings, handleSettingsChange } = useSettingsStore();
+  const { appSettings, handleSettingsChange } = useSettingsStore(
+    useShallow((s) => ({
+      appSettings: s.appSettings,
+      handleSettingsChange: s.handleSettingsChange,
+    })),
+  );
   const {
     folderTrees,
     pinnedFolderTrees,
@@ -625,7 +631,18 @@ export default function FolderTree({
     albumTree,
     activeAlbumId,
     expandedAlbumGroups,
-  } = useLibraryStore();
+  } = useLibraryStore(
+    useShallow((s) => ({
+      folderTrees: s.folderTrees,
+      pinnedFolderTrees: s.pinnedFolderTrees,
+      currentFolderPath: s.currentFolderPath,
+      expandedFolders: s.expandedFolders,
+      isTreeLoading: s.isTreeLoading,
+      albumTree: s.albumTree,
+      activeAlbumId: s.activeAlbumId,
+      expandedAlbumGroups: s.expandedAlbumGroups,
+    })),
+  );
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isHovering, setIsHovering] = useState(false);

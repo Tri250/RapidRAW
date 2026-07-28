@@ -548,7 +548,9 @@ export default function LensCorrectionModal({
         params: fullParams,
         jsAdjustments: currentAdjustments,
         showLines: false,
-      }).then((result: any) => setPreviewUrl(result));
+      })
+        .then((result: any) => setPreviewUrl(result))
+        .catch((err) => console.error('preview_geometry_transform failed:', err));
     } else {
       updatePreview(params);
     }
