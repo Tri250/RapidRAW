@@ -21,12 +21,7 @@ interface ShareTarget {
   packageName?: string;
 }
 
-export default function AndroidShareSheet({
-  filePath,
-  mimeType,
-  visible,
-  onClose,
-}: AndroidShareSheetProps) {
+export default function AndroidShareSheet({ filePath, mimeType, visible, onClose }: AndroidShareSheetProps) {
   const { t } = useTranslation();
   const [sharing, setSharing] = useState(false);
 
@@ -64,9 +59,7 @@ export default function AndroidShareSheet({
         await invoke('share_image', {
           filePath,
           mimeType,
-          title: target
-            ? t(`androidShare.${target.key}` as any)
-            : t('androidShare.systemShareTitle' as any),
+          title: target ? t(`androidShare.${target.key}` as any) : t('androidShare.systemShareTitle' as any),
           targetPackage: target?.packageName ?? null,
         });
       } catch (err) {
@@ -101,10 +94,7 @@ export default function AndroidShareSheet({
           >
             <div className="flex items-center justify-between p-4 border-b border-surface">
               <Text variant={TextVariants.title}>{t('androidShare.titleDefault' as any)}</Text>
-              <button
-                onClick={onClose}
-                className="p-1 rounded-full hover:bg-surface transition-colors"
-              >
+              <button onClick={onClose} className="p-1 rounded-full hover:bg-surface transition-colors">
                 <X size={20} className="text-text-secondary" />
               </button>
             </div>

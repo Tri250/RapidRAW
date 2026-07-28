@@ -92,7 +92,7 @@ jobs:
         if: runner.os == 'Windows'
         uses: KyleMayes/install-llvm-action@v2
         with:
-          version: "19"
+          version: '19'
           directory: ${{ runner.temp }}/llvm
 
       - name: Set LIBCLANG_PATH (Windows)

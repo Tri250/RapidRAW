@@ -818,7 +818,16 @@ const MaskOverlay = memo(
         return (
           <Group>
             <Circle x={cx} y={cy} radius={5} stroke="white" strokeWidth={2} dash={[4, 4]} listening={false} />
-            <Circle x={cx} y={cy} radius={16} stroke="white" strokeWidth={1} dash={[4, 4]} opacity={0.5} listening={false} />
+            <Circle
+              x={cx}
+              y={cy}
+              radius={16}
+              stroke="white"
+              strokeWidth={1}
+              dash={[4, 4]}
+              opacity={0.5}
+              listening={false}
+            />
           </Group>
         );
       }
@@ -931,8 +940,22 @@ const MaskOverlay = memo(
         return (
           <Group>
             <Circle x={cx} y={cy} radius={5} stroke="white" strokeWidth={2} dash={[4, 4]} listening={false} />
-            <Line points={[cx - 12, cy, cx + 12, cy]} stroke="white" strokeWidth={1} dash={[4, 4]} opacity={0.5} listening={false} />
-            <Line points={[cx, cy - 12, cx, cy + 12]} stroke="white" strokeWidth={1} dash={[4, 4]} opacity={0.5} listening={false} />
+            <Line
+              points={[cx - 12, cy, cx + 12, cy]}
+              stroke="white"
+              strokeWidth={1}
+              dash={[4, 4]}
+              opacity={0.5}
+              listening={false}
+            />
+            <Line
+              points={[cx, cy - 12, cx, cy + 12]}
+              stroke="white"
+              strokeWidth={1}
+              dash={[4, 4]}
+              opacity={0.5}
+              listening={false}
+            />
           </Group>
         );
       }
@@ -1170,8 +1193,22 @@ const MaskOverlay = memo(
       return (
         <Group>
           <Circle x={cx} y={cy} radius={5} stroke="white" strokeWidth={2} dash={[4, 4]} listening={false} />
-          <Line points={[cx - 10, cy, cx + 10, cy]} stroke="white" strokeWidth={1} dash={[4, 4]} opacity={0.5} listening={false} />
-          <Line points={[cx, cy - 10, cx, cy + 10]} stroke="white" strokeWidth={1} dash={[4, 4]} opacity={0.5} listening={false} />
+          <Line
+            points={[cx - 10, cy, cx + 10, cy]}
+            stroke="white"
+            strokeWidth={1}
+            dash={[4, 4]}
+            opacity={0.5}
+            listening={false}
+          />
+          <Line
+            points={[cx, cy - 10, cx, cy + 10]}
+            stroke="white"
+            strokeWidth={1}
+            dash={[4, 4]}
+            opacity={0.5}
+            listening={false}
+          />
         </Group>
       );
     }
@@ -3196,10 +3233,7 @@ const ImageCanvas = memo(
                           const imgH = effectiveImageDimensions.height;
                           const px = spot.x * imgW;
                           const py = spot.y * imgH;
-                          const r = Math.max(
-                            4,
-                            spot.radius * Math.min(imgW, imgH) * imageRenderSize.scale,
-                          );
+                          const r = Math.max(4, spot.radius * Math.min(imgW, imgH) * imageRenderSize.scale);
                           const sx = (px - cropX) * imageRenderSize.scale;
                           const sy = (py - cropY) * imageRenderSize.scale;
                           return (

@@ -19,12 +19,9 @@ export interface LabelingStats {
 }
 
 export function useAiLabeling() {
-  const initLabeling = useCallback(
-    async (vocabularyJson?: string, similarityThreshold?: number): Promise<void> => {
-      await invoke(Invokes.AiLabelingInit, { vocabularyJson, similarityThreshold });
-    },
-    [],
-  );
+  const initLabeling = useCallback(async (vocabularyJson?: string, similarityThreshold?: number): Promise<void> => {
+    await invoke(Invokes.AiLabelingInit, { vocabularyJson, similarityThreshold });
+  }, []);
 
   const autoLabel = useCallback(
     async (imageHash: string, maxLabels: number = 10, minConfidence: number = 0.5): Promise<AutoLabelResult[]> => {
@@ -33,19 +30,13 @@ export function useAiLabeling() {
     [],
   );
 
-  const searchByText = useCallback(
-    async (query: string, maxResults: number = 20): Promise<any[]> => {
-      return invoke(Invokes.AiLabelingSearchByText, { query, maxResults }) as Promise<any[]>;
-    },
-    [],
-  );
+  const searchByText = useCallback(async (query: string, maxResults: number = 20): Promise<any[]> => {
+    return invoke(Invokes.AiLabelingSearchByText, { query, maxResults }) as Promise<any[]>;
+  }, []);
 
-  const findSimilar = useCallback(
-    async (imageHash: string, maxResults: number = 10): Promise<any[]> => {
-      return invoke(Invokes.AiLabelingFindSimilar, { imageHash, maxResults }) as Promise<any[]>;
-    },
-    [],
-  );
+  const findSimilar = useCallback(async (imageHash: string, maxResults: number = 10): Promise<any[]> => {
+    return invoke(Invokes.AiLabelingFindSimilar, { imageHash, maxResults }) as Promise<any[]>;
+  }, []);
 
   const getStats = useCallback(async (): Promise<LabelingStats> => {
     return invoke(Invokes.AiLabelingGetStats) as Promise<LabelingStats>;
@@ -59,58 +50,42 @@ export function useAiLabeling() {
     await invoke(Invokes.AiLabelingReset);
   }, []);
 
-  const addVocabularyEntry = useCallback(
-    async (label: string, embedding: number[]): Promise<void> => {
-      const embeddingJson = JSON.stringify(embedding);
-      await invoke(Invokes.AiLabelingAddVocabularyEntry, { label, embeddingJson });
-    },
-    [],
-  );
+  const addVocabularyEntry = useCallback(async (label: string, embedding: number[]): Promise<void> => {
+    const embeddingJson = JSON.stringify(embedding);
+    await invoke(Invokes.AiLabelingAddVocabularyEntry, { label, embeddingJson });
+  }, []);
 
-  const removeVocabularyEntry = useCallback(
-    async (label: string): Promise<void> => {
-      await invoke(Invokes.AiLabelingRemoveVocabularyEntry, { label });
-    },
-    [],
-  );
+  const removeVocabularyEntry = useCallback(async (label: string): Promise<void> => {
+    await invoke(Invokes.AiLabelingRemoveVocabularyEntry, { label });
+  }, []);
 
   const getVocabularyLabels = useCallback(async (): Promise<string[]> => {
     return invoke(Invokes.AiLabelingGetVocabularyLabels) as Promise<string[]>;
   }, []);
 
-  const addImageEmbedding = useCallback(
-    async (imageHash: string, embedding: number[]): Promise<void> => {
-      const embeddingJson = JSON.stringify(embedding);
-      await invoke(Invokes.AiLabelingAddImageEmbedding, { imageHash, embeddingJson });
-    },
-    [],
-  );
+  const addImageEmbedding = useCallback(async (imageHash: string, embedding: number[]): Promise<void> => {
+    const embeddingJson = JSON.stringify(embedding);
+    await invoke(Invokes.AiLabelingAddImageEmbedding, { imageHash, embeddingJson });
+  }, []);
 
-  const removeImage = useCallback(
-    async (imageHash: string): Promise<void> => {
-      await invoke(Invokes.AiLabelingRemoveImage, { imageHash });
-    },
-    [],
-  );
+  const removeImage = useCallback(async (imageHash: string): Promise<void> => {
+    await invoke(Invokes.AiLabelingRemoveImage, { imageHash });
+  }, []);
 
-  const searchByEmbedding = useCallback(
-    async (embedding: number[], maxResults: number = 10): Promise<any[]> => {
-      const embeddingJson = JSON.stringify(embedding);
-      return invoke(Invokes.AiLabelingSearchByEmbedding, { embeddingJson, maxResults }) as Promise<any[]>;
-    },
-    [],
-  );
+  const searchByEmbedding = useCallback(async (embedding: number[], maxResults: number = 10): Promise<any[]> => {
+    const embeddingJson = JSON.stringify(embedding);
+    return invoke(Invokes.AiLabelingSearchByEmbedding, { embeddingJson, maxResults }) as Promise<any[]>;
+  }, []);
 
-  const searchByLabel = useCallback(
-    async (labelQuery: string): Promise<any[]> => {
-      return invoke(Invokes.AiLabelingSearchByLabel, { labelQuery }) as Promise<any[]>;
-    },
-    [],
-  );
+  const searchByLabel = useCallback(async (labelQuery: string): Promise<any[]> => {
+    return invoke(Invokes.AiLabelingSearchByLabel, { labelQuery }) as Promise<any[]>;
+  }, []);
 
   const batchAutoLabel = useCallback(
     async (maxLabelsPerImage: number = 5, minConfidence: number = 0.5): Promise<Record<string, AutoLabelResult[]>> => {
-      return invoke(Invokes.AiLabelingBatchAutoLabel, { maxLabelsPerImage, minConfidence }) as Promise<Record<string, AutoLabelResult[]>>;
+      return invoke(Invokes.AiLabelingBatchAutoLabel, { maxLabelsPerImage, minConfidence }) as Promise<
+        Record<string, AutoLabelResult[]>
+      >;
     },
     [],
   );
@@ -122,19 +97,13 @@ export function useAiLabeling() {
     [],
   );
 
-  const removeLabel = useCallback(
-    async (imageHash: string, label: string, model: string = 'manual'): Promise<void> => {
-      await invoke(Invokes.AiLabelingRemoveLabel, { imageHash, label, model });
-    },
-    [],
-  );
+  const removeLabel = useCallback(async (imageHash: string, label: string, model: string = 'manual'): Promise<void> => {
+    await invoke(Invokes.AiLabelingRemoveLabel, { imageHash, label, model });
+  }, []);
 
-  const getLabels = useCallback(
-    async (imageHash: string): Promise<AutoLabelResult[]> => {
-      return invoke(Invokes.AiLabelingGetLabels, { imageHash }) as Promise<AutoLabelResult[]>;
-    },
-    [],
-  );
+  const getLabels = useCallback(async (imageHash: string): Promise<AutoLabelResult[]> => {
+    return invoke(Invokes.AiLabelingGetLabels, { imageHash }) as Promise<AutoLabelResult[]>;
+  }, []);
 
   return {
     initLabeling,

@@ -638,7 +638,9 @@ export default function CropPanel() {
                             setAdjustments((prev: Adjustments) => ({ ...prev, rotation: angle }));
                           }
                         }}
-                        data-tooltip={t('editor.crop.tooltips.autoStraightenHorizon', { defaultValue: 'Auto Straighten Horizon' })}
+                        data-tooltip={t('editor.crop.tooltips.autoStraightenHorizon', {
+                          defaultValue: 'Auto Straighten Horizon',
+                        })}
                       >
                         <Compass size={14} />
                       </button>

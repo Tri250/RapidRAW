@@ -170,11 +170,11 @@ export const useAppInitialization = ({
 
         if (settings?.pinnedFolders && settings.pinnedFolders.length > 0) {
           try {
-            const trees = await invoke(Invokes.GetPinnedFolderTrees, {
+            const trees = (await invoke(Invokes.GetPinnedFolderTrees, {
               paths: settings.pinnedFolders,
               expandedFolders: settings.lastFolderState?.expandedFolders || [],
               showImageCounts: settings.enableFolderImageCounts || settings.folderTreeSort?.key === 'imageCount',
-            }) as any[];
+            })) as any[];
             setLibrary({ pinnedFolderTrees: trees });
           } catch (err) {
             console.error('Failed to load pinned folder trees:', err);

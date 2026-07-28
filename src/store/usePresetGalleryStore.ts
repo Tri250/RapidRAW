@@ -65,8 +65,16 @@ export const convertSectionsToAdjustments = (sections?: GalleryPresetSection[]):
 
   // Professional/camera parameters that should be skipped (not image adjustments)
   const PROFESSIONAL_LABELS = new Set([
-    'ISO', 'ISO感光度', '快门', '快门速度', 'EV', '白平衡', 'WB白平衡',
-    'AF对焦模式', 'M测光模式', '曝光补偿',
+    'ISO',
+    'ISO感光度',
+    '快门',
+    '快门速度',
+    'EV',
+    '白平衡',
+    'WB白平衡',
+    'AF对焦模式',
+    'M测光模式',
+    '曝光补偿',
   ]);
 
   for (const section of sections) {
@@ -150,35 +158,90 @@ export const convertSectionsToAdjustments = (sections?: GalleryPresetSection[]):
       // Map label to adjustment key (mirror Rust param_label_to_key)
       let key: string;
       switch (param.label) {
-        case 'saturation': key = 'saturation'; break;
-        case 'hue': key = 'hue'; break;
-        case 'contrast': key = 'contrast'; break;
-        case 'brightness': key = 'brightness'; break;
-        case 'sharpness': key = 'sharpness'; break;
-        case 'clarity': key = 'clarity'; break;
-        case 'tone_curve': key = 'toneCurve'; break;
-        case 'contrast_highlight': key = 'highlights'; break;
-        case 'contrast_shadow': key = 'shadows'; break;
-        case 'grain': key = 'grainAmount'; break;
-        case 'grain_size': key = 'grainSize'; break;
-        case 'filter': key = 'filter'; break;
+        case 'saturation':
+          key = 'saturation';
+          break;
+        case 'hue':
+          key = 'hue';
+          break;
+        case 'contrast':
+          key = 'contrast';
+          break;
+        case 'brightness':
+          key = 'brightness';
+          break;
+        case 'sharpness':
+          key = 'sharpness';
+          break;
+        case 'clarity':
+          key = 'clarity';
+          break;
+        case 'tone_curve':
+          key = 'toneCurve';
+          break;
+        case 'contrast_highlight':
+          key = 'highlights';
+          break;
+        case 'contrast_shadow':
+          key = 'shadows';
+          break;
+        case 'grain':
+          key = 'grainAmount';
+          break;
+        case 'grain_size':
+          key = 'grainSize';
+          break;
+        case 'filter':
+          key = 'filter';
+          break;
         // Chinese labels from vivo/honor/OPPO community presets
-        case '曝光': key = 'brightness'; break;
-        case '亮度': key = 'brightness'; break;
-        case '对比度': key = 'contrast'; break;
-        case '高光': key = 'highlights'; break;
-        case '阴影': key = 'shadows'; break;
-        case '饱和度': key = 'saturation'; break;
-        case '色温': key = 'temperature'; break;
-        case '锐度': key = 'sharpness'; break;
-        case '光感': key = 'clarity'; break;
-        case '色调曲线': key = 'toneCurve'; break;
-        case '暗角': key = 'vignette'; break;
-        case '柔光': key = 'clarity'; break;
-        case '冷暖': key = 'temperature'; break;
-        case '色调': key = 'tint'; break;
-        case '青品': key = 'tint'; break;
-        default: key = param.label.toLowerCase().replace(/\s+/g, '_');
+        case '曝光':
+          key = 'brightness';
+          break;
+        case '亮度':
+          key = 'brightness';
+          break;
+        case '对比度':
+          key = 'contrast';
+          break;
+        case '高光':
+          key = 'highlights';
+          break;
+        case '阴影':
+          key = 'shadows';
+          break;
+        case '饱和度':
+          key = 'saturation';
+          break;
+        case '色温':
+          key = 'temperature';
+          break;
+        case '锐度':
+          key = 'sharpness';
+          break;
+        case '光感':
+          key = 'clarity';
+          break;
+        case '色调曲线':
+          key = 'toneCurve';
+          break;
+        case '暗角':
+          key = 'vignette';
+          break;
+        case '柔光':
+          key = 'clarity';
+          break;
+        case '冷暖':
+          key = 'temperature';
+          break;
+        case '色调':
+          key = 'tint';
+          break;
+        case '青品':
+          key = 'tint';
+          break;
+        default:
+          key = param.label.toLowerCase().replace(/\s+/g, '_');
       }
 
       adjustments[key] = Math.round(normalized * 100) / 100;
@@ -419,8 +482,7 @@ const buildPreset = (p: any, baseDir: string): GalleryPreset | null => {
   if (!rawCover && !sections && rawGallery.length === 0) return null;
 
   // Detect common placeholder filenames that won't resolve to real images
-  const isPlaceholder = (p: string) =>
-    typeof p === 'string' && /placeholder\.(webp|png|jpg|jpeg|gif)/i.test(p.trim());
+  const isPlaceholder = (p: string) => typeof p === 'string' && /placeholder\.(webp|png|jpg|jpeg|gif)/i.test(p.trim());
 
   const galleryImages = rawGallery
     .map((img: any) => resolvePath(typeof img === 'string' ? img : img?.url || '', baseDir))
@@ -436,13 +498,15 @@ const buildPreset = (p: any, baseDir: string): GalleryPreset | null => {
   // so the UI can show the fallback text/initial rendering instead of a broken image
   const effectiveCoverPath = coverIsPlaceholder ? '' : resolvedCover;
   const effectiveCoverFallback = coverIsPlaceholder
-    ? (resolveFallbackPath(rawCover) || undefined)
-    : (resolveFallbackPath(rawCover) || undefined);
+    ? resolveFallbackPath(rawCover) || undefined
+    : resolveFallbackPath(rawCover) || undefined;
 
   // Filter out placeholder gallery images too
-  const effectiveGalleryImages = galleryImages.length > 0 && !rawGallery.every((img: any) => isPlaceholder(typeof img === 'string' ? img : img?.url || ''))
-    ? galleryImages
-    : [];
+  const effectiveGalleryImages =
+    galleryImages.length > 0 &&
+    !rawGallery.every((img: any) => isPlaceholder(typeof img === 'string' ? img : img?.url || ''))
+      ? galleryImages
+      : [];
   const effectiveGalleryFallback = effectiveGalleryImages.length > 0 ? galleryFallback : [];
 
   return {
@@ -578,7 +642,7 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
     try {
       const response = await fetch(url, {
         mode: 'cors',
-        headers: { 'Accept': 'application/json' },
+        headers: { Accept: 'application/json' },
         signal: controller.signal,
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -602,9 +666,7 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
 
       set((state) => {
         const newSources = state.sources.map((s) =>
-          s.url === url
-            ? { ...s, presets, name: finalName, isLoading: false, error: softError }
-            : s,
+          s.url === url ? { ...s, presets, name: finalName, isLoading: false, error: softError } : s,
         );
         saveSources(newSources);
         return { sources: newSources };
@@ -612,13 +674,9 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
     } catch (err: any) {
       clearTimeout(timeoutId);
       const isAbort = err?.name === 'AbortError';
-      const message = isAbort
-        ? `请求超时（20 秒），请检查网络或更换数据源`
-        : err.message || String(err);
+      const message = isAbort ? `请求超时（20 秒），请检查网络或更换数据源` : err.message || String(err);
       set((state) => {
-        const newSources = state.sources.map((s) =>
-          s.url === url ? { ...s, isLoading: false, error: message } : s,
-        );
+        const newSources = state.sources.map((s) => (s.url === url ? { ...s, isLoading: false, error: message } : s));
         saveSources(newSources);
         return { sources: newSources };
       });

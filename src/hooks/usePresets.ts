@@ -287,9 +287,7 @@ export function usePresets(currentAdjustments: Adjustments) {
         return {
           folder: {
             ...item.folder,
-            children: item.folder.children.map((child: any) =>
-              child.id === id ? { ...child, name: trimmed } : child,
-            ),
+            children: item.folder.children.map((child: any) => (child.id === id ? { ...child, name: trimmed } : child)),
           },
         };
       }
@@ -668,8 +666,7 @@ export function usePresets(currentAdjustments: Adjustments) {
           (presetToMove &&
             !updatedPresets.some(
               (p) =>
-                p.preset?.id === presetToMove!.id ||
-                p.folder?.children.some((c: Preset) => c.id === presetToMove!.id),
+                p.preset?.id === presetToMove!.id || p.folder?.children.some((c: Preset) => c.id === presetToMove!.id),
             )) ||
           (folderToMove && !updatedPresets.some((p) => p.folder?.id === folderToMove!.id));
         if (stillMissing) {

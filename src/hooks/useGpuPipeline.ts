@@ -39,12 +39,9 @@ export interface LutInfo {
 }
 
 export function useGpuPipeline() {
-  const gpuApplyAdjustments = useCallback(
-    async (params: GpuAdjustmentParams): Promise<string> => {
-      return invoke(Invokes.GpuApplyAdjustments, { ...params }) as Promise<string>;
-    },
-    [],
-  );
+  const gpuApplyAdjustments = useCallback(async (params: GpuAdjustmentParams): Promise<string> => {
+    return invoke(Invokes.GpuApplyAdjustments, { ...params }) as Promise<string>;
+  }, []);
 
   /**
    * Probe whether the lightweight GPU adjustment pipeline is initialized.
@@ -108,36 +105,24 @@ export function useGpuPipeline() {
     [],
   );
 
-  const colorSrgbToLinear = useCallback(
-    async (r: number, g: number, b: number): Promise<ColorConversionResult> => {
-      const result = await invoke(Invokes.ColorSrgbToLinear, { r, g, b });
-      return safeRgb(result, [r, g, b]);
-    },
-    [],
-  );
+  const colorSrgbToLinear = useCallback(async (r: number, g: number, b: number): Promise<ColorConversionResult> => {
+    const result = await invoke(Invokes.ColorSrgbToLinear, { r, g, b });
+    return safeRgb(result, [r, g, b]);
+  }, []);
 
-  const colorLinearToSrgb = useCallback(
-    async (r: number, g: number, b: number): Promise<ColorConversionResult> => {
-      const result = await invoke(Invokes.ColorLinearToSrgb, { r, g, b });
-      return safeRgb(result, [r, g, b]);
-    },
-    [],
-  );
+  const colorLinearToSrgb = useCallback(async (r: number, g: number, b: number): Promise<ColorConversionResult> => {
+    const result = await invoke(Invokes.ColorLinearToSrgb, { r, g, b });
+    return safeRgb(result, [r, g, b]);
+  }, []);
 
-  const colorApplyAcesFitted = useCallback(
-    async (value: number): Promise<number> => {
-      const result = (await invoke(Invokes.ColorApplyAcesFitted, { value })) as number;
-      return Number.isFinite(result) ? result : value;
-    },
-    [],
-  );
+  const colorApplyAcesFitted = useCallback(async (value: number): Promise<number> => {
+    const result = (await invoke(Invokes.ColorApplyAcesFitted, { value })) as number;
+    return Number.isFinite(result) ? result : value;
+  }, []);
 
-  const lutParseCubeFile = useCallback(
-    async (content: string): Promise<LutInfo> => {
-      return invoke(Invokes.LutParseCubeFile, { content }) as Promise<LutInfo>;
-    },
-    [],
-  );
+  const lutParseCubeFile = useCallback(async (content: string): Promise<LutInfo> => {
+    return invoke(Invokes.LutParseCubeFile, { content }) as Promise<LutInfo>;
+  }, []);
 
   const lutApplyToImage = useCallback(
     async (imageDataBase64: string, width: number, height: number, lutContent: string): Promise<string> => {

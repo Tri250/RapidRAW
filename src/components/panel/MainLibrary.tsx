@@ -368,192 +368,200 @@ export default function MainLibrary(props: MainLibraryProps) {
           />
         </div>
       ) : (
-      <>
-      <header
-        className="p-4 pb-0 shrink-0 flex flex-col border-b border-surface gap-2"
-        onMouseEnter={() => setIsProgressHovered(true)}
-        onMouseLeave={() => setIsProgressHovered(false)}
-      >
-        <div className="flex justify-between items-center gap-4">
-          <div className="min-w-0">
-          <Text variant={TextVariants.headline}>{t('library.header.title')}</Text>
-          {!props.isAndroid && (
-            <div className="flex items-center gap-2">
-              {props.currentFolderPath ? (
-                <Text className="truncate">{props.currentFolderPath}</Text>
-              ) : (
-                <p className="text-sm invisible select-none pointer-events-none h-5 overflow-hidden"></p>
-              )}
-              <div
-                className={`flex items-center gap-2 overflow-hidden transition-all duration-300 whitespace-nowrap ${
-                  isBusyDelayed ? 'max-w-xs opacity-100' : 'max-w-0 opacity-0'
-                }`}
-              >
-                <Loader2 size={14} className="animate-spin text-text-secondary shrink-0" />
-                <div
-                  className={`flex items-center transition-all duration-300 ease-out overflow-hidden ${
-                    isProgressHovered && isBusyDelayed && (props.thumbnailProgress?.total ?? 0) > 0
-                      ? 'max-w-xs opacity-100'
-                      : 'max-w-0 opacity-0'
-                  }`}
-                >
-                  <Text variant={TextVariants.small} color={TextColors.secondary} className="whitespace-nowrap">
-                    ({props.thumbnailProgress?.current ?? 0}/{props.thumbnailProgress?.total ?? 0})
+        <>
+          <header
+            className="p-4 pb-0 shrink-0 flex flex-col border-b border-surface gap-2"
+            onMouseEnter={() => setIsProgressHovered(true)}
+            onMouseLeave={() => setIsProgressHovered(false)}
+          >
+            <div className="flex justify-between items-center gap-4">
+              <div className="min-w-0">
+                <Text variant={TextVariants.headline}>{t('library.header.title')}</Text>
+                {!props.isAndroid && (
+                  <div className="flex items-center gap-2">
+                    {props.currentFolderPath ? (
+                      <Text className="truncate">{props.currentFolderPath}</Text>
+                    ) : (
+                      <p className="text-sm invisible select-none pointer-events-none h-5 overflow-hidden"></p>
+                    )}
+                    <div
+                      className={`flex items-center gap-2 overflow-hidden transition-all duration-300 whitespace-nowrap ${
+                        isBusyDelayed ? 'max-w-xs opacity-100' : 'max-w-0 opacity-0'
+                      }`}
+                    >
+                      <Loader2 size={14} className="animate-spin text-text-secondary shrink-0" />
+                      <div
+                        className={`flex items-center transition-all duration-300 ease-out overflow-hidden ${
+                          isProgressHovered && isBusyDelayed && (props.thumbnailProgress?.total ?? 0) > 0
+                            ? 'max-w-xs opacity-100'
+                            : 'max-w-0 opacity-0'
+                        }`}
+                      >
+                        <Text variant={TextVariants.small} color={TextColors.secondary} className="whitespace-nowrap">
+                          ({props.thumbnailProgress?.current ?? 0}/{props.thumbnailProgress?.total ?? 0})
+                        </Text>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                {props.importState.status === Status.Importing && (
+                  <Text as="div" color={TextColors.accent} className="flex items-center gap-2 animate-pulse">
+                    <FolderInput size={16} />
+                    <span>
+                      {t('library.import.progress', {
+                        current: props.importState.progress?.current,
+                        total: props.importState.progress?.total,
+                      })}
+                    </span>
                   </Text>
-                </div>
+                )}
+                {props.importState.status === Status.Success && (
+                  <Text as="div" color={TextColors.success} className="flex items-center gap-2">
+                    <Check size={16} />
+                    <span>{t('library.import.complete')}</span>
+                  </Text>
+                )}
+                {props.importState.status === Status.Error && (
+                  <Text as="div" color={TextColors.error} className="flex items-center gap-2">
+                    <AlertTriangle size={16} />
+                    <span>{t('library.import.failed')}</span>
+                  </Text>
+                )}
+                <SearchInput
+                  indexingProgress={props.indexingProgress}
+                  isIndexing={props.isIndexing}
+                  isAndroid={props.isAndroid}
+                />
+                <ViewOptionsDropdown
+                  libraryViewMode={props.libraryViewMode}
+                  onSelectSize={props.onThumbnailSizeChange}
+                  onSelectAspectRatio={props.onThumbnailAspectRatioChange}
+                  setLibraryViewMode={props.setLibraryViewMode}
+                  thumbnailSize={props.thumbnailSize}
+                  thumbnailAspectRatio={props.thumbnailAspectRatio}
+                  thumbnailSizeOptions={translatedThumbnailSizeOptions}
+                  thumbnailAspectRatioOptions={translatedThumbnailAspectRatioOptions}
+                  ratingFilterOptions={translatedRatingFilterOptions}
+                  rawStatusOptions={translatedRawStatusOptions}
+                  editedStatusOptions={translatedEditedStatusOptions}
+                  sortOptions={translatedSortOptions}
+                />
+                {props.isAndroid && (
+                  <Button
+                    className={`h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center relative ${showAdvancedFilter ? 'bg-card-active' : ''}`}
+                    onClick={() => setShowAdvancedFilter(!showAdvancedFilter)}
+                    data-tooltip={t('library.search.advancedFilter')}
+                  >
+                    <Filter className="w-5 h-5" />
+                    {showAdvancedFilter && <div className="absolute -top-1 -right-1 bg-accent rounded-full w-3 h-3" />}
+                  </Button>
+                )}
+                <Button
+                  className="h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center"
+                  onClick={() => setShowSettings(true)}
+                  data-tooltip={t('settings.general.title')}
+                >
+                  <Settings className="w-8 h-8" />
+                </Button>
+                <Button
+                  className="h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center"
+                  onClick={props.onGoHome}
+                  data-tooltip={t('library.tooltips.goHome')}
+                >
+                  <Home className="w-8 h-8" />
+                </Button>
               </div>
             </div>
+            <nav className="flex gap-1 -mb-px">
+              <button className="px-4 py-1.5 text-sm font-medium rounded-t-md bg-bg-secondary text-text-primary border border-b-0 border-border-color">
+                {t('library.nav.library', { defaultValue: '图库' })}
+              </button>
+              <button
+                className="px-4 py-1.5 text-sm font-medium rounded-t-md text-text-secondary hover:text-text-primary hover:bg-surface transition-colors"
+                onClick={props.onNavigateToGallery}
+              >
+                <Globe size={14} className="inline mr-1.5 -mt-0.5" />
+                {t('library.nav.onlineSamples', { defaultValue: '在线样张' })}
+              </button>
+              <button
+                className="px-4 py-1.5 text-sm font-medium rounded-t-md text-text-secondary hover:text-text-primary hover:bg-surface transition-colors"
+                onClick={props.onNavigateToCommunity}
+              >
+                <Users size={14} className="inline mr-1.5 -mt-0.5" />
+                {t('library.nav.communityPresets', { defaultValue: '社区预设' })}
+              </button>
+            </nav>
+          </header>
+
+          <AnimatePresence>
+            {showAdvancedFilter && props.isAndroid && <AdvancedFilterPanel isAndroid={props.isAndroid} />}
+          </AnimatePresence>
+
+          {props.imageList.length > 0 ? (
+            <LibraryGrid {...props} thumbnailSizeOptions={translatedThumbnailSizeOptions} />
+          ) : props.isIndexing || props.aiModelDownloadStatus || props.importState.status === Status.Importing ? (
+            <div
+              className="flex-1 flex flex-col items-center justify-center"
+              onContextMenu={props.onEmptyAreaContextMenu}
+            >
+              <Loader2 className="h-12 w-12 text-secondary animate-spin mb-4" />
+              <Text variant={TextVariants.heading} color={TextColors.secondary}>
+                {props.aiModelDownloadStatus
+                  ? t('library.status.downloading', { status: props.aiModelDownloadStatus })
+                  : props.isIndexing && props.indexingProgress.total > 0
+                    ? t('library.status.indexing', {
+                        current: props.indexingProgress.current,
+                        total: props.indexingProgress.total,
+                      })
+                    : props.importState.status === Status.Importing &&
+                        props.importState?.progress?.total &&
+                        props.importState.progress.total > 0
+                      ? t('library.status.importing', {
+                          current: props.importState.progress?.current,
+                          total: props.importState.progress?.total,
+                        })
+                      : t('library.status.processing')}
+              </Text>
+              <Text className="mt-2">{t('library.status.moment')}</Text>
+            </div>
+          ) : searchCriteria.tags.length > 0 || searchCriteria.text ? (
+            <div
+              className="flex-1 flex flex-col items-center justify-center text-text-secondary text-center"
+              onContextMenu={props.onEmptyAreaContextMenu}
+            >
+              <Search className="h-12 w-12 text-secondary mb-4" />
+              <Text variant={TextVariants.heading} color={TextColors.secondary}>
+                {t('library.search.noResults')}
+              </Text>
+              <Text className="mt-2 max-w-sm">
+                {t('library.search.noResultsDesc')}
+                {!props.appSettings?.enableAiTagging && t('library.search.noResultsAiHint')}
+              </Text>
+            </div>
+          ) : (
+            <div
+              className="flex-1 flex flex-col items-center justify-center"
+              onContextMenu={props.onEmptyAreaContextMenu}
+            >
+              <SlidersHorizontal className="h-12 w-12 mb-4 text-text-secondary" />
+              <Text>{t('library.filters.noMatch')}</Text>
+            </div>
           )}
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          {props.importState.status === Status.Importing && (
-            <Text as="div" color={TextColors.accent} className="flex items-center gap-2 animate-pulse">
-              <FolderInput size={16} />
-              <span>
-                {t('library.import.progress', {
-                  current: props.importState.progress?.current,
-                  total: props.importState.progress?.total,
-                })}
-              </span>
-            </Text>
-          )}
-          {props.importState.status === Status.Success && (
-            <Text as="div" color={TextColors.success} className="flex items-center gap-2">
-              <Check size={16} />
-              <span>{t('library.import.complete')}</span>
-            </Text>
-          )}
-          {props.importState.status === Status.Error && (
-            <Text as="div" color={TextColors.error} className="flex items-center gap-2">
-              <AlertTriangle size={16} />
-              <span>{t('library.import.failed')}</span>
-            </Text>
-          )}
-          <SearchInput indexingProgress={props.indexingProgress} isIndexing={props.isIndexing} isAndroid={props.isAndroid} />
-          <ViewOptionsDropdown
-            libraryViewMode={props.libraryViewMode}
-            onSelectSize={props.onThumbnailSizeChange}
-            onSelectAspectRatio={props.onThumbnailAspectRatioChange}
-            setLibraryViewMode={props.setLibraryViewMode}
-            thumbnailSize={props.thumbnailSize}
-            thumbnailAspectRatio={props.thumbnailAspectRatio}
-            thumbnailSizeOptions={translatedThumbnailSizeOptions}
-            thumbnailAspectRatioOptions={translatedThumbnailAspectRatioOptions}
-            ratingFilterOptions={translatedRatingFilterOptions}
-            rawStatusOptions={translatedRawStatusOptions}
-            editedStatusOptions={translatedEditedStatusOptions}
-            sortOptions={translatedSortOptions}
-          />
           {props.isAndroid && (
             <Button
-              className={`h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center relative ${showAdvancedFilter ? 'bg-card-active' : ''}`}
-              onClick={() => setShowAdvancedFilter(!showAdvancedFilter)}
-              data-tooltip={t('library.search.advancedFilter')}
+              className="absolute bottom-18 right-8 h-12 w-12 bg-accent text-button-text shadow-lg p-0 flex items-center justify-center z-50 border border-border-color/50"
+              onClick={(e: any) => {
+                e.stopPropagation();
+                props.onImportClick();
+              }}
+              data-tooltip={t('library.tooltips.importImages')}
             >
-              <Filter className="w-5 h-5" />
-              {showAdvancedFilter && <div className="absolute -top-1 -right-1 bg-accent rounded-full w-3 h-3" />}
+              <FolderInput className="w-6 h-6" />
             </Button>
           )}
-          <Button
-            className="h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center"
-            onClick={() => setShowSettings(true)}
-            data-tooltip={t('settings.general.title')}
-          >
-            <Settings className="w-8 h-8" />
-          </Button>
-          <Button
-            className="h-12 w-12 bg-surface text-text-primary shadow-none p-0 flex items-center justify-center"
-            onClick={props.onGoHome}
-            data-tooltip={t('library.tooltips.goHome')}
-          >
-            <Home className="w-8 h-8" />
-          </Button>
-        </div>
-        </div>
-        <nav className="flex gap-1 -mb-px">
-          <button
-            className="px-4 py-1.5 text-sm font-medium rounded-t-md bg-bg-secondary text-text-primary border border-b-0 border-border-color"
-          >
-            {t('library.nav.library', { defaultValue: '图库' })}
-          </button>
-          <button
-            className="px-4 py-1.5 text-sm font-medium rounded-t-md text-text-secondary hover:text-text-primary hover:bg-surface transition-colors"
-            onClick={props.onNavigateToGallery}
-          >
-            <Globe size={14} className="inline mr-1.5 -mt-0.5" />
-            {t('library.nav.onlineSamples', { defaultValue: '在线样张' })}
-          </button>
-          <button
-            className="px-4 py-1.5 text-sm font-medium rounded-t-md text-text-secondary hover:text-text-primary hover:bg-surface transition-colors"
-            onClick={props.onNavigateToCommunity}
-          >
-            <Users size={14} className="inline mr-1.5 -mt-0.5" />
-            {t('library.nav.communityPresets', { defaultValue: '社区预设' })}
-          </button>
-        </nav>
-      </header>
-
-      <AnimatePresence>
-        {showAdvancedFilter && props.isAndroid && <AdvancedFilterPanel isAndroid={props.isAndroid} />}
-      </AnimatePresence>
-
-      {props.imageList.length > 0 ? (
-        <LibraryGrid {...props} thumbnailSizeOptions={translatedThumbnailSizeOptions} />
-      ) : props.isIndexing || props.aiModelDownloadStatus || props.importState.status === Status.Importing ? (
-        <div className="flex-1 flex flex-col items-center justify-center" onContextMenu={props.onEmptyAreaContextMenu}>
-          <Loader2 className="h-12 w-12 text-secondary animate-spin mb-4" />
-          <Text variant={TextVariants.heading} color={TextColors.secondary}>
-            {props.aiModelDownloadStatus
-              ? t('library.status.downloading', { status: props.aiModelDownloadStatus })
-              : props.isIndexing && props.indexingProgress.total > 0
-                ? t('library.status.indexing', {
-                    current: props.indexingProgress.current,
-                    total: props.indexingProgress.total,
-                  })
-                : props.importState.status === Status.Importing &&
-                    props.importState?.progress?.total &&
-                    props.importState.progress.total > 0
-                  ? t('library.status.importing', {
-                      current: props.importState.progress?.current,
-                      total: props.importState.progress?.total,
-                    })
-                  : t('library.status.processing')}
-          </Text>
-          <Text className="mt-2">{t('library.status.moment')}</Text>
-        </div>
-      ) : searchCriteria.tags.length > 0 || searchCriteria.text ? (
-        <div
-          className="flex-1 flex flex-col items-center justify-center text-text-secondary text-center"
-          onContextMenu={props.onEmptyAreaContextMenu}
-        >
-          <Search className="h-12 w-12 text-secondary mb-4" />
-          <Text variant={TextVariants.heading} color={TextColors.secondary}>
-            {t('library.search.noResults')}
-          </Text>
-          <Text className="mt-2 max-w-sm">
-            {t('library.search.noResultsDesc')}
-            {!props.appSettings?.enableAiTagging && t('library.search.noResultsAiHint')}
-          </Text>
-        </div>
-      ) : (
-        <div className="flex-1 flex flex-col items-center justify-center" onContextMenu={props.onEmptyAreaContextMenu}>
-          <SlidersHorizontal className="h-12 w-12 mb-4 text-text-secondary" />
-          <Text>{t('library.filters.noMatch')}</Text>
-        </div>
-      )}
-      {props.isAndroid && (
-        <Button
-          className="absolute bottom-18 right-8 h-12 w-12 bg-accent text-button-text shadow-lg p-0 flex items-center justify-center z-50 border border-border-color/50"
-          onClick={(e: any) => {
-            e.stopPropagation();
-            props.onImportClick();
-          }}
-          data-tooltip={t('library.tooltips.importImages')}
-        >
-          <FolderInput className="w-6 h-6" />
-        </Button>
-      )}
-      </>
+        </>
       )}
     </div>
   );

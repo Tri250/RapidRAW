@@ -2,7 +2,18 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { save, open } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'react-toastify';
-import { FileInput, CheckCircle, XCircle, Loader, Ban, ChevronDown, ChevronRight, Settings, X, Share2 } from 'lucide-react';
+import {
+  FileInput,
+  CheckCircle,
+  XCircle,
+  Loader,
+  Ban,
+  ChevronDown,
+  ChevronRight,
+  Settings,
+  X,
+  Share2,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import debounce from 'lodash.debounce';
@@ -510,13 +521,12 @@ export default function ExportPanel({
 
       if (isAndroid || outputFolderOrFile) {
         if (!isAndroid) {
-          const dir =
-            shouldChooseOutputFile
-              ? outputFolderOrFile.substring(
-                  0,
-                  Math.max(outputFolderOrFile.lastIndexOf('/'), outputFolderOrFile.lastIndexOf('\\')),
-                )
-              : outputFolderOrFile;
+          const dir = shouldChooseOutputFile
+            ? outputFolderOrFile.substring(
+                0,
+                Math.max(outputFolderOrFile.lastIndexOf('/'), outputFolderOrFile.lastIndexOf('\\')),
+              )
+            : outputFolderOrFile;
           if (dir) saveLastUsedPreset(dir);
         }
 
@@ -537,12 +547,18 @@ export default function ExportPanel({
           const exportedPaths: string[] = Array.isArray(exportResult) ? exportResult : [exportResult];
           const getMimeType = (fmt: string) => {
             switch (fmt) {
-              case 'png': return 'image/png';
-              case 'webp': return 'image/webp';
-              case 'avif': return 'image/avif';
-              case 'tiff': return 'image/tiff';
-              case 'jxl': return 'image/jxl';
-              default: return 'image/jpeg';
+              case 'png':
+                return 'image/png';
+              case 'webp':
+                return 'image/webp';
+              case 'avif':
+                return 'image/avif';
+              case 'tiff':
+                return 'image/tiff';
+              case 'jxl':
+                return 'image/jxl';
+              default:
+                return 'image/jpeg';
             }
           };
           const mimeType = getMimeType(selectedFormat.extensions[0]);
@@ -687,9 +703,14 @@ export default function ExportPanel({
                   value={filenameTemplate}
                 />
                 {!filenameTemplate.includes('{sequence}') && !filenameTemplate.includes('{original_filename}') && (
-                  <Text variant={TextVariants.small} color={TextColors.secondary} className="mt-1.5 flex items-center gap-1">
+                  <Text
+                    variant={TextVariants.small}
+                    color={TextColors.secondary}
+                    className="mt-1.5 flex items-center gap-1"
+                  >
                     <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 inline-block" />
-                    {t('export.file.sequenceVariableRecommended') || '建议使用 {sequence} 或 {original_filename} 避免文件名冲突'}
+                    {t('export.file.sequenceVariableRecommended') ||
+                      '建议使用 {sequence} 或 {original_filename} 避免文件名冲突'}
                   </Text>
                 )}
                 <div className="flex flex-wrap gap-2 mt-2">
@@ -999,12 +1020,18 @@ export default function ExportPanel({
                 // Formats not widely supported by social apps (TIFF, JXL) fall back to image/*
                 const getMimeType = (fmt: string) => {
                   switch (fmt) {
-                    case 'png': return 'image/png';
-                    case 'webp': return 'image/webp';
-                    case 'avif': return 'image/avif';
-                    case 'tiff': return 'image/*'; // Most social apps don't support TIFF, use wildcard
-                    case 'jxl': return 'image/*'; // JPEG XL not widely supported, use wildcard
-                    default: return 'image/jpeg';
+                    case 'png':
+                      return 'image/png';
+                    case 'webp':
+                      return 'image/webp';
+                    case 'avif':
+                      return 'image/avif';
+                    case 'tiff':
+                      return 'image/*'; // Most social apps don't support TIFF, use wildcard
+                    case 'jxl':
+                      return 'image/*'; // JPEG XL not widely supported, use wildcard
+                    default:
+                      return 'image/jpeg';
                   }
                 };
                 const mimeType = getMimeType(fileFormat);

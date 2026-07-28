@@ -232,22 +232,22 @@ export function useLibraryActions(handleImageSelect?: (path: string) => void) {
       const updates: any = {};
 
       if (rootPaths && rootPaths.length > 0) {
-        const treesData = await invoke(Invokes.GetPinnedFolderTrees, {
+        const treesData = (await invoke(Invokes.GetPinnedFolderTrees, {
           paths: rootPaths,
           expandedFolders: expandedArray,
           showImageCounts,
-        }) as any[];
+        })) as any[];
         updates.folderTrees = treesData;
       } else {
         updates.folderTrees = [];
       }
 
       if (pinnedFolders && pinnedFolders.length > 0) {
-        const pinnedTreesData = await invoke(Invokes.GetPinnedFolderTrees, {
+        const pinnedTreesData = (await invoke(Invokes.GetPinnedFolderTrees, {
           paths: pinnedFolders,
           expandedFolders: expandedArray,
           showImageCounts,
-        }) as any[];
+        })) as any[];
         updates.pinnedFolderTrees = pinnedTreesData;
       } else {
         updates.pinnedFolderTrees = [];
@@ -275,11 +275,11 @@ export function useLibraryActions(handleImageSelect?: (path: string) => void) {
     handleSettingsChange({ ...appSettings, pinnedFolders: newPins });
 
     try {
-      const trees = await invoke(Invokes.GetPinnedFolderTrees, {
+      const trees = (await invoke(Invokes.GetPinnedFolderTrees, {
         paths: newPins,
         expandedFolders: Array.from(expandedFolders),
         showImageCounts: appSettings.enableFolderImageCounts ?? false,
-      }) as any[];
+      })) as any[];
       setLibrary({ pinnedFolderTrees: trees });
     } catch (err) {
       toast.error(`Failed to refresh pinned folders: ${err}`);

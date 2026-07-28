@@ -154,7 +154,7 @@ export default function LUTControl({
               console.error('Failed to resolve Android URI:', e);
               return path;
             }
-          })
+          }),
         );
         const allowedExtensions = new Set(['cube', '3dl']);
         validPaths = sourcePaths.filter((_, index) => {

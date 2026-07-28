@@ -12,9 +12,9 @@ use std::hash::{Hash, Hasher};
 use std::io::Cursor;
 use std::sync::Arc; // Required for parallel rasterization
 
+use crate::MutexResilient;
 use crate::app_state::AppState;
 use crate::get_cached_full_warped_image;
-use crate::MutexResilient;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(crate = "serde")]
@@ -1628,9 +1628,7 @@ pub fn generate_color_range_mask(
         let (ah, as_, al) = rgb_to_hsl_internal(a_rf, a_gf, a_bf);
 
         // If the user provided explicit hueCenter, use it; otherwise the anchor.
-        let hc = hue_center
-            .unwrap_or(ah)
-            .rem_euclid(360.0);
+        let hc = hue_center.unwrap_or(ah).rem_euclid(360.0);
         // Default hue half-range: 30° (matches the default parameters?.hueRange ?? 30)
         let h_half = hue_range.unwrap_or(30.0).clamp(0.0, 180.0);
         let tol_h = tol * 40.0;
@@ -1696,23 +1694,11 @@ pub fn generate_color_range_mask(
             } else {
                 hue >= h_lo && hue <= h_hi
             };
-            let hue_weight = if h_in {
-                1.0
-            } else {
-                0.0
-            };
+            let hue_weight = if h_in { 1.0 } else { 0.0 };
 
-            let sat_weight = if sat >= s_lo && sat <= s_hi {
-                1.0
-            } else {
-                0.0
-            };
+            let sat_weight = if sat >= s_lo && sat <= s_hi { 1.0 } else { 0.0 };
 
-            let lum_weight = if lum >= l_lo && lum <= l_hi {
-                1.0
-            } else {
-                0.0
-            };
+            let lum_weight = if lum >= l_lo && lum <= l_hi { 1.0 } else { 0.0 };
 
             let combined = hue_weight * sat_weight * lum_weight;
             let idx = (y * w + x) as usize;
@@ -1856,7 +1842,8 @@ pub fn generate_luminance_range_mask(
     }
 
     // Encode to PNG base64 data-URL for frontend compatibility (expects mask_data_base64 field)
-    let gray_img = GrayImage::from_raw(w, h, mask_data).ok_or("Failed to build final GrayImage (luminance)")?;
+    let gray_img = GrayImage::from_raw(w, h, mask_data)
+        .ok_or("Failed to build final GrayImage (luminance)")?;
     let mut png_buf: Vec<u8> = Vec::with_capacity((w * h) as usize * 2);
     {
         let mut cur = Cursor::new(&mut png_buf);

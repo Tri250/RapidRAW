@@ -210,38 +210,44 @@ export default function LibraryGrid(props: any) {
     longPressStartRef.current = null;
   }, []);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (!isAndroid) return;
-    const touch = e.touches[0];
-    longPressStartRef.current = { x: touch.clientX, y: touch.clientY };
-    // Resolve the image path immediately at touch-start time to avoid stale DOM references
-    // after the list potentially re-renders during the 500ms long-press timeout
-    const target = e.target as HTMLElement;
-    const imageEl = target.closest('[data-image-path]') as HTMLElement | null;
-    const resolvedPath = imageEl?.dataset.imagePath || '';
-    clearLongPress();
-    longPressTimerRef.current = window.setTimeout(() => {
-      if (!longPressStartRef.current) return;
-      const simulatedEvent = {
-        clientX: longPressStartRef.current.x,
-        clientY: longPressStartRef.current.y,
-        preventDefault: () => {},
-        stopPropagation: () => {},
-      } as any;
-      onContextMenu?.(simulatedEvent, resolvedPath);
-      longPressStartRef.current = null;
-    }, LONG_PRESS_DURATION);
-  }, [isAndroid, onContextMenu, clearLongPress]);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isAndroid || !longPressStartRef.current) return;
-    const touch = e.touches[0];
-    const dx = Math.abs(touch.clientX - longPressStartRef.current.x);
-    const dy = Math.abs(touch.clientY - longPressStartRef.current.y);
-    if (dx > LONG_PRESS_MOVE_THRESHOLD || dy > LONG_PRESS_MOVE_THRESHOLD) {
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (!isAndroid) return;
+      const touch = e.touches[0];
+      longPressStartRef.current = { x: touch.clientX, y: touch.clientY };
+      // Resolve the image path immediately at touch-start time to avoid stale DOM references
+      // after the list potentially re-renders during the 500ms long-press timeout
+      const target = e.target as HTMLElement;
+      const imageEl = target.closest('[data-image-path]') as HTMLElement | null;
+      const resolvedPath = imageEl?.dataset.imagePath || '';
       clearLongPress();
-    }
-  }, [isAndroid, clearLongPress]);
+      longPressTimerRef.current = window.setTimeout(() => {
+        if (!longPressStartRef.current) return;
+        const simulatedEvent = {
+          clientX: longPressStartRef.current.x,
+          clientY: longPressStartRef.current.y,
+          preventDefault: () => {},
+          stopPropagation: () => {},
+        } as any;
+        onContextMenu?.(simulatedEvent, resolvedPath);
+        longPressStartRef.current = null;
+      }, LONG_PRESS_DURATION);
+    },
+    [isAndroid, onContextMenu, clearLongPress],
+  );
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!isAndroid || !longPressStartRef.current) return;
+      const touch = e.touches[0];
+      const dx = Math.abs(touch.clientX - longPressStartRef.current.x);
+      const dy = Math.abs(touch.clientY - longPressStartRef.current.y);
+      if (dx > LONG_PRESS_MOVE_THRESHOLD || dy > LONG_PRESS_MOVE_THRESHOLD) {
+        clearLongPress();
+      }
+    },
+    [isAndroid, clearLongPress],
+  );
 
   const handleTouchEnd = useCallback(() => {
     clearLongPress();

@@ -1,8 +1,24 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  ArrowLeft, Loader2, Plus, RefreshCw, Trash2, X, ImageIcon,
-  ChevronLeft, ChevronRight, Globe, Tag, Info, Camera, User,
-  Maximize2, Grid3X3, Download, Check, AlertCircle,
+  ArrowLeft,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Trash2,
+  X,
+  ImageIcon,
+  ChevronLeft,
+  ChevronRight,
+  Globe,
+  Tag,
+  Info,
+  Camera,
+  User,
+  Maximize2,
+  Grid3X3,
+  Download,
+  Check,
+  AlertCircle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -45,9 +61,9 @@ const skeletonVariants = {
 const SECTION_TITLES: Record<string, string> = {
   '@string/section_color_grading': '色彩调整',
   '@string/param_pro_adjust': '专业参数',
-  '专业参数': '专业参数',
-  '基本调节': '基本调节',
-  '色彩调节': '色彩调节',
+  专业参数: '专业参数',
+  基本调节: '基本调节',
+  色彩调节: '色彩调节',
 };
 
 const PARAM_LABELS: Record<string, string> = {
@@ -65,29 +81,29 @@ const PARAM_LABELS: Record<string, string> = {
   '@string/param_color_temp': '色温',
   '@string/param_tone': '色调',
   // vivo / honor Chinese labels
-  '曝光': '曝光',
-  '亮度': '亮度',
-  '对比度': '对比度',
-  '高光': '高光',
-  '阴影': '阴影',
-  '光感': '光感',
-  '饱和度': '饱和度',
-  '色温': '色温',
-  '锐度': '锐度',
-  '冷暖': '冷暖',
-  '青品': '青品',
-  '暗角': '暗角',
-  '色调': '色调',
-  '柔光': '柔光',
+  曝光: '曝光',
+  亮度: '亮度',
+  对比度: '对比度',
+  高光: '高光',
+  阴影: '阴影',
+  光感: '光感',
+  饱和度: '饱和度',
+  色温: '色温',
+  锐度: '锐度',
+  冷暖: '冷暖',
+  青品: '青品',
+  暗角: '暗角',
+  色调: '色调',
+  柔光: '柔光',
   // honor professional labels
-  'ISO感光度': 'ISO',
-  '快门速度': '快门',
-  'AF对焦模式': '对焦模式',
-  'WB白平衡': '白平衡',
-  'M测光模式': '测光模式',
-  '白平衡': '白平衡',
-  '曝光补偿': '曝光补偿',
-  'EV': 'EV',
+  ISO感光度: 'ISO',
+  快门速度: '快门',
+  AF对焦模式: '对焦模式',
+  WB白平衡: '白平衡',
+  M测光模式: '测光模式',
+  白平衡: '白平衡',
+  曝光补偿: '曝光补偿',
+  EV: 'EV',
 };
 
 const translateLabel = (label: string): string => {
@@ -257,9 +273,7 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
         {preset.coverPath && !coverError ? (
           <>
             {/* Blur-up placeholder */}
-            {!coverLoaded && (
-              <div className="absolute inset-0 bg-surface animate-pulse" />
-            )}
+            {!coverLoaded && <div className="absolute inset-0 bg-surface animate-pulse" />}
             <img
               src={coverUrl}
               alt={preset.name}
@@ -274,7 +288,11 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-surface p-4 text-center">
             <Camera size={28} className="text-text-secondary/40 mb-2" />
-            <Text variant={TextVariants.label} weight={TextWeights.medium} className="text-center text-text-secondary/60 mb-1">
+            <Text
+              variant={TextVariants.label}
+              weight={TextWeights.medium}
+              className="text-center text-text-secondary/60 mb-1"
+            >
               {preset.name}
             </Text>
             {canDownload && (
@@ -322,8 +340,10 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
         {/* Top-right: NEW badge */}
         {preset.isNew && (
           <div className="absolute top-2.5 right-2.5">
-            <span className="text-[10px] px-2 py-0.5 bg-accent text-white font-bold rounded-full
-                             shadow-lg shadow-accent/25 tracking-wider">
+            <span
+              className="text-[10px] px-2 py-0.5 bg-accent text-white font-bold rounded-full
+                             shadow-lg shadow-accent/25 tracking-wider"
+            >
               NEW
             </span>
           </div>
@@ -352,7 +372,10 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
                 <div className="flex items-center gap-1.5">
                   {(preset.description || (preset.sections && preset.sections.length > 0)) && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); setShowDetail(true); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDetail(true);
+                      }}
                       className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/80
                                  transition-colors backdrop-blur-sm"
                       title={t('presetGallery.showDetails', '查看详情')}
@@ -365,11 +388,13 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
                       onClick={handleDownload}
                       disabled={status === 'downloading'}
                       className={`p-1.5 rounded-lg backdrop-blur-sm transition-colors disabled:opacity-60
-                        ${status === 'success'
-                          ? 'bg-emerald-500/30 text-emerald-300'
-                          : status === 'error'
-                            ? 'bg-red-500/30 text-red-300 hover:bg-red-500/40'
-                            : 'bg-white/10 hover:bg-white/20 text-white/80'}`}
+                        ${
+                          status === 'success'
+                            ? 'bg-emerald-500/30 text-emerald-300'
+                            : status === 'error'
+                              ? 'bg-red-500/30 text-red-300 hover:bg-red-500/40'
+                              : 'bg-white/10 hover:bg-white/20 text-white/80'
+                        }`}
                       title={
                         status === 'downloading'
                           ? t('presetGallery.downloading', { defaultValue: '保存中…' })
@@ -392,7 +417,10 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
                     </button>
                   )}
                   <button
-                    onClick={(e) => { e.stopPropagation(); setShowGallery(true); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowGallery(true);
+                    }}
                     className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/80
                                transition-colors backdrop-blur-sm"
                     title={t('presetGallery.viewGallery', '查看样张')}
@@ -408,11 +436,7 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
 
       {/* Card info */}
       <div className="mt-2 px-0.5">
-        <Text
-          variant={TextVariants.label}
-          weight={TextWeights.semibold}
-          className="truncate block leading-snug"
-        >
+        <Text variant={TextVariants.label} weight={TextWeights.semibold} className="truncate block leading-snug">
           {preset.name}
         </Text>
         {preset.author && (
@@ -450,7 +474,9 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
                   <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
                     <Camera size={18} className="text-accent" />
                   </div>
-                  <Text variant={TextVariants.heading} weight={TextWeights.semibold}>{preset.name}</Text>
+                  <Text variant={TextVariants.heading} weight={TextWeights.semibold}>
+                    {preset.name}
+                  </Text>
                 </div>
                 <button
                   onClick={() => setShowDetail(false)}
@@ -479,7 +505,8 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
                       className="text-xs px-2.5 py-1 bg-accent/8 text-accent rounded-full
                                  flex items-center gap-1 font-medium"
                     >
-                      <Tag size={10} />{tag}
+                      <Tag size={10} />
+                      {tag}
                     </span>
                   ))}
                 </div>
@@ -491,7 +518,11 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
                     <div key={si}>
                       <div className="flex items-center gap-2 mb-3">
                         <div className="h-0.5 flex-1 bg-border-color/50" />
-                        <Text variant={TextVariants.label} weight={TextWeights.semibold} className="text-accent shrink-0">
+                        <Text
+                          variant={TextVariants.label}
+                          weight={TextWeights.semibold}
+                          className="text-accent shrink-0"
+                        >
                           {translateLabel(section.title)}
                         </Text>
                         <div className="h-0.5 flex-1 bg-border-color/50" />
@@ -511,10 +542,19 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
 
               {preset.description && (
                 <div className="p-4 bg-surface rounded-xl border border-border-color/50">
-                  <Text variant={TextVariants.label} weight={TextWeights.semibold} color={TextColors.accent} className="mb-2 block">
+                  <Text
+                    variant={TextVariants.label}
+                    weight={TextWeights.semibold}
+                    color={TextColors.accent}
+                    className="mb-2 block"
+                  >
                     {preset.description.title}
                   </Text>
-                  <Text variant={TextVariants.small} color={TextColors.secondary} className="whitespace-pre-line leading-relaxed block">
+                  <Text
+                    variant={TextVariants.small}
+                    color={TextColors.secondary}
+                    className="whitespace-pre-line leading-relaxed block"
+                  >
                     {preset.description.content}
                   </Text>
                 </div>
@@ -544,13 +584,19 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
               onClick={(e) => e.stopPropagation()}
             >
               {/* Top bar */}
-              <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4
-                              bg-gradient-to-b from-black/60 to-transparent">
+              <div
+                className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4
+                              bg-gradient-to-b from-black/60 to-transparent"
+              >
                 <div className="flex items-center gap-4">
                   <div>
-                    <Text weight={TextWeights.semibold} className="text-white text-sm">{preset.name}</Text>
+                    <Text weight={TextWeights.semibold} className="text-white text-sm">
+                      {preset.name}
+                    </Text>
                     {preset.author && (
-                      <Text variant={TextVariants.small} className="text-white/50">{preset.author}</Text>
+                      <Text variant={TextVariants.small} className="text-white/50">
+                        {preset.author}
+                      </Text>
                     )}
                   </div>
                 </div>
@@ -592,9 +638,7 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
                   ) : (
                     <div className="flex flex-col items-center justify-center text-white/20">
                       <ImageIcon size={64} strokeWidth={1} />
-                      <Text className="text-white/20 mt-3">
-                        {t('presetGallery.imageLoadFailed', '图片加载失败')}
-                      </Text>
+                      <Text className="text-white/20 mt-3">{t('presetGallery.imageLoadFailed', '图片加载失败')}</Text>
                     </div>
                   )}
                 </AnimatePresence>
@@ -603,7 +647,10 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
                 {viewableImages.length > 1 && (
                   <>
                     <button
-                      onClick={(e) => { e.stopPropagation(); prevImage(); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        prevImage();
+                      }}
                       className="absolute left-4 top-1/2 -translate-y-1/2 p-3.5 rounded-2xl
                                  bg-white/5 hover:bg-white/15 text-white/80 hover:text-white
                                  transition-all backdrop-blur-md border border-white/10
@@ -613,7 +660,10 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
                       <ChevronLeft size={22} />
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); nextImage(); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        nextImage();
+                      }}
                       className="absolute right-4 top-1/2 -translate-y-1/2 p-3.5 rounded-2xl
                                  bg-white/5 hover:bg-white/15 text-white/80 hover:text-white
                                  transition-all backdrop-blur-md border border-white/10
@@ -628,8 +678,10 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
 
               {/* Bottom: thumbnails + counter */}
               {viewableImages.length > 1 && (
-                <div className="absolute bottom-0 left-0 right-0 z-10
-                                bg-gradient-to-t from-black/70 to-transparent pt-8 pb-4">
+                <div
+                  className="absolute bottom-0 left-0 right-0 z-10
+                                bg-gradient-to-t from-black/70 to-transparent pt-8 pb-4"
+                >
                   <div className="flex flex-col items-center gap-3">
                     {/* Counter */}
                     <div className="text-white/50 text-xs font-medium tracking-widest tabular-nums">
@@ -644,9 +696,10 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
                           key={i}
                           onClick={() => setCurrentImageIndex(i)}
                           className={`shrink-0 w-16 h-10 rounded-lg overflow-hidden transition-all duration-200
-                            ${i === viewableIndex
-                              ? 'ring-2 ring-accent ring-offset-1 ring-offset-black/0 scale-105 opacity-100'
-                              : 'opacity-45 hover:opacity-75'
+                            ${
+                              i === viewableIndex
+                                ? 'ring-2 ring-accent ring-offset-1 ring-offset-black/0 scale-105 opacity-100'
+                                : 'opacity-45 hover:opacity-75'
                             }`}
                         >
                           <img
@@ -734,7 +787,9 @@ const SourceSection = ({ source }: SourceSectionProps) => {
           <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
             <X size={14} className="text-red-400" />
           </div>
-          <Text color={TextColors.error} className="text-sm flex-1">{source.error}</Text>
+          <Text color={TextColors.error} className="text-sm flex-1">
+            {source.error}
+          </Text>
           <Button
             variant="ghost"
             className="h-8 px-3 text-red-400 hover:text-red-300 hover:bg-red-400/5 rounded-lg text-xs"
@@ -946,18 +1001,13 @@ export default function PresetGallery({ onBack }: PresetGalleryProps) {
             <Text variant={TextVariants.small} color={TextColors.secondary} className="mt-2 opacity-60">
               {t('presetGallery.noSourcesDesc', '点击"添加源"添加 JSON 链接')}
             </Text>
-            <Button
-              onClick={() => setShowAddSource(true)}
-              className="mt-6 h-10 px-5 rounded-xl text-sm font-medium"
-            >
+            <Button onClick={() => setShowAddSource(true)} className="mt-6 h-10 px-5 rounded-xl text-sm font-medium">
               <Plus size={14} className="mr-1.5" />
               {t('presetGallery.addSource', '添加源')}
             </Button>
           </div>
         ) : (
-          enabledSources.map((source) => (
-            <SourceSection key={source.url} source={source} />
-          ))
+          enabledSources.map((source) => <SourceSection key={source.url} source={source} />)
         )}
       </div>
     </div>

@@ -93,21 +93,26 @@ export default function Controls() {
     [setUI],
   );
 
-  const handleToggleVisibility = useCallback((sectionName: string) => {
-    setAdjustments((prev: Adjustments) => {
-      const currentVisibility: SectionVisibility = prev.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility;
-      return {
-        ...prev,
-        sectionVisibility: {
-          ...currentVisibility,
-          [sectionName]: !currentVisibility[sectionName],
-        },
-      };
-    });
-  }, [setAdjustments]);
+  const handleToggleVisibility = useCallback(
+    (sectionName: string) => {
+      setAdjustments((prev: Adjustments) => {
+        const currentVisibility: SectionVisibility = prev.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility;
+        return {
+          ...prev,
+          sectionVisibility: {
+            ...currentVisibility,
+            [sectionName]: !currentVisibility[sectionName],
+          },
+        };
+      });
+    },
+    [setAdjustments],
+  );
 
   const handleResetAdjustments = useCallback(() => {
-    const confirmed = window.confirm(t('editor.adjustments.confirmReset') || '确定要重置所有调整参数吗？此操作无法撤销。');
+    const confirmed = window.confirm(
+      t('editor.adjustments.confirmReset') || '确定要重置所有调整参数吗？此操作无法撤销。',
+    );
     if (!confirmed) return;
     setAdjustments((prev: Adjustments) => ({
       ...prev,
@@ -121,20 +126,23 @@ export default function Controls() {
     }));
   }, [setAdjustments, t]);
 
-  const handleToggleSection = useCallback((section: string) => {
-    setCollapsibleState((prev: any) => {
-      const isOpening = !prev[section];
-      if (appSettings?.enableFocusMode && isOpening) {
-        const newState = { ...prev };
-        Object.keys(newState).forEach((key) => {
-          newState[key] = false;
-        });
-        newState[section] = true;
-        return newState;
-      }
-      return { ...prev, [section]: !prev[section] };
-    });
-  }, [appSettings?.enableFocusMode, setCollapsibleState]);
+  const handleToggleSection = useCallback(
+    (section: string) => {
+      setCollapsibleState((prev: any) => {
+        const isOpening = !prev[section];
+        if (appSettings?.enableFocusMode && isOpening) {
+          const newState = { ...prev };
+          Object.keys(newState).forEach((key) => {
+            newState[key] = false;
+          });
+          newState[section] = true;
+          return newState;
+        }
+        return { ...prev, [section]: !prev[section] };
+      });
+    },
+    [appSettings?.enableFocusMode, setCollapsibleState],
+  );
 
   const handleSectionContextMenu = (event: any, sectionName: string) => {
     event.preventDefault();
@@ -225,15 +233,15 @@ export default function Controls() {
           <button
             className={clsx(
               'p-2 rounded-full transition-colors relative',
-              isWaveformVisible ? 'bg-accent/15 text-accent hover:bg-accent/25' : 'hover:bg-surface text-text-secondary',
+              isWaveformVisible
+                ? 'bg-accent/15 text-accent hover:bg-accent/25'
+                : 'hover:bg-surface text-text-secondary',
             )}
             onClick={onToggleWaveform}
             data-tooltip={t('editor.adjustments.tooltips.toggleAnalytics')}
           >
             <ChartArea size={18} />
-            {isWaveformVisible && (
-              <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-accent rounded-full" />
-            )}
+            {isWaveformVisible && <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-accent rounded-full" />}
           </button>
           <button
             className="p-2 rounded-full hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors"

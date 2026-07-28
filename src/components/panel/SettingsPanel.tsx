@@ -273,20 +273,17 @@ const AiProviderSwitch = ({ selectedProvider, onProviderChange }: AiProviderSwit
   // Device-side mode: only show cpu and ai-connector options (no cloud)
   const isDeviceSide = osPlatform === 'android';
 
-  const aiProviders = useMemo(
-    () => {
-      const providers = [
-        { id: 'cpu', label: t('settings.processing.ai.providers.cpu'), icon: Cpu },
-        { id: 'ai-connector', label: t('settings.processing.ai.providers.aiConnector'), icon: Server },
-      ];
-      // Only show cloud option on non-device-side platforms
-      if (!isDeviceSide) {
-        providers.push({ id: 'cloud', label: t('settings.processing.ai.providers.cloud'), icon: Cloud });
-      }
-      return providers;
-    },
-    [t, isDeviceSide],
-  );
+  const aiProviders = useMemo(() => {
+    const providers = [
+      { id: 'cpu', label: t('settings.processing.ai.providers.cpu'), icon: Cpu },
+      { id: 'ai-connector', label: t('settings.processing.ai.providers.aiConnector'), icon: Server },
+    ];
+    // Only show cloud option on non-device-side platforms
+    if (!isDeviceSide) {
+      providers.push({ id: 'cloud', label: t('settings.processing.ai.providers.cloud'), icon: Cloud });
+    }
+    return providers;
+  }, [t, isDeviceSide]);
 
   return (
     <div className="relative flex w-full p-1 bg-bg-primary rounded-md border border-border-color">
@@ -326,10 +323,7 @@ interface CloudAuthErrorBoundaryState {
   error: Error | null;
 }
 
-class CloudAuthErrorBoundary extends Component<
-  { children: React.ReactNode },
-  CloudAuthErrorBoundaryState
-> {
+class CloudAuthErrorBoundary extends Component<{ children: React.ReactNode }, CloudAuthErrorBoundaryState> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -430,10 +424,7 @@ class SettingsErrorBoundary extends Component<
                 <ArrowLeft size={16} className="mr-2" /> Go Back
               </Button>
             )}
-            <Button
-              variant="ghost"
-              onClick={() => this.setState({ hasError: false, error: null })}
-            >
+            <Button variant="ghost" onClick={() => this.setState({ hasError: false, error: null })}>
               Try Again
             </Button>
           </div>
@@ -641,27 +632,30 @@ const GpuPipelineProbe = () => {
   const [status, setStatus] = useState<'idle' | 'testing' | 'ready' | 'unavailable'>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  const runProbe = useCallback(async (resetFirst: boolean = false) => {
-    setStatus('testing');
-    setError(null);
-    try {
-      if (resetFirst) {
-        await invoke(Invokes.ResetGpuAdjustmentPipeline);
+  const runProbe = useCallback(
+    async (resetFirst: boolean = false) => {
+      setStatus('testing');
+      setError(null);
+      try {
+        if (resetFirst) {
+          await invoke(Invokes.ResetGpuAdjustmentPipeline);
+        }
+        const ready = (await invoke(Invokes.IsGpuAdjustmentPipelineReady)) as boolean;
+        setStatus(ready ? 'ready' : 'unavailable');
+        if (!ready) {
+          setError(
+            t('settings.gpu.unavailableReason', {
+              defaultValue: '当前 GPU 适配器无法初始化轻量计算管线，主管线仍可正常工作。',
+            }),
+          );
+        }
+      } catch (e: any) {
+        setStatus('unavailable');
+        setError(String(e?.message || e));
       }
-      const ready = (await invoke(Invokes.IsGpuAdjustmentPipelineReady)) as boolean;
-      setStatus(ready ? 'ready' : 'unavailable');
-      if (!ready) {
-        setError(
-          t('settings.gpu.unavailableReason', {
-            defaultValue: '当前 GPU 适配器无法初始化轻量计算管线，主管线仍可正常工作。',
-          }),
-        );
-      }
-    } catch (e: any) {
-      setStatus('unavailable');
-      setError(String(e?.message || e));
-    }
-  }, [t]);
+    },
+    [t],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -798,7 +792,11 @@ const PresetGallerySourceManager = () => {
               <Switch
                 checked={source.enabled}
                 id={`gallery-source-${source.url}`}
-                label={source.enabled ? t('settings.presetGallery.enabled', { defaultValue: '已启用' }) : t('settings.presetGallery.disabled', { defaultValue: '已禁用' })}
+                label={
+                  source.enabled
+                    ? t('settings.presetGallery.enabled', { defaultValue: '已启用' })
+                    : t('settings.presetGallery.disabled', { defaultValue: '已禁用' })
+                }
                 onChange={(checked) => {
                   toggleSource(source.url);
                   if (checked) fetchSourcePresets(source.url);
@@ -815,7 +813,9 @@ const PresetGallerySourceManager = () => {
           </div>
         ))}
         {sources.length === 0 && (
-          <Text className="italic py-2">{t('settings.presetGallery.noSources', { defaultValue: '暂无数据源，请添加 JSON 链接。' })}</Text>
+          <Text className="italic py-2">
+            {t('settings.presetGallery.noSources', { defaultValue: '暂无数据源，请添加 JSON 链接。' })}
+          </Text>
         )}
       </div>
     </div>
@@ -1564,7 +1564,8 @@ export default function SettingsPanel({
                   </Text>
                   <Text className="mb-4">
                     {t('settings.gpu.description', {
-                      defaultValue: '检测轻量 GPU 调整管线与 ACES 色彩科学工具的可用性。这些工具作为主管线的补充，用于一次性快速预览与色空间转换。',
+                      defaultValue:
+                        '检测轻量 GPU 调整管线与 ACES 色彩科学工具的可用性。这些工具作为主管线的补充，用于一次性快速预览与色空间转换。',
                     })}
                   </Text>
                   <div className="space-y-4">
@@ -1598,7 +1599,10 @@ export default function SettingsPanel({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                     <Switch
                       label={t('settings.adjustments.chromaticAberration')}
-                      checked={appSettings?.adjustmentVisibility?.chromaticAberration ?? adjustmentVisibilityDefaults.chromaticAberration}
+                      checked={
+                        appSettings?.adjustmentVisibility?.chromaticAberration ??
+                        adjustmentVisibilityDefaults.chromaticAberration
+                      }
                       onChange={(checked) =>
                         onSettingsChange({
                           ...appSettings,
@@ -1624,7 +1628,10 @@ export default function SettingsPanel({
                     />
                     <Switch
                       label={t('settings.adjustments.colorCalibration')}
-                      checked={appSettings?.adjustmentVisibility?.colorCalibration ?? adjustmentVisibilityDefaults.colorCalibration}
+                      checked={
+                        appSettings?.adjustmentVisibility?.colorCalibration ??
+                        adjustmentVisibilityDefaults.colorCalibration
+                      }
                       onChange={(checked) =>
                         onSettingsChange({
                           ...appSettings,
@@ -1637,7 +1644,9 @@ export default function SettingsPanel({
                     />
                     <Switch
                       label={t('settings.adjustments.noiseReduction')}
-                      checked={appSettings?.adjustmentVisibility?.noiseReduction ?? adjustmentVisibilityDefaults.noiseReduction}
+                      checked={
+                        appSettings?.adjustmentVisibility?.noiseReduction ?? adjustmentVisibilityDefaults.noiseReduction
+                      }
                       onChange={(checked) =>
                         onSettingsChange({
                           ...appSettings,
@@ -1784,7 +1793,9 @@ export default function SettingsPanel({
                     {t('settings.presetGallery.title', { defaultValue: '在线样张' })}
                   </Text>
                   <Text className="mb-6">
-                    {t('settings.presetGallery.description', { defaultValue: '管理在线样张 JSON 数据源，添加后可在图库中查看预设样张效果。' })}
+                    {t('settings.presetGallery.description', {
+                      defaultValue: '管理在线样张 JSON 数据源，添加后可在图库中查看预设样张效果。',
+                    })}
                   </Text>
                   <div className="space-y-4">
                     <PresetGallerySourceManager />
@@ -2014,8 +2025,6 @@ export default function SettingsPanel({
                     </div>
                   </div>
                 </div>
-
-
               </motion.div>
             )}
             {activeCategory === 'processing' && (
@@ -2028,16 +2037,30 @@ export default function SettingsPanel({
                 className="space-y-10"
               >
                 <div className="sticky top-0 z-20 bg-bg-primary/90 backdrop-blur-sm p-3 rounded-xl border border-border-color shadow-sm flex flex-wrap gap-2">
-                  <button onClick={() => document.getElementById('settings-engine')?.scrollIntoView({ behavior: 'smooth' })} className="px-3 py-1.5 text-xs font-medium bg-surface hover:bg-accent hover:text-button-text rounded-md transition-colors">
+                  <button
+                    onClick={() => document.getElementById('settings-engine')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="px-3 py-1.5 text-xs font-medium bg-surface hover:bg-accent hover:text-button-text rounded-md transition-colors"
+                  >
                     {t('settings.processing.title')}
                   </button>
-                  <button onClick={() => document.getElementById('settings-preprocessing')?.scrollIntoView({ behavior: 'smooth' })} className="px-3 py-1.5 text-xs font-medium bg-surface hover:bg-accent hover:text-button-text rounded-md transition-colors">
+                  <button
+                    onClick={() =>
+                      document.getElementById('settings-preprocessing')?.scrollIntoView({ behavior: 'smooth' })
+                    }
+                    className="px-3 py-1.5 text-xs font-medium bg-surface hover:bg-accent hover:text-button-text rounded-md transition-colors"
+                  >
                     {t('settings.processing.preprocessing.title')}
                   </button>
-                  <button onClick={() => document.getElementById('settings-ai')?.scrollIntoView({ behavior: 'smooth' })} className="px-3 py-1.5 text-xs font-medium bg-surface hover:bg-accent hover:text-button-text rounded-md transition-colors">
+                  <button
+                    onClick={() => document.getElementById('settings-ai')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="px-3 py-1.5 text-xs font-medium bg-surface hover:bg-accent hover:text-button-text rounded-md transition-colors"
+                  >
                     {t('settings.processing.ai.title')}
                   </button>
-                  <button onClick={() => document.getElementById('settings-data')?.scrollIntoView({ behavior: 'smooth' })} className="px-3 py-1.5 text-xs font-medium bg-surface hover:bg-accent hover:text-button-text rounded-md transition-colors">
+                  <button
+                    onClick={() => document.getElementById('settings-data')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="px-3 py-1.5 text-xs font-medium bg-surface hover:bg-accent hover:text-button-text rounded-md transition-colors"
+                  >
                     {t('settings.data.title')}
                   </button>
                 </div>
@@ -2613,7 +2636,8 @@ export default function SettingsPanel({
                                           '!bg-transparent !p-0 !mt-4 opacity-50 hover:opacity-100 transition-opacity',
                                         footerAction: '!hidden',
 
-                                        identityPreview: '!bg-bg-primary !border !border-border-color !rounded-md !mb-4',
+                                        identityPreview:
+                                          '!bg-bg-primary !border !border-border-color !rounded-md !mb-4',
                                         identityPreviewText: '!text-text-primary !font-medium',
                                         identityPreviewEditButtonIcon:
                                           '!text-text-secondary hover:!text-text-primary !transition-colors',
@@ -2761,9 +2785,7 @@ export default function SettingsPanel({
                                 <XCircle size={18} className="text-red-400" />
                               )}
                               <Text
-                                color={
-                                  imageProcessingSelfTestResult.success ? TextColors.success : TextColors.error
-                                }
+                                color={imageProcessingSelfTestResult.success ? TextColors.success : TextColors.error}
                                 weight={TextWeights.semibold}
                               >
                                 {imageProcessingSelfTestResult.success

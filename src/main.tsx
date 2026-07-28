@@ -21,10 +21,7 @@ interface ErrorBoundaryState {
   errorInfo: React.ErrorInfo | null;
 }
 
-class AppErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  ErrorBoundaryState
-> {
+class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, ErrorBoundaryState> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
@@ -66,11 +63,10 @@ class AppErrorBoundary extends React.Component<
           }}
         >
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
-          <h1 style={{ fontSize: '1.5rem', margin: '0 0 0.5rem', fontWeight: 600 }}>
-            Something went wrong
-          </h1>
+          <h1 style={{ fontSize: '1.5rem', margin: '0 0 0.5rem', fontWeight: 600 }}>Something went wrong</h1>
           <p style={{ fontSize: '0.875rem', color: '#a0a0b0', maxWidth: '400px', marginBottom: '1.5rem' }}>
-            An unexpected error occurred in the application. Your edits are preserved in sidecar files and will not be lost.
+            An unexpected error occurred in the application. Your edits are preserved in sidecar files and will not be
+            lost.
           </p>
           {this.state.error && (
             <pre

@@ -67,7 +67,9 @@ export default function AndroidBottomNav({ isAndroid }: AndroidBottomNavProps) {
               }}
             >
               <Icon size={20} strokeWidth={1.8} />
-              <span className="text-[10px] leading-tight font-medium tracking-wide whitespace-nowrap">{t(labelKey as any)}</span>
+              <span className="text-[10px] leading-tight font-medium tracking-wide whitespace-nowrap">
+                {t(labelKey as any)}
+              </span>
             </button>
           );
         })}

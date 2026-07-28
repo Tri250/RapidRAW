@@ -104,14 +104,20 @@ const StarRating = ({ rating, onRate, disabled }: StarRatingProps) => {
     <div
       className={clsx('flex items-center gap-1', disabled && 'cursor-not-allowed')}
       role="radiogroup"
-      aria-label={t('ui.bottomBar.tooltips.rateStars', { count: 0 }).replace(/[\d零一二三四五０-９]/g, '').trim() || 'Star rating'}
+      aria-label={
+        t('ui.bottomBar.tooltips.rateStars', { count: 0 })
+          .replace(/[\d零一二三四五０-９]/g, '')
+          .trim() || 'Star rating'
+      }
       onKeyDown={handleKeyDown}
     >
       {[...Array(5)].map((_, index: number) => {
         const starValue = index + 1;
         return (
           <button
-            ref={(el) => { starRefs.current[index] = el; }}
+            ref={(el) => {
+              starRefs.current[index] = el;
+            }}
             className={clsx(
               'disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-secondary rounded-sm',
             )}

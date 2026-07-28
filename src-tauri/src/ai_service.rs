@@ -8,12 +8,12 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::{mpsc, oneshot};
 
+use crate::MutexResilient;
 use crate::ai_processing::{
     self, get_or_init_ai_models, get_or_init_denoise_model, get_or_init_face_landmark_detector,
     get_or_init_lama_model,
 };
 use crate::app_state::AppState;
-use crate::MutexResilient;
 
 // ---------------------------------------------------------------------------
 // Operation enum — every AI operation the service supports

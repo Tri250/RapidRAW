@@ -260,14 +260,12 @@ export function useCanvasPan(
  * 滑动翻页手势 hook（胶片条使用）
  * 检测左滑/右滑手势并回调方向
  */
-export function useSwipeNavigation(
-  options?: {
-    threshold?: number;
-    onSwipeLeft?: () => void;
-    onSwipeRight?: () => void;
-    onSwipeMove?: (deltaX: number, deltaY: number) => void;
-  },
-) {
+export function useSwipeNavigation(options?: {
+  threshold?: number;
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
+  onSwipeMove?: (deltaX: number, deltaY: number) => void;
+}) {
   const threshold = options?.threshold ?? 50;
   const onSwipeLeft = options?.onSwipeLeft;
   const onSwipeRight = options?.onSwipeRight;

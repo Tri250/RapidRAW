@@ -33,11 +33,11 @@ const findSubMask = (adjustments: Adjustments, subMaskId: string): SubMask | und
   const masks = Array.isArray(adjustments.masks) ? adjustments.masks : [];
   const patches = Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : [];
   const fromMasks = masks
-    .flatMap((m: MaskContainer) => Array.isArray(m.subMasks) ? m.subMasks : [])
+    .flatMap((m: MaskContainer) => (Array.isArray(m.subMasks) ? m.subMasks : []))
     .find((sm: SubMask) => sm.id === subMaskId);
   if (fromMasks) return fromMasks;
   return patches
-    .flatMap((p: AiPatch) => Array.isArray(p.subMasks) ? p.subMasks : [])
+    .flatMap((p: AiPatch) => (Array.isArray(p.subMasks) ? p.subMasks : []))
     .find((sm: SubMask) => sm.id === subMaskId);
 };
 
@@ -94,8 +94,8 @@ export function useAiMasking() {
       const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path) return;
 
-      const patchId = (Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : []).find((p: AiPatch) =>
-        Array.isArray(p.subMasks) && p.subMasks.some((sm: SubMask) => sm.id === subMaskId),
+      const patchId = (Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : []).find(
+        (p: AiPatch) => Array.isArray(p.subMasks) && p.subMasks.some((sm: SubMask) => sm.id === subMaskId),
       )?.id;
       if (!patchId) return;
 
@@ -114,7 +114,9 @@ export function useAiMasking() {
       }, AI_CLEANUP_TIMEOUT_MS);
 
       try {
-        const patchDefinitionForBackend = (Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : []).find((p: AiPatch) => p.id === patchId);
+        const patchDefinitionForBackend = (Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : []).find(
+          (p: AiPatch) => p.id === patchId,
+        );
 
         const newPatchDataJson: any = await invoke(Invokes.GenerateManualCleanupPatch, {
           currentAdjustments: adjustments,
@@ -152,7 +154,9 @@ export function useAiMasking() {
       const { selectedImage, adjustments, isGeneratingAi, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path || isGeneratingAi) return;
 
-      const patch: AiPatch | undefined = (Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : []).find((p: AiPatch) => p.id === patchId);
+      const patch: AiPatch | undefined = (Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : []).find(
+        (p: AiPatch) => p.id === patchId,
+      );
       if (!patch) return;
 
       const patchDefinition = { ...patch, prompt };
@@ -253,8 +257,8 @@ export function useAiMasking() {
         }
       }
 
-      const patchId = (Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : []).find((p: AiPatch) =>
-        Array.isArray(p.subMasks) && p.subMasks.some((sm: SubMask) => sm.id === subMaskId),
+      const patchId = (Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : []).find(
+        (p: AiPatch) => Array.isArray(p.subMasks) && p.subMasks.some((sm: SubMask) => sm.id === subMaskId),
       )?.id;
       if (!patchId) {
         clearTimeout(quickEraseTimeout);
@@ -292,9 +296,11 @@ export function useAiMasking() {
             p.id === patchId
               ? {
                   ...p,
-                  subMasks: Array.isArray(p.subMasks) ? p.subMasks.map((sm: SubMask) =>
-                    sm.id === subMaskId ? { ...sm, parameters: finalSubMaskParams } : sm,
-                  ) : [],
+                  subMasks: Array.isArray(p.subMasks)
+                    ? p.subMasks.map((sm: SubMask) =>
+                        sm.id === subMaskId ? { ...sm, parameters: finalSubMaskParams } : sm,
+                      )
+                    : [],
                 }
               : p,
           ),
@@ -390,7 +396,7 @@ export function useAiMasking() {
 
       try {
         const transformAdjustments = getTransformAdjustments(adjustments);
-        const rawNewParameters = await invoke(Invokes.GenerateAiSubjectMask, {
+        const rawNewParameters = (await invoke(Invokes.GenerateAiSubjectMask, {
           jsAdjustments: transformAdjustments,
           endPoint: [endPoint.x, endPoint.y],
           flipHorizontal: adjustments.flipHorizontal,
@@ -399,7 +405,7 @@ export function useAiMasking() {
           path: selectedImage.path,
           rotation: adjustments.rotation,
           startPoint: [startPoint.x, startPoint.y],
-        }) as Record<string, any> | null | undefined;
+        })) as Record<string, any> | null | undefined;
 
         const newParameters = normalizeMaskData(rawNewParameters);
         if (!newParameters.mask_data_base64) {
@@ -428,7 +434,8 @@ export function useAiMasking() {
     const normalized = { ...raw };
     const sn: string | undefined | null = normalized.mask_data_base64;
     const cc: string | undefined | null = normalized.maskDataBase64;
-    const valid: string | null | undefined = (sn && typeof sn === 'string' && sn.length > 32) ? sn : (cc && typeof cc === 'string' && cc.length > 32 ? cc : null);
+    const valid: string | null | undefined =
+      sn && typeof sn === 'string' && sn.length > 32 ? sn : cc && typeof cc === 'string' && cc.length > 32 ? cc : null;
     if (valid) {
       normalized.mask_data_base64 = valid;
       normalized.maskDataBase64 = valid;
@@ -445,15 +452,15 @@ export function useAiMasking() {
       try {
         const steps = adjustments?.orientationSteps || 0;
         const isRotated = steps === 1 || steps === 3;
-        const imgW = isRotated ? (selectedImage.height || 1000) : (selectedImage.width || 1000);
-        const imgH = isRotated ? (selectedImage.width || 1000) : (selectedImage.height || 1000);
+        const imgW = isRotated ? selectedImage.height || 1000 : selectedImage.width || 1000;
+        const imgH = isRotated ? selectedImage.width || 1000 : selectedImage.height || 1000;
 
         const margin = 0.05;
         const startPoint = { x: imgW * margin, y: imgH * margin };
         const endPoint = { x: imgW * (1 - margin), y: imgH * (1 - margin) };
 
         const transformAdjustments = getTransformAdjustments(adjustments);
-        const rawNewParameters = await invoke(Invokes.GenerateAiSubjectMask, {
+        const rawNewParameters = (await invoke(Invokes.GenerateAiSubjectMask, {
           jsAdjustments: transformAdjustments,
           endPoint: [endPoint.x, endPoint.y],
           flipHorizontal: adjustments.flipHorizontal,
@@ -462,7 +469,7 @@ export function useAiMasking() {
           path: selectedImage.path,
           rotation: adjustments.rotation,
           startPoint: [startPoint.x, startPoint.y],
-        }) as Record<string, any> | null | undefined;
+        })) as Record<string, any> | null | undefined;
 
         const newParameters = normalizeMaskData(rawNewParameters);
 
@@ -495,7 +502,7 @@ export function useAiMasking() {
 
       try {
         const transformAdjustments = getTransformAdjustments(adjustments);
-        const rawNewParameters = await invoke(Invokes.GenerateAiDepthMask, {
+        const rawNewParameters = (await invoke(Invokes.GenerateAiDepthMask, {
           jsAdjustments: transformAdjustments,
           path: selectedImage.path,
           minDepth: parameters?.minDepth ?? 20,
@@ -507,7 +514,7 @@ export function useAiMasking() {
           flipVertical: adjustments.flipVertical,
           orientationSteps: adjustments.orientationSteps,
           rotation: adjustments.rotation,
-        }) as Record<string, any> | null | undefined;
+        })) as Record<string, any> | null | undefined;
         const newParameters = normalizeMaskData(rawNewParameters);
 
         if (!newParameters.mask_data_base64) {
@@ -539,13 +546,13 @@ export function useAiMasking() {
 
       try {
         const transformAdjustments = getTransformAdjustments(adjustments);
-        const rawNewParameters = await invoke(Invokes.GenerateAiForegroundMask, {
+        const rawNewParameters = (await invoke(Invokes.GenerateAiForegroundMask, {
           jsAdjustments: transformAdjustments,
           flipHorizontal: adjustments.flipHorizontal,
           flipVertical: adjustments.flipVertical,
           orientationSteps: adjustments.orientationSteps,
           rotation: adjustments.rotation,
-        }) as Record<string, any> | null | undefined;
+        })) as Record<string, any> | null | undefined;
         const newParameters = normalizeMaskData(rawNewParameters);
 
         if (!newParameters.mask_data_base64) {
@@ -577,13 +584,13 @@ export function useAiMasking() {
 
       try {
         const transformAdjustments = getTransformAdjustments(adjustments);
-        const rawNewParameters = await invoke(Invokes.GenerateAiSkyMask, {
+        const rawNewParameters = (await invoke(Invokes.GenerateAiSkyMask, {
           jsAdjustments: transformAdjustments,
           flipHorizontal: adjustments.flipHorizontal,
           flipVertical: adjustments.flipVertical,
           orientationSteps: adjustments.orientationSteps,
           rotation: adjustments.rotation,
-        }) as Record<string, any> | null | undefined;
+        })) as Record<string, any> | null | undefined;
         const newParameters = normalizeMaskData(rawNewParameters);
 
         if (!newParameters.mask_data_base64) {
@@ -678,8 +685,12 @@ export function useAiMasking() {
     const masksArr = Array.isArray(adjustments?.masks) ? adjustments.masks : [];
     const patchesArr = Array.isArray(adjustments?.aiPatches) ? adjustments.aiPatches : [];
     const activeSubMask =
-      masksArr.flatMap((m: MaskContainer) => Array.isArray(m.subMasks) ? m.subMasks : []).find((sm: SubMask) => sm.id === activeMaskId) ||
-      patchesArr.flatMap((p: AiPatch) => Array.isArray(p.subMasks) ? p.subMasks : []).find((sm: SubMask) => sm.id === activeAiSubMaskId);
+      masksArr
+        .flatMap((m: MaskContainer) => (Array.isArray(m.subMasks) ? m.subMasks : []))
+        .find((sm: SubMask) => sm.id === activeMaskId) ||
+      patchesArr
+        .flatMap((p: AiPatch) => (Array.isArray(p.subMasks) ? p.subMasks : []))
+        .find((sm: SubMask) => sm.id === activeAiSubMaskId);
 
     if (activeSubMask?.type === 'ai-subject' && selectedImagePath) {
       debounceTimer = setTimeout(() => {
@@ -714,7 +725,7 @@ export function useAiMasking() {
 
       try {
         const transformAdjustments = getTransformAdjustments(adjustments);
-        const rawNewParameters = await invoke(Invokes.GenerateColorRangeMask, {
+        const rawNewParameters = (await invoke(Invokes.GenerateColorRangeMask, {
           jsAdjustments: transformAdjustments,
           path: selectedImage.path,
           hueCenter: parameters?.hueCenter ?? 0,
@@ -732,7 +743,7 @@ export function useAiMasking() {
           flipVertical: adjustments.flipVertical,
           orientationSteps: adjustments.orientationSteps,
           rotation: adjustments.rotation,
-        }) as Record<string, any> | null | undefined;
+        })) as Record<string, any> | null | undefined;
 
         const newParameters = normalizeMaskData(rawNewParameters);
 
@@ -765,7 +776,7 @@ export function useAiMasking() {
 
       try {
         const transformAdjustments = getTransformAdjustments(adjustments);
-        const rawNewParameters = await invoke(Invokes.GenerateLuminanceRangeMask, {
+        const rawNewParameters = (await invoke(Invokes.GenerateLuminanceRangeMask, {
           jsAdjustments: transformAdjustments,
           path: selectedImage.path,
           lumMin: parameters?.lumMin ?? 0,
@@ -779,7 +790,7 @@ export function useAiMasking() {
           flipVertical: adjustments.flipVertical,
           orientationSteps: adjustments.orientationSteps,
           rotation: adjustments.rotation,
-        }) as Record<string, any> | null | undefined;
+        })) as Record<string, any> | null | undefined;
 
         const newParameters = normalizeMaskData(rawNewParameters);
 
@@ -811,7 +822,7 @@ export function useAiMasking() {
 
       try {
         const transformAdjustments = getTransformAdjustments(adjustments);
-        const rawNewParameters = await invoke(Invokes.ApplyMaskFeather, {
+        const rawNewParameters = (await invoke(Invokes.ApplyMaskFeather, {
           jsAdjustments: transformAdjustments,
           path: selectedImage.path,
           subMaskId,
@@ -820,7 +831,7 @@ export function useAiMasking() {
           flipVertical: adjustments.flipVertical,
           orientationSteps: adjustments.orientationSteps,
           rotation: adjustments.rotation,
-        }) as Record<string, any> | null | undefined;
+        })) as Record<string, any> | null | undefined;
 
         const newParameters = normalizeMaskData(rawNewParameters);
         const subMask = findSubMask(useEditorStore.getState().adjustments, subMaskId);
@@ -837,55 +848,49 @@ export function useAiMasking() {
     [setEditor, updateSubMask],
   );
 
-  const handleAutoStraightenHorizon = useCallback(
-    async (): Promise<number | null> => {
-      const { selectedImage, adjustments } = useEditorStore.getState();
-      if (!selectedImage?.path) return null;
+  const handleAutoStraightenHorizon = useCallback(async (): Promise<number | null> => {
+    const { selectedImage, adjustments } = useEditorStore.getState();
+    if (!selectedImage?.path) return null;
 
-      try {
-        const transformAdjustments = getTransformAdjustments(adjustments);
-        const horizonAngle = await invoke(Invokes.AutoStraightenHorizon, {
-          jsAdjustments: transformAdjustments,
-          path: selectedImage.path,
-          flipHorizontal: adjustments.flipHorizontal,
-          flipVertical: adjustments.flipVertical,
-          orientationSteps: adjustments.orientationSteps,
-          rotation: adjustments.rotation,
-        }) as number;
+    try {
+      const transformAdjustments = getTransformAdjustments(adjustments);
+      const horizonAngle = (await invoke(Invokes.AutoStraightenHorizon, {
+        jsAdjustments: transformAdjustments,
+        path: selectedImage.path,
+        flipHorizontal: adjustments.flipHorizontal,
+        flipVertical: adjustments.flipVertical,
+        orientationSteps: adjustments.orientationSteps,
+        rotation: adjustments.rotation,
+      })) as number;
 
-        return horizonAngle;
-      } catch (error) {
-        toast.error(`Auto Straighten Failed: ${error}`);
-        return null;
-      }
-    },
-    [],
-  );
+      return horizonAngle;
+    } catch (error) {
+      toast.error(`Auto Straighten Failed: ${error}`);
+      return null;
+    }
+  }, []);
 
-  const handleDetectHorizonLines = useCallback(
-    async (): Promise<any[] | null> => {
-      const { selectedImage, adjustments } = useEditorStore.getState();
-      if (!selectedImage?.path) return null;
+  const handleDetectHorizonLines = useCallback(async (): Promise<any[] | null> => {
+    const { selectedImage, adjustments } = useEditorStore.getState();
+    if (!selectedImage?.path) return null;
 
-      try {
-        const transformAdjustments = getTransformAdjustments(adjustments);
-        const lines = await invoke(Invokes.DetectHorizonLines, {
-          jsAdjustments: transformAdjustments,
-          path: selectedImage.path,
-          flipHorizontal: adjustments.flipHorizontal,
-          flipVertical: adjustments.flipVertical,
-          orientationSteps: adjustments.orientationSteps,
-          rotation: adjustments.rotation,
-        }) as any[];
+    try {
+      const transformAdjustments = getTransformAdjustments(adjustments);
+      const lines = (await invoke(Invokes.DetectHorizonLines, {
+        jsAdjustments: transformAdjustments,
+        path: selectedImage.path,
+        flipHorizontal: adjustments.flipHorizontal,
+        flipVertical: adjustments.flipVertical,
+        orientationSteps: adjustments.orientationSteps,
+        rotation: adjustments.rotation,
+      })) as any[];
 
-        return Array.isArray(lines) ? lines : null;
-      } catch (error) {
-        toast.error(`Horizon Detection Failed: ${error}`);
-        return null;
-      }
-    },
-    [],
-  );
+      return Array.isArray(lines) ? lines : null;
+    } catch (error) {
+      toast.error(`Horizon Detection Failed: ${error}`);
+      return null;
+    }
+  }, []);
 
   const handleGenerateAiSkyReplace = useCallback(
     async (skyPrompt: string = ''): Promise<string | null> => {
@@ -943,59 +948,56 @@ export function useAiMasking() {
     [setEditor],
   );
 
-  const handleGenerateAiBackgroundRemove = useCallback(
-    async (): Promise<string | null> => {
-      const { selectedImage, adjustments, isGeneratingAi } = useEditorStore.getState();
-      if (!selectedImage?.path || isGeneratingAi) return null;
+  const handleGenerateAiBackgroundRemove = useCallback(async (): Promise<string | null> => {
+    const { selectedImage, adjustments, isGeneratingAi } = useEditorStore.getState();
+    if (!selectedImage?.path || isGeneratingAi) return null;
 
-      // Cancel any previous generative AI request and set up timeout.
-      generativeAbortRef.current?.abort();
-      const genAbort = new AbortController();
-      generativeAbortRef.current = genAbort;
-      const genTimeout = setTimeout(() => {
-        genAbort.abort();
-        toast.error('AI Background Remove timed out – operation took too long');
-      }, AI_GENERATIVE_TIMEOUT_MS);
+    // Cancel any previous generative AI request and set up timeout.
+    generativeAbortRef.current?.abort();
+    const genAbort = new AbortController();
+    generativeAbortRef.current = genAbort;
+    const genTimeout = setTimeout(() => {
+      genAbort.abort();
+      toast.error('AI Background Remove timed out – operation took too long');
+    }, AI_GENERATIVE_TIMEOUT_MS);
 
-      setEditor({ isGeneratingAi: true });
+    setEditor({ isGeneratingAi: true });
 
-      try {
-        const transformAdjustments = getTransformAdjustments(adjustments);
-        const resultBytes: number[] = await invoke(Invokes.GenerateAiBackgroundRemove, {
-          jsAdjustments: transformAdjustments,
-          path: selectedImage.path,
-          flipHorizontal: adjustments.flipHorizontal,
-          flipVertical: adjustments.flipVertical,
-          orientationSteps: adjustments.orientationSteps,
-          rotation: adjustments.rotation,
-        });
-        if (genAbort.signal.aborted) return null;
+    try {
+      const transformAdjustments = getTransformAdjustments(adjustments);
+      const resultBytes: number[] = await invoke(Invokes.GenerateAiBackgroundRemove, {
+        jsAdjustments: transformAdjustments,
+        path: selectedImage.path,
+        flipHorizontal: adjustments.flipHorizontal,
+        flipVertical: adjustments.flipVertical,
+        orientationSteps: adjustments.orientationSteps,
+        rotation: adjustments.rotation,
+      });
+      if (genAbort.signal.aborted) return null;
 
-        const uint8 = new Uint8Array(resultBytes);
-        const blob = new Blob([uint8], { type: 'image/png' });
-        const url = URL.createObjectURL(blob);
+      const uint8 = new Uint8Array(resultBytes);
+      const blob = new Blob([uint8], { type: 'image/png' });
+      const url = URL.createObjectURL(blob);
 
-        setEditor((state) => {
-          const prevUrl = state.finalPreviewUrl;
-          if (prevUrl && prevUrl.startsWith('blob:')) {
-            setTimeout(() => URL.revokeObjectURL(prevUrl), 100);
-          }
-          return { finalPreviewUrl: url };
-        });
+      setEditor((state) => {
+        const prevUrl = state.finalPreviewUrl;
+        if (prevUrl && prevUrl.startsWith('blob:')) {
+          setTimeout(() => URL.revokeObjectURL(prevUrl), 100);
+        }
+        return { finalPreviewUrl: url };
+      });
 
-        toast.success('AI Background Remove completed');
-        return url;
-      } catch (error) {
-        if (genAbort.signal.aborted) return null;
-        toast.error(`AI Background Remove Failed: ${error}`);
-        return null;
-      } finally {
-        clearTimeout(genTimeout);
-        setEditor({ isGeneratingAi: false });
-      }
-    },
-    [setEditor],
-  );
+      toast.success('AI Background Remove completed');
+      return url;
+    } catch (error) {
+      if (genAbort.signal.aborted) return null;
+      toast.error(`AI Background Remove Failed: ${error}`);
+      return null;
+    } finally {
+      clearTimeout(genTimeout);
+      setEditor({ isGeneratingAi: false });
+    }
+  }, [setEditor]);
 
   return {
     updateSubMask,

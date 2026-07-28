@@ -80,7 +80,9 @@ interface LibraryState {
   setFilterCriteria: (criteria: Partial<FilterCriteria> | ((prev: FilterCriteria) => FilterCriteria)) => void;
   setSearchCriteria: (criteria: Partial<SearchCriteria> | ((prev: SearchCriteria) => SearchCriteria)) => void;
   setSortCriteria: (criteria: Partial<SortCriteria> | ((prev: SortCriteria) => SortCriteria)) => void;
-  setAdvancedFilter: (filter: Partial<AdvancedFilterState> | ((prev: AdvancedFilterState) => AdvancedFilterState)) => void;
+  setAdvancedFilter: (
+    filter: Partial<AdvancedFilterState> | ((prev: AdvancedFilterState) => AdvancedFilterState),
+  ) => void;
   clearAdvancedFilter: () => void;
   addSmartAlbum: (album: SmartAlbum) => void;
   removeSmartAlbum: (id: string) => void;
@@ -163,11 +165,9 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       advancedFilter: { dateFrom: null, dateTo: null, cameraModel: null, focalLengthMin: null, focalLengthMax: null },
     }),
 
-  addSmartAlbum: (album) =>
-    set((state) => ({ smartAlbums: [...state.smartAlbums, album] })),
+  addSmartAlbum: (album) => set((state) => ({ smartAlbums: [...state.smartAlbums, album] })),
 
-  removeSmartAlbum: (id) =>
-    set((state) => ({ smartAlbums: state.smartAlbums.filter((a) => a.id !== id) })),
+  removeSmartAlbum: (id) => set((state) => ({ smartAlbums: state.smartAlbums.filter((a) => a.id !== id) })),
 
   toggleFavorite: (path) =>
     set((state) => ({
@@ -215,7 +215,8 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
             return typeof fieldValue === 'number' && fieldValue < condition.value;
           case 'contains':
             if (Array.isArray(fieldValue)) return fieldValue.includes(condition.value);
-            if (typeof fieldValue === 'string') return fieldValue.toLowerCase().includes(String(condition.value).toLowerCase());
+            if (typeof fieldValue === 'string')
+              return fieldValue.toLowerCase().includes(String(condition.value).toLowerCase());
             return false;
           case 'between':
             if (typeof fieldValue === 'number') {

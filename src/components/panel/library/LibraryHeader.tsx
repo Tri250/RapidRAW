@@ -38,21 +38,104 @@ import { ADVANCED_QUERY_REGEX } from '../../../hooks/useSortedLibrary';
 
 // Subset of common photography-related tags from TAG_CANDIDATES for search suggestions
 const TAG_SUGGESTIONS: string[] = [
-  'person', 'people', 'portrait', 'candid', 'silhouette', 'face', 'smile',
-  'animal', 'wildlife', 'dog', 'cat', 'bird', 'horse',
-  'landscape', 'mountain', 'ocean', 'sea', 'beach', 'lake', 'river', 'waterfall', 'forest', 'tree', 'flower',
-  'sky', 'sunset', 'sunrise', 'cloud', 'rain', 'snow', 'storm', 'fog',
-  'architecture', 'building', 'city', 'street', 'bridge', 'tower',
-  'food', 'drink', 'cake', 'coffee',
-  'car', 'train', 'boat', 'airplane', 'bicycle',
-  'night', 'light', 'shadow', 'reflection', 'bokeh', 'macro',
-  'wedding', 'concert', 'festival', 'sport',
-  'abstract', 'texture', 'pattern', 'minimal', 'vintage', 'black and white', 'HDR',
-  'indoor', 'outdoor', 'garden', 'park', 'farm',
-  'vintage', 'retro', 'dramatic', 'moody', 'serene', 'vibrant',
-  '旅游', '风景', '人像', '街拍', '夜景', '日出', '日落', '花卉', '建筑',
-  '美食', '宠物', '儿童', '家庭', '婚礼', '节日', '运动',
-  '黑白', '胶片', '复古', '极简', '光影', '倒影', '剪影',
+  'person',
+  'people',
+  'portrait',
+  'candid',
+  'silhouette',
+  'face',
+  'smile',
+  'animal',
+  'wildlife',
+  'dog',
+  'cat',
+  'bird',
+  'horse',
+  'landscape',
+  'mountain',
+  'ocean',
+  'sea',
+  'beach',
+  'lake',
+  'river',
+  'waterfall',
+  'forest',
+  'tree',
+  'flower',
+  'sky',
+  'sunset',
+  'sunrise',
+  'cloud',
+  'rain',
+  'snow',
+  'storm',
+  'fog',
+  'architecture',
+  'building',
+  'city',
+  'street',
+  'bridge',
+  'tower',
+  'food',
+  'drink',
+  'cake',
+  'coffee',
+  'car',
+  'train',
+  'boat',
+  'airplane',
+  'bicycle',
+  'night',
+  'light',
+  'shadow',
+  'reflection',
+  'bokeh',
+  'macro',
+  'wedding',
+  'concert',
+  'festival',
+  'sport',
+  'abstract',
+  'texture',
+  'pattern',
+  'minimal',
+  'vintage',
+  'black and white',
+  'HDR',
+  'indoor',
+  'outdoor',
+  'garden',
+  'park',
+  'farm',
+  'vintage',
+  'retro',
+  'dramatic',
+  'moody',
+  'serene',
+  'vibrant',
+  '旅游',
+  '风景',
+  '人像',
+  '街拍',
+  '夜景',
+  '日出',
+  '日落',
+  '花卉',
+  '建筑',
+  '美食',
+  '宠物',
+  '儿童',
+  '家庭',
+  '婚礼',
+  '节日',
+  '运动',
+  '黑白',
+  '胶片',
+  '复古',
+  '极简',
+  '光影',
+  '倒影',
+  '剪影',
 ];
 
 function DropdownMenu({ buttonContent, buttonTitle, children, contentClassName = 'w-56' }: any) {
@@ -178,9 +261,7 @@ export function SearchInput({ indexingProgress, isIndexing, isAndroid }: any) {
     if (!text.trim()) return [];
     const query = text.trim().toLowerCase();
     const candidateTags = dynamicAiTags.length > 0 ? dynamicAiTags : TAG_SUGGESTIONS;
-    return candidateTags
-      .filter((tag) => tag.toLowerCase().includes(query) && !tags.includes(tag))
-      .slice(0, 8);
+    return candidateTags.filter((tag) => tag.toLowerCase().includes(query) && !tags.includes(tag)).slice(0, 8);
   }, [text, tags, dynamicAiTags]);
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -638,9 +719,7 @@ export function ViewOptionsDropdown({
                         isSelected ? 'bg-card-active' : 'hover:bg-bg-primary'
                       }`}
                       key={option.value}
-                      onClick={() =>
-                        setFilterCriteria((prev: FilterCriteria) => ({ ...prev, rating: option.value }))
-                      }
+                      onClick={() => setFilterCriteria((prev: FilterCriteria) => ({ ...prev, rating: option.value }))}
                       role="menuitem"
                     >
                       <Text
@@ -712,9 +791,7 @@ export function ViewOptionsDropdown({
                       isSelected ? 'bg-card-active' : 'hover:bg-bg-primary'
                     }`}
                     key={option.key}
-                    onClick={() =>
-                      setFilterCriteria((prev: FilterCriteria) => ({ ...prev, rawStatus: option.key }))
-                    }
+                    onClick={() => setFilterCriteria((prev: FilterCriteria) => ({ ...prev, rawStatus: option.key }))}
                     role="menuitem"
                   >
                     <Text
@@ -742,9 +819,7 @@ export function ViewOptionsDropdown({
                       isSelected ? 'bg-card-active' : 'hover:bg-bg-primary'
                     }`}
                     key={option.key}
-                    onClick={() =>
-                      setFilterCriteria((prev: FilterCriteria) => ({ ...prev, editedStatus: option.key }))
-                    }
+                    onClick={() => setFilterCriteria((prev: FilterCriteria) => ({ ...prev, editedStatus: option.key }))}
                     role="menuitem"
                   >
                     <Text
@@ -857,11 +932,38 @@ export function ViewOptionsDropdown({
 
 // Popular AI tag chips for the advanced filter panel
 const POPULAR_TAG_CHIPS: string[] = [
-  'person', 'landscape', 'portrait', 'sunset', 'sky', 'nature',
-  'architecture', 'street', 'night', 'flower', 'animal', 'water',
-  'mountain', 'forest', 'beach', 'food', 'wedding', 'travel',
-  'bokeh', 'macro', 'HDR', 'black and white', 'vintage', 'abstract',
-  '旅游', '风景', '人像', '夜景', '花卉', '建筑', '美食', '街拍',
+  'person',
+  'landscape',
+  'portrait',
+  'sunset',
+  'sky',
+  'nature',
+  'architecture',
+  'street',
+  'night',
+  'flower',
+  'animal',
+  'water',
+  'mountain',
+  'forest',
+  'beach',
+  'food',
+  'wedding',
+  'travel',
+  'bokeh',
+  'macro',
+  'HDR',
+  'black and white',
+  'vintage',
+  'abstract',
+  '旅游',
+  '风景',
+  '人像',
+  '夜景',
+  '花卉',
+  '建筑',
+  '美食',
+  '街拍',
 ];
 
 export function AdvancedFilterPanel({ isAndroid }: { isAndroid: boolean }) {
@@ -943,9 +1045,7 @@ export function AdvancedFilterPanel({ isAndroid }: { isAndroid: boolean }) {
                 type="date"
                 className="flex-1 bg-bg-primary text-text-primary text-sm px-2 py-1 rounded border border-border-color focus:outline-hidden focus:border-accent"
                 value={advancedFilter.dateFrom || ''}
-                onChange={(e) =>
-                  setAdvancedFilter({ dateFrom: e.target.value || null })
-                }
+                onChange={(e) => setAdvancedFilter({ dateFrom: e.target.value || null })}
               />
             </div>
             <div className="flex items-center gap-1.5 flex-1">
@@ -956,9 +1056,7 @@ export function AdvancedFilterPanel({ isAndroid }: { isAndroid: boolean }) {
                 type="date"
                 className="flex-1 bg-bg-primary text-text-primary text-sm px-2 py-1 rounded border border-border-color focus:outline-hidden focus:border-accent"
                 value={advancedFilter.dateTo || ''}
-                onChange={(e) =>
-                  setAdvancedFilter({ dateTo: e.target.value || null })
-                }
+                onChange={(e) => setAdvancedFilter({ dateTo: e.target.value || null })}
               />
             </div>
           </div>
@@ -977,9 +1075,7 @@ export function AdvancedFilterPanel({ isAndroid }: { isAndroid: boolean }) {
             className="w-full bg-bg-primary text-text-primary text-sm px-2 py-1 rounded border border-border-color focus:outline-hidden focus:border-accent"
             placeholder="Sony, Canon, Nikon..."
             value={advancedFilter.cameraModel || ''}
-            onChange={(e) =>
-              setAdvancedFilter({ cameraModel: e.target.value || null })
-            }
+            onChange={(e) => setAdvancedFilter({ cameraModel: e.target.value || null })}
           />
         </div>
 
@@ -998,20 +1094,18 @@ export function AdvancedFilterPanel({ isAndroid }: { isAndroid: boolean }) {
               placeholder="Min mm"
               min={0}
               value={advancedFilter.focalLengthMin ?? ''}
-              onChange={(e) =>
-                setAdvancedFilter({ focalLengthMin: e.target.value ? Number(e.target.value) : null })
-              }
+              onChange={(e) => setAdvancedFilter({ focalLengthMin: e.target.value ? Number(e.target.value) : null })}
             />
-            <Text variant={TextVariants.small} color={TextColors.secondary}>—</Text>
+            <Text variant={TextVariants.small} color={TextColors.secondary}>
+              —
+            </Text>
             <input
               type="number"
               className="w-full bg-bg-primary text-text-primary text-sm px-2 py-1 rounded border border-border-color focus:outline-hidden focus:border-accent"
               placeholder="Max mm"
               min={0}
               value={advancedFilter.focalLengthMax ?? ''}
-              onChange={(e) =>
-                setAdvancedFilter({ focalLengthMax: e.target.value ? Number(e.target.value) : null })
-              }
+              onChange={(e) => setAdvancedFilter({ focalLengthMax: e.target.value ? Number(e.target.value) : null })}
             />
           </div>
         </div>

@@ -25,22 +25,24 @@ export default function ImageProcessingManager(props: Props) {
     if (selfTestRequest === 0 || selfTestRequest === lastProcessedRef.current) return;
     lastProcessedRef.current = selfTestRequest;
     let cancelled = false;
-    performDeepSelfTest().then((result) => {
-      if (!cancelled) {
-        setEditor({ imageProcessingSelfTestResult: result });
-      }
-    }).catch((err) => {
-      if (!cancelled) {
-        setEditor({
-          imageProcessingSelfTestResult: {
-            success: false,
-            details: {
-              self_test_framework: { ok: false, message: `Self-test failed: ${err?.message || String(err)}` },
+    performDeepSelfTest()
+      .then((result) => {
+        if (!cancelled) {
+          setEditor({ imageProcessingSelfTestResult: result });
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setEditor({
+            imageProcessingSelfTestResult: {
+              success: false,
+              details: {
+                self_test_framework: { ok: false, message: `Self-test failed: ${err?.message || String(err)}` },
+              },
             },
-          },
-        });
-      }
-    });
+          });
+        }
+      });
     return () => {
       cancelled = true;
     };

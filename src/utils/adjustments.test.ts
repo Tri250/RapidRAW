@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  INITIAL_PORTRAIT_ADJUSTMENTS,
-  INITIAL_ADJUSTMENTS,
-  normalizeLoadedAdjustments,
-} from './adjustments';
+import { INITIAL_PORTRAIT_ADJUSTMENTS, INITIAL_ADJUSTMENTS, normalizeLoadedAdjustments } from './adjustments';
 
 describe('INITIAL_PORTRAIT_ADJUSTMENTS', () => {
   it('has all required fields with default zero values', () => {

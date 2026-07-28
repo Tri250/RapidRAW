@@ -163,17 +163,23 @@ export default memo(function BasicAdjustments({
 }: BasicAdjustmentsProps) {
   const { t } = useTranslation();
 
-  const handleAdjustmentChange = useCallback((key: BasicAdjustment, value: any) => {
-    const numericValue = parseFloat(value);
-    setAdjustments((prev: Partial<Adjustments>) => ({ ...prev, [key]: numericValue }));
-  }, [setAdjustments]);
+  const handleAdjustmentChange = useCallback(
+    (key: BasicAdjustment, value: any) => {
+      const numericValue = parseFloat(value);
+      setAdjustments((prev: Partial<Adjustments>) => ({ ...prev, [key]: numericValue }));
+    },
+    [setAdjustments],
+  );
 
-  const handleToneMapperChange = useCallback((mapper: string) => {
-    setAdjustments((prev: Partial<Adjustments>) => ({
-      ...prev,
-      toneMapper: mapper as 'basic' | 'agx',
-    }));
-  }, [setAdjustments]);
+  const handleToneMapperChange = useCallback(
+    (mapper: string) => {
+      setAdjustments((prev: Partial<Adjustments>) => ({
+        ...prev,
+        toneMapper: mapper as 'basic' | 'agx',
+      }));
+    },
+    [setAdjustments],
+  );
 
   const hideTonemapper = isForMask || appSettings?.tonemapperOverrideEnabled;
 
@@ -254,4 +260,4 @@ export default memo(function BasicAdjustments({
       />
     </div>
   );
-})
+});

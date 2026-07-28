@@ -280,7 +280,12 @@ function DepthRangePicker({
     switch (handle) {
       case 'minDepth': {
         const v = Math.max(0, Math.min(val, init.maxDepth));
-        return { minDepth: v, maxDepth: init.maxDepth, minFade: Math.max(0, Math.min(init.minFade, v)), maxFade: init.maxFade };
+        return {
+          minDepth: v,
+          maxDepth: init.maxDepth,
+          minFade: Math.max(0, Math.min(init.minFade, v)),
+          maxFade: init.maxFade,
+        };
       }
       case 'maxDepth': {
         const v = Math.max(init.minDepth, Math.min(100, val));
@@ -561,7 +566,13 @@ function DepthRangePicker({
 export default function MasksPanel() {
   const { t } = useTranslation();
   const { setAdjustments } = useEditorActions();
-  const { handleGenerateAiDepthMask, handleGenerateAiForegroundMask, handleGenerateAiSkyMask, handleGenerateAiSubjectMask, handleDeleteMaskContainer: deleteMaskContainerFromHook } = useAiMasking();
+  const {
+    handleGenerateAiDepthMask,
+    handleGenerateAiForegroundMask,
+    handleGenerateAiSkyMask,
+    handleGenerateAiSubjectMask,
+    handleDeleteMaskContainer: deleteMaskContainerFromHook,
+  } = useAiMasking();
   const setCustomEscapeHandler = useUIStore((s) => s.setCustomEscapeHandler);
   const { appSettings, theme } = useSettingsStore(
     useShallow((state) => ({

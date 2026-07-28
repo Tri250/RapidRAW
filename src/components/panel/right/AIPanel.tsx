@@ -305,7 +305,16 @@ export default function AIPanel() {
   const setCustomEscapeHandler = useUIStore((s) => s.setCustomEscapeHandler);
 
   const { setAdjustments } = useEditorActions();
-  const { handleGenerativeReplace, handleDeleteAiPatch, handleToggleAiPatchVisibility, handleGenerateAiForegroundMask, handleGenerateAiSubjectMask, handleApplySuperResolution, handleGenerateAiSkyReplace, handleGenerateAiBackgroundRemove } = useAiMasking();
+  const {
+    handleGenerativeReplace,
+    handleDeleteAiPatch,
+    handleToggleAiPatchVisibility,
+    handleGenerateAiForegroundMask,
+    handleGenerateAiSubjectMask,
+    handleApplySuperResolution,
+    handleGenerateAiSkyReplace,
+    handleGenerateAiBackgroundRemove,
+  } = useAiMasking();
   const appSettings = useSettingsStore((s) => s.appSettings);
   const aiProvider = appSettings?.aiProvider || 'cpu';
 
@@ -1136,7 +1145,12 @@ export default function AIPanel() {
                         className={`bg-surface rounded-lg p-3 transition-colors ${isGeneratingAi ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card-active'}`}
                         data-tooltip={t('editor.ai.superResolutionTooltip')}
                       >
-                        <Text as="div" variant={TextVariants.small} weight={TextWeights.medium} className="mb-2 text-center">
+                        <Text
+                          as="div"
+                          variant={TextVariants.small}
+                          weight={TextWeights.medium}
+                          className="mb-2 text-center"
+                        >
                           {t('editor.ai.superResolution')}
                         </Text>
                         <div className="grid grid-cols-3 gap-1.5">
@@ -2190,7 +2204,7 @@ function SettingsPanel({
               {subMaskConfig.parameters?.map((param: any) => (
                 <Slider
                   key={param.key}
-                  label={t('editor.ai.params.' + param.key as any)}
+                  label={t(('editor.ai.params.' + param.key) as any)}
                   min={param.min}
                   max={param.max}
                   step={param.step}

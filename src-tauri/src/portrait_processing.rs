@@ -125,64 +125,61 @@ fn apply_skin_smoothing_rgba(
     let mut smoothed: Vec<(f32, f32, f32)> = vec![(0.0f32, 0.0f32, 0.0f32); (w * h) as usize];
     {
         let sm = &skin_mask;
-        smoothed
-            .par_iter_mut()
-            .enumerate()
-            .for_each(|(idx, out)| {
-                let mask_val = sm[idx];
-                let center_offset = idx * 4;
+        smoothed.par_iter_mut().enumerate().for_each(|(idx, out)| {
+            let mask_val = sm[idx];
+            let center_offset = idx * 4;
 
-                if mask_val <= 0.001 {
-                    *out = (0.0, 0.0, 0.0);
-                    return;
+            if mask_val <= 0.001 {
+                *out = (0.0, 0.0, 0.0);
+                return;
+            }
+
+            let cr = src_raw[center_offset] as f32;
+            let cg = src_raw[center_offset + 1] as f32;
+            let cb = src_raw[center_offset + 2] as f32;
+
+            let mut sum_r = 0.0f32;
+            let mut sum_g = 0.0f32;
+            let mut sum_b = 0.0f32;
+            let mut w_sum = 0.0f32;
+
+            let x = (idx % w_usize) as i32;
+            let y = (idx / w_usize) as i32;
+
+            for ky in -radius..=radius {
+                let ny = (y + ky).clamp(0, (h_usize - 1) as i32) as usize;
+                for kx in -radius..=radius {
+                    let nx = (x + kx).clamp(0, (w_usize - 1) as i32) as usize;
+
+                    let spatial_dist = ((kx * kx + ky * ky) as f32).sqrt();
+                    let ws = gaussian(spatial_dist, spatial_sigma);
+
+                    let n_offset = (ny * w_usize + nx) * 4;
+                    let nr = src_raw[n_offset] as f32;
+                    let ng = src_raw[n_offset + 1] as f32;
+                    let nb = src_raw[n_offset + 2] as f32;
+
+                    let color_dist =
+                        ((cr - nr) * (cr - nr) + (cg - ng) * (cg - ng) + (cb - nb) * (cb - nb))
+                            .sqrt();
+
+                    let wr = gaussian(color_dist, effective_range_sigma);
+
+                    let weight = ws * wr;
+                    sum_r += nr * weight;
+                    sum_g += ng * weight;
+                    sum_b += nb * weight;
+                    w_sum += weight;
                 }
+            }
 
-                let cr = src_raw[center_offset] as f32;
-                let cg = src_raw[center_offset + 1] as f32;
-                let cb = src_raw[center_offset + 2] as f32;
-
-                let mut sum_r = 0.0f32;
-                let mut sum_g = 0.0f32;
-                let mut sum_b = 0.0f32;
-                let mut w_sum = 0.0f32;
-
-                let x = (idx % w_usize) as i32;
-                let y = (idx / w_usize) as i32;
-
-                for ky in -radius..=radius {
-                    let ny = (y + ky).clamp(0, (h_usize - 1) as i32) as usize;
-                    for kx in -radius..=radius {
-                        let nx = (x + kx).clamp(0, (w_usize - 1) as i32) as usize;
-
-                        let spatial_dist = ((kx * kx + ky * ky) as f32).sqrt();
-                        let ws = gaussian(spatial_dist, spatial_sigma);
-
-                        let n_offset = (ny * w_usize + nx) * 4;
-                        let nr = src_raw[n_offset] as f32;
-                        let ng = src_raw[n_offset + 1] as f32;
-                        let nb = src_raw[n_offset + 2] as f32;
-
-                        let color_dist =
-                            ((cr - nr) * (cr - nr) + (cg - ng) * (cg - ng) + (cb - nb) * (cb - nb))
-                                .sqrt();
-
-                        let wr = gaussian(color_dist, effective_range_sigma);
-
-                        let weight = ws * wr;
-                        sum_r += nr * weight;
-                        sum_g += ng * weight;
-                        sum_b += nb * weight;
-                        w_sum += weight;
-                    }
-                }
-
-                if w_sum > 0.0 {
-                    let inv = 1.0 / w_sum;
-                    *out = (sum_r * inv, sum_g * inv, sum_b * inv);
-                } else {
-                    *out = (cr, cg, cb);
-                }
-            });
+            if w_sum > 0.0 {
+                let inv = 1.0 / w_sum;
+                *out = (sum_r * inv, sum_g * inv, sum_b * inv);
+            } else {
+                *out = (cr, cg, cb);
+            }
+        });
     }
 
     // Step 2: detail preservation pass (only when detail_preserve > 0)
@@ -503,7 +500,15 @@ pub fn apply_face_reshape(
         return Err("Image has zero dimensions".to_string());
     }
     let mut rgba = img.to_rgba8();
-    apply_face_reshape_rgba(&mut rgba, w, h, face_regions, slim_amount, jaw_amount, forehead_amount);
+    apply_face_reshape_rgba(
+        &mut rgba,
+        w,
+        h,
+        face_regions,
+        slim_amount,
+        jaw_amount,
+        forehead_amount,
+    );
     *img = DynamicImage::ImageRgba8(rgba);
     Ok(())
 }
@@ -800,7 +805,8 @@ fn apply_teeth_whitening_rgba(
                     // Stronger, perceptually-linear brightening curve.
                     let new_lum = lum + (1.0 - lum) * weight * max_brightness_lift;
 
-                    let (nr, ng, nb) = hsl_to_rgb(hue, new_sat.clamp(0.0, 1.0), new_lum.clamp(0.0, 1.0));
+                    let (nr, ng, nb) =
+                        hsl_to_rgb(hue, new_sat.clamp(0.0, 1.0), new_lum.clamp(0.0, 1.0));
                     let (r8, g8, b8) = f32_to_rgb(nr, ng, nb);
 
                     rgba.put_pixel(x, y, Rgba([r8, g8, b8, pixel[3]]));
@@ -869,8 +875,7 @@ fn apply_eye_brighten_rgba(
                 // Highlight protection: very bright pixels should also be
                 // protected from over-brightening that causes blown-out whites.
                 // lum > 0.80 starts ramping down, lum >= 0.95 fully protected.
-                let highlight_protection =
-                    (1.0 - (lum - 0.80) / 0.15).clamp(0.0, 1.0);
+                let highlight_protection = (1.0 - (lum - 0.80) / 0.15).clamp(0.0, 1.0);
 
                 let effective_weight = weight * dark_protection * highlight_protection;
 
@@ -962,15 +967,9 @@ pub fn apply_makeup(
 
                 // Hue/semantic area match
                 let matches = match makeup_type {
-                    "lip" => {
-                        (hue < 20.0 || hue > 340.0) && sat > 0.2
-                    }
-                    "blush" => {
-                        (hue < 30.0 || hue > 330.0) && sat > 0.05
-                    }
-                    "eyebrow" => {
-                        sat < 0.3
-                    }
+                    "lip" => (hue < 20.0 || hue > 340.0) && sat > 0.2,
+                    "blush" => (hue < 30.0 || hue > 330.0) && sat > 0.05,
+                    "eyebrow" => sat < 0.3,
                     _ => true,
                 };
 
@@ -1906,7 +1905,8 @@ pub fn apply_hair_adjust(
                     && ((hue > 300.0 && hue <= 360.0)
                         || (hue >= 0.0 && hue < 30.0)
                         || (hue > 200.0 && hue < 280.0));
-                let has_hair_hint = is_dark || is_low_sat || is_light_hair || is_white_hair || is_vivid_hair_hue;
+                let has_hair_hint =
+                    is_dark || is_low_sat || is_light_hair || is_white_hair || is_vivid_hair_hue;
 
                 // ── Fix #2: Expand skin-hue exclusion to cover warm skin range 0..50° + 350..360° ──
                 let skin_hue = (hue < 50.0) || (hue > 350.0);
@@ -2027,7 +2027,10 @@ pub fn apply_body_reshape(
         ((h as f32 * 0.22) as u32, w as f32 / 2.0)
     } else {
         let f = anchor_face_opt.as_ref().unwrap();
-        (f.face_rect.1 + f.face_rect.3, f.face_rect.0 as f32 + f.face_rect.2 as f32 / 2.0)
+        (
+            f.face_rect.1 + f.face_rect.3,
+            f.face_rect.0 as f32 + f.face_rect.2 as f32 / 2.0,
+        )
     };
 
     if body_y_start >= h.saturating_sub(2) {
@@ -2049,7 +2052,15 @@ pub fn apply_body_reshape(
     } else {
         face_regions.to_vec()
     };
-    let body_mask = build_body_mask(&src, w, h, &face_regions_for_mask, body_y_start, fallback_mode, face_cx_fallback);
+    let body_mask = build_body_mask(
+        &src,
+        w,
+        h,
+        &face_regions_for_mask,
+        body_y_start,
+        fallback_mode,
+        face_cx_fallback,
+    );
 
     let mut has_body = false;
     for &v in &body_mask {

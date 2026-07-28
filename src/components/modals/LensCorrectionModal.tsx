@@ -905,7 +905,10 @@ export default function LensCorrectionModal({
         >
           <div
             className="absolute inset-0 opacity-20 pointer-events-none"
-            style={{ backgroundImage: 'radial-gradient(var(--app-border-color) 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+            style={{
+              backgroundImage: 'radial-gradient(var(--app-border-color) 1px, transparent 1px)',
+              backgroundSize: '24px 24px',
+            }}
           ></div>
 
           {previewUrl && (
@@ -994,7 +997,9 @@ export default function LensCorrectionModal({
           onClose();
         }
       }}
-      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
       tabIndex={-1}
     >
       <AnimatePresence>

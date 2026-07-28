@@ -95,14 +95,17 @@ export function useAndroidBackHandler() {
         return;
       }
 
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }),
+      );
     };
 
     // Android low memory handler - release cached images and previews
     (window as any).__handleLowMemory = (level: number) => {
       const editor = useEditorStore.getState();
       // Release cached preview URLs to free memory
-      if (level >= 10) { // TRIM_MEMORY_RUNNING_LOW or higher
+      if (level >= 10) {
+        // TRIM_MEMORY_RUNNING_LOW or higher
         if (editor.finalPreviewUrl && typeof URL !== 'undefined' && URL.revokeObjectURL) {
           URL.revokeObjectURL(editor.finalPreviewUrl);
           editor.setEditor({ finalPreviewUrl: null });
@@ -117,7 +120,8 @@ export function useAndroidBackHandler() {
         }
       }
       // For critical level, also clear waveform/histogram caches
-      if (level >= 15) { // TRIM_MEMORY_RUNNING_CRITICAL
+      if (level >= 15) {
+        // TRIM_MEMORY_RUNNING_CRITICAL
         editor.setEditor({ histogram: null, waveform: null });
       }
     };

@@ -122,7 +122,9 @@ const ColorGradingPanel = ({ adjustments, setAdjustments, onDragStateChange }: C
 
   const handleChange = (grading: ColorGrading, newValue: HueSatLum) => {
     if (!HUE_SAT_LUM_KEYS.has(grading)) {
-      console.error(`handleChange expects a HueSatLum key, but received "${grading}". Use handleColorGradingSliderChange for numeric keys.`);
+      console.error(
+        `handleChange expects a HueSatLum key, but received "${grading}". Use handleColorGradingSliderChange for numeric keys.`,
+      );
       return;
     }
     setAdjustments((prev: Partial<Adjustments>) => ({
@@ -136,7 +138,9 @@ const ColorGradingPanel = ({ adjustments, setAdjustments, onDragStateChange }: C
 
   const handleColorGradingSliderChange = (grading: ColorGrading, value: string) => {
     if (!NUMERIC_KEYS.has(grading)) {
-      console.error(`handleColorGradingSliderChange expects a numeric key (blending/balance), but received "${grading}". Use handleChange for HueSatLum keys.`);
+      console.error(
+        `handleColorGradingSliderChange expects a numeric key (blending/balance), but received "${grading}". Use handleChange for HueSatLum keys.`,
+      );
       return;
     }
     setAdjustments((prev: Partial<Adjustments>) => ({
@@ -163,7 +167,10 @@ const ColorGradingPanel = ({ adjustments, setAdjustments, onDragStateChange }: C
       {
         id: 'global',
         icon: (
-          <div className="w-3.5 h-3.5 rounded-full" style={{ background: `linear-gradient(to top, var(--app-text-secondary), var(--app-text-primary))` }} />
+          <div
+            className="w-3.5 h-3.5 rounded-full"
+            style={{ background: `linear-gradient(to top, var(--app-text-secondary), var(--app-text-primary))` }}
+          />
         ),
       },
     ],
@@ -491,9 +498,7 @@ export default function ColorPanel({
             <button
               onClick={toggleWbPicker}
               className={`p-1.5 rounded-md transition-colors ${
-                isWbPickerActive
-                  ? 'bg-accent text-button-text'
-                  : 'hover:bg-bg-secondary text-text-secondary'
+                isWbPickerActive ? 'bg-accent text-button-text' : 'hover:bg-bg-secondary text-text-secondary'
               }`}
               data-tooltip={t('adjustments.color.wbPickerTooltip')}
             >

@@ -151,9 +151,7 @@ export default function SmartAlbumModal({ isOpen, onClose, images }: SmartAlbumM
                 <select
                   className="flex-1 bg-bg-primary text-text-primary border border-border rounded-md px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-accent"
                   value={condition.field}
-                  onChange={(e) =>
-                    updateCondition(index, { field: e.target.value as SmartAlbumCondition['field'] })
-                  }
+                  onChange={(e) => updateCondition(index, { field: e.target.value as SmartAlbumCondition['field'] })}
                 >
                   {FIELD_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -223,7 +221,9 @@ export default function SmartAlbumModal({ isOpen, onClose, images }: SmartAlbumM
                     }}
                     placeholder={t('library.smartAlbum.valuePlaceholder')}
                     type={
-                      condition.field === 'rating' || condition.field === 'dateModified' || condition.field === 'dateTaken'
+                      condition.field === 'rating' ||
+                      condition.field === 'dateModified' ||
+                      condition.field === 'dateTaken'
                         ? 'number'
                         : 'text'
                     }

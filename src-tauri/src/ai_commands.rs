@@ -82,10 +82,7 @@ pub async fn generate_ai_sky_mask(
     // the model found no meaningful sky region. Return None so the frontend can show
     // the "No sky detected" toast instead of storing an effectively-empty mask.
     let total_pixels = (full_mask_image.width() * full_mask_image.height()) as usize;
-    let bright_pixels = full_mask_image
-        .pixels()
-        .filter(|p| p[0] > 128)
-        .count();
+    let bright_pixels = full_mask_image.pixels().filter(|p| p[0] > 128).count();
     if total_pixels > 0 && (bright_pixels as f32 / total_pixels as f32) < 0.001 {
         return Ok(AiSkyMaskParameters {
             mask_data_base64: None,

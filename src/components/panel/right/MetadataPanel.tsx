@@ -290,7 +290,11 @@ const KEY_CAMERA_SETTINGS_MAP: CameraSettings = {
   LensModel: {
     format: (value: any) => {
       if (typeof value === 'object' && value !== null) {
-        try { return JSON.stringify(value); } catch { return String(value); }
+        try {
+          return JSON.stringify(value);
+        } catch {
+          return String(value);
+        }
       }
       return String(value).replace(/"/g, '');
     },
@@ -306,7 +310,9 @@ export default function MetadataPanel() {
   const [tagInputValue, setTagInputValue] = useState('');
   const [isTagInputFocused, setIsTagInputFocused] = useState(false);
   const [aiRatingLoading, setAiRatingLoading] = useState(false);
-  const [aiRatingResult, setAiRatingResult] = useState<{ rating: number; description: string; tags: string[] } | null>(null);
+  const [aiRatingResult, setAiRatingResult] = useState<{ rating: number; description: string; tags: string[] } | null>(
+    null,
+  );
   const [aiRatingApplied, setAiRatingApplied] = useState(false);
   // Cancellation token for in-flight AI rating requests. Incremented whenever
   // the selected image changes or a new request is started, so stale responses
@@ -474,10 +480,9 @@ export default function MetadataPanel() {
     setAiRatingResult(null);
     setAiRatingApplied(false);
     try {
-      const result = await invoke<{ rating: number; description: string; tags: string[] }>(
-        Invokes.GenerateAiRating,
-        { path: selectedImage.path },
-      );
+      const result = await invoke<{ rating: number; description: string; tags: string[] }>(Invokes.GenerateAiRating, {
+        path: selectedImage.path,
+      });
       // Ignore the response if a newer request has started or the user
       // switched to a different image while this one was in flight.
       if (reqId !== aiRatingReqIdRef.current) return;
@@ -573,11 +578,7 @@ export default function MetadataPanel() {
                             : 'bg-accent/10 text-accent hover:bg-accent/20 active:scale-[0.98]',
                         )}
                       >
-                        {aiRatingLoading ? (
-                          <Loader2 size={16} className="animate-spin" />
-                        ) : (
-                          <Sparkles size={16} />
-                        )}
+                        {aiRatingLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                         {aiRatingLoading ? t('editor.aiRating.applying') : t('editor.aiRating.generate')}
                       </button>
 
@@ -1097,7 +1098,11 @@ export default function MetadataPanel() {
                 </Text>
                 <div className="bg-surface border border-surface rounded-xl p-3 flex flex-col gap-0.5 overflow-hidden">
                   {otherExifEntries.map(([tag, value]) => (
-                    <MetadataItem key={tag} label={formatExifTag(tag, t as unknown as (key: string) => string)} value={value} />
+                    <MetadataItem
+                      key={tag}
+                      label={formatExifTag(tag, t as unknown as (key: string) => string)}
+                      value={value}
+                    />
                   ))}
                 </div>
               </div>

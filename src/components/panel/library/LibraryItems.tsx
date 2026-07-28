@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Image as ImageIcon, Folder, FolderOpen, Star as StarIcon, SlidersHorizontal, CloudOff, Heart } from 'lucide-react';
+import {
+  Image as ImageIcon,
+  Folder,
+  FolderOpen,
+  Star as StarIcon,
+  SlidersHorizontal,
+  CloudOff,
+  Heart,
+} from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { COLOR_LABELS, Color } from '../../../utils/adjustments';
@@ -177,9 +185,7 @@ const ThumbnailComponent = ({
 
   const aiTags = useMemo(() => {
     if (!tags || tags.length === 0) return [];
-    return tags
-      .filter((t: string) => !t.startsWith('color:') && !t.startsWith('user:'))
-      .slice(0, 2);
+    return tags.filter((t: string) => !t.startsWith('color:') && !t.startsWith('user:')).slice(0, 2);
   }, [tags]);
 
   const isAlways = exifOverlay === ExifOverlay.Always;
@@ -819,7 +825,9 @@ const RowComponent = ({
       queueThumbnailRequest(img.path);
     });
 
-    const cloudPaths = row.images.filter((img: ImageFile) => img.is_cloud_placeholder).map((img: ImageFile) => img.path);
+    const cloudPaths = row.images
+      .filter((img: ImageFile) => img.is_cloud_placeholder)
+      .map((img: ImageFile) => img.path);
     if (cloudPaths.length === 0) return;
 
     const interval = setInterval(() => {

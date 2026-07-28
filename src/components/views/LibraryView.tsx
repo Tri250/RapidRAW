@@ -134,9 +134,7 @@ export default function LibraryView({
             currentFolderPath={currentFolderPath}
           />
         ) : activeView === 'gallery' ? (
-          <PresetGallery
-            onBack={() => setUI({ activeView: 'library' })}
-          />
+          <PresetGallery onBack={() => setUI({ activeView: 'library' })} />
         ) : (
           <MainLibrary
             activePath={libraryActivePath}

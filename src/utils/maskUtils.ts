@@ -5,7 +5,7 @@ import { ImageDimensions } from '../hooks/useImageRenderSize';
 export const createSubMask = (
   type: Mask,
   imageDimensions: ImageDimensions,
-  mode: SubMaskMode = SubMaskMode.Additive
+  mode: SubMaskMode = SubMaskMode.Additive,
 ) => {
   const { width = 1000, height = 1000 } = imageDimensions || {};
   const common = {
@@ -47,7 +47,10 @@ export const createSubMask = (
     case Mask.AiSky:
       return { ...common, parameters: { maskDataBase64: null, grow: 0, feather: 0 } };
     case Mask.AiDepth:
-      return { ...common, parameters: { maskDataBase64: null, minDepth: 20, maxDepth: 100, minFade: 15, maxFade: 15, feather: 10 } };
+      return {
+        ...common,
+        parameters: { maskDataBase64: null, minDepth: 20, maxDepth: 100, minFade: 15, maxFade: 15, feather: 10 },
+      };
     case Mask.Color:
       return { ...common, parameters: { tolerance: 20, grow: 0, feather: 35 } };
     case Mask.Luminance:

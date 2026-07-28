@@ -58,7 +58,8 @@ import {
 import ImageProcessingManager from './components/managers/ImageProcessingManager';
 import ImageLoaderManager from './components/managers/ImageLoaderManager';
 
-const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || 'pk_test_YnJpZWYtc2Vhc25haWwtMTIuY2xlcmsuYWNjb3VudHMuZGV2JA';
+const CLERK_PUBLISHABLE_KEY =
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || 'pk_test_YnJpZWYtc2Vhc25haWwtMTIuY2xlcmsuYWNjb3VudHMuZGV2JA';
 
 const insertChildrenIntoTree = (node: any, targetPath: string, newChildren: any[]): any => {
   if (!node) return null;
@@ -211,8 +212,7 @@ function App() {
   // Compact mode for narrow viewports in either orientation (phones in landscape)
   const isCompactViewport =
     viewportSize.width > 0 &&
-    (Math.min(viewportSize.width, viewportSize.height) <= COMPACT_EDITOR_MAX_WIDTH ||
-      viewportSize.height <= 500);
+    (Math.min(viewportSize.width, viewportSize.height) <= COMPACT_EDITOR_MAX_WIDTH || viewportSize.height <= 500);
   const isCompactPortrait = isCompactViewport;
 
   const compactEditorPanelMinHeight = 220;

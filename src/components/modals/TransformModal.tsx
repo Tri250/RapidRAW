@@ -545,7 +545,10 @@ export default function TransformModal({ isOpen, onClose, onApply, currentAdjust
               <LineChart size={18} />
             </button>
             <button
-              onClick={() => { setAutoCrop(!autoCrop); updatePreview(params, showLines); }}
+              onClick={() => {
+                setAutoCrop(!autoCrop);
+                updatePreview(params, showLines);
+              }}
               className={clsx(
                 'p-2 rounded-full transition-colors',
                 autoCrop ? 'bg-white/20 text-white' : 'text-white/60 hover:bg-white/10 hover:text-white',

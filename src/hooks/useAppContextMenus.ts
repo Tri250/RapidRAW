@@ -51,7 +51,16 @@ import { useLibraryStore } from '../store/useLibraryStore';
 import { useProcessStore } from '../store/useProcessStore';
 import { useUIStore } from '../store/useUIStore';
 import { useSettingsStore } from '../store/useSettingsStore';
-import { Invokes, Option, OPTION_SEPARATOR, Panel, AlbumItem, Album, AlbumGroup, ImageFile } from '../components/ui/AppProperties';
+import {
+  Invokes,
+  Option,
+  OPTION_SEPARATOR,
+  Panel,
+  AlbumItem,
+  Album,
+  AlbumGroup,
+  ImageFile,
+} from '../components/ui/AppProperties';
 import { Color, COLOR_LABELS, INITIAL_ADJUSTMENTS, normalizeLoadedAdjustments } from '../utils/adjustments';
 import TaggingSubMenu from '../context/TaggingSubMenu';
 import { useEditorActions } from './useEditorActions';
@@ -59,10 +68,38 @@ import { useLibraryActions } from './useLibraryActions';
 import { globalImageCache } from '../utils/ImageLRUCache';
 
 const RAW_EXTENSIONS = new Set([
-  'dng', 'pro', 'ari', 'crw', 'cr2', 'cr3', 'bay', 'erf', 'raf',
-  '3fr', 'fff', 'iiq', 'kdc', 'k25', 'dcs', 'dcr', 'mos', 'rwl',
-  'mef', 'mrw', 'nef', 'nrw', 'orf', 'rw2', 'raw', 'pef', 'ptx',
-  'srw', 'x3f', 'arw', 'srf', 'sr2',
+  'dng',
+  'pro',
+  'ari',
+  'crw',
+  'cr2',
+  'cr3',
+  'bay',
+  'erf',
+  'raf',
+  '3fr',
+  'fff',
+  'iiq',
+  'kdc',
+  'k25',
+  'dcs',
+  'dcr',
+  'mos',
+  'rwl',
+  'mef',
+  'mrw',
+  'nef',
+  'nrw',
+  'orf',
+  'rw2',
+  'raw',
+  'pef',
+  'ptx',
+  'srw',
+  'x3f',
+  'arw',
+  'srf',
+  'sr2',
 ]);
 
 function isRawByPath(path: string): boolean {
@@ -247,7 +284,9 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
               icon: LayoutTemplate,
               label: t('contextMenus.editor.frameImage'),
               onClick: () => {
-                setUI({ collageModalState: { isOpen: true, sourceImages: [{ path: selectedImage.path } as ImageFile] } });
+                setUI({
+                  collageModalState: { isOpen: true, sourceImages: [{ path: selectedImage.path } as ImageFile] },
+                });
               },
             },
             { label: t('contextMenus.editor.cullImage'), icon: Users, disabled: true },
@@ -705,8 +744,10 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
                   { autoClose: false },
                 );
                 try {
-                  const results: Array<{ rating: number; description: string; tags: string[] }> =
-                    await invoke(Invokes.GenerateAiRatingsBatch, { paths: finalSelection });
+                  const results: Array<{ rating: number; description: string; tags: string[] }> = await invoke(
+                    Invokes.GenerateAiRatingsBatch,
+                    { paths: finalSelection },
+                  );
                   const validResults = results.filter((r) => r.rating > 0);
                   // Apply ratings for all valid results
                   for (let i = 0; i < finalSelection.length; i++) {
@@ -729,9 +770,7 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
                     return { imageRatings: newRatings };
                   });
                   toast.dismiss(toastId);
-                  toast.success(
-                    t('editor.aiRating.batchComplete', { count: validResults.length }),
-                  );
+                  toast.success(t('editor.aiRating.batchComplete', { count: validResults.length }));
                 } catch (err) {
                   toast.dismiss(toastId);
                   toast.error(String(err));

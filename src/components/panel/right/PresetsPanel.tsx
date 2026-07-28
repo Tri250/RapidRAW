@@ -136,7 +136,12 @@ const evaluateCurveY = (curve: Array<{ x: number; y: number }>, targetX: number)
   return targetX;
 };
 
-const mixAdjustments = (presetObj: any, intensity: number, initialObj: any = INITIAL_ADJUSTMENTS, currentObj?: any): any => {
+const mixAdjustments = (
+  presetObj: any,
+  intensity: number,
+  initialObj: any = INITIAL_ADJUSTMENTS,
+  currentObj?: any,
+): any => {
   const fraction = intensity / 100;
   // Use the live current state when provided (tool preset semantics), so that
   // the intensity slider blends between the existing state and the preset
@@ -1335,13 +1340,13 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
               {isGeneratingAi ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
             </button>
             {!isDeviceSide && (
-            <button
-              className="p-2 rounded-full hover:bg-surface transition-colors"
-              onClick={onNavigateToCommunity}
-              data-tooltip={t('editor.presets.tooltips.explore')}
-            >
-              <Users size={18} />
-            </button>
+              <button
+                className="p-2 rounded-full hover:bg-surface transition-colors"
+                onClick={onNavigateToCommunity}
+                data-tooltip={t('editor.presets.tooltips.explore')}
+              >
+                <Users size={18} />
+              </button>
             )}
             <button
               className="p-2 rounded-full hover:bg-surface transition-colors"
@@ -1378,9 +1383,7 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
                 onClick={() => setActiveGroup(group)}
                 className={clsx(
                   'flex-1 text-xs font-medium py-1.5 rounded-md transition-colors',
-                  activeGroup === group
-                    ? 'bg-accent text-button-text'
-                    : 'text-text-secondary hover:text-text-primary',
+                  activeGroup === group ? 'bg-accent text-button-text' : 'text-text-secondary hover:text-text-primary',
                 )}
               >
                 {t(`editor.presets.groups.${group}` as any)}
@@ -1427,10 +1430,10 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
             <div className="text-center text-text-secondary flex flex-col items-center gap-4 pt-4">
               <Text className="max-w-xs">{t('editor.presets.status.empty')}</Text>
               {!isDeviceSide && (
-              <Button variant="secondary" onClick={onNavigateToCommunity}>
-                <Users size={16} className="mr-2" />
-                {t('editor.presets.status.getCommunity')}
-              </Button>
+                <Button variant="secondary" onClick={onNavigateToCommunity}>
+                  <Users size={16} className="mr-2" />
+                  {t('editor.presets.status.getCommunity')}
+                </Button>
               )}
             </div>
           ) : (
@@ -1471,23 +1474,33 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
                           )}
                         >
                           <div className="flex items-center gap-3">
-                            <div className={clsx(
-                              'w-20 h-14 rounded-md flex items-center justify-center shrink-0',
-                              isActiveBuiltIn ? 'bg-accent/20' : 'bg-bg-tertiary',
-                            )}>
+                            <div
+                              className={clsx(
+                                'w-20 h-14 rounded-md flex items-center justify-center shrink-0',
+                                isActiveBuiltIn ? 'bg-accent/20' : 'bg-bg-tertiary',
+                              )}
+                            >
                               {builtIn.type === 'ai-color' ? (
                                 <Wand2 size={20} className={isActiveBuiltIn ? 'text-accent' : 'text-violet-400'} />
                               ) : (
-                                <Palette size={20} className={isActiveBuiltIn ? 'text-accent' : 'text-text-secondary'} />
+                                <Palette
+                                  size={20}
+                                  className={isActiveBuiltIn ? 'text-accent' : 'text-text-secondary'}
+                                />
                               )}
                             </div>
                             <div className="grow min-w-0 flex flex-col justify-center">
                               <div className="flex items-center gap-1.5">
-                                <Text weight={TextWeights.medium} className={clsx('truncate', isActiveBuiltIn && 'text-accent')}>
+                                <Text
+                                  weight={TextWeights.medium}
+                                  className={clsx('truncate', isActiveBuiltIn && 'text-accent')}
+                                >
                                   {i18n.language === 'zh-CN' || i18n.language === 'zh' ? builtIn.nameZh : builtIn.name}
                                 </Text>
                                 {typeLabel && (
-                                  <span className={`shrink-0 px-1.5 py-0.5 text-[9px] font-bold text-white rounded-sm ${typeColor}`}>
+                                  <span
+                                    className={`shrink-0 px-1.5 py-0.5 text-[9px] font-bold text-white rounded-sm ${typeColor}`}
+                                  >
                                     {typeLabel}
                                   </span>
                                 )}
@@ -1530,80 +1543,80 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
                 </AnimatePresence>
               )}
               {activeGroup === 'my' && (
-              <>
-                <AnimatePresence>
-                {folders
-                  .filter((item: UserPreset) => item.folder?.id !== deletingItemId)
-                  .map((item: UserPreset, index: number) => (
-                    <motion.div
-                      animate="visible"
-                      custom={index}
-                      exit="exit"
-                      initial="hidden"
-                      key={item.folder?.id}
-                      layout="position"
-                      variants={itemVariants}
-                    >
-                      <DroppableFolderItem
-                        folder={item.folder}
-                        isExpanded={item.folder?.id ? expandedFolders.has(item.folder?.id) : false}
-                        onContextMenu={(e: any) => handleContextMenu(e, item)}
-                        onToggle={toggleFolder}
-                      >
-                        <AnimatePresence>
-                          {item.folder?.children
-                            .filter((preset: Preset) => preset.id !== deletingItemId)
-                            .map((preset: Preset) => (
-                              <motion.div
-                                exit={{ opacity: 0, x: -15, transition: { duration: 0.2 } }}
-                                key={preset.id}
-                                layout="position"
-                              >
-                                <DraggablePresetItem
-                                  isGeneratingPreviews={isGeneratingPreviews}
-                                  onApply={handleApplyPreset}
-                                  onContextMenu={(e: any) => handleContextMenu(e, { preset })}
-                                  preset={preset}
-                                  previewUrl={previews[preset.id] || ''}
-                                  isActive={preset.id === activePresetId}
-                                  intensity={preset.id === activePresetId ? presetIntensity : 100}
-                                  onIntensityChange={(val) => handleIntensityChange(preset, val)}
-                                  onDragStateChange={handleDragStateChange}
-                                />
-                              </motion.div>
-                            ))}
-                        </AnimatePresence>
-                      </DroppableFolderItem>
-                    </motion.div>
-                  ))}
-              </AnimatePresence>
-              <AnimatePresence>
-                {rootPresets
-                  .filter((item: UserPreset) => item.preset?.id !== deletingItemId)
-                  .map((item: UserPreset, index: number) => (
-                    <motion.div
-                      animate="visible"
-                      custom={folders.length + index}
-                      exit="exit"
-                      initial="hidden"
-                      key={item.preset?.id}
-                      layout="position"
-                      variants={itemVariants}
-                    >
-                      <DraggablePresetItem
-                        isGeneratingPreviews={isGeneratingPreviews}
-                        onApply={handleApplyPreset}
-                        onContextMenu={(e: any) => handleContextMenu(e, item)}
-                        preset={item.preset}
-                        previewUrl={(item.preset?.id ? previews[item.preset.id] : '') || ''}
-                        isActive={item.preset?.id === activePresetId}
-                        intensity={item.preset?.id === activePresetId ? presetIntensity : 100}
-                        onIntensityChange={(val) => handleIntensityChange(item.preset as Preset, val)}
-                      />
-                    </motion.div>
-                  ))}
-              </AnimatePresence>
-              </>
+                <>
+                  <AnimatePresence>
+                    {folders
+                      .filter((item: UserPreset) => item.folder?.id !== deletingItemId)
+                      .map((item: UserPreset, index: number) => (
+                        <motion.div
+                          animate="visible"
+                          custom={index}
+                          exit="exit"
+                          initial="hidden"
+                          key={item.folder?.id}
+                          layout="position"
+                          variants={itemVariants}
+                        >
+                          <DroppableFolderItem
+                            folder={item.folder}
+                            isExpanded={item.folder?.id ? expandedFolders.has(item.folder?.id) : false}
+                            onContextMenu={(e: any) => handleContextMenu(e, item)}
+                            onToggle={toggleFolder}
+                          >
+                            <AnimatePresence>
+                              {item.folder?.children
+                                .filter((preset: Preset) => preset.id !== deletingItemId)
+                                .map((preset: Preset) => (
+                                  <motion.div
+                                    exit={{ opacity: 0, x: -15, transition: { duration: 0.2 } }}
+                                    key={preset.id}
+                                    layout="position"
+                                  >
+                                    <DraggablePresetItem
+                                      isGeneratingPreviews={isGeneratingPreviews}
+                                      onApply={handleApplyPreset}
+                                      onContextMenu={(e: any) => handleContextMenu(e, { preset })}
+                                      preset={preset}
+                                      previewUrl={previews[preset.id] || ''}
+                                      isActive={preset.id === activePresetId}
+                                      intensity={preset.id === activePresetId ? presetIntensity : 100}
+                                      onIntensityChange={(val) => handleIntensityChange(preset, val)}
+                                      onDragStateChange={handleDragStateChange}
+                                    />
+                                  </motion.div>
+                                ))}
+                            </AnimatePresence>
+                          </DroppableFolderItem>
+                        </motion.div>
+                      ))}
+                  </AnimatePresence>
+                  <AnimatePresence>
+                    {rootPresets
+                      .filter((item: UserPreset) => item.preset?.id !== deletingItemId)
+                      .map((item: UserPreset, index: number) => (
+                        <motion.div
+                          animate="visible"
+                          custom={folders.length + index}
+                          exit="exit"
+                          initial="hidden"
+                          key={item.preset?.id}
+                          layout="position"
+                          variants={itemVariants}
+                        >
+                          <DraggablePresetItem
+                            isGeneratingPreviews={isGeneratingPreviews}
+                            onApply={handleApplyPreset}
+                            onContextMenu={(e: any) => handleContextMenu(e, item)}
+                            preset={item.preset}
+                            previewUrl={(item.preset?.id ? previews[item.preset.id] : '') || ''}
+                            isActive={item.preset?.id === activePresetId}
+                            intensity={item.preset?.id === activePresetId ? presetIntensity : 100}
+                            onIntensityChange={(val) => handleIntensityChange(item.preset as Preset, val)}
+                          />
+                        </motion.div>
+                      ))}
+                  </AnimatePresence>
+                </>
               )}
             </>
           )}

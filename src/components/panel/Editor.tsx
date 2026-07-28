@@ -154,7 +154,13 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
     [debouncedSetHistory, setEditor],
   );
 
-  const { handleGenerateAiMask, handleQuickErase, handleManualCleanup, handleGenerateColorRangeMask, handleGenerateLuminanceRangeMask } = useAiMasking();
+  const {
+    handleGenerateAiMask,
+    handleQuickErase,
+    handleManualCleanup,
+    handleGenerateColorRangeMask,
+    handleGenerateLuminanceRangeMask,
+  } = useAiMasking();
 
   const [crop, setCrop] = useState<Crop | null>(null);
   const prevCropParams = useRef<any>(null);
@@ -299,20 +305,11 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
     [setEditor],
   );
 
-  const handleSelectAiSubMask = useCallback(
-    (id: string | null) => setEditor({ activeAiSubMaskId: id }),
-    [setEditor],
-  );
+  const handleSelectAiSubMask = useCallback((id: string | null) => setEditor({ activeAiSubMaskId: id }), [setEditor]);
 
-  const handleSelectMask = useCallback(
-    (id: string | null) => setEditor({ activeMaskId: id }),
-    [setEditor],
-  );
+  const handleSelectMask = useCallback((id: string | null) => setEditor({ activeMaskId: id }), [setEditor]);
 
-  const handleToggleDateView = useCallback(
-    () => setShowExifDateView((prev) => !prev),
-    [],
-  );
+  const handleToggleDateView = useCallback(() => setShowExifDateView((prev) => !prev), []);
 
   useEffect(() => {
     if (isFullScreen) {
@@ -1435,13 +1432,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
       renderSize: { w: imageRenderSize.width, h: imageRenderSize.height },
       isGeneratingAiMask,
     });
-  }, [
-    activeMaskDef,
-    geometrySnapshot,
-    imageRenderSize.width,
-    imageRenderSize.height,
-    isGeneratingAiMask,
-  ]);
+  }, [activeMaskDef, geometrySnapshot, imageRenderSize.width, imageRenderSize.height, isGeneratingAiMask]);
 
   useEffect(() => {
     let maskDefForOverlay = null;
@@ -1463,11 +1454,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
 
     requestMaskOverlay(maskDefForOverlay, imageRenderSize, adjustments);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    overlayTriggerHash,
-    requestMaskOverlay,
-    imageRenderSize,
-  ]);
+  }, [overlayTriggerHash, requestMaskOverlay, imageRenderSize]);
 
   useEffect(() => {
     let timer: number;

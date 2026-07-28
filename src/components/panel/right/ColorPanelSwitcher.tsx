@@ -34,13 +34,7 @@ export default function ColorPanelSwitcher() {
     })),
   );
 
-  const {
-    adjustments,
-    copiedSectionAdjustments,
-    histogram,
-    isWbPickerActive,
-    setEditor,
-  } = useEditorStore(
+  const { adjustments, copiedSectionAdjustments, histogram, isWbPickerActive, setEditor } = useEditorStore(
     useShallow((state) => ({
       adjustments: state.adjustments,
       copiedSectionAdjustments: state.copiedSectionAdjustments,
@@ -150,10 +144,18 @@ export default function ColorPanelSwitcher() {
       : t('editor.adjustments.actions.pasteSettings');
 
     const options: any = [
-      { label: t('editor.adjustments.actions.copySectionSettings', { section: translatedSection }), icon: Copy, onClick: handleCopy },
+      {
+        label: t('editor.adjustments.actions.copySectionSettings', { section: translatedSection }),
+        icon: Copy,
+        onClick: handleCopy,
+      },
       { label: pasteLabel, icon: ClipboardPaste, onClick: handlePaste, disabled: !isPasteAllowed },
       { type: OPTION_SEPARATOR },
-      { label: t('editor.adjustments.actions.resetSectionSettings', { section: translatedSection }), icon: RotateCcw, onClick: handleReset },
+      {
+        label: t('editor.adjustments.actions.resetSectionSettings', { section: translatedSection }),
+        icon: RotateCcw,
+        onClick: handleReset,
+      },
     ];
 
     showContextMenu(event.clientX, event.clientY, options);

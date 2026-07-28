@@ -1,6 +1,22 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, ImageIcon, Loader2, RefreshCw, Search, Users, Layers, Crop, Tag, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  ImageIcon,
+  Loader2,
+  RefreshCw,
+  Search,
+  Users,
+  Layers,
+  Crop,
+  Tag,
+  ChevronLeft,
+  ChevronRight,
+  X,
+} from 'lucide-react';
 import { siGithub } from 'simple-icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -243,7 +259,11 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
               <span className="truncate">{t('library.community.headerTitle')}</span>
             </Text>
             {!isLoading && presets.length > 0 && (
-              <Text variant={TextVariants.small} color={TextColors.secondary} className="opacity-70 text-xs leading-none mt-0.5">
+              <Text
+                variant={TextVariants.small}
+                color={TextColors.secondary}
+                className="opacity-70 text-xs leading-none mt-0.5"
+              >
                 {presets.length} {t('library.community.presetCount', { defaultValue: 'presets' })}
               </Text>
             )}
@@ -402,9 +422,7 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
                       ) : null}
                       {(!hasCoverImage || coverFailedBefore) && !previewUrl && allPreviewsLoaded ? (
                         <div className="flex flex-col items-center justify-center gap-2 text-text-secondary bg-bg-primary/60 backdrop-blur-sm w-full h-full">
-                          <div className="text-3xl font-bold tracking-wider opacity-70">
-                            {preset.name.slice(0, 2)}
-                          </div>
+                          <div className="text-3xl font-bold tracking-wider opacity-70">{preset.name.slice(0, 2)}</div>
                           <Text variant={TextVariants.small} color={TextColors.secondary} className="opacity-70">
                             {preset.sourceName || t('library.community.noPreview', { defaultValue: 'No preview' })}
                           </Text>
@@ -558,10 +576,13 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
                     className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white transition-colors bg-black/30 rounded-full p-2"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setGalleryState((prev) => prev && {
-                        ...prev,
-                        currentIndex: (prev.currentIndex - 1 + prev.images.length) % prev.images.length,
-                      });
+                      setGalleryState(
+                        (prev) =>
+                          prev && {
+                            ...prev,
+                            currentIndex: (prev.currentIndex - 1 + prev.images.length) % prev.images.length,
+                          },
+                      );
                     }}
                   >
                     <ChevronLeft size={28} />
@@ -570,10 +591,13 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white transition-colors bg-black/30 rounded-full p-2"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setGalleryState((prev) => prev && {
-                        ...prev,
-                        currentIndex: (prev.currentIndex + 1) % prev.images.length,
-                      });
+                      setGalleryState(
+                        (prev) =>
+                          prev && {
+                            ...prev,
+                            currentIndex: (prev.currentIndex + 1) % prev.images.length,
+                          },
+                      );
                     }}
                   >
                     <ChevronRight size={28} />

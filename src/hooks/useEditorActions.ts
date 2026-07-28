@@ -94,9 +94,10 @@ export function useEditorActions() {
       const isAndroid = useSettingsStore.getState().osPlatform === 'android';
       try {
         const result: { size: number } = await invoke(Invokes.LoadAndParseLut, { path });
-        const name = isAndroid && path.startsWith('content://')
-          ? await invoke<string>('resolve_android_content_uri_name', { uriStr: path })
-          : path.split(/[\\/]/).pop() || 'LUT';
+        const name =
+          isAndroid && path.startsWith('content://')
+            ? await invoke<string>('resolve_android_content_uri_name', { uriStr: path })
+            : path.split(/[\\/]/).pop() || 'LUT';
         setAdjustments((prev: Adjustments) => ({
           ...prev,
           lutPath: path,
@@ -204,7 +205,10 @@ export function useEditorActions() {
 
       if (!copiedAdjustments || !appSettings) return;
 
-      const { mode, includedAdjustments } = appSettings.copyPasteSettings ?? { mode: 'merge' as const, includedAdjustments: [] as string[] };
+      const { mode, includedAdjustments } = appSettings.copyPasteSettings ?? {
+        mode: 'merge' as const,
+        includedAdjustments: [] as string[],
+      };
       const adjustmentsToApply: Partial<Adjustments> = {};
 
       for (const key of includedAdjustments) {
@@ -223,7 +227,10 @@ export function useEditorActions() {
         }
       }
 
-      if (includedAdjustments.includes(LensAdjustment.LensMaker) && !includedAdjustments.includes(LensAdjustment.LensDistortionParams)) {
+      if (
+        includedAdjustments.includes(LensAdjustment.LensMaker) &&
+        !includedAdjustments.includes(LensAdjustment.LensDistortionParams)
+      ) {
         if (!adjustmentsToApply.lensMaker) {
           adjustmentsToApply.lensDistortionParams = null;
         }
@@ -247,18 +254,20 @@ export function useEditorActions() {
       invoke(Invokes.ApplyAdjustmentsToPaths, { paths: pathsToUpdate, adjustments: adjustmentsToApply })
         .then(() => {
           if (selectedImage && pathsToUpdate.includes(selectedImage.path)) {
-            invoke('load_metadata', { path: selectedImage.path }).then((meta: any) => {
-              if (meta.adjustments) {
-                setAdjustments((prev: any) => ({
-                  ...prev,
-                  lensMaker: meta.adjustments.lensMaker,
-                  lensModel: meta.adjustments.lensModel,
-                  lensDistortionParams: meta.adjustments.lensDistortionParams,
-                }));
-              }
-            }).catch((err: any) => {
-              console.error('Failed to load metadata after paste:', err);
-            });
+            invoke('load_metadata', { path: selectedImage.path })
+              .then((meta: any) => {
+                if (meta.adjustments) {
+                  setAdjustments((prev: any) => ({
+                    ...prev,
+                    lensMaker: meta.adjustments.lensMaker,
+                    lensModel: meta.adjustments.lensModel,
+                    lensDistortionParams: meta.adjustments.lensDistortionParams,
+                  }));
+                }
+              })
+              .catch((err: any) => {
+                console.error('Failed to load metadata after paste:', err);
+              });
           }
         })
         .catch((err) => toast.error(`Failed to paste adjustments: ${err}`));

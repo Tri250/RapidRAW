@@ -1,5 +1,18 @@
 import React, { useCallback } from 'react';
-import { User, Users, Baby, PersonStanding, Eraser, Sparkles, CircleDot, Eye, Smile, Palette, Scissors, Move } from 'lucide-react';
+import {
+  User,
+  Users,
+  Baby,
+  PersonStanding,
+  Eraser,
+  Sparkles,
+  CircleDot,
+  Eye,
+  Smile,
+  Palette,
+  Scissors,
+  Move,
+} from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import CollapsibleSection from '../../ui/CollapsibleSection';
@@ -110,8 +123,16 @@ export default function PortraitPanelSwitcher() {
     { key: 'male' as PersonAttribute, label: t('editor.portraitPanel.attributes.male'), icon: PersonStanding },
     { key: 'female' as PersonAttribute, label: t('editor.portraitPanel.attributes.female'), icon: PersonStanding },
     { key: 'child' as PersonAttribute, label: t('editor.portraitPanel.attributes.child'), icon: Baby },
-    { key: 'elderMale' as PersonAttribute, label: t('editor.portraitPanel.attributes.elderMale'), icon: PersonStanding },
-    { key: 'elderFemale' as PersonAttribute, label: t('editor.portraitPanel.attributes.elderFemale'), icon: PersonStanding },
+    {
+      key: 'elderMale' as PersonAttribute,
+      label: t('editor.portraitPanel.attributes.elderMale'),
+      icon: PersonStanding,
+    },
+    {
+      key: 'elderFemale' as PersonAttribute,
+      label: t('editor.portraitPanel.attributes.elderFemale'),
+      icon: PersonStanding,
+    },
     { key: 'all' as PersonAttribute, label: t('editor.portraitPanel.attributes.all'), icon: Users },
   ] as const;
 
@@ -124,12 +145,7 @@ export default function PortraitPanelSwitcher() {
     })),
   );
 
-  const {
-    adjustments,
-    isBlemishModeActive,
-    brushSettings,
-    setEditor,
-  } = useEditorStore(
+  const { adjustments, isBlemishModeActive, brushSettings, setEditor } = useEditorStore(
     useShallow((state) => ({
       adjustments: state.adjustments,
       isBlemishModeActive: state.isBlemishModeActive,

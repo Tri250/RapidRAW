@@ -168,7 +168,9 @@ export default function AppModals(props: AppModalsProps) {
           loadingImageUrl={
             panoramaModalState.stitchingSourcePaths.length > 0
               ? thumbnails[
-                  panoramaModalState.stitchingSourcePaths[Math.floor(panoramaModalState.stitchingSourcePaths.length / 2)]
+                  panoramaModalState.stitchingSourcePaths[
+                    Math.floor(panoramaModalState.stitchingSourcePaths.length / 2)
+                  ]
                 ] || null
               : null
           }
@@ -229,7 +231,11 @@ export default function AppModals(props: AppModalsProps) {
           targetPaths={negativeModalState.targetPaths}
           onSave={(savedPaths: string[]) => {
             props.refreshImageList().then(() => {
-              if (selectedImage && negativeModalState.targetPaths.includes(selectedImage.path) && savedPaths.length > 0) {
+              if (
+                selectedImage &&
+                negativeModalState.targetPaths.includes(selectedImage.path) &&
+                savedPaths.length > 0
+              ) {
                 props.handleImageSelect(savedPaths[0]);
               }
             });

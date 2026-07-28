@@ -23,15 +23,13 @@ describe('AndroidShareSheet', () => {
 
   it('renders nothing when not visible', () => {
     const { container } = render(
-      <AndroidShareSheet filePath="/tmp/test.jpg" mimeType="image/jpeg" visible={false} onClose={onClose} />
+      <AndroidShareSheet filePath="/tmp/test.jpg" mimeType="image/jpeg" visible={false} onClose={onClose} />,
     );
     expect(container.firstChild).toBeNull();
   });
 
   it('renders share targets when visible', () => {
-    render(
-      <AndroidShareSheet filePath="/tmp/test.jpg" mimeType="image/jpeg" visible={true} onClose={onClose} />
-    );
+    render(<AndroidShareSheet filePath="/tmp/test.jpg" mimeType="image/jpeg" visible={true} onClose={onClose} />);
     expect(screen.getByText('androidShare.wechat')).toBeInTheDocument();
     expect(screen.getByText('androidShare.qq')).toBeInTheDocument();
     expect(screen.getByText('androidShare.weibo')).toBeInTheDocument();
@@ -40,9 +38,7 @@ describe('AndroidShareSheet', () => {
 
   it('calls invoke on share target click', async () => {
     (invoke as any).mockResolvedValue(undefined);
-    render(
-      <AndroidShareSheet filePath="/tmp/test.jpg" mimeType="image/jpeg" visible={true} onClose={onClose} />
-    );
+    render(<AndroidShareSheet filePath="/tmp/test.jpg" mimeType="image/jpeg" visible={true} onClose={onClose} />);
     const wechatBtn = screen.getByText('androidShare.wechat').closest('button')!;
     fireEvent.click(wechatBtn);
     await waitFor(() => {
@@ -51,9 +47,7 @@ describe('AndroidShareSheet', () => {
   });
 
   it('calls onClose when cancel clicked', () => {
-    render(
-      <AndroidShareSheet filePath="/tmp/test.jpg" mimeType="image/jpeg" visible={true} onClose={onClose} />
-    );
+    render(<AndroidShareSheet filePath="/tmp/test.jpg" mimeType="image/jpeg" visible={true} onClose={onClose} />);
     fireEvent.click(screen.getByText('androidShare.cancel'));
     expect(onClose).toHaveBeenCalled();
   });

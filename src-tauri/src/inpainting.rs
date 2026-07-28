@@ -272,7 +272,8 @@ pub async fn generate_manual_cleanup_patch(
                         // Only seed the boundary value when the pixel is inside
                         // the image. Pixels outside (mask touching the image
                         // edge) keep v=0, acting as a Neumann boundary.
-                        if img_x >= 0 && img_x < img_w as i32 && img_y >= 0 && img_y < img_h as i32 {
+                        if img_x >= 0 && img_x < img_w as i32 && img_y >= 0 && img_y < img_h as i32
+                        {
                             let src_x = (img_x + offset_x).clamp(0, img_w as i32 - 1) as u32;
                             let src_y = (img_y + offset_y).clamp(0, img_h as i32 - 1) as u32;
 
