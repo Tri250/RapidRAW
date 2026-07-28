@@ -54,6 +54,7 @@ import { useOsPlatform } from '../../hooks/useOsPlatform';
 import { open } from '@tauri-apps/plugin-shell';
 import { usePresetGalleryStore } from '../../store/usePresetGalleryStore';
 import { useEditorStore } from '../../store/useEditorStore';
+import { useShallow } from 'zustand/react/shallow';
 
 interface ConfirmModalState {
   confirmText: string;
@@ -755,7 +756,15 @@ const GpuPipelineProbe = () => {
 
 const PresetGallerySourceManager = () => {
   const { t } = useTranslation();
-  const { sources, addSource, removeSource, toggleSource, fetchSourcePresets } = usePresetGalleryStore();
+  const { sources, addSource, removeSource, toggleSource, fetchSourcePresets } = usePresetGalleryStore(
+    useShallow((s) => ({
+      sources: s.sources,
+      addSource: s.addSource,
+      removeSource: s.removeSource,
+      toggleSource: s.toggleSource,
+      fetchSourcePresets: s.fetchSourcePresets,
+    })),
+  );
   const [newSourceUrl, setNewSourceUrl] = useState('');
 
   const handleAddSource = () => {

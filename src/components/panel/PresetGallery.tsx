@@ -10,6 +10,7 @@ import Button from '../ui/Button';
 import Text from '../ui/Text';
 import { TextColors, TextVariants, TextWeights } from '../../types/typography';
 import { usePresetGalleryStore, GalleryPreset, GallerySource } from '../../store/usePresetGalleryStore';
+import { useShallow } from 'zustand/react/shallow';
 
 /* ────────── Animation Variants ────────── */
 
@@ -119,7 +120,13 @@ interface PresetCardProps {
 
 const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) => {
   const { t } = useTranslation();
-  const { downloadPreset, downloadStatus, downloadError } = usePresetGalleryStore();
+  const { downloadPreset, downloadStatus, downloadError } = usePresetGalleryStore(
+    useShallow((s) => ({
+      downloadPreset: s.downloadPreset,
+      downloadStatus: s.downloadStatus,
+      downloadError: s.downloadError,
+    })),
+  );
   const [showGallery, setShowGallery] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [coverError, setCoverError] = useState(false);
@@ -788,7 +795,14 @@ interface PresetGalleryProps {
 
 export default function PresetGallery({ onBack }: PresetGalleryProps) {
   const { t } = useTranslation();
-  const { sources, addSource, fetchAllEnabledSources, refreshAllSources } = usePresetGalleryStore();
+  const { sources, addSource, fetchAllEnabledSources, refreshAllSources } = usePresetGalleryStore(
+    useShallow((s) => ({
+      sources: s.sources,
+      addSource: s.addSource,
+      fetchAllEnabledSources: s.fetchAllEnabledSources,
+      refreshAllSources: s.refreshAllSources,
+    })),
+  );
   const [newUrl, setNewUrl] = useState('');
   const [showAddSource, setShowAddSource] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
