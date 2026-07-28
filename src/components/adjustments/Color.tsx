@@ -465,7 +465,7 @@ export default function ColorPanel({
     setAdjustments((prev: Partial<Adjustments>) => ({ ...prev, [key]: parseFloat(value) }));
   };
 
-  const handleHslChange = (key: ColorAdjustment, value: string) => {
+  const handleHslChange = (key: 'hue' | 'saturation' | 'luminance', value: string) => {
     setAdjustments((prev: Partial<Adjustments>) => ({
       ...prev,
       hsl: {
@@ -595,7 +595,7 @@ export default function ColorPanel({
           label={t('adjustments.color.hue')}
           max={100}
           min={-100}
-          onChange={(e: any) => handleHslChange(ColorAdjustment.Hue, e.target.value)}
+          onChange={(e: any) => handleHslChange('hue', e.target.value)}
           step={1}
           value={currentHsl.hue}
           trackClassName={hue_slider}
@@ -605,7 +605,7 @@ export default function ColorPanel({
           label={t('adjustments.color.saturation')}
           max={100}
           min={-100}
-          onChange={(e: any) => handleHslChange(ColorAdjustment.Saturation, e.target.value)}
+          onChange={(e: any) => handleHslChange('saturation', e.target.value)}
           step={1}
           value={currentHsl.saturation}
           trackClassName={saturation_slider}
@@ -615,7 +615,7 @@ export default function ColorPanel({
           label={t('adjustments.color.luminance')}
           max={100}
           min={-100}
-          onChange={(e: any) => handleHslChange(ColorAdjustment.Luminance, e.target.value)}
+          onChange={(e: any) => handleHslChange('luminance', e.target.value)}
           step={1}
           value={currentHsl.luminance}
           trackClassName={luminance_slider}

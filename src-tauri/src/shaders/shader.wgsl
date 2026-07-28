@@ -70,7 +70,7 @@ struct GlobalAdjustments {
 
     has_lut: u32,
     lut_intensity: f32,
-    tonemapper_mode: u32,
+    tonemapper_mode: f32,
     _pad_lut2: f32,
     _pad_lut3: f32,
     _pad_lut4: f32,
@@ -1664,7 +1664,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     }
 
     var base_srgb: vec3<f32>;
-    if (adjustments.global.tonemapper_mode == 1u) {
+    if (adjustments.global.tonemapper_mode > 0.5) {
         base_srgb = agx_full_transform(composite_rgb_linear);
     } else if (is_raw == 1u) {
         var srgb_emulated = linear_to_srgb(composite_rgb_linear);

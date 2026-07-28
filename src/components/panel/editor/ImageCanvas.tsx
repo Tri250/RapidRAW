@@ -3178,6 +3178,46 @@ const ImageCanvas = memo(
                             y={cursorPreview.y}
                           />
                         )}
+                      {(adjustments.portrait?.blemishSpots?.length ?? 0) > 0 &&
+                        adjustments.portrait!.blemishSpots!.map((spot, i) => {
+                          const imgW = effectiveImageDimensions.width;
+                          const imgH = effectiveImageDimensions.height;
+                          const px = spot.x * imgW;
+                          const py = spot.y * imgH;
+                          const r = Math.max(
+                            4,
+                            spot.radius * Math.min(imgW, imgH) * imageRenderSize.scale,
+                          );
+                          const sx = (px - cropX) * imageRenderSize.scale;
+                          const sy = (py - cropY) * imageRenderSize.scale;
+                          return (
+                            <Group key={`blemish-${i}`} listening={false}>
+                              <Circle
+                                x={sx}
+                                y={sy}
+                                radius={r + 1.5}
+                                fill="rgba(255,255,255,0.85)"
+                                perfectDrawEnabled={false}
+                              />
+                              <Circle
+                                x={sx}
+                                y={sy}
+                                radius={r}
+                                fill="#ef4444"
+                                stroke="#b91c1c"
+                                strokeWidth={1}
+                                perfectDrawEnabled={false}
+                              />
+                              <Circle
+                                x={sx - r * 0.3}
+                                y={sy - r * 0.3}
+                                radius={r * 0.3}
+                                fill="rgba(255,255,255,0.4)"
+                                perfectDrawEnabled={false}
+                              />
+                            </Group>
+                          );
+                        })}
                     </Group>
                   </Group>
                 </Layer>
