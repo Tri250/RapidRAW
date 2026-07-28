@@ -114,7 +114,7 @@ jobs:
 
       - name: Setup Android NDK
         if: inputs.mobile == 'android'
-        uses: nttld/setup-ndk@v2
+        uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
           ndk-version: r26d
