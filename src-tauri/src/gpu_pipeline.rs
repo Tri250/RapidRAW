@@ -578,17 +578,24 @@ pub fn is_gpu_pipeline_ready() -> bool {
 /// entry points (e.g. ACES color science tools) without triggering a lazy
 /// init failure on every call.
 ///
-/// On Android, wgpu init can block the main thread (pollster::block_on) and
-/// cause an ANR or native crash. Short-circuit to `false` to avoid this.
+/// `GpuPipeline::init` uses `pollster::block_on` internally to drive wgpu's
+/// async adapter/device requests. Running that on the UI/main thread freezes
+/// the webview and, on Windows (DX12 backend), can deadlock the message loop
+/// and crash the app when the settings panel opens. We therefore run the
+/// probe on a blocking worker thread and `await` the result so the main
+/// thread stays responsive. On Android, wgpu init is disabled entirely
+/// (short-circuit to `false`) to avoid ANR.
 #[tauri::command]
-pub fn is_gpu_adjustment_pipeline_ready() -> bool {
+pub async fn is_gpu_adjustment_pipeline_ready() -> bool {
     #[cfg(target_os = "android")]
     {
         false
     }
     #[cfg(not(target_os = "android"))]
     {
-        is_gpu_pipeline_ready()
+        tokio::task::spawn_blocking(is_gpu_pipeline_ready)
+            .await
+            .unwrap_or(false)
     }
 }
 
@@ -598,10 +605,10 @@ pub fn is_gpu_adjustment_pipeline_ready() -> bool {
 ///
 /// On Android, the GPU pipeline is disabled, so this is a no-op.
 #[tauri::command]
-pub fn reset_gpu_adjustment_pipeline() {
+pub async fn reset_gpu_adjustment_pipeline() {
     #[cfg(not(target_os = "android"))]
     {
-        GPU_PIPELINE_HANDLE.reset();
+        let _ = tokio::task::spawn_blocking(|| GPU_PIPELINE_HANDLE.reset()).await;
     }
 }
 
