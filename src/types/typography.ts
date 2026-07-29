@@ -1,5 +1,13 @@
 export type TextVariant =
-  'displayLarge' | 'display' | 'headline' | 'title' | 'heading' | 'body' | 'label' | 'small' | 'caption';
+  | 'displayLarge'
+  | 'display'
+  | 'headline'
+  | 'title'
+  | 'heading'
+  | 'body'
+  | 'label'
+  | 'small'
+  | 'caption';
 export type TextWeight = 'bold' | 'semibold' | 'medium' | 'normal';
 export type TextColor = 'primary' | 'secondary' | 'accent' | 'button' | 'info' | 'success' | 'error' | 'white';
 

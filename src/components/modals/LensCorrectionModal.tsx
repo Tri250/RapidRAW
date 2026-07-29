@@ -322,11 +322,13 @@ export default function LensCorrectionModal({
       setIsMounted(true);
       const timer = setTimeout(() => setShow(true), 10);
 
-      invoke('load_settings').then((settings: any) => {
-        if (settings?.myLenses) {
-          setMyLenses(settings.myLenses);
-        }
-      }).catch((err: any) => console.error('load_settings failed:', err));
+      invoke('load_settings')
+        .then((settings: any) => {
+          if (settings?.myLenses) {
+            setMyLenses(settings.myLenses);
+          }
+        })
+        .catch((err: any) => console.error('load_settings failed:', err));
 
       const initParams: LensParams = {
         lensCorrectionMode: currentAdjustments.lensCorrectionMode || 'manual',
