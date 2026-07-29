@@ -856,7 +856,10 @@ pub async fn export_images(
         let mut join_handles = Vec::new();
 
         for (global_index, image_path_str, appearance_count, explicit_vc) in export_items {
-            let permit = semaphore.clone().acquire_owned().await.unwrap();
+            let permit = semaphore.clone().acquire_owned().await.unwrap_or_else(|e| {
+                log::error!("Semaphore acquire failed: {}", e);
+                return;
+            });
 
             let app_handle_clone = app_handle.clone();
             let context_clone = Arc::clone(&context);
@@ -874,7 +877,10 @@ pub async fn export_images(
                     .state::<AppState>()
                     .export_task_handle
                     .lock()
-                    .unwrap()
+                    .unwrap_or_else(|e| {
+                        log::warn!("Mutex poisoned – recovering");
+                        e.into_inner()
+                    })
                     .is_none()
                 {
                     return Err("Export cancelled".to_string());
@@ -1112,7 +1118,10 @@ pub async fn export_images(
             .state::<AppState>()
             .export_task_handle
             .lock()
-            .unwrap() = None;
+            .unwrap_or_else(|e| {
+                log::warn!("Mutex poisoned – recovering");
+                e.into_inner()
+            }) = None;
     });
 
     *state.export_task_handle.lock().unwrap_or_else(|e| {
@@ -1177,10 +1186,16 @@ pub async fn estimate_export_sizes(
         let loaded_image = state
             .original_image
             .lock()
-            .unwrap()
+            .unwrap_or_else(|e| {
+                log::warn!("Mutex poisoned – recovering");
+                e.into_inner()
+            })
             .clone()
             .ok_or("No original image loaded")?;
-        let mut adjustments_clone = current_edit_adjustments.clone().unwrap();
+        let mut adjustments_clone = current_edit_adjustments.clone().unwrap_or_else(|| {
+            log::warn!("current_edit_adjustments was None, using default");
+            serde_json::Value::Object(serde_json::Map::new())
+        });
         hydrate_adjustments(&state, &mut adjustments_clone);
 
         let new_transform_hash = calculate_transform_hash(&adjustments_clone);

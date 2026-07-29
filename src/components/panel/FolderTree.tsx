@@ -655,7 +655,7 @@ export default function FolderTree({
   const showHeaderButtons = isHovering || isSortMenuOpen;
 
   useEffect(() => {
-    invoke(Invokes.GetAlbums).then((res: any) => useLibraryStore.getState().setLibrary({ albumTree: res }));
+    invoke(Invokes.GetAlbums).then((res: any) => useLibraryStore.getState().setLibrary({ albumTree: res })).catch((err) => console.error('GetAlbums failed:', err));
   }, []);
 
   const toggleSection = (section: string) => {

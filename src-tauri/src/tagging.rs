@@ -222,7 +222,7 @@ pub fn generate_tags_with_clip(
         }
     }
 
-    scored_tags.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+    scored_tags.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
     let initial_tags: Vec<String> = scored_tags
         .into_iter()
         .take(max_tags)

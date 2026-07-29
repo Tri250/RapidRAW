@@ -609,7 +609,10 @@ pub fn save_settings(settings: AppSettings, app_handle: AppHandle) -> Result<(),
     state
         .decoded_image_cache
         .lock()
-        .unwrap()
+        .unwrap_or_else(|e| {
+            log::warn!("Mutex poisoned – recovering for graceful degradation");
+            e.into_inner()
+        })
         .set_capacity(cache_size);
     Ok(())
 }

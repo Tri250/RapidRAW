@@ -425,8 +425,7 @@ pub async fn get_or_init_ai_models(
     ai_init_lock: &TokioMutex<()>,
 ) -> Result<Arc<AiModels>> {
     if let Some(models) = ai_state_mutex
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .as_ref()
         .and_then(|state| state.models.clone())
     {
@@ -436,8 +435,7 @@ pub async fn get_or_init_ai_models(
     let _guard = ai_init_lock.lock().await;
 
     if let Some(models) = ai_state_mutex
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .as_ref()
         .and_then(|state| state.models.clone())
     {

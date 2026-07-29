@@ -2673,14 +2673,20 @@ pub fn run() {
 
             let mut window_builder =
                 tauri::WebviewWindowBuilder::from_config(app.handle(), &main_window_cfg)
-                    .unwrap_or_else(|e| panic!("Failed to create window builder: {}", e));
+                    .unwrap_or_else(|e| {
+                        log::error!("Failed to create window builder: {}", e);
+                        std::process::exit(1);
+                    });
 
             #[cfg(not(target_os = "android"))]
             {
                 window_builder = window_builder.decorations(decorations).visible(false);
             }
 
-            let window = window_builder.build().unwrap_or_else(|e| panic!("Failed to build window: {}", e));
+            let window = window_builder.build().unwrap_or_else(|e| {
+                log::error!("Failed to build window: {}", e);
+                std::process::exit(1);
+            });
 
             #[cfg(target_os = "android")]
             android_integration::initialize_android(&window);

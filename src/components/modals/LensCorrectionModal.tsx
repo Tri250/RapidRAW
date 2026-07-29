@@ -326,7 +326,7 @@ export default function LensCorrectionModal({
         if (settings?.myLenses) {
           setMyLenses(settings.myLenses);
         }
-      });
+      }).catch((err: any) => console.error('load_settings failed:', err));
 
       const initParams: LensParams = {
         lensCorrectionMode: currentAdjustments.lensCorrectionMode || 'manual',

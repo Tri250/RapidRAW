@@ -193,9 +193,16 @@ pub fn start_metadata_workers(app_handle: tauri::AppHandle) {
                 let item = {
                     let mut queue = resilient_lock(&manager_clone.queue);
                     while queue.is_empty() {
-                        queue = manager_clone.cvar.wait(queue).unwrap();
+                        queue = manager_clone.cvar.wait(queue).unwrap_or_else(|e| {
+                            log::warn!("Condvar wait poisoned – recovering");
+                            e.into_inner()
+                        });
                     }
-                    queue.pop_front().unwrap()
+                    queue.pop_front().unwrap_or_else(|| {
+                        // Should never happen since we checked !is_empty
+                        log::warn!("Queue was empty after condvar wake – retrying");
+                        String::new()
+                    })
                 };
 
                 let settings = load_settings(app_clone.clone()).unwrap_or_default();
@@ -1691,9 +1698,15 @@ pub fn start_thumbnail_workers(app_handle: tauri::AppHandle) {
                 let path_to_process: String = {
                     let mut queue = resilient_lock(&manager_clone.queue);
                     while queue.is_empty() {
-                        queue = manager_clone.cvar.wait(queue).unwrap();
+                        queue = manager_clone.cvar.wait(queue).unwrap_or_else(|e| {
+                            log::warn!("Condvar wait poisoned – recovering");
+                            e.into_inner()
+                        });
                     }
-                    let path = queue.pop_back().unwrap();
+                    let path = queue.pop_back().unwrap_or_else(|| {
+                        log::warn!("Queue was empty after condvar wake – retrying");
+                        String::new()
+                    });
 
                     let mut processing = resilient_lock(&manager_clone.processing_now);
                     if processing.contains(&path) {
