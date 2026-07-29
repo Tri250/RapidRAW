@@ -198,11 +198,10 @@ pub fn start_metadata_workers(app_handle: tauri::AppHandle) {
                             e.into_inner()
                         });
                     }
-                    queue.pop_front().unwrap_or_else(|| {
-                        // Should never happen since we checked !is_empty
-                        log::warn!("Queue was empty after condvar wake – retrying");
-                        String::new()
-                    })
+                    match queue.pop_front() {
+                        Some(item) => item,
+                        None => continue,
+                    }
                 };
 
                 let settings = load_settings(app_clone.clone()).unwrap_or_default();
@@ -1703,10 +1702,10 @@ pub fn start_thumbnail_workers(app_handle: tauri::AppHandle) {
                             e.into_inner()
                         });
                     }
-                    let path = queue.pop_back().unwrap_or_else(|| {
-                        log::warn!("Queue was empty after condvar wake – retrying");
-                        String::new()
-                    });
+                    let path = match queue.pop_back() {
+                        Some(p) => p,
+                        None => continue,
+                    };
 
                     let mut processing = resilient_lock(&manager_clone.processing_now);
                     if processing.contains(&path) {

@@ -856,10 +856,13 @@ pub async fn export_images(
         let mut join_handles = Vec::new();
 
         for (global_index, image_path_str, appearance_count, explicit_vc) in export_items {
-            let permit = semaphore.clone().acquire_owned().await.unwrap_or_else(|e| {
-                log::error!("Semaphore acquire failed: {}", e);
-                return;
-            });
+            let permit = match semaphore.clone().acquire_owned().await {
+                Ok(p) => p,
+                Err(e) => {
+                    log::error!("Semaphore acquire failed: {}", e);
+                    continue;
+                }
+            };
 
             let app_handle_clone = app_handle.clone();
             let context_clone = Arc::clone(&context);

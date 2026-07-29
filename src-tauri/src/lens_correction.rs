@@ -324,7 +324,7 @@ impl Lens {
                 extract_dist_params(exact)
             } else if focal_length < distortions[0].focal {
                 extract_dist_params(distortions[0])
-            } else if focal_length > distortions.last().map(|d| d.focal).unwrap_or(f64::MAX) {
+            } else if focal_length > distortions.last().map(|d| d.focal).unwrap_or(f32::MAX) {
                 extract_dist_params(distortions.last().unwrap_or(&distortions[0]))
             } else {
                 let mut res = (0.0, 0.0, 0.0, 0);
