@@ -245,6 +245,23 @@ function DepthRangePicker({
   onDragStateChange?: (isDragging: boolean) => void;
 }) {
   const { t } = useTranslation();
+  // Theme-aware gradient colours – the grey bar represents mask strength
+  // (shallow→deep) and must remain legible on both dark & light UI panels.
+  // On light themes, reverse the direction so light→white end still reads as
+  // "zero strength" on bright backgrounds, and swap the black fade overlays
+  // for white ones so they don't look like a heavy black smudge on top of
+  // a light UI.
+  const { theme } = useSettingsStore(useShallow((state) => ({ theme: state.theme })));
+  const isLightTheme = theme === 'Light';
+  // Grey gradient (shallow → deep mask strength).
+  const depthGradient = isLightTheme
+    ? 'linear-gradient(to right, #ffffff 0%, #dddddd 20%, #b8b8b8 35%, #808080 55%, #444444 80%, #1a1a1a 100%)'
+    : 'linear-gradient(to right, #ddd 0%, #bbb 20%, #999 35%, #666 55%, #333 80%, #111 100%)';
+  // Foreground fade colour – dark overlays on Dark themes, light overlays on
+  // Light themes. Matches the panel surface so the "excluded" area blends.
+  const maskOverlay = isLightTheme ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.6)';
+  const maskOverlayA = isLightTheme ? 'rgba(255,255,255,0.0)' : 'rgba(0,0,0,0.0)';
+  const rangeIndicator = isLightTheme ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.3)';
   const trackRef = useRef<HTMLDivElement>(null);
   const [activeHandle, setActiveHandle] = useState<string | null>(null);
   const [dragValues, setDragValues] = useState<{
@@ -446,17 +463,15 @@ function DepthRangePicker({
 
         <div
           className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(to right, #ddd 0%, #bbb 20%, #999 35%, #666 55%, #333 80%, #111 100%)',
-          }}
+          style={{ background: depthGradient }}
         />
         <div
-          className="absolute inset-y-0 left-0 bg-black/60 pointer-events-none"
-          style={{ width: `${fadeLeftEdge}%` }}
+          className="absolute inset-y-0 left-0 pointer-events-none"
+          style={{ width: `${fadeLeftEdge}%`, background: maskOverlay }}
         />
         <div
-          className="absolute inset-y-0 right-0 bg-black/60 pointer-events-none"
-          style={{ width: `${100 - fadeRightEdge}%` }}
+          className="absolute inset-y-0 right-0 pointer-events-none"
+          style={{ width: `${100 - fadeRightEdge}%`, background: maskOverlay }}
         />
 
         {vals.minFade > 0.5 && (
@@ -465,7 +480,7 @@ function DepthRangePicker({
             style={{
               left: `${fadeLeftEdge}%`,
               width: `${vals.minFade}%`,
-              background: 'linear-gradient(to right, rgba(0,0,0,0.6), transparent)',
+              background: `linear-gradient(to right, ${maskOverlay}, ${maskOverlayA})`,
             }}
           />
         )}
@@ -475,7 +490,7 @@ function DepthRangePicker({
             style={{
               left: `${vals.maxDepth}%`,
               width: `${vals.maxFade}%`,
-              background: 'linear-gradient(to right, transparent, rgba(0,0,0,0.6))',
+              background: `linear-gradient(to right, ${maskOverlayA}, ${maskOverlay})`,
             }}
           />
         )}
@@ -487,7 +502,7 @@ function DepthRangePicker({
             style={{
               left: `${vals.minDepth}%`,
               width: `${Math.max(0, vals.maxDepth - vals.minDepth)}%`,
-              background: 'rgba(255,255,255,0.3)',
+              background: rangeIndicator,
               ...(i === 0 ? { top: 0 } : { bottom: 0 }),
             }}
           />

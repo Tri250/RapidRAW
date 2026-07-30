@@ -112,7 +112,7 @@ export default function HdrModal({
     if (finalImageBase64 && !isProcessing) {
       return (
         <div className="w-full">
-          <div className="w-full max-h-[500px] bg-[#111] rounded-lg overflow-hidden border border-surface flex items-center justify-center">
+          <div className="w-full max-h-[500px] bg-modal-preview-bg rounded-lg overflow-hidden border border-surface flex items-center justify-center">
             <img src={finalImageBase64} alt="Merged HDR" className="w-full h-full object-contain max-h-[500px]" />
           </div>
           {savedPath && (
@@ -135,7 +135,7 @@ export default function HdrModal({
     if (isProcessing) {
       return (
         <div className="flex h-[460px] overflow-hidden rounded-lg border border-surface">
-          <div className="w-2/5 relative overflow-hidden shrink-0 bg-[#0a0a0a] flex items-center justify-center">
+          <div className="w-2/5 relative overflow-hidden shrink-0 bg-modal-preview-bg flex items-center justify-center">
             {loadingImageUrl ? (
               <img src={loadingImageUrl} alt="Source preview" className="w-full h-full object-cover" />
             ) : (

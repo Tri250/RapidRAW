@@ -102,15 +102,58 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
   previewsRef.current = previews;
 
   const fetchDefaultPreviewImage = useCallback(async (): Promise<string | null> => {
+    // Persistent in-memory cache so repeated CommunityPage mounts don't
+    // re-download the same sample image from GitHub. Improves perceived
+    // performance and avoids triggering rate limits on flaky networks.
+    const cacheKey = 'community-default-preview';
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.timestamp && Date.now() - parsed.timestamp < 30 * 60 * 1000 && parsed.dataUrl) {
+          return parsed.dataUrl;
+        }
+      } catch {
+        sessionStorage.removeItem(cacheKey);
+      }
+    }
     try {
-      const response = await fetch(DEFAULT_PREVIEW_IMAGE_URL);
+      // AbortController timeout so we don't hang forever on bad networks
+      // (Android/carrier/NAT scenarios with no real connectivity but also
+      // no quick DNS failure).
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+      const response = await fetch(DEFAULT_PREVIEW_IMAGE_URL, { signal: controller.signal, cache: 'no-cache' });
+      window.clearTimeout(timeoutId);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const blob = await response.blob();
+      const buf = await blob.arrayBuffer();
+
+      // Cache as base64 data URL inside sessionStorage – avoids a second
+      // trip through SaveTempFile on remount.
+      const u8 = new Uint8Array(buf);
+      let binary = '';
+      for (let i = 0; i < u8.length; i += 65536) {
+        binary += String.fromCharCode.apply(null, Array.from(u8.subarray(i, i + 65536)) as any);
+      }
+      const dataUrl = `data:${blob.type || 'image/jpeg'};base64,${btoa(binary)}`;
+      try {
+        sessionStorage.setItem(
+          cacheKey,
+          JSON.stringify({ timestamp: Date.now(), dataUrl }),
+        );
+      } catch {
+        /* ignore quota errors */
+      }
+
+      // Also save a temp file path for compatibility with callers expecting
+      // a path string.
       const tempPath: string = await invoke(Invokes.SaveTempFile, {
-        bytes: Array.from(new Uint8Array(await blob.arrayBuffer())),
-      });
+        bytes: Array.from(u8),
+      }).catch(() => dataUrl);
       return tempPath;
     } catch (error) {
-      console.error('Failed to fetch default preview image:', error);
+      console.warn('Failed to fetch default preview image (using empty preview):', error);
       return null;
     }
   }, []);

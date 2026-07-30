@@ -1524,7 +1524,12 @@ fn generate_preset_preview(
 
 #[tauri::command]
 async fn fetch_community_presets() -> Result<Vec<CommunityPreset>, String> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .user_agent("RapidRAW-App")
+        .connect_timeout(std::time::Duration::from_secs(8))
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
     // Community preset data sources (ordered by priority)
     let sources: Vec<(&str, &str)> = vec![
@@ -1545,15 +1550,54 @@ async fn fetch_community_presets() -> Result<Vec<CommunityPreset>, String> {
         ),
     ];
 
+    // In-memory cache keyed by url → (timestamp_ms, presets)
+    use std::collections::HashMap;
+    use std::sync::Mutex as StdMutex;
+    static PRESET_CACHE: once_cell::sync::Lazy<StdMutex<HashMap<String, (u128, Vec<CommunityPreset>)>>> =
+        once_cell::sync::Lazy::new(|| StdMutex::new(HashMap::new()));
+    const CACHE_TTL_MS: u128 = 10 * 60 * 1000; // 10 minutes
+
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+
     let mut all_presets: Vec<CommunityPreset> = Vec::new();
     let mut errors: Vec<String> = Vec::new();
 
     for (url, source_type) in &sources {
+        // Try cache first
+        {
+            let cache = PRESET_CACHE.lock_resilient();
+            if let Some((ts, cached)) = cache.get(*url) {
+                if now_ms.saturating_sub(*ts) < CACHE_TTL_MS {
+                    all_presets.extend(cached.clone());
+                    log::debug!("Community preset cache hit for {}", url);
+                    continue;
+                }
+            }
+        }
+
         match fetch_presets_from_url(&client, url, source_type).await {
-            Ok(presets) => all_presets.extend(presets),
+            Ok(presets) => {
+                {
+                    let mut cache = PRESET_CACHE.lock_resilient();
+                    cache.insert((*url).to_string(), (now_ms, presets.clone()));
+                }
+                all_presets.extend(presets);
+            }
             Err(e) => {
                 log::warn!("Failed to fetch presets from {}: {}", url, e);
                 errors.push(format!("{}: {}", url, e));
+                // Try expired cache entry as fallback so users with flaky
+                // networks still see previously loaded content.
+                let cache = PRESET_CACHE.lock_resilient();
+                if let Some((_ts, stale)) = cache.get(*url) {
+                    if !stale.is_empty() {
+                        log::warn!("Using stale cached presets for {} as fallback", url);
+                        all_presets.extend(stale.clone());
+                    }
+                }
             }
         }
     }
@@ -1573,7 +1617,6 @@ async fn fetch_presets_from_url(
 ) -> Result<Vec<CommunityPreset>, String> {
     let response = client
         .get(url)
-        .header("User-Agent", "RapidRAW-App")
         .send()
         .await
         .map_err(|e| format!("Failed to fetch from {}: {}", url, e))?;

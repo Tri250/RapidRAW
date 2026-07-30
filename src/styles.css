@@ -13,10 +13,13 @@
   --color-border-color: var(--app-border-color);
   --color-hover-color: var(--app-hover-color);
   --color-accent-hover: var(--app-accent-hover);
+  --color-modal-preview-bg: var(--app-modal-preview-bg);
+  --color-grid-line: var(--app-grid-line);
+  --color-curves-grid-line: var(--app-curves-grid-line);
 
   --font-sans: var(--font-family);
 
-  --shadow-shiny: 0 0 24px rgba(255, 255, 255, 0.12);
+  --shadow-shiny: var(--app-shadow-shiny);
 
   --radius-md: 8px;
   --radius-lg: 15px;

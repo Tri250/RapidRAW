@@ -323,7 +323,7 @@ export default function NegativeConversionModal({
 
   const renderContent = () => (
     <div className="modal-preview-adjustments flex flex-row h-full w-full overflow-hidden">
-      <div className="modal-preview-pane grow flex flex-col relative min-h-0 bg-[#0f0f0f] overflow-hidden">
+      <div className="modal-preview-pane grow flex flex-col relative min-h-0 bg-modal-preview-bg overflow-hidden">
         <div
           ref={containerRef}
           className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing select-none"

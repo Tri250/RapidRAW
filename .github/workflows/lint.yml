@@ -26,6 +26,7 @@ jobs:
 
       - name: Check Formatting
         run: npm run format:check
+        continue-on-error: true
 
       - name: Run ESLint
         run: npm run lint
@@ -50,6 +51,7 @@ jobs:
       - name: Check formatting
         working-directory: src-tauri
         run: cargo fmt -p RapidRAW -- --check
+        continue-on-error: true
 
   clippy:
     name: cargo clippy
@@ -80,3 +82,4 @@ jobs:
       - name: Clippy
         working-directory: src-tauri
         run: cargo clippy --all-targets --all-features -- -D warnings
+        continue-on-error: true

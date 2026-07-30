@@ -470,7 +470,7 @@ export default function TransformModal({ isOpen, onClose, onApply, currentAdjust
 
   const renderContent = () => (
     <div className="modal-preview-adjustments flex flex-row h-full w-full overflow-hidden">
-      <div className="modal-preview-pane grow flex flex-col relative min-h-0 bg-[#0f0f0f] overflow-hidden">
+      <div className="modal-preview-pane grow flex flex-col relative min-h-0 bg-modal-preview-bg overflow-hidden">
         <div
           ref={containerRef}
           className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing select-none"
@@ -480,7 +480,8 @@ export default function TransformModal({ isOpen, onClose, onApply, currentAdjust
           <div
             className="absolute inset-0 opacity-20 pointer-events-none"
             style={{
-              backgroundImage: 'radial-gradient(#444 1px, transparent 1px)',
+              backgroundImage:
+                'radial-gradient(var(--color-grid-line, rgba(0,0,0,0.15)) 1px, transparent 1px)',
               backgroundSize: '24px 24px',
             }}
           ></div>

@@ -627,9 +627,55 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
   },
 
   fetchSourcePresets: async (url) => {
-    const source = get().sources.find((s) => s.url === url);
+    const stateSources = get().sources;
+    const source = stateSources.find((s) => s.url === url);
     // Skip if already loading (prevent concurrent duplicate requests)
     if (source?.isLoading) return;
+
+    // ---------- in-memory sessionStorage cache layer ----------
+    // Persisted in sessionStorage so repeat fetches in the same application
+    // session (switching tabs / re-mounting PresetGallery) are instant. TTL
+    // is 15 minutes and stale entries are kept as a fallback on network
+    // failure, so flaky mobile / Android hotspot users still see the last successful
+    // result instead of a blank page.
+    const CACHE_TTL_MS = 15 * 60 * 1000;
+    const cacheKey = `preset-src:${url}`;
+    const currentSource = stateSources.find((s) => s.url === url);
+    const cachedJson = sessionStorage.getItem(cacheKey);
+    let fallbackPresets: GalleryPreset[] | null = null;
+    let fallbackName: string | null = null;
+    if (cachedJson) {
+      try {
+        const parsed = JSON.parse(cachedJson);
+        const age = Date.now() - (parsed.timestamp || 0);
+        if (parsed.presets && Array.isArray(parsed.presets)) {
+          if (age < CACHE_TTL_MS) {
+            // Fresh cache hit – short-circuit network entirely.
+            set((state) => {
+              const newSources = state.sources.map((s) =>
+                s.url === url
+                  ? { ...s, presets: parsed.presets, name: parsed.sourceName || s.name, isLoading: false, error: null }
+                  : s,
+              );
+              saveSources(newSources);
+              return { sources: newSources };
+            });
+            return;
+          }
+          // Stale entry – remember it as a graceful-degradation fallback if the
+          // network request fails.
+          fallbackPresets = parsed.presets;
+          fallbackName = parsed.sourceName || null;
+        }
+      } catch {
+        sessionStorage.removeItem(cacheKey);
+      }
+    }
+    // Also use *currentSource.presets as a second fallback (surfaced by the store state
+    if (!fallbackPresets && currentSource?.presets?.length) {
+      fallbackPresets = currentSource.presets;
+      fallbackName = currentSource.name;
+    }
 
     set((state) => ({
       sources: state.sources.map((s) => (s.url === url ? { ...s, isLoading: true, error: null } : s)),
@@ -644,6 +690,7 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
         mode: 'cors',
         headers: { Accept: 'application/json' },
         signal: controller.signal,
+        cache: 'no-cache',
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       const data = await response.json();
@@ -653,7 +700,17 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
       const baseDir = url.substring(0, url.lastIndexOf('/') + 1);
 
       const { presets, sourceName, skipped, warnings } = parsePresetsFromJson(data, baseDir);
-      const finalName = sourceName || source?.name || url;
+      const finalName = sourceName || source?.name || fallbackName || url;
+
+      // Persist the successful result to session cache.
+      try {
+        sessionStorage.setItem(
+          cacheKey,
+          JSON.stringify({ timestamp: Date.now(), presets, sourceName: finalName }),
+        );
+      } catch {
+        /* ignore quota errors */
+      }
 
       // Non-fatal: schema skipped some entries. Surface as a soft error so the
       // UI can inform the user without blocking the successfully parsed presets.
@@ -674,7 +731,30 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
     } catch (err: any) {
       clearTimeout(timeoutId);
       const isAbort = err?.name === 'AbortError';
-      const message = isAbort ? `请求超时（20 秒），请检查网络或更换数据源` : err.message || String(err);
+      let message = isAbort ? `请求超时（20 秒），请检查网络或更换数据源` : err?.message || String(err);
+
+      // Graceful degradation: if we have cached presets, surface them so
+      // instead of a blank list and annotate the error as "offline cached".
+      if (fallbackPresets && fallbackPresets.length > 0) {
+        message = `${message}（已显示上次缓存的 ${fallbackPresets.length} 项离线缓存）`;
+        set((state) => {
+          const newSources = state.sources.map((s) =>
+            s.url === url
+              ? {
+                  ...s,
+                  presets: fallbackPresets,
+                  name: fallbackName || s.name,
+                  isLoading: false,
+                  error: message,
+                }
+              : s,
+          );
+          saveSources(newSources);
+          return { sources: newSources };
+        });
+        return;
+      }
+
       set((state) => {
         const newSources = state.sources.map((s) => (s.url === url ? { ...s, isLoading: false, error: message } : s));
         saveSources(newSources);

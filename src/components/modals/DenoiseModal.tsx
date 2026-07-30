@@ -114,7 +114,7 @@ const ImageCompare = ({ original, denoised }: { original: string; denoised: stri
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#111] rounded-lg overflow-hidden border border-surface">
+    <div className="flex flex-col h-full bg-modal-preview-bg rounded-lg overflow-hidden border border-surface">
       <div className="h-9 bg-bg-primary border-b border-surface flex items-center justify-between px-3">
         <Text as="div" variant={TextVariants.small} className="flex items-center gap-2">
           <Move size={14} /> <span>{t('modals.denoise.panZoomEnabled')}</span>
@@ -372,7 +372,7 @@ export default function DenoiseModal({
     if (isProcessing || (isBatch && isSaving)) {
       return (
         <div className="flex h-[460px] overflow-hidden rounded-lg border border-surface">
-          <div className="w-2/5 relative overflow-hidden shrink-0 bg-[#0a0a0a] flex items-center justify-center">
+          <div className="w-2/5 relative overflow-hidden shrink-0 bg-modal-preview-bg flex items-center justify-center">
             {loadingImageUrl ? (
               <img src={loadingImageUrl} alt="Selected preview" className="w-full h-full object-cover" />
             ) : (

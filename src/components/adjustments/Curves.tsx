@@ -892,7 +892,7 @@ export default function CurveGraph({
                   cy={255 - (activePoints[0]?.y || 0)}
                   fill={color}
                   r="6"
-                  stroke="#1e1e1e"
+                  stroke={isLightTheme ? '#1e1e1e' : 'rgba(255,255,255,0.85)'}
                   strokeWidth="2"
                 />
                 <circle
@@ -900,7 +900,7 @@ export default function CurveGraph({
                   cy={255 - (activePoints[activePoints.length - 1]?.y || 255)}
                   fill={color}
                   r="6"
-                  stroke="#1e1e1e"
+                  stroke={isLightTheme ? '#1e1e1e' : 'rgba(255,255,255,0.85)'}
                   strokeWidth="2"
                 />
               </>
@@ -918,7 +918,7 @@ export default function CurveGraph({
                   onTouchStart={(e: any) => handlePointStart(e, i)}
                   onContextMenu={(e: React.MouseEvent) => handlePointContextMenu(e, i)}
                   r="6"
-                  stroke="#1e1e1e"
+                  stroke={isLightTheme ? '#1e1e1e' : 'rgba(255,255,255,0.85)'}
                   strokeWidth="2"
                 />
               ))}
