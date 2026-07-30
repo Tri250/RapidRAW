@@ -27,7 +27,11 @@ interface SliderProps {
 
 const DOUBLE_CLICK_THRESHOLD_MS = 300;
 const FINE_ADJUSTMENT_MULTIPLIER = 0.2;
-const TOUCH_DRAG_THRESHOLD_PX = 10;
+// Lower threshold on touch devices so small finger movements are recognized
+// as drags. 10px was too high for some Android devices with coarse touch
+// sampling, causing the slider to never enter "dragging" state and thus
+// skipping live preview updates during drag.
+const TOUCH_DRAG_THRESHOLD_PX = 6;
 // Larger hit radius on touch devices so users can grab the thumb easily.
 // 32px radius (64px diameter) aligns better with mobile touch target guidelines.
 const TOUCH_THUMB_HIT_RADIUS_PX = 32;
@@ -396,7 +400,7 @@ const Slider = ({
       return;
     }
 
-    if (Math.abs(deltaX) < TOUCH_DRAG_THRESHOLD_PX || Math.abs(deltaX) < Math.abs(deltaY)) {
+    if (Math.abs(deltaX) < TOUCH_DRAG_THRESHOLD_PX) {
       return;
     }
 

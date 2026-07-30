@@ -203,6 +203,11 @@ export function useImageProcessing(
           const textDecoder = new TextDecoder();
           const prefix = textDecoder.decode(buffer.slice(0, 11));
           if (prefix === 'WGPU_RENDER') {
+            // WGPU direct-render path: the backend rendered directly to the
+            // GPU canvas. Only valid when useWgpuRenderer is enabled.
+            // On Android (useWgpuRenderer=false) this should never happen,
+            // but if it does, treat it as a no-op rather than swallowing
+            // the preview update silently.
             setEditor((state) => {
               if (state.interactivePatch && state.interactivePatch.url) URL.revokeObjectURL(state.interactivePatch.url);
               return { interactivePatch: null };

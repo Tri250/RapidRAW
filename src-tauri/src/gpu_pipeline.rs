@@ -700,6 +700,16 @@ pub fn gpu_apply_adjustments(
     clarity: Option<f32>,
     dehaze: Option<f32>,
 ) -> Result<String, String> {
+    // Android: GPU adjustment pipeline is disabled to avoid ANR from wgpu
+    // init on the main thread. Return the original image unchanged so the
+    // caller can gracefully degrade.
+    #[cfg(target_os = "android")]
+    {
+        return Ok(image_data_base64);
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
     use base64::{Engine as _, engine::general_purpose};
 
     // Decode base64 image data
@@ -771,4 +781,5 @@ pub fn gpu_apply_adjustments(
         .map_err(|e| format!("Failed to encode PNG: {}", e))?;
 
     Ok(general_purpose::STANDARD.encode(png_buf.into_inner()))
+    } // #[cfg(not(target_os = "android"))]
 }

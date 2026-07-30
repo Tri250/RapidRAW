@@ -841,12 +841,18 @@ fn process_preview_job(
             analytics_config,
         );
 
-    // If WGPU rendering failed and wgpu was requested, automatically
-    // fall back to the CPU rendering path so the user always sees
-    // an adjusted image (not the original or a blank canvas).
+    // If rendering failed (GPU or CPU path), automatically fall back to the
+    // CPU rendering path so the user always sees an adjusted image (not the
+    // original or a blank canvas). On Android, use_wgpu_renderer is always
+    // false, but the GPU compute path can still fail due to driver issues —
+    // so we must retry with the CPU path regardless of use_wgpu_renderer.
     let (final_processed_image_result, actually_used_wgpu) =
-        if final_processed_image_result.is_err() && use_wgpu_renderer {
-            log::warn!("WGPU rendering failed – falling back to CPU path for this frame");
+        if final_processed_image_result.is_err() {
+            log::warn!(
+                "Rendering failed (use_wgpu_renderer={}), falling back to CPU path for this frame: {:?}",
+                use_wgpu_renderer,
+                final_processed_image_result.as_ref().err()
+            );
             let cpu_result = crate::image_processing::process_and_get_dynamic_image_with_analytics(
                 &context,
                 &state,
@@ -2062,6 +2068,38 @@ fn generate_preview_for_path(
     let is_raw = is_raw_file(&source_path_str);
     let settings = load_settings(app_handle.clone()).unwrap_or_default();
 
+    // Android: content:// URIs cannot be memory-mapped or read via fs::read.
+    // Use the Android content resolver to read the file bytes instead.
+    #[cfg(target_os = "android")]
+    let base_image = {
+        if crate::android_integration::is_android_content_uri(&source_path_str) {
+            let bytes = crate::android_integration::read_android_content_uri(&source_path_str)
+                .map_err(|e| format!("Failed to read Android content URI '{}': {}", source_path_str, e))?;
+            load_and_composite(
+                &bytes,
+                &source_path_str,
+                &js_adjustments,
+                false,
+                &settings,
+                None,
+            )
+            .map_err(|e| e.to_string())?
+        } else {
+            match read_file_mapped(&source_path) {
+                Ok(mmap) => load_and_composite(
+                    &mmap, &source_path_str, &js_adjustments, false, &settings, None,
+                ).map_err(|e| e.to_string())?,
+                Err(e) => {
+                    log::warn!("Failed to mmap '{}': {}. Falling back to fs::read.", source_path_str, e);
+                    let bytes = fs::read(&source_path).map_err(|io_err| io_err.to_string())?;
+                    load_and_composite(&bytes, &source_path_str, &js_adjustments, false, &settings, None)
+                        .map_err(|e| e.to_string())?
+                }
+            }
+        }
+    };
+
+    #[cfg(not(target_os = "android"))]
     let base_image = match read_file_mapped(&source_path) {
         Ok(mmap) => load_and_composite(
             &mmap,
