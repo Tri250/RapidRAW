@@ -1643,10 +1643,10 @@ pub fn generate_color_range_mask(
         // Anchor-driven overlap: user ranges ∩ (anchor ± tolerance*default_range)
         let tol_s = tol * 0.2;
         let tol_l = tol * 0.2;
-        let s_min = s_min_pct.min(as_ - tol_s).max(0.0);
-        let s_max = s_max_pct.max(as_ + tol_s).min(1.0);
-        let l_min = l_min_pct.min(al - tol_l).max(0.0);
-        let l_max = l_max_pct.max(al + tol_l).min(1.0);
+        let s_min = s_min_pct.max(as_ - tol_s).clamp(0.0, 1.0);
+        let s_max = s_max_pct.min(as_ + tol_s).clamp(0.0, 1.0);
+        let l_min = l_min_pct.max(al - tol_l).clamp(0.0, 1.0);
+        let l_max = l_max_pct.min(al + tol_l).clamp(0.0, 1.0);
 
         (
             (hc - h_half - tol_h).rem_euclid(360.0),
@@ -1871,40 +1871,118 @@ pub fn generate_luminance_range_mask(
 // Mask Feather
 // ---------------------------------------------------------------------------
 
-/// Apply Gaussian feathering to an existing mask.
-/// `mask_data` is raw grayscale bytes (w*h), `feather_radius` controls blur strength.
+/// Apply Gaussian feathering to the bitmap of the mask container that owns
+/// `sub_mask_id`. The caller (frontend) passes the current adjustments and the
+/// sub-mask id; the backend generates the resolved mask bitmap, applies the
+/// feather blur, and returns a PNG base64 data URL compatible with the existing
+/// `mask_data_base64` parameter format.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn apply_mask_feather(
-    mask_data: Vec<u8>,
-    width: u32,
-    height: u32,
-    feather_radius: f32,
-) -> Result<Vec<u8>, String> {
+    state: tauri::State<AppState>,
+    js_adjustments: Option<serde_json::Value>,
+    path: Option<String>,
+    sub_mask_id: String,
+    feather: f32,
+    rotation: Option<f32>,
+    flip_horizontal: Option<bool>,
+    flip_vertical: Option<bool>,
+    orientation_steps: Option<u8>,
+) -> Result<AiSkyMaskParameters, String> {
+    let _ = path;
+
+    if sub_mask_id.is_empty() {
+        return Err("subMaskId is required".to_string());
+    }
+
+    let mut adjustments = js_adjustments.unwrap_or_default();
+    crate::adjustment_utils::hydrate_adjustments(&state, &mut adjustments);
+
+    // Locate the mask container that contains the requested sub-mask.
+    let masks_value = adjustments.get("masks").cloned().unwrap_or_default();
+    let mask_containers = masks_value
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+
+    let mut target_mask_def: Option<MaskDefinition> = None;
+    for mut container in mask_containers {
+        // Hydrate cached mask data for sub-masks in this container.
+        if let Some(sub_masks) = container.get_mut("subMasks").and_then(|v| v.as_array_mut()) {
+            let mut cache = state.patch_cache.lock().unwrap_or_else(|e| {
+                log::warn!("Mutex poisoned");
+                e.into_inner()
+            });
+            crate::adjustment_utils::hydrate_sub_masks(sub_masks, &mut cache);
+        }
+
+        let mask_def: MaskDefinition = serde_json::from_value(container)
+            .map_err(|e| format!("Failed to parse mask definition: {}", e))?;
+
+        if mask_def.sub_masks.iter().any(|sm| sm.id == sub_mask_id) {
+            target_mask_def = Some(mask_def);
+            break;
+        }
+    }
+
+    let mut mask_def = target_mask_def.ok_or_else(|| {
+        format!("Mask container containing sub-mask '{}' not found", sub_mask_id)
+    })?;
+
+    // Isolate the target sub-mask so feathering applies to its own bitmap rather
+    // than the combined container bitmap.
+    mask_def.sub_masks.retain(|sm| sm.id == sub_mask_id);
+    if mask_def.sub_masks.is_empty() {
+        return Err(format!("Sub-mask '{}' was removed during isolation", sub_mask_id));
+    }
+
+    let loaded_image = state
+        .original_image
+        .lock_resilient()
+        .clone()
+        .ok_or("No original image loaded")?;
+    let (width, height) = loaded_image.image.as_ref().dimensions();
     if width == 0 || height == 0 {
-        return Err("Invalid mask dimensions".to_string());
+        return Err("Image has zero dimensions".to_string());
     }
 
-    if mask_data.len() != (width * height) as usize {
-        return Err(format!(
-            "Mask data size {} does not match dimensions {}x{}",
-            mask_data.len(),
-            width,
-            height
-        ));
-    }
+    let warped_image =
+        resolve_warped_image_for_masks(&state, &adjustments, std::slice::from_ref(&mask_def));
 
-    if feather_radius <= 0.0 {
-        return Ok(mask_data);
-    }
+    let mask_bitmap = generate_mask_bitmap(
+        &mask_def,
+        width,
+        height,
+        1.0,
+        (0.0, 0.0),
+        warped_image.as_deref(),
+    )
+    .ok_or_else(|| "Failed to generate mask bitmap".to_string())?;
 
-    let gray_mask = GrayImage::from_raw(width, height, mask_data)
-        .ok_or("Failed to create gray image from mask data")?;
+    // Apply Gaussian feather using the same percentage-to-sigma mapping used by
+    // the color/luminance range mask generators.
+    let feather_v = feather.clamp(0.0, 100.0);
+    let final_mask = if feather_v > 0.01 {
+        let sigma = feather_v / 100.0 * width.min(height) as f32 * 0.01;
+        imageproc::filter::gaussian_blur_f32(&mask_bitmap, sigma.max(0.01))
+    } else {
+        mask_bitmap
+    };
 
-    // Gaussian blur with the specified feather radius
-    let sigma = feather_radius.clamp(0.01, 100.0);
-    let blurred = imageproc::filter::gaussian_blur_f32(&gray_mask, sigma);
+    let mut png_buf = Cursor::new(Vec::new());
+    final_mask
+        .write_to(&mut png_buf, ImageFormat::Png)
+        .map_err(|e| format!("PNG encode failed: {}", e))?;
+    let b64 = general_purpose::STANDARD.encode(png_buf.get_ref());
+    let data_url = format!("data:image/png;base64,{}", b64);
 
-    Ok(blurred.into_raw())
+    Ok(AiSkyMaskParameters {
+        mask_data_base64: Some(data_url),
+        rotation,
+        flip_horizontal,
+        flip_vertical,
+        orientation_steps,
+    })
 }
 
 // ---------------------------------------------------------------------------

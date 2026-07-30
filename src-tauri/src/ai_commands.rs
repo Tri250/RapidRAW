@@ -802,8 +802,9 @@ pub async fn generate_ai_sky_replace(
                 image::GrayImage::from_raw(w, h, sky_mask.clone())
                     .unwrap_or_else(|| image::GrayImage::new(w, h)),
             );
+            let base_url = format!("http://{}", address);
             match ai_connector::process_inpainting(
-                &address,
+                &base_url,
                 &path,
                 &loaded_image.image,
                 &mask_dynamic,

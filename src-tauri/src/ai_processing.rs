@@ -1231,9 +1231,9 @@ pub fn run_lama_inpainting(
     let mut result_inf = RgbaImage::new(fw, fh);
     for y in 0..fh {
         for x in 0..fw {
-            let r = output_tensor[[0, 0, y as usize, x as usize]].clamp(0.0, 255.0) as u8;
-            let g = output_tensor[[0, 1, y as usize, x as usize]].clamp(0.0, 255.0) as u8;
-            let b = output_tensor[[0, 2, y as usize, x as usize]].clamp(0.0, 255.0) as u8;
+            let r = (output_tensor[[0, 0, y as usize, x as usize]] * 255.0).clamp(0.0, 255.0) as u8;
+            let g = (output_tensor[[0, 1, y as usize, x as usize]] * 255.0).clamp(0.0, 255.0) as u8;
+            let b = (output_tensor[[0, 2, y as usize, x as usize]] * 255.0).clamp(0.0, 255.0) as u8;
             result_inf.put_pixel(x, y, Rgba([r, g, b, 255]));
         }
     }
