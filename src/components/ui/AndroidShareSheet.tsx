@@ -5,6 +5,7 @@ import { Share2, X, MessageCircle, Send, MoreHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import Text from './Text';
+import { Invokes } from './AppProperties';
 import { TextVariants } from '../../types/typography';
 
 interface AndroidShareSheetProps {
@@ -56,7 +57,7 @@ export default function AndroidShareSheet({ filePath, mimeType, visible, onClose
       if (sharing) return;
       setSharing(true);
       try {
-        await invoke('share_image', {
+        await invoke(Invokes.ShareImage, {
           filePath,
           mimeType,
           title: target ? t(`androidShare.${target.key}` as any) : t('androidShare.systemShareTitle' as any),

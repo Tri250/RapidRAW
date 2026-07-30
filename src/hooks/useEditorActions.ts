@@ -254,7 +254,7 @@ export function useEditorActions() {
       invoke(Invokes.ApplyAdjustmentsToPaths, { paths: pathsToUpdate, adjustments: adjustmentsToApply })
         .then(() => {
           if (selectedImage && pathsToUpdate.includes(selectedImage.path)) {
-            invoke('load_metadata', { path: selectedImage.path })
+            invoke(Invokes.LoadMetadata, { path: selectedImage.path })
               .then((meta: any) => {
                 if (meta.adjustments) {
                   setAdjustments((prev: any) => ({

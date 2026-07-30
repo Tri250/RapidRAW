@@ -33,7 +33,7 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
         try {
           useEditorStore.getState().patchesSentToBackend.clear();
           try {
-            await invoke('clear_session_caches');
+            await invoke(Invokes.ClearSessionCaches);
           } catch (e) {
             console.warn('Cache clear failed:', e);
           }

@@ -1023,7 +1023,7 @@ export default function SettingsPanel({
   useEffect(() => {
     const fetchLensMakers = async () => {
       try {
-        const result = await invoke<string[]>('get_lensfun_makers');
+        const result = await invoke<string[]>(Invokes.GetLensfunMakers);
         setLensMakers(Array.isArray(result) ? result : []);
       } catch {
         setLensMakers([]);
@@ -1052,7 +1052,7 @@ export default function SettingsPanel({
       key === 'rawPreprocessingSharpening' ||
       key === 'applyPreprocessingToNonRaws'
     ) {
-      await invoke('clear_image_caches');
+      await invoke(Invokes.ClearImageCaches);
     }
   };
 
@@ -1066,7 +1066,7 @@ export default function SettingsPanel({
 
   const handleMirrorUrlBlur = async () => {
     try {
-      await invoke('set_ai_model_mirror', { mirrorUrl: mirrorUrl.trim() });
+      await invoke(Invokes.SetAiModelMirror, { mirrorUrl: mirrorUrl.trim() });
       setMirrorMessage(mirrorUrl.trim() ? 'AI model mirror URL set.' : 'AI model mirror URL cleared.');
       setTimeout(() => setMirrorMessage(''), 3000);
     } catch (e) {
@@ -1094,7 +1094,7 @@ export default function SettingsPanel({
     setTempLensModel('');
     setLensModels([]);
     if (maker) {
-      invoke('get_lensfun_lenses_for_maker', { maker })
+      invoke(Invokes.GetLensfunLensesForMaker, { maker })
         .then((l: any) => setLensModels(Array.isArray(l) ? l : []))
         .catch(() => setLensModels([]));
     }
