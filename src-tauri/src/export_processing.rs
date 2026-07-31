@@ -14,7 +14,7 @@ use serde_json::Value;
 use tauri::Emitter;
 use tauri::Manager;
 
-use crate::AppState;
+use crate::{AppState, MutexResilient};
 use crate::exif_processing;
 use crate::file_management::{
     generate_filename_from_template, parse_virtual_path, read_file_mapped, validate_writable_folder,

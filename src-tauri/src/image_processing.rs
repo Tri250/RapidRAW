@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_json::json;
 use std::borrow::Cow;
-use std::f32::consts::PI;
 use std::sync::Arc;
 
 pub use crate::gpu_processing::{
@@ -32,8 +31,20 @@ const MAX_CONCURRENT_PROCESSING: usize = 2;
 static CONCURRENT_PROCESSING_COUNT: std::sync::atomic::AtomicUsize =
     std::sync::atomic::AtomicUsize::new(0);
 
+/// Math constants shared across the module.
+const PI: f32 = std::f32::consts::PI;
+const EPS: f32 = 1e-6;
+
 /// Validates that image dimensions won't cause OOM or integer overflow.
+/// Merged with the previously duplicated pub variant:
+/// checks zero dimensions, 200MP safety ceiling, and a hard 16384² cap.
 fn validate_image_dimensions(width: u32, height: u32) -> Result<(), String> {
+    if width == 0 || height == 0 {
+        return Err("Image has zero dimension".into());
+    }
+    if width > 16384 || height > 16384 {
+        return Err(format!("Image too large: {}x{} (max 16384)", width, height));
+    }
     let total_pixels = width as u64 * height as u64;
     if total_pixels > MAX_IMAGE_PIXELS {
         return Err(format!(
@@ -3925,8 +3936,8 @@ fn double_threshold_hysteresis(
 // CPU Color Adjustment Pipeline (Android / no-GPU fallback)
 // ============================================================
 
-const PI: f32 = 3.141592653589793;
-const EPS: f32 = 1e-6;
+/// CPU adjustment constants.
+const CPU_TINY_EPS: f32 = 1e-6;
 
 #[inline]
 fn cpu_max3(x: f32, y: f32, z: f32) -> f32 { x.max(y.max(z)) }
@@ -4017,7 +4028,7 @@ fn cpu_create_blur_luma_buffers(luma: &[f32], w: usize, h: usize, scale: f32) ->
 
 #[inline]
 fn cpu_apply_local_contrast(pix: &mut [f32], blur: f32, amount: f32, is_raw: bool, mode: u32, threshold: f32) {
-    if amount.abs() < EPS { return; }
+    if amount.abs() < CPU_TINY_EPS { return; }
     // Match shader apply_local_contrast:
     // - amount negative: mix towards blur
     // - amount positive: log2 ratio contrast boost with shadow/highlight protection
@@ -4057,7 +4068,7 @@ fn cpu_apply_local_contrast(pix: &mut [f32], blur: f32, amount: f32, is_raw: boo
 
 #[inline]
 fn cpu_apply_centre_local_contrast(pix: &mut [f32], centre: f32, x: u32, y: u32, w: u32, h: u32, blur: f32, is_raw: bool) {
-    if centre.abs() < EPS { return; }
+    if centre.abs() < CPU_TINY_EPS { return; }
     let nx = (x as f32 + 0.5) / w as f32 - 0.5;
     let ny = (y as f32 + 0.5) / h as f32 - 0.5;
     let radius = (nx * nx + ny * ny).sqrt();
@@ -4068,21 +4079,21 @@ fn cpu_apply_centre_local_contrast(pix: &mut [f32], centre: f32, x: u32, y: u32,
 
 #[inline]
 fn cpu_apply_linear_exposure(pix: &mut [f32], exposure: f32) {
-    if exposure.abs() < EPS { return; }
+    if exposure.abs() < CPU_TINY_EPS { return; }
     let m = 2.0f32.powf(exposure);
     pix[0] *= m; pix[1] *= m; pix[2] *= m;
 }
 
 #[inline]
 fn cpu_apply_filmic_exposure(pix: &mut [f32], brightness: f32) {
-    if brightness.abs() < EPS { return; }
+    if brightness.abs() < CPU_TINY_EPS { return; }
     let s = if brightness < 0.0 { 1.0 - (-brightness * 0.6).min(0.6) } else { 1.0 + brightness * 1.2 };
     pix[0] *= s; pix[1] *= s; pix[2] *= s;
 }
 
 #[inline]
 fn cpu_apply_white_balance(pix: &mut [f32], temperature: f32, tint: f32) {
-    if temperature.abs() < EPS && tint.abs() < EPS { return; }
+    if temperature.abs() < CPU_TINY_EPS && tint.abs() < CPU_TINY_EPS { return; }
     // match shader: temp_kelvin_mult * tint_mult
     let tr = (1.0 + temperature * 0.2) * (1.0 + tint * 0.25);
     let tg = (1.0 + temperature * 0.05) * (1.0 - tint * 0.25);
@@ -4094,7 +4105,7 @@ fn cpu_apply_white_balance(pix: &mut [f32], temperature: f32, tint: f32) {
 
 #[inline]
 fn cpu_apply_dehaze(pix: &mut [f32], blur: f32, dehaze: f32) {
-    if dehaze.abs() < EPS { return; }
+    if dehaze.abs() < CPU_TINY_EPS { return; }
     let haze = blur.clamp(0.0, 1.0);
     let strength = dehaze * 1.4;
     for c in 0..3 {
@@ -4104,7 +4115,7 @@ fn cpu_apply_dehaze(pix: &mut [f32], blur: f32, dehaze: f32) {
 
 #[inline]
 fn cpu_apply_centre_tonal_and_color(pix: &mut [f32], centre: f32, x: u32, y: u32, w: u32, h: u32) {
-    if centre.abs() < EPS { return; }
+    if centre.abs() < CPU_TINY_EPS { return; }
     let nx = (x as f32 + 0.5) / w as f32 - 0.5;
     let ny = (y as f32 + 0.5) / h as f32 - 0.5;
     let radius = (nx * nx + ny * ny).sqrt();
@@ -4120,7 +4131,7 @@ fn cpu_apply_centre_tonal_and_color(pix: &mut [f32], centre: f32, x: u32, y: u32
 fn cpu_apply_tonal_adjustments(pix: &mut [f32], blur: f32, contrast: f32, shadows: f32, whites: f32, blacks: f32) {
     let luma = cpu_get_luma(pix);
     // Contrast: gamma-based
-    if contrast.abs() > EPS {
+    if contrast.abs() > CPU_TINY_EPS {
         let gamma = 1.0 / (1.0 + contrast * 0.5);
         for c in 0..3 {
             let v = pix[c].clamp(0.0, 1.0);
@@ -4128,19 +4139,19 @@ fn cpu_apply_tonal_adjustments(pix: &mut [f32], blur: f32, contrast: f32, shadow
         }
     }
     // Shadows: lift dark regions
-    if shadows.abs() > EPS {
+    if shadows.abs() > CPU_TINY_EPS {
         let amt = shadows;
-        let l = luma.max(EPS);
+        let l = luma.max(CPU_TINY_EPS);
         let k = (1.0 - l / (l + 0.1)).powi(2);
         for c in 0..3 { pix[c] += amt * 0.4 * k; }
     }
     // Whites: push near-white areas
-    if whites.abs() > EPS {
+    if whites.abs() > CPU_TINY_EPS {
         let t = ((luma - 0.75) / 0.25).clamp(0.0, 1.0);
         for c in 0..3 { pix[c] += whites * 0.5 * t; }
     }
     // Blacks: crush near-black areas
-    if blacks.abs() > EPS {
+    if blacks.abs() > CPU_TINY_EPS {
         let t = ((0.1 - luma) / 0.1).clamp(0.0, 1.0);
         for c in 0..3 { pix[c] += blacks * 0.5 * t; }
     }
@@ -4148,7 +4159,7 @@ fn cpu_apply_tonal_adjustments(pix: &mut [f32], blur: f32, contrast: f32, shadow
 
 #[inline]
 fn cpu_apply_highlights_adjustment(pix: &mut [f32], blur: f32, highlights: f32) {
-    if highlights.abs() < EPS { return; }
+    if highlights.abs() < CPU_TINY_EPS { return; }
     let luma = cpu_get_luma(pix);
     let t = ((luma - 0.5) / 0.5).clamp(0.0, 1.0).powi(2);
     let amt = -highlights * 0.7;
@@ -4161,9 +4172,9 @@ fn cpu_rgb_to_hsv(pix: &[f32]) -> (f32, f32, f32) {
     let minc = cpu_min3(pix[0], pix[1], pix[2]);
     let v = maxc;
     let delta = maxc - minc;
-    let s = if v > EPS { delta / v } else { 0.0 };
+    let s = if v > CPU_TINY_EPS { delta / v } else { 0.0 };
     let mut h = 0.0;
-    if delta > EPS {
+    if delta > CPU_TINY_EPS {
         if maxc == pix[0] {
             h = ((pix[1] - pix[2]) / delta + 6.0) % 6.0;
         } else if maxc == pix[1] {
@@ -4203,7 +4214,7 @@ fn cpu_hue_diff(a: f32, b: f32) -> f32 {
 
 #[inline]
 fn cpu_apply_hue_shift(pix: &mut [f32], hue: f32) {
-    if hue.abs() < EPS { return; }
+    if hue.abs() < CPU_TINY_EPS { return; }
     let (h, s, v) = cpu_rgb_to_hsv(pix);
     let nh = (h + hue * 180.0 + 360.0) % 360.0;
     let [r, g, b] = cpu_hsv_to_rgb(nh, s, v);
@@ -4213,11 +4224,11 @@ fn cpu_apply_hue_shift(pix: &mut [f32], hue: f32) {
 #[inline]
 fn cpu_apply_creative_color(pix: &mut [f32], saturation: f32, vibrance: f32) {
     let luma = cpu_get_luma(pix);
-    if saturation.abs() > EPS {
+    if saturation.abs() > CPU_TINY_EPS {
         let s = 1.0 + saturation;
         for c in 0..3 { pix[c] = cpu_mix(luma, pix[c], s); }
     }
-    if vibrance.abs() < EPS { return; }
+    if vibrance.abs() < CPU_TINY_EPS { return; }
     let c_max = cpu_max3(pix[0], pix[1], pix[2]);
     let c_min = cpu_min3(pix[0], pix[1], pix[2]);
     let delta = c_max - c_min;
@@ -4332,7 +4343,7 @@ fn cpu_apply_hsl_panel(pix: &mut [f32], hsl: &[HslColor; 8]) {
         raw_inf[i] = inf;
         total_raw += inf;
     }
-    if total_raw < EPS { return; }
+    if total_raw < CPU_TINY_EPS { return; }
 
     let mut total_hue_shift = 0.0f32;
     let mut total_sat_mult = 0.0f32;
@@ -4422,7 +4433,7 @@ fn cpu_apply_color_grading(
 
 #[inline]
 fn cpu_apply_vignette(pix: &mut [f32], x: u32, y: u32, w: u32, h: u32, amount: f32, midpoint: f32, roundness: f32, feather: f32) {
-    if amount.abs() < EPS { return; }
+    if amount.abs() < CPU_TINY_EPS { return; }
     // Standard vig: radial from center with smooth falloff
     let aspect = w as f32 / h as f32;
     let nx = ((x as f32 + 0.5) / w as f32 - 0.5) * 2.0;
@@ -4491,7 +4502,7 @@ fn cpu_hermite_interp(points: &[Point], count: u32, x: f32) -> f32 {
         let p1 = pts[i + 1];
         if x >= p0.x && x <= p1.x {
             let dx = p1.x - p0.x;
-            if dx <= EPS { return p0.y; }
+            if dx <= CPU_TINY_EPS { return p0.y; }
             let t = (x - p0.x) / dx;
             let t2 = t * t;
             let t3 = t2 * t;
@@ -4502,13 +4513,13 @@ fn cpu_hermite_interp(points: &[Point], count: u32, x: f32) -> f32 {
             // tangent approximation
             let m0 = if i > 0 {
                 let prev = pts[i - 1];
-                (p0.y - prev.y) / (p0.x - prev.x + EPS) * dx
+                (p0.y - prev.y) / (p0.x - prev.x + CPU_TINY_EPS) * dx
             } else {
                 (p1.y - p0.y)
             };
             let m1 = if i < pts.len() - 2 {
                 let nxt = pts[i + 2];
-                (nxt.y - p1.y) / (nxt.x - p1.x + EPS) * dx
+                (nxt.y - p1.y) / (nxt.x - p1.x + CPU_TINY_EPS) * dx
             } else {
                 (p1.y - p0.y)
             };
@@ -4533,7 +4544,7 @@ fn cpu_apply_all_curves(
     if luma_count > 0 {
         let luma = cpu_get_luma(pix);
         let adjusted = cpu_hermite_interp(luma_curve, luma_count, luma);
-        let ratio = if luma > EPS { adjusted / luma } else { 1.0 };
+        let ratio = if luma > CPU_TINY_EPS { adjusted / luma } else { 1.0 };
         for c in 0..3 { pix[c] *= ratio; }
     }
     if red_count > 0 { pix[0] = cpu_hermite_interp(red_curve, red_count, pix[0]); }
@@ -4556,7 +4567,7 @@ fn fract_rand(seed: u32) -> f32 {
 }
 
 fn cpu_apply_grain(pix: &mut [f32], x: u32, y: u32, w: u32, h: u32, amount: f32, size: f32, roughness: f32, scale: f32) {
-    if amount.abs() < EPS { return; }
+    if amount.abs() < CPU_TINY_EPS { return; }
     let s = (size.max(1.0) * scale) as u32;
     let gx = x / s.max(1);
     let gy = y / s.max(1);
@@ -4572,14 +4583,9 @@ fn cpu_apply_grain(pix: &mut [f32], x: u32, y: u32, w: u32, h: u32, amount: f32,
 }
 
 /// Validate image dimensions for safe processing.
-pub fn validate_image_dimensions(width: u32, height: u32) -> Result<(), String> {
-    if width == 0 || height == 0 {
-        return Err("Image has zero dimension".into());
-    }
-    if width > 16384 || height > 16384 {
-        return Err(format!("Image too large: {}x{} (max 16384)", width, height));
-    }
-    Ok(())
+#[deprecated = "Use module-level validate_image_dimensions directly"]
+pub fn validate_image_dimensions_public(width: u32, height: u32) -> Result<(), String> {
+    validate_image_dimensions(width, height)
 }
 
 /// Apply the full color-adjustment pipeline on the CPU.
