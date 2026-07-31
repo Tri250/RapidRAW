@@ -4763,9 +4763,14 @@ pub fn apply_cpu_color_adjustments(
     // Without this, all adjustments run in sRGB space and the final
     // `cpu_linear_to_srgb_vec3` tonemapping step double-converts, washing
     // out color changes so they appear to have no effect.
+    //
+    // NOTE: image 0.25 has no `as_raw_mut()` (added in 0.26+). Use
+    // `as_flat_samples_mut().as_mut_slice()` for a mutable view of the
+    // underlying contiguous sample buffer.
     if !is_raw {
         f32_image
-            .as_raw_mut()
+            .as_flat_samples_mut()
+            .as_mut_slice()
             .par_chunks_mut(3)
             .for_each(|pix| {
                 cpu_srgb_to_linear_vec3(pix);
