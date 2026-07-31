@@ -4535,45 +4535,82 @@ fn cpu_apply_basic_tonemap_for_raw(pix: &mut [f32]) {
 }
 
 fn cpu_hermite_interp(points: &[Point], count: u32, x: f32) -> f32 {
-    if count == 0 { return x; }
+    if count < 2 { return x; }
     let pts: Vec<&Point> = points.iter().take(count as usize).collect();
-    if pts.is_empty() { return x; }
     // Normalize input from [0,1] to [0,255] to match the curve point coordinate space
     let x_norm = x * 255.0;
     if x_norm <= pts[0].x { return pts[0].y / 255.0; }
     if x_norm >= pts[pts.len() - 1].x { return pts[pts.len() - 1].y / 255.0; }
     for i in 0..pts.len() - 1 {
-        let p0 = pts[i];
-        let p1 = pts[i + 1];
-        if x_norm >= p0.x && x_norm <= p1.x {
-            let dx = p1.x - p0.x;
-            if dx <= CPU_TINY_EPS { return p0.y / 255.0; }
-            let t = (x_norm - p0.x) / dx;
+        let p1 = pts[i];
+        let p2 = pts[i + 1];
+        if x_norm <= p2.x {
+            let dx = p2.x - p1.x;
+            if dx <= CPU_TINY_EPS { return p1.y / 255.0; }
+            let t = (x_norm - p1.x) / dx;
             let t2 = t * t;
             let t3 = t2 * t;
+            // Catmull-Rom tangent calculation (matching GPU apply_curve)
+            let p0 = if i > 0 { pts[i - 1] } else { p1 };
+            let p3 = if i + 2 < pts.len() { pts[i + 2] } else { p2 };
+            let delta_before = (p1.y - p0.y) / (p1.x - p0.x).max(0.001);
+            let delta_current = (p2.y - p1.y) / (p2.x - p1.x).max(0.001);
+            let delta_after = (p3.y - p2.y) / (p3.x - p2.x).max(0.001);
+            let tangent_at_p1 = if i == 0 {
+                delta_current
+            } else if delta_before * delta_current <= 0.0 {
+                0.0
+            } else {
+                (delta_before + delta_current) / 2.0
+            };
+            let tangent_at_p2 = if i + 1 == pts.len() - 1 {
+                delta_current
+            } else if delta_current * delta_after <= 0.0 {
+                0.0
+            } else {
+                (delta_current + delta_after) / 2.0
+            };
+            // Monotonicity constraint (matching GPU)
+            let (mut m1, mut m2) = (tangent_at_p1, tangent_at_p2);
+            if delta_current != 0.0 {
+                let alpha = m1 / delta_current;
+                let beta = m2 / delta_current;
+                let alpha2_beta2 = alpha * alpha + beta * beta;
+                if alpha2_beta2 > 9.0 {
+                    let tau = 3.0 / alpha2_beta2.sqrt();
+                    m1 *= tau;
+                    m2 *= tau;
+                }
+            }
+            // Hermite interpolation (matching GPU interpolate_cubic_hermite)
             let h00 = 2.0 * t3 - 3.0 * t2 + 1.0;
             let h10 = t3 - 2.0 * t2 + t;
             let h01 = -2.0 * t3 + 3.0 * t2;
             let h11 = t3 - t2;
-            // tangent approximation
-            let m0 = if i > 0 {
-                let prev = pts[i - 1];
-                (p0.y - prev.y) / (p0.x - prev.x + CPU_TINY_EPS) * dx
-            } else {
-                (p1.y - p0.y)
-            };
-            let m1 = if i < pts.len() - 2 {
-                let nxt = pts[i + 2];
-                (nxt.y - p1.y) / (nxt.x - p1.x + CPU_TINY_EPS) * dx
-            } else {
-                (p1.y - p0.y)
-            };
-            let result_y = h00 * p0.y + h10 * m0 + h01 * p1.y + h11 * m1;
+            let result_y = h00 * p1.y + h10 * m1 * dx + h01 * p2.y + h11 * m2 * dx;
             // Denormalize output from [0,255] back to [0,1]
             return (result_y / 255.0).clamp(0.0, 1.0);
         }
     }
-    x
+    pts[pts.len() - 1].y / 255.0
+}
+
+#[inline]
+fn cpu_is_default_curve(points: &[Point], count: u32) -> bool {
+    if count < 2 { return false; }
+    let pts: Vec<&Point> = points.iter().take(count as usize).collect();
+    let mut is_identity = true;
+    for p in &pts {
+        if (p.x - p.y).abs() > 0.5 {
+            is_identity = false;
+            break;
+        }
+    }
+    let p0 = pts[0];
+    let p_last = pts[pts.len() - 1];
+    let p0_is_origin = p0.x.abs() < 0.1 && p0.y.abs() < 0.1;
+    let p_last_is_end = (p_last.x - 255.0).abs() < 0.1 && (p_last.y - 255.0).abs() < 0.1;
+    is_identity && p0_is_origin && p_last_is_end
 }
 
 #[inline]
@@ -4588,15 +4625,46 @@ fn cpu_apply_all_curves(
     blue_curve: &[Point],
     blue_count: u32,
 ) {
-    if luma_count > 0 {
-        let luma = cpu_get_luma(pix);
-        let adjusted = cpu_hermite_interp(luma_curve, luma_count, luma);
-        let ratio = if luma > CPU_TINY_EPS { adjusted / luma } else { 1.0 };
-        for c in 0..3 { pix[c] *= ratio; }
+    let red_is_default = cpu_is_default_curve(red_curve, red_count);
+    let green_is_default = cpu_is_default_curve(green_curve, green_count);
+    let blue_is_default = cpu_is_default_curve(blue_curve, blue_count);
+    let rgb_curves_are_active = !red_is_default || !green_is_default || !blue_is_default;
+
+    if rgb_curves_are_active {
+        // Apply RGB curves
+        let color_graded = [
+            cpu_hermite_interp(red_curve, red_count, pix[0]),
+            cpu_hermite_interp(green_curve, green_count, pix[1]),
+            cpu_hermite_interp(blue_curve, blue_count, pix[2]),
+        ];
+        // Luma correction (matching GPU apply_all_curves)
+        let luma_initial = cpu_get_luma(pix);
+        let luma_target = cpu_hermite_interp(luma_curve, luma_count, luma_initial);
+        let luma_graded = cpu_get_luma(&color_graded);
+        if luma_graded > 0.001 {
+            let ratio = luma_target / luma_graded;
+            pix[0] = color_graded[0] * ratio;
+            pix[1] = color_graded[1] * ratio;
+            pix[2] = color_graded[2] * ratio;
+        } else {
+            pix[0] = luma_target;
+            pix[1] = luma_target;
+            pix[2] = luma_target;
+        }
+        // Normalize if > 1.0
+        let max_comp = pix[0].max(pix[1]).max(pix[2]);
+        if max_comp > 1.0 {
+            let inv = 1.0 / max_comp;
+            pix[0] *= inv;
+            pix[1] *= inv;
+            pix[2] *= inv;
+        }
+    } else {
+        // Only apply luma curve to all channels
+        pix[0] = cpu_hermite_interp(luma_curve, luma_count, pix[0]);
+        pix[1] = cpu_hermite_interp(luma_curve, luma_count, pix[1]);
+        pix[2] = cpu_hermite_interp(luma_curve, luma_count, pix[2]);
     }
-    if red_count > 0 { pix[0] = cpu_hermite_interp(red_curve, red_count, pix[0]); }
-    if green_count > 0 { pix[1] = cpu_hermite_interp(green_curve, green_count, pix[1]); }
-    if blue_count > 0 { pix[2] = cpu_hermite_interp(blue_curve, blue_count, pix[2]); }
     for c in 0..3 { pix[c] = pix[c].clamp(0.0, 1.0); }
 }
 
