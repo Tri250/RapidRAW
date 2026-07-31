@@ -4527,15 +4527,17 @@ fn cpu_hermite_interp(points: &[Point], count: u32, x: f32) -> f32 {
     if count == 0 { return x; }
     let pts: Vec<&Point> = points.iter().take(count as usize).collect();
     if pts.is_empty() { return x; }
-    if x <= pts[0].x { return pts[0].y; }
-    if x >= pts[pts.len() - 1].x { return pts[pts.len() - 1].y; }
+    // Normalize input from [0,1] to [0,255] to match the curve point coordinate space
+    let x_norm = x * 255.0;
+    if x_norm <= pts[0].x { return pts[0].y / 255.0; }
+    if x_norm >= pts[pts.len() - 1].x { return pts[pts.len() - 1].y / 255.0; }
     for i in 0..pts.len() - 1 {
         let p0 = pts[i];
         let p1 = pts[i + 1];
-        if x >= p0.x && x <= p1.x {
+        if x_norm >= p0.x && x_norm <= p1.x {
             let dx = p1.x - p0.x;
-            if dx <= CPU_TINY_EPS { return p0.y; }
-            let t = (x - p0.x) / dx;
+            if dx <= CPU_TINY_EPS { return p0.y / 255.0; }
+            let t = (x_norm - p0.x) / dx;
             let t2 = t * t;
             let t3 = t2 * t;
             let h00 = 2.0 * t3 - 3.0 * t2 + 1.0;
@@ -4555,7 +4557,9 @@ fn cpu_hermite_interp(points: &[Point], count: u32, x: f32) -> f32 {
             } else {
                 (p1.y - p0.y)
             };
-            return h00 * p0.y + h10 * m0 + h01 * p1.y + h11 * m1;
+            let result_y = h00 * p0.y + h10 * m0 + h01 * p1.y + h11 * m1;
+            // Denormalize output from [0,255] back to [0,1]
+            return (result_y / 255.0).clamp(0.0, 1.0);
         }
     }
     x
