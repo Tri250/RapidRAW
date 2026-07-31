@@ -54,6 +54,19 @@ jobs:
           echo "package.json:      ${pkg_version}"
           echo "tauri.conf.json:   ${tauri_version}"
           echo "Cargo.toml:        ${cargo_version}"
+
+          android_props_file="src-tauri/gen/android/app/tauri.properties"
+          if [[ -f "$android_props_file" ]]; then
+            android_version_name="$(grep 'tauri.android.versionName' "$android_props_file" | cut -d'=' -f2 | tr -d ' ')"
+            echo "Android version:   ${android_version_name}"
+            if [[ "$pkg_version" != "$android_version_name" ]]; then
+              echo "::error::Android version mismatch: ${android_version_name} != ${pkg_version}"
+              exit 1
+            fi
+          else
+            echo "::warning::Android tauri.properties not found; skipping Android version check."
+          fi
+
           if [[ "$pkg_version" != "$tauri_version" || "$pkg_version" != "$cargo_version" ]]; then
             echo "::error::Version mismatch detected. All three files must have the same version."
             exit 1

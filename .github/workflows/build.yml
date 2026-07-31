@@ -41,7 +41,9 @@ on:
 jobs:
   build:
     runs-on: ${{ inputs.platform }}
-    timeout-minutes: 90
+    # Increase timeout for Android builds (NDK + dependency download can be slow)
+    # and for Windows ARM64 which runs on less-common runners.
+    timeout-minutes: ${{ inputs.mobile == 'android' && 150 || 90 }}
     permissions:
       contents: write
       actions: write
