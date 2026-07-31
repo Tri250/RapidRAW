@@ -202,17 +202,25 @@ pub fn convert_xmp_to_preset(xmp_content: &str) -> Result<Preset, String> {
     }
 
     if let Some(adjusted_k) = get_attr_as_f64(&attrs, "Temperature") {
+        // Preset bug fix #1: guard against division by zero in mired (micro
+        // reciprocal degree) temperature conversion.  Some XMP exports from
+        // third-party tools contain Temperature="0" (or extremely small
+        // values) which would produce inf / NaN and corrupt the entire
+        // adjustments JSON on Android.
         const AS_SHOT_DEFAULT: f64 = 5500.0;
         const MAX_MIRED_SHIFT: f64 = 150.0;
+        const MIN_VALID_K: f64 = 100.0; // below 100K is physically meaningless
         let as_shot_k = get_attr_as_f64(&attrs, "AsShotTemperature").unwrap_or(AS_SHOT_DEFAULT);
-        let mired_adjusted = 1_000_000.0 / adjusted_k;
-        let mired_as_shot = 1_000_000.0 / as_shot_k;
-        let mired_delta = mired_adjusted - mired_as_shot;
-        let temp_value = (-mired_delta / MAX_MIRED_SHIFT) * 100.0;
-        adjustments.insert(
-            "temperature".to_string(),
-            json!(temp_value.clamp(-100.0, 100.0)),
-        );
+        if adjusted_k >= MIN_VALID_K && as_shot_k >= MIN_VALID_K {
+            let mired_adjusted = 1_000_000.0 / adjusted_k;
+            let mired_as_shot = 1_000_000.0 / as_shot_k;
+            let mired_delta = mired_adjusted - mired_as_shot;
+            let temp_value = (-mired_delta / MAX_MIRED_SHIFT) * 100.0;
+            adjustments.insert(
+                "temperature".to_string(),
+                json!(temp_value.clamp(-100.0, 100.0)),
+            );
+        }
     }
 
     if let Some(tint_val) = get_attr_as_f64(&attrs, "Tint") {

@@ -2869,10 +2869,30 @@ pub fn handle_import_presets_from_file(
     file_path: String,
     app_handle: AppHandle,
 ) -> Result<Vec<PresetItem>, String> {
+    // Preset bug fix #5a: guard empty / whitespace-only file path.
+    if file_path.trim().is_empty() {
+        return Err("Preset file path is empty".to_string());
+    }
+
     let content =
         fs::read_to_string(file_path).map_err(|e| format!("Failed to read preset file: {}", e))?;
+
+    // Preset bug fix #5b: reject empty / whitespace-only content before
+    // JSON parsing so Android users get a clear error instead of a generic
+    // serde "EOF while parsing a value" message.
+    if content.trim().is_empty() {
+        return Err("Preset file is empty".to_string());
+    }
+
     let imported_preset_file: PresetFile = serde_json::from_str(&content)
         .map_err(|e| format!("Failed to parse preset file: {}", e))?;
+
+    // Preset bug fix #5c: warn and short-circuit when the file parsed OK
+    // but contains no presets (avoids an unnecessary save round-trip).
+    if imported_preset_file.presets.is_empty() {
+        log::warn!("Imported preset file contains no presets; nothing to add.");
+        return load_presets(app_handle);
+    }
 
     let mut current_presets = load_presets(app_handle.clone())?;
 

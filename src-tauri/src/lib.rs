@@ -1476,6 +1476,14 @@ fn generate_preset_preview(
 
     let (img_w, img_h) = preview_image.dimensions();
 
+    // Preset bug fix #3: guard zero-dimension preview images. On Android a
+    // corrupted or extremely small source can produce a 0x0 thumbnail after
+    // generate_transformed_preview, which then panics inside mask generation
+    // or JPEG encoding.
+    if img_w == 0 || img_h == 0 {
+        return Err("Preview image has zero dimensions".to_string());
+    }
+
     let mask_definitions: Vec<MaskDefinition> = js_adjustments
         .get("masks")
         .and_then(|m| serde_json::from_value(m.clone()).ok())
@@ -1741,6 +1749,12 @@ fn convert_params_to_adjustments(sections: &[CommunityPresetV2Section]) -> Value
             let value_str = param.value.trim();
             // Try to parse numeric value (handles "+3", "-1", "0", "500" etc.)
             if let Ok(num) = value_str.parse::<f64>() {
+                // Preset bug fix #2: skip NaN / inf values from corrupted V2 JSON
+                // so they do not poison the adjustment map on Android.
+                if !num.is_finite() {
+                    continue;
+                }
+
                 // Normalize based on the parameter type
                 let normalized = match param.label.as_str() {
                     // Basic adjustments: scale from [-5, +5] to [-1, 1] range
@@ -1797,6 +1811,13 @@ async fn generate_all_community_previews(
     state: tauri::State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<HashMap<String, Vec<u8>>, String> {
+    // Preset bug fix #4a: early-return on empty input so we do not try to
+    // initialize a GPU context (which may fail on Android) when there is
+    // nothing to render anyway.
+    if image_paths.is_empty() || presets.is_empty() {
+        return Ok(HashMap::new());
+    }
+
     let context = get_or_init_gpu_context(&state, &app_handle)?;
     let mut results: HashMap<String, Vec<u8>> = HashMap::new();
 
@@ -1821,6 +1842,11 @@ async fn generate_all_community_previews(
 
         let is_raw = is_raw_file(&source_path_str);
         let (orig_w, orig_h) = original_image.dimensions();
+        // Preset bug fix #4b: skip zero-dimension images so they do not
+        // contaminate the tile layout or produce empty JPEGs on Android.
+        if orig_w == 0 || orig_h == 0 {
+            continue;
+        }
         let (base_image, base_scale) = if orig_w > PROCESSING_DIM || orig_h > PROCESSING_DIM {
             let downscaled = downscale_f32_image(&original_image, PROCESSING_DIM, PROCESSING_DIM);
             let scale = downscaled.width() as f32 / orig_w as f32;
@@ -1830,6 +1856,10 @@ async fn generate_all_community_previews(
         };
 
         base_thumbnails.push((base_image, is_raw, base_scale));
+    }
+
+    if base_thumbnails.is_empty() {
+        return Ok(HashMap::new());
     }
 
     for preset in presets.iter() {
@@ -1857,6 +1887,12 @@ async fn generate_all_community_previews(
             let (transformed_image, _scaled_crop_offset) =
                 crate::apply_all_transformations(Cow::Borrowed(base_image), &scaled_adjustments);
             let (img_w, img_h) = transformed_image.dimensions();
+
+            // Preset bug fix #4c: skip zero-dimension transformed images
+            // (e.g. extreme crop pushed dimensions to 0 on Android).
+            if img_w == 0 || img_h == 0 {
+                continue;
+            }
 
             let mask_definitions: Vec<MaskDefinition> = scaled_adjustments
                 .get("masks")
@@ -1911,6 +1947,11 @@ async fn generate_all_community_previews(
             let processed_image = processed_image_dynamic.to_rgb8();
 
             let (proc_w, proc_h) = processed_image.dimensions();
+            // Preset bug fix #4d: guard zero-dimension processed result
+            // (Android GPU fallback may return 0x0 on error).
+            if proc_w == 0 || proc_h == 0 {
+                continue;
+            }
             let size = proc_w.min(proc_h);
             let cropped_processed_image = image::imageops::crop_imm(
                 &processed_image,
