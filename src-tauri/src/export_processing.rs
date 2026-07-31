@@ -34,7 +34,7 @@ use crate::lut_processing::{
 use crate::mask_generation::{MaskDefinition, generate_mask_bitmap};
 
 use crate::cache_utils::{calculate_full_job_hash, calculate_transform_hash};
-use crate::portrait_processing::{apply_portrait_adjustments, detect_face_regions};
+use crate::portrait_processing::{apply_portrait_adjustments, detect_face_regions, detect_face_regions_onnx};
 use crate::{
     apply_all_transformations, generate_transformed_preview, get_cached_or_generate_mask,
     hydrate_adjustments, load_settings, resolve_warped_image_for_masks,
@@ -337,7 +337,56 @@ fn process_image_for_export_pipeline(
     // Apply portrait adjustments if present
     if let Some(portrait_json) = js_adjustments.get("portrait") {
         if !portrait_json.is_null() {
-            let face_regions = detect_face_regions(&result);
+            // Mirror the preview pipeline: prefer ONNX face detector if available,
+            // fall back to skin-tone heuristic detector for export consistency.
+            let face_regions = {
+                let ai_state_guard = state.ai_state.lock_resilient();
+                if let Some(detector_arc) = ai_state_guard
+                    .as_ref()
+                    .and_then(|s| s.face_landmark_detector.clone())
+                {
+                    drop(ai_state_guard);
+                    let mut detector_guard = detector_arc.lock_resilient();
+                    let onnx_regions = detect_face_regions_onnx(&result, &mut detector_guard);
+                    // If ONNX detector returned zero faces (unusual but possible on profile / partial shots),
+                    // still try the heuristic detector as a safety net.
+                    if onnx_regions.is_empty() {
+                        detect_face_regions(&result)
+                    } else {
+                        onnx_regions
+                    }
+                } else {
+                    drop(ai_state_guard);
+                    // Try a synchronous init attempt (downloads may already be cached from preview).
+                    match tauri::async_runtime::block_on(async {
+                        crate::ai_processing::get_or_init_face_landmark_detector(
+                            app_handle,
+                            &state.ai_state,
+                            &state.ai_init_lock,
+                        )
+                        .await
+                    }) {
+                        Ok(detector_arc) => {
+                            let mut detector_guard = detector_arc.lock_resilient();
+                            let onnx_regions =
+                                detect_face_regions_onnx(&result, &mut detector_guard);
+                            if onnx_regions.is_empty() {
+                                detect_face_regions(&result)
+                            } else {
+                                onnx_regions
+                            }
+                        }
+                        Err(e) => {
+                            log::warn!(
+                                "Face landmark detector unavailable for export, falling back to skin-tone detection: {}",
+                                e
+                            );
+                            detect_face_regions(&result)
+                        }
+                    }
+                }
+            };
+
             if let Err(e) = apply_portrait_adjustments(&mut result, portrait_json, &face_regions) {
                 log::warn!("Portrait processing failed during export: {}", e);
             }

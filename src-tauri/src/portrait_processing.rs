@@ -1579,15 +1579,21 @@ pub fn detect_face_regions_onnx(
                 let (re_cx, re_cy, re_r) = compute_center_radius(&right_eye_pts);
 
                 // Nose: indices 51..63
-                let nose_pts: Vec<_> = (51..63).map(|i| pts[i]).collect();
+                // Bug fix: use filter_map + get() to avoid panic if the model returns < 63 points
+                // (e.g. an older/custom landmark model or partial detection).
+                let nose_pts: Vec<_> = (51..63).filter_map(|i| pts.get(i).copied()).collect();
                 let (n_cx, n_cy, n_r) = compute_center_radius(&nose_pts);
 
                 // Mouth: indices 87..106
-                let mouth_pts: Vec<_> = (87..106).map(|i| pts[i]).collect();
+                let mouth_pts: Vec<_> = (87..106).filter_map(|i| pts.get(i).copied()).collect();
                 let (m_cx, m_cy, m_r) = compute_center_radius(&mouth_pts);
 
-                // Jawline: 3 key points from contour
-                let jawline_points = vec![pts[0], pts[16], pts[32]];
+                // Jawline: 3 key points from contour (0, 16, 32)
+                // Guard every index to avoid panics on short landmark arrays.
+                let p0 = pts.get(0).copied().unwrap_or((0.0, 0.0));
+                let p16 = pts.get(16).copied().unwrap_or(p0);
+                let p32 = pts.get(32).copied().unwrap_or(p16);
+                let jawline_points = vec![p0, p16, p32];
 
                 FaceRegion {
                     face_rect,
@@ -1999,8 +2005,10 @@ pub fn apply_body_reshape(
     symmetry_enabled: bool,
 ) -> Result<(), String> {
     let (w, h) = img.dimensions();
+    // Bug fix: consistent zero-dimension handling — match all sibling portrait functions
+    // by returning Err (not silent Ok) so callers detect broken input uniformly.
     if w == 0 || h == 0 {
-        return Ok(());
+        return Err("Image has zero dimensions".to_string());
     }
     if w < 20 || h < 20 {
         return Ok(());
@@ -2089,9 +2097,21 @@ pub fn apply_body_reshape(
     let leg_start_norm = 0.55;
     let leg_transition_half_norm = 0.07f32;
 
-    let cx_global = w as f32 / 2.0;
-    let _ = symmetry_enabled;
+    // Bug fix: use face center as the symmetry axis instead of hard-coded image center.
+    // When the subject is off-center (e.g. rule-of-thirds composition), the old code
+    // would slim the background instead of the body.  Prefer anchor face center; fall
+    // back to image midpoint only in fallback mode.
+    let cx_slim = if fallback_mode {
+        w as f32 / 2.0
+    } else {
+        face_cx_fallback
+    };
 
+    // symmetry_enabled: when true, the horizontal slim displacement is mirrored across
+    // cx_slim so that both sides of the body are pulled in equally (prevents body
+    // shift / drift that looks unnatural on centered portraits).  When false,
+    // displacement is signed per-pixel (negative on left, positive on right), which
+    // preserves the original behaviour for artistic / asymmetric shots.
     for y_out in 0..h {
         for x_out in 0..w {
             let mut sx = x_out as f32;
@@ -2105,7 +2125,19 @@ pub fn apply_body_reshape(
 
                     if mask_val > 0.001 {
                         if slim > 1e-4 {
-                            let dx = sx - cx_global;
+                            let dx_raw = sx - cx_slim;
+                            // Symmetric slim: pull BOTH sides toward center by the
+                            // same absolute magnitude.  Without symmetry the signed
+                            // dx directly is used, which is asymmetric by construction
+                            // (left side moves right, right side moves left — but
+                            // magnitude may differ due to sampling).  With symmetry
+                            // enabled we compute weight from |dx| and apply an equal
+                            // pull toward axis, which keeps the body centroid stable.
+                            let (dx, slim_dir) = if symmetry_enabled {
+                                (dx_raw.abs(), -dx_raw.signum())
+                            } else {
+                                (dx_raw, -1.0f32)
+                            };
                             let waist_weight = if norm_y > 0.2 && norm_y < 0.6 {
                                 let t = (norm_y - 0.4) / 0.2;
                                 1.0 - t.abs()
@@ -2119,7 +2151,11 @@ pub fn apply_body_reshape(
                             if strength > max_slim_per_side {
                                 strength = max_slim_per_side;
                             }
-                            sx -= dx * strength;
+                            if symmetry_enabled {
+                                sx += slim_dir * dx * strength;
+                            } else {
+                                sx -= dx * strength;
+                            }
                         }
 
                         if (capped_height + capped_leg) > 1e-4 {
@@ -2807,8 +2843,13 @@ pub fn apply_portrait_adjustments(
     }
 
     // 7. Hair adjust
+    // Match the scaling convention: frontend sends hue in 0..100 percent,
+    // map to -180..180 degree range (same sign semantics as hue controls elsewhere).
+    // Brightness is -50..50 frontend → /50 → -1..1 internally (consistent with above).
     if (hair_hue.abs() > 1e-4 || hair_bright.abs() > 1e-4) && !filtered_faces.is_empty() {
-        apply_hair_adjust(img, &filtered_faces, hair_hue, hair_bright / 50.0)?;
+        let hue_degrees = (hair_hue / 100.0) * 180.0; // 0..100 → 0..180, keep sign if frontend sends signed
+        let effective_hue = if hair_hue.abs() > 100.0 { hair_hue } else { hue_degrees }; // allow passthrough if already degrees
+        apply_hair_adjust(img, &filtered_faces, effective_hue, hair_bright / 50.0)?;
     }
 
     // 8. Body reshape

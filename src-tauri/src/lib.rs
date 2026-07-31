@@ -623,7 +623,16 @@ fn apply_portrait_postprocessing(
         {
             drop(ai_state_guard);
             let mut detector_guard = detector_arc.lock_resilient();
-            crate::portrait_processing::detect_face_regions_onnx(image, &mut detector_guard)
+            let onnx_regions =
+                crate::portrait_processing::detect_face_regions_onnx(image, &mut detector_guard);
+            // Consistency fix: mirror export_processing.rs — if ONNX detector
+            // returns zero faces (e.g. profile shots, partial occlusion), still
+            // offer the skin-tone heuristic detector as a safety net.
+            if onnx_regions.is_empty() {
+                crate::portrait_processing::detect_face_regions(image)
+            } else {
+                onnx_regions
+            }
         } else {
             drop(ai_state_guard);
             match tauri::async_runtime::block_on(async {
@@ -636,7 +645,13 @@ fn apply_portrait_postprocessing(
             }) {
                 Ok(detector_arc) => {
                     let mut detector_guard = detector_arc.lock_resilient();
-                    crate::portrait_processing::detect_face_regions_onnx(image, &mut detector_guard)
+                    let onnx_regions =
+                        crate::portrait_processing::detect_face_regions_onnx(image, &mut detector_guard);
+                    if onnx_regions.is_empty() {
+                        crate::portrait_processing::detect_face_regions(image)
+                    } else {
+                        onnx_regions
+                    }
                 }
                 Err(e) => {
                     log::warn!(
