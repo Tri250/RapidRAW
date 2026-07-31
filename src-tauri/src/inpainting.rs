@@ -106,6 +106,18 @@ pub async fn generate_manual_cleanup_patch(
     let mask_raw = mask_bitmap.as_raw();
     let img_w_usize = img_w as usize;
     let img_h_usize = img_h as usize;
+    // Bounds safety: guarantee mask buffer matches declared dimensions before any
+    // unchecked row-slice access (guards against regressions in inverse_transform_mask).
+    let expected_mask_bytes = img_w_usize
+        .checked_mul(img_h_usize)
+        .ok_or("Mask dimensions overflow")?;
+    if mask_raw.len() < expected_mask_bytes {
+        return Err(format!(
+            "Mask buffer too short: {} < {}",
+            mask_raw.len(),
+            expected_mask_bytes
+        ));
+    }
 
     let mut min_y = img_h_usize;
     let mut max_y = 0;
@@ -545,6 +557,17 @@ pub async fn invoke_generative_replace_with_mask_def(
     let mask_raw = mask_bitmap.as_raw();
     let img_w_usize = img_w as usize;
     let img_h_usize = img_h as usize;
+    // Bounds safety: guarantee mask buffer matches declared dimensions.
+    let expected_mask_bytes = img_w_usize
+        .checked_mul(img_h_usize)
+        .ok_or("Mask dimensions overflow")?;
+    if mask_raw.len() < expected_mask_bytes {
+        return Err(format!(
+            "Generative mask buffer too short: {} < {}",
+            mask_raw.len(),
+            expected_mask_bytes
+        ));
+    }
 
     let mut min_y = img_h_usize;
     let mut max_y = 0;

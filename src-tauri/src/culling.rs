@@ -104,13 +104,23 @@ fn calculate_exposure_metric(image: &GrayImage) -> f64 {
         return 0.0;
     }
 
-    let clip_threshold_dark = 5;
-    let clip_threshold_bright = 250;
+    let channel = match histogram.channels.first() {
+        Some(c) => c,
+        None => return 0.0,
+    };
+    let bins = channel.len();
+    if bins == 0 {
+        return 0.0;
+    }
 
-    let dark_pixels = histogram.channels[0][0..clip_threshold_dark]
+    let clip_threshold_dark = 5usize.min(bins);
+    let clip_threshold_bright = 250usize.min(bins);
+    let upper_bound = 256usize.min(bins);
+
+    let dark_pixels = channel[0..clip_threshold_dark]
         .iter()
         .sum::<u32>() as f64;
-    let bright_pixels = histogram.channels[0][clip_threshold_bright..256]
+    let bright_pixels = channel[clip_threshold_bright..upper_bound]
         .iter()
         .sum::<u32>() as f64;
 

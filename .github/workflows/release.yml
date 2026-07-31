@@ -51,9 +51,20 @@ jobs:
           pkg_version="$(node -e "console.log(require('./package.json').version)")"
           tauri_version="$(node -e "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8')); console.log(c.version || '')")"
           cargo_version="$(grep -m1 '^version' src-tauri/Cargo.toml | sed -E 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*$/\1/')"
+          rust_edition="$(grep -m1 '^edition' src-tauri/Cargo.toml | sed -E 's/^edition[[:space:]]*=[[:space:]]*"([^"]+)".*$/\1/')"
+          rust_minver="$(grep -m1 '^rust-version' src-tauri/Cargo.toml | sed -E 's/^rust-version[[:space:]]*=[[:space:]]*"([^"]+)".*$/\1/')"
+          toolchain_channel=""
+          if [[ -f rust-toolchain.toml ]]; then
+            toolchain_channel="$(grep -m1 'channel' rust-toolchain.toml | sed -E 's/.*channel[[:space:]]*=[[:space:]]*"([^"]+)".*$/\1/')"
+          elif [[ -f rust-toolchain ]]; then
+            toolchain_channel="$(head -n1 rust-toolchain | tr -d '[:space:]')"
+          fi
           echo "package.json:      ${pkg_version}"
           echo "tauri.conf.json:   ${tauri_version}"
           echo "Cargo.toml:        ${cargo_version}"
+          echo "rust-edition:      ${rust_edition}"
+          echo "rust-version:      ${rust_minver}"
+          echo "rust-toolchain:    ${toolchain_channel}"
 
           android_props_file="src-tauri/gen/android/app/tauri.properties"
           if [[ -f "$android_props_file" ]]; then
@@ -67,11 +78,30 @@ jobs:
             echo "::warning::Android tauri.properties not found; skipping Android version check."
           fi
 
+          # Rust toolchain cross-check: the repo's locked toolchain MUST match what
+          # CI installs and what Cargo.toml declares as the minimum MSRV.
+          if [[ -n "${rust_minver}" && -n "${toolchain_channel}" ]]; then
+            if [[ "${rust_minver}" != "${toolchain_channel}" ]]; then
+              echo "::error::Rust version mismatch: Cargo.toml rust-version=${rust_minver} != rust-toolchain.toml channel=${toolchain_channel}"
+              exit 1
+            fi
+          fi
+
+          # Edition 2024 requires Rust >= 1.85.0. Guard against downgrade drift.
+          if [[ "${rust_edition}" == "2024" ]]; then
+            req_major="${toolchain_channel%%.*}"; req_major="${req_major:-0}"
+            req_minor="${toolchain_channel#*.}"; req_minor="${req_minor%%.*}"; req_minor="${req_minor:-0}"
+            if (( req_major < 1 || (req_major == 1 && req_minor < 85) )); then
+              echo "::error::Edition 2024 requires rust-toolchain >= 1.85.0, got ${toolchain_channel}"
+              exit 1
+            fi
+          fi
+
           if [[ "$pkg_version" != "$tauri_version" || "$pkg_version" != "$cargo_version" ]]; then
             echo "::error::Version mismatch detected. All three files must have the same version."
             exit 1
           fi
-          echo "::notice::All version sources are in sync: v${pkg_version}"
+          echo "::notice::All version sources are in sync: v${pkg_version} (toolchain=${toolchain_channel:-n/a}, edition=${rust_edition})"
 
   release:
     needs: version-sync-check

@@ -656,8 +656,19 @@ pub fn warp_image_homography(
                 row[base + 2] = pixel[2];
             }
         });
-    Rgb32FImage::from_raw(width, height, buffer)
-        .expect("warp buffer dimensions must match output image")
+    let expected = width as usize * height as usize * 3;
+    match Rgb32FImage::from_raw(width, height, buffer) {
+        Some(img) => img,
+        None => {
+            log::error!(
+                "warp_image_homography: from_raw failed ({}x{} expected {} bytes) – returning black canvas",
+                width,
+                height,
+                expected,
+            );
+            Rgb32FImage::from_pixel(width, height, Rgb([0.0f32, 0.0, 0.0]))
+        }
+    }
 }
 
 fn get_interpolated_pixel(img: &Rgb32FImage, x: f64, y: f64) -> Rgb<f32> {

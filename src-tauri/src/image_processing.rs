@@ -436,7 +436,19 @@ pub fn downscale_f32_image(image: &DynamicImage, nwidth: u32, nheight: u32) -> D
             }
         });
 
-    let out = Rgb32FImage::from_raw(new_w, new_h, out_buf).expect("buffer size mismatch");
+    let out = match Rgb32FImage::from_raw(new_w, new_h, out_buf) {
+        Some(img) => img,
+        None => {
+            log::error!(
+                "downscale_f32_image: from_raw failed ({}x{} expect {} bytes, got {}) – returning empty",
+                new_w,
+                new_h,
+                new_w as usize * new_h as usize * 3,
+                0,
+            );
+            return image.clone();
+        }
+    };
     let result = DynamicImage::ImageRgb32F(out);
 
     log::info!("downscale_f32_image took {:.2?}", start.elapsed());
@@ -912,8 +924,18 @@ pub fn warp_image_geometry(image: &DynamicImage, params: GeometryParams) -> Dyna
             }
         });
 
-    let out_img = Rgb32FImage::from_vec(width, height, out_buffer)
-        .expect("buffer size was validated before allocation");
+    let out_img = match Rgb32FImage::from_vec(width, height, out_buffer) {
+        Some(img) => img,
+        None => {
+            log::error!(
+                "warp_image_geometry: from_vec failed ({}x{} expect {} bytes) – returning input",
+                width,
+                height,
+                width as usize * height as usize * 3,
+            );
+            return image.clone();
+        }
+    };
     DynamicImage::ImageRgb32F(out_img)
 }
 
@@ -1068,8 +1090,18 @@ pub fn unwarp_image_geometry(warped_image: &DynamicImage, params: GeometryParams
             }
         });
 
-    let out_img = Rgb32FImage::from_vec(width, height, out_buffer)
-        .expect("buffer size was validated before allocation");
+    let out_img = match Rgb32FImage::from_vec(width, height, out_buffer) {
+        Some(img) => img,
+        None => {
+            log::error!(
+                "unwarp_image_geometry: from_vec failed ({}x{} expect {} bytes) – returning input",
+                width,
+                height,
+                width as usize * height as usize * 3,
+            );
+            return warped_image.clone();
+        }
+    };
     DynamicImage::ImageRgb32F(out_img)
 }
 
