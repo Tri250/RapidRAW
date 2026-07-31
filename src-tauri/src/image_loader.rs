@@ -859,37 +859,40 @@ pub fn composite_patches_on_image(
                 // variants, so we carry gray float data in Rgb32F / Rgba32F (replicate
                 // luma into R=G=B) and down-convert to the integer Luma variants below.
                 if base_has_alpha {
-                    let gray_a: ImageBuffer<Rgba<f32>, Vec<f32>> = rgba32_img
+                    let (w, h) = rgba32_img.dimensions();
+                    let raw: Vec<f32> = rgba32_img
                         .pixels()
-                        .map(|p| {
+                        .flat_map(|p| {
                             let y = 0.2126 * p[0] as f32 + 0.7152 * p[1] as f32 + 0.0722 * p[2] as f32;
-                            Rgba([y, y, y, p[3] as f32])
+                            [y, y, y, p[3] as f32]
                         })
-                        .collect::<Vec<_>>()
-                        .try_into()
-                        .map_err(|_| anyhow::anyhow!("Failed to repack LumaA32F-as-Rgba32F"))?;
+                        .collect();
+                    let gray_a = ImageBuffer::from_raw(w, h, raw)
+                        .ok_or_else(|| anyhow::anyhow!("Failed to repack LumaA32F-as-Rgba32F"))?;
                     DynamicImage::ImageRgba32F(gray_a)
                 } else {
-                    let gray: ImageBuffer<Rgb<f32>, Vec<f32>> = rgba32_img
+                    let (w, h) = rgba32_img.dimensions();
+                    let raw: Vec<f32> = rgba32_img
                         .pixels()
-                        .map(|p| {
+                        .flat_map(|p| {
                             let y = 0.2126 * p[0] as f32 + 0.7152 * p[1] as f32 + 0.0722 * p[2] as f32;
-                            Rgb([y, y, y])
+                            [y, y, y]
                         })
-                        .collect::<Vec<_>>()
-                        .try_into()
-                        .map_err(|_| anyhow::anyhow!("Failed to repack Luma32F-as-Rgb32F"))?;
+                        .collect();
+                    let gray = ImageBuffer::from_raw(w, h, raw)
+                        .ok_or_else(|| anyhow::anyhow!("Failed to repack Luma32F-as-Rgb32F"))?;
                     DynamicImage::ImageRgb32F(gray)
                 }
             } else if base_has_alpha {
                 DynamicImage::ImageRgba32F(rgba32_img)
             } else {
-                let rgb_buf: ImageBuffer<Rgb<f32>, Vec<f32>> = rgba32_img
+                let (w, h) = rgba32_img.dimensions();
+                let raw: Vec<f32> = rgba32_img
                     .pixels()
-                    .map(|p| Rgb([p[0] as f32, p[1] as f32, p[2] as f32]))
-                    .collect::<Vec<_>>()
-                    .try_into()
-                    .map_err(|_| anyhow::anyhow!("Failed to repack Rgb32F buffer"))?;
+                    .flat_map(|p| [p[0] as f32, p[1] as f32, p[2] as f32])
+                    .collect();
+                let rgb_buf = ImageBuffer::from_raw(w, h, raw)
+                    .ok_or_else(|| anyhow::anyhow!("Failed to repack Rgb32F buffer"))?;
                 DynamicImage::ImageRgb32F(rgb_buf)
             };
 
