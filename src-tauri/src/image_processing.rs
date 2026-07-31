@@ -3986,9 +3986,15 @@ fn cpu_linear_to_srgb(c: f32) -> f32 {
 }
 #[inline]
 fn cpu_linear_to_srgb_vec3(p: &mut [f32]) {
-    p[0] = cpu_linear_to_srgb(p[0].max(0.0));
-    p[1] = cpu_linear_to_srgb(p[1].max(0.0));
-    p[2] = cpu_linear_to_srgb(p[2].max(0.0));
+    p[0] = cpu_linear_to_srgb(p[0].clamp(0.0, 1.0));
+    p[1] = cpu_linear_to_srgb(p[1].clamp(0.0, 1.0));
+    p[2] = cpu_linear_to_srgb(p[2].clamp(0.0, 1.0));
+}
+#[inline]
+fn cpu_srgb_to_linear_vec3(p: &mut [f32]) {
+    p[0] = cpu_srgb_to_linear(p[0]);
+    p[1] = cpu_srgb_to_linear(p[1]);
+    p[2] = cpu_srgb_to_linear(p[2]);
 }
 
 #[inline]
@@ -4648,6 +4654,20 @@ pub fn apply_cpu_color_adjustments(
     let mut f32_image = image.to_rgb32f();
     let w = f32_image.width() as usize;
     let h = f32_image.height() as usize;
+
+    // Convert sRGB → linear for non-RAW images, matching the GPU pipeline
+    // (shader: `initial_linear_rgb = srgb_to_linear(color_from_texture)`).
+    // Without this, all adjustments run in sRGB space and the final
+    // `cpu_linear_to_srgb_vec3` tonemapping step double-converts, washing
+    // out color changes so they appear to have no effect.
+    if !is_raw {
+        f32_image
+            .as_raw_mut()
+            .par_chunks_mut(3)
+            .for_each(|pix| {
+                cpu_srgb_to_linear_vec3(pix);
+            });
+    }
 
     // Build luma buffer from linear RGB.
     let mut luma_buffer: Vec<f32> = vec![0.0; w * h];
