@@ -4196,12 +4196,45 @@ fn cpu_apply_tonal_adjustments(pix: &mut [f32], blur: f32, contrast: f32, shadow
 }
 
 #[inline]
-fn cpu_apply_highlights_adjustment(pix: &mut [f32], blur: f32, highlights: f32) {
+fn cpu_apply_highlights_adjustment(pix: &mut [f32], _blur: f32, highlights: f32) {
     if highlights.abs() < CPU_TINY_EPS { return; }
-    let luma = cpu_get_luma(pix);
-    let t = ((luma - 0.5) / 0.5).clamp(0.0, 1.0).powi(2);
-    let amt = -highlights * 0.7;
-    for c in 0..3 { pix[c] = pix[c] + amt * t * (pix[c] - luma * 0.9); }
+    // Match GPU `apply_highlights_adjustment` (blur/is_raw unused on GPU side too).
+    // Fixes prior sign bug: positive highlights now brighten (pow2) instead of darken.
+    let pixel_luma = cpu_get_luma(&[pix[0].max(0.0), pix[1].max(0.0), pix[2].max(0.0)]);
+    let safe_pixel_luma = pixel_luma.max(0.0001);
+    let pixel_mask_input = (safe_pixel_luma * 1.5).tanh();
+    let highlight_mask = cpu_smoothstep(0.3, 0.95, pixel_mask_input);
+    if highlight_mask < 0.001 { return; }
+
+    let luma = pixel_luma;
+    let mut final_color = [pix[0], pix[1], pix[2]];
+    if highlights < 0.0 {
+        let new_luma: f32;
+        if luma <= 1.0 {
+            let gamma = 1.0 - highlights * 1.75;
+            new_luma = luma.powf(gamma);
+        } else {
+            let luma_excess = luma - 1.0;
+            let compression_strength = -highlights * 6.0;
+            let compressed_excess = luma_excess / (1.0 + luma_excess * compression_strength);
+            new_luma = 1.0 + compressed_excess;
+        }
+        let scale = new_luma / luma.max(0.0001);
+        let tonally_adjusted = [pix[0] * scale, pix[1] * scale, pix[2] * scale];
+        let desaturation_amount = cpu_smoothstep(1.0, 10.0, luma);
+        let white_point = [new_luma; 3];
+        final_color = [
+            cpu_mix(tonally_adjusted[0], white_point[0], desaturation_amount),
+            cpu_mix(tonally_adjusted[1], white_point[1], desaturation_amount),
+            cpu_mix(tonally_adjusted[2], white_point[2], desaturation_amount),
+        ];
+    } else {
+        let adjustment = highlights * 1.75;
+        let factor = 2.0f32.powf(adjustment);
+        final_color = [pix[0] * factor, pix[1] * factor, pix[2] * factor];
+    }
+
+    for c in 0..3 { pix[c] = cpu_mix(pix[c], final_color[c], highlight_mask); }
 }
 
 #[inline]
@@ -4456,10 +4489,12 @@ fn cpu_apply_color_grading(
     let global_sat_s = 1.0f32;
     let global_lum_s = 1.0f32;
 
-    // helper: apply grade with mask, sat_strength, lum_strength using setting
+    // helper: apply grade with mask, sat_strength, lum_strength using setting.
+    // Match GPU shader `apply_color_grading`: tint only applied for positive
+    // saturation, hue is already in degrees [0,360] (same struct as GPU path).
     let apply_tint_sat = |gc: &mut [f32; 3], g: &ColorGradeSettings, mask: f32, sat_s: f32, lum_s: f32| {
-        if g.saturation.abs() > 0.001 {
-            let tint = cpu_hsv_to_rgb((g.hue * 360.0 + 360.0) % 360.0, 1.0, 1.0);
+        if g.saturation > 0.001 {
+            let tint = cpu_hsv_to_rgb((g.hue + 360.0) % 360.0, 1.0, 1.0);
             for i in 0..3 { gc[i] += (tint[i] - 0.5) * g.saturation * mask * sat_s; }
         }
         let l_adj = g.luminance * mask * lum_s;
