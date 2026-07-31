@@ -34,7 +34,9 @@ use crate::lut_processing::{
 use crate::mask_generation::{MaskDefinition, generate_mask_bitmap};
 
 use crate::cache_utils::{calculate_full_job_hash, calculate_transform_hash};
-use crate::portrait_processing::{apply_portrait_adjustments, detect_face_regions, detect_face_regions_onnx};
+use crate::portrait_processing::{
+    apply_portrait_adjustments, detect_face_regions, detect_face_regions_onnx,
+};
 use crate::{
     apply_all_transformations, generate_transformed_preview, get_cached_or_generate_mask,
     hydrate_adjustments, load_settings, resolve_warped_image_for_masks,
@@ -102,10 +104,18 @@ fn apply_watermark(
     base_image: &mut DynamicImage,
     watermark_settings: &WatermarkSettings,
 ) -> Result<(), String> {
+    // Defensive: non-positive scale means invisible watermark — skip safely.
+    if watermark_settings.scale <= 0.0 {
+        return Ok(());
+    }
+
     let watermark_img = image::open(&watermark_settings.path)
         .map_err(|e| format!("Failed to open watermark image: {}", e))?;
 
     let (base_w, base_h) = base_image.dimensions();
+    if base_w == 0 || base_h == 0 {
+        return Ok(());
+    }
     let base_min_dim = base_w.min(base_h) as f32;
 
     let watermark_scale_factor =
@@ -127,7 +137,9 @@ fn apply_watermark(
     }
     let final_watermark = DynamicImage::ImageRgba8(scaled_watermark_rgba);
 
-    let spacing_pixels = (base_min_dim * (watermark_settings.spacing / 100.0)) as i64;
+    let spacing_pixels = (base_min_dim * (watermark_settings.spacing / 100.0))
+        .round()
+        .clamp(0.0, base_min_dim as f32) as i64;
     let (wm_w, wm_h) = final_watermark.dimensions();
 
     let x = match watermark_settings.anchor {
@@ -154,6 +166,13 @@ fn apply_watermark(
         | WatermarkAnchor::BottomRight => base_h as i64 - wm_h as i64 - spacing_pixels,
     };
 
+    // Clamp coordinates to prevent image::imageops::overlay from panicking
+    // when negative or out-of-bounds.
+    let max_x = base_w.saturating_sub(wm_w) as i64;
+    let max_y = base_h.saturating_sub(wm_h) as i64;
+    let x = x.clamp(0, max_x);
+    let y = y.clamp(0, max_y);
+
     image::imageops::overlay(base_image, &final_watermark, x, y);
 
     Ok(())
@@ -164,6 +183,11 @@ fn calculate_resize_target(
     current_h: u32,
     resize_opts: &ResizeOptions,
 ) -> (u32, u32) {
+    // Defensive: zero-dimension input or zero target value → return original.
+    if current_w == 0 || current_h == 0 || resize_opts.value == 0 {
+        return (current_w, current_h);
+    }
+
     if resize_opts.dont_enlarge {
         let exceeds = match resize_opts.mode {
             ResizeMode::LongEdge => current_w.max(current_h) > resize_opts.value,
@@ -186,10 +210,10 @@ fn calculate_resize_target(
     let value = resize_opts.value;
     if fix_width {
         let h = (value as f32 * (current_h as f32 / current_w as f32)).round() as u32;
-        (value, h)
+        (value, h.max(1))
     } else {
         let w = (value as f32 * (current_w as f32 / current_h as f32)).round() as u32;
-        (w, value)
+        (w.max(1), value)
     }
 }
 
@@ -263,7 +287,7 @@ fn apply_export_resize_and_watermark(
         let (current_w, current_h) = image.dimensions();
         let (target_w, target_h) = calculate_resize_target(current_w, current_h, resize_opts);
 
-        if target_w != current_w || target_h != current_h {
+        if target_w > 0 && target_h > 0 && (target_w != current_w || target_h != current_h) {
             image = image.resize(target_w, target_h, imageops::FilterType::Lanczos3);
         }
     }
@@ -290,6 +314,10 @@ fn process_image_for_export_pipeline(
     let (transformed_image, unscaled_crop_offset) =
         apply_all_transformations(Cow::Borrowed(base_image), js_adjustments);
     let (img_w, img_h) = transformed_image.dimensions();
+
+    if img_w == 0 || img_h == 0 {
+        return Err("Transformed image has zero dimensions; cannot export.".to_string());
+    }
 
     let mask_definitions: Vec<MaskDefinition> = js_adjustments
         .get("masks")
@@ -487,7 +515,13 @@ fn process_image_for_export(
     apply_export_resize_and_watermark(processed_image, export_settings)
 }
 
-fn build_single_mask_adjustments(all: &AllAdjustments, mask_index: usize) -> AllAdjustments {
+fn build_single_mask_adjustments(
+    all: &AllAdjustments,
+    mask_index: usize,
+) -> Option<AllAdjustments> {
+    if mask_index >= all.mask_adjustments.len() {
+        return None;
+    }
     let mut single = AllAdjustments {
         global: all.global,
         mask_adjustments: all.mask_adjustments,
@@ -500,7 +534,7 @@ fn build_single_mask_adjustments(all: &AllAdjustments, mask_index: usize) -> All
     for i in 1..single.mask_adjustments.len() {
         single.mask_adjustments[i] = Default::default();
     }
-    single
+    Some(single)
 }
 
 fn encode_grayscale_to_png(bitmap: &GrayImage) -> Result<Vec<u8>, String> {
@@ -517,6 +551,8 @@ fn encode_image_to_bytes(
     output_format: &str,
     jpeg_quality: u8,
 ) -> Result<Vec<u8>, String> {
+    // Clamp quality to the valid 0–100 range expected by encoders.
+    let jpeg_quality = jpeg_quality.clamp(0, 100);
     let mut image_bytes = Vec::new();
     let mut cursor = Cursor::new(&mut image_bytes);
 
@@ -647,7 +683,14 @@ fn export_masks_for_image(
             .unwrap_or("jpg");
 
         for (i, _) in mask_bitmaps.iter().enumerate() {
-            let single_adjustments = build_single_mask_adjustments(&all_adjustments, i);
+            let Some(single_adjustments) = build_single_mask_adjustments(&all_adjustments, i)
+            else {
+                log::warn!(
+                    "Mask index {} out of bounds for adjustments; skipping mask export.",
+                    i
+                );
+                continue;
+            };
             let full_white_mask = ImageBuffer::from_fn(img_w, img_h, |_, _| Luma([255u8]));
             let single_bitmaps: Vec<ImageBuffer<Luma<u8>, Vec<u8>>> = vec![full_white_mask];
 
@@ -667,6 +710,14 @@ fn export_masks_for_image(
 
             let with_options = apply_export_resize_and_watermark(processed, export_settings)?;
             let (out_w, out_h) = with_options.dimensions();
+
+            if out_w == 0 || out_h == 0 {
+                log::warn!(
+                    "Mask export produced zero-dimension image; skipping mask {}.",
+                    i
+                );
+                continue;
+            }
 
             let alpha_resized = imageops::resize(
                 &mask_bitmaps[i],
