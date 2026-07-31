@@ -101,7 +101,17 @@ jobs:
             echo "::error::Version mismatch detected. All three files must have the same version."
             exit 1
           fi
-          echo "::notice::All version sources are in sync: v${pkg_version} (toolchain=${toolchain_channel:-n/a}, edition=${rust_edition})"
+
+          # Cross-check: the resolved tag (without leading v) MUST equal the
+          # in-repo version. Without this, a workflow_dispatch with a wrong
+          # tag-name input would publish assets under a mismatched release.
+          TAG="${{ steps.resolve-tag.outputs.tag }}"
+          TAG_VERSION="${TAG#v}"
+          if [[ -n "$TAG_VERSION" && "$TAG_VERSION" != "$pkg_version" ]]; then
+            echo "::error::Tag/version mismatch: tag '${TAG}' (v${TAG_VERSION}) != repo version ${pkg_version}"
+            exit 1
+          fi
+          echo "::notice::All version sources are in sync: v${pkg_version} (toolchain=${toolchain_channel:-n/a}, edition=${rust_edition}, tag=${TAG})"
 
   release:
     needs: version-sync-check
