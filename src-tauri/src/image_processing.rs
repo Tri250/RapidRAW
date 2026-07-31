@@ -4247,10 +4247,15 @@ fn cpu_hue_diff(a: f32, b: f32) -> f32 {
 #[inline]
 fn cpu_apply_hue_shift(pix: &mut [f32], hue: f32) {
     if hue.abs() < CPU_TINY_EPS { return; }
-    let (h, s, v) = cpu_rgb_to_hsv(pix);
-    let nh = (h + hue * 180.0 + 360.0) % 360.0;
+    // Convert linear → sRGB (matching GPU apply_hue_shift which uses linear_to_srgb_extended)
+    let srgb = [cpu_linear_to_srgb(pix[0].max(0.0)), cpu_linear_to_srgb(pix[1].max(0.0)), cpu_linear_to_srgb(pix[2].max(0.0))];
+    let (h, s, v) = cpu_rgb_to_hsv(&srgb);
+    let nh = (h + hue + 360.0) % 360.0;
     let [r, g, b] = cpu_hsv_to_rgb(nh, s, v);
-    pix[0] = r; pix[1] = g; pix[2] = b;
+    // Convert back sRGB → linear
+    pix[0] = cpu_srgb_to_linear(r);
+    pix[1] = cpu_srgb_to_linear(g);
+    pix[2] = cpu_srgb_to_linear(b);
 }
 
 #[inline]
