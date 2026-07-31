@@ -566,8 +566,7 @@ pub async fn get_or_init_denoise_model(
     ai_init_lock: &TokioMutex<()>,
 ) -> Result<Arc<Mutex<Session>>> {
     if let Some(denoise_model) = ai_state_mutex
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .as_ref()
         .and_then(|state| state.denoise_model.clone())
     {
@@ -577,8 +576,7 @@ pub async fn get_or_init_denoise_model(
     let _guard = ai_init_lock.lock().await;
 
     if let Some(denoise_model) = ai_state_mutex
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .as_ref()
         .and_then(|state| state.denoise_model.clone())
     {
@@ -635,8 +633,7 @@ pub async fn get_or_init_clip_models(
     ai_init_lock: &TokioMutex<()>,
 ) -> Result<Arc<ClipModels>> {
     if let Some(clip_models) = ai_state_mutex
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .as_ref()
         .and_then(|state| state.clip_models.clone())
     {
@@ -646,8 +643,7 @@ pub async fn get_or_init_clip_models(
     let _guard = ai_init_lock.lock().await;
 
     if let Some(clip_models) = ai_state_mutex
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .as_ref()
         .and_then(|state| state.clip_models.clone())
     {
@@ -718,8 +714,7 @@ pub async fn get_or_init_lama_model(
     ai_init_lock: &TokioMutex<()>,
 ) -> Result<Arc<Mutex<Session>>> {
     if let Some(lama_model) = ai_state_mutex
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .as_ref()
         .and_then(|state| state.lama_model.clone())
     {
@@ -729,8 +724,7 @@ pub async fn get_or_init_lama_model(
     let _guard = ai_init_lock.lock().await;
 
     if let Some(lama_model) = ai_state_mutex
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .as_ref()
         .and_then(|state| state.lama_model.clone())
     {
@@ -807,8 +801,7 @@ pub async fn get_or_init_face_landmark_detector(
     ai_init_lock: &TokioMutex<()>,
 ) -> Result<Arc<Mutex<crate::face_landmark::FaceLandmarkDetector>>, String> {
     if let Some(detector) = ai_state_mutex
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .as_ref()
         .and_then(|state| state.face_landmark_detector.clone())
     {
@@ -818,8 +811,7 @@ pub async fn get_or_init_face_landmark_detector(
     let _guard = ai_init_lock.lock().await;
 
     if let Some(detector) = ai_state_mutex
-        .lock()
-        .unwrap()
+        .lock_resilient()
         .as_ref()
         .and_then(|state| state.face_landmark_detector.clone())
     {
