@@ -149,10 +149,11 @@ use crate::formats::is_raw_file;
 use crate::hdr_deghosting::{align_hdr_frames, assert_uniform_dimensions, load_hdr_frames};
 use crate::image_loader::{composite_patches_on_image, load_and_composite};
 use crate::image_processing::{
-    Crop, GeometryParams, RenderRequest, apply_coarse_rotation, apply_cpu_default_raw_processing,
-    apply_flip, apply_geometry_warp, apply_linear_to_srgb, downscale_f32_image,
-    get_all_adjustments_from_json, get_or_init_gpu_context, process_and_get_dynamic_image,
-    resolve_tonemapper_override, resolve_tonemapper_override_from_handle, warp_image_geometry,
+    Crop, GeometryParams, RenderRequest, apply_coarse_rotation, apply_cpu_color_adjustments,
+    apply_cpu_default_raw_processing, apply_flip, apply_geometry_warp, apply_linear_to_srgb,
+    downscale_f32_image, get_all_adjustments_from_json, get_or_init_gpu_context,
+    process_and_get_dynamic_image, resolve_tonemapper_override, resolve_tonemapper_override_from_handle,
+    warp_image_geometry,
 };
 use crate::mask_generation::{
     MaskDefinition, generate_mask_bitmap, get_cached_or_generate_mask,
@@ -824,7 +825,7 @@ fn process_preview_job(
         None
     };
 
-    let final_processed_image_result =
+    let final_processed_image_result = if use_wgpu_renderer {
         crate::image_processing::process_and_get_dynamic_image_with_analytics(
             &context,
             &state,
@@ -839,36 +840,27 @@ fn process_preview_job(
             "apply_adjustments",
             use_wgpu_renderer,
             analytics_config,
-        );
+        )
+    } else {
+        // Android / no-GPU path: bypass WGPU compute entirely and use CPU color adjustments.
+        let mut cpu_image = (*processing_image).clone();
+        apply_cpu_color_adjustments(&mut cpu_image, &final_adjustments);
+        // Convert Rgb32F -> Rgba8 for the encoding pipeline.
+        Ok(DynamicImage::ImageRgba8(cpu_image.to_rgba8()))
+    };
 
-    // If rendering failed (GPU or CPU path), automatically fall back to the
-    // CPU rendering path so the user always sees an adjusted image (not the
-    // original or a blank canvas). On Android, use_wgpu_renderer is always
-    // false, but the GPU compute path can still fail due to driver issues —
-    // so we must retry with the CPU path regardless of use_wgpu_renderer.
+    // If GPU rendering failed, fall back to the true CPU path so the user
+    // always sees an adjusted image (not the original or a blank canvas).
     let (final_processed_image_result, actually_used_wgpu) =
-        if final_processed_image_result.is_err() {
+        if use_wgpu_renderer && final_processed_image_result.is_err() {
             log::warn!(
-                "Rendering failed (use_wgpu_renderer={}), falling back to CPU path for this frame: {:?}",
-                use_wgpu_renderer,
+                "GPU rendering failed, falling back to CPU path for this frame: {:?}",
                 final_processed_image_result.as_ref().err()
             );
-            let cpu_result = crate::image_processing::process_and_get_dynamic_image_with_analytics(
-                &context,
-                &state,
-                &processing_image,
-                new_transform_hash,
-                RenderRequest {
-                    adjustments: final_adjustments,
-                    mask_bitmaps: &mask_bitmaps,
-                    lut,
-                    roi: pixel_roi,
-                },
-                "apply_adjustments_fallback",
-                false, // force CPU path
-                None,  // analytics not needed for fallback render
-            );
-            (cpu_result, false)
+            let mut cpu_image = (*processing_image).clone();
+            apply_cpu_color_adjustments(&mut cpu_image, &final_adjustments);
+            let rgba_image = cpu_image.to_rgba8();
+            (Ok(DynamicImage::ImageRgba8(rgba_image)), false)
         } else {
             (final_processed_image_result, use_wgpu_renderer)
         };
