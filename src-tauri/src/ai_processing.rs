@@ -1130,8 +1130,26 @@ pub fn run_lama_inpainting(
 ) -> Result<RgbaImage> {
     let (w, h) = image.dimensions();
 
+    // Inpainting bug fix #2: consistent zero-dimension handling.
+    // Previously we returned Ok(RgbaImage::new(0,0)) which callers would try
+    // to `.to_rgba8()` or splat back onto the source canvas (0-dim buffer
+    // confuses downstream code on Android).  Return a clear Err so the
+    // generative-replace / heal pipeline falls back gracefully.
     if w == 0 || h == 0 {
-        return Ok(RgbaImage::new(0, 0));
+        return Err(anyhow::anyhow!("Image has zero dimensions"));
+    }
+    let (mw, mh) = mask.dimensions();
+    if mw == 0 || mh == 0 {
+        return Err(anyhow::anyhow!("Mask has zero dimensions"));
+    }
+    // Defensive dimension alignment — inpainting model operates on the
+    // source image spatial domain, so mismatched sizes would either panic
+    // via get_pixel out-of-bounds or silently write to wrong texels.
+    if mw != w || mh != h {
+        return Err(anyhow::anyhow!(
+            "Inpainting mask dimensions {}x{} do not match image {}x{}",
+            mw, mh, w, h
+        ));
     }
 
     let (mut min_x, mut min_y) = (w, h);

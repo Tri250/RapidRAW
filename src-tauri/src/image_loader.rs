@@ -476,6 +476,15 @@ pub fn composite_patches_on_image(
     base_image: &DynamicImage,
     current_adjustments: &Value,
 ) -> Result<DynamicImage> {
+    // Inpainting bug fix #3a: entry-point zero-dimension guard.
+    // Without this, the mask decode path can return 0x0 GrayImages whose
+    // enumerate_pixels / crop_imm cause panics or silent black output on
+    // Android edge cases (decoder returned blank buffer, OOM fallback, etc.).
+    let (base_w, base_h) = base_image.dimensions();
+    if base_w == 0 || base_h == 0 {
+        return Err(anyhow::anyhow!("Base image has zero dimensions"));
+    }
+
     let patches_val = match current_adjustments.get("aiPatches") {
         Some(val) => val,
         None => return Ok(base_image.clone()),
@@ -507,8 +516,6 @@ pub fn composite_patches_on_image(
     if visible_patches.is_empty() {
         return Ok(base_image.clone());
     }
-
-    let (base_w, base_h) = base_image.dimensions();
 
     struct DecodedPatch {
         offset_x: Option<u32>,
@@ -773,6 +780,34 @@ pub fn composite_patches_on_image(
             }
         }
         _ => {
+            // Inpainting bug fix #3b: preserve the *original* pixel format of
+            // base_image.  The previous code always re-wrapped the result as
+            // ImageRgba32F even when the input was Rgba8 / Rgb8 / Luma[A] / etc.,
+            // which broke downstream code that expected a specific bit depth
+            // (e.g. Android export pipelines that feed Rgba8 straight into JPEG).
+            //
+            // Strategy: always do the blend math in 32F float precision
+            // (identical quality to the Rgb32F / Rgba32F branches above), then
+            // convert back using the `DynamicImage::from(buffer).into_*` family
+            // that matches whatever variant `base_image` came in as.
+            let base_color_type = base_image.color();
+            let base_is_gray = matches!(
+                base_color_type,
+                image::ColorType::L8 | image::ColorType::La8 | image::ColorType::L16 | image::ColorType::La16 | image::ColorType::L32F | image::ColorType::La32F
+            );
+            let base_has_alpha = matches!(
+                base_color_type,
+                image::ColorType::La8 | image::ColorType::Rgba8 | image::ColorType::La16 | image::ColorType::Rgba16 | image::ColorType::Rgba32F | image::ColorType::La32F
+            );
+            let base_is_16bit = matches!(
+                base_color_type,
+                image::ColorType::L16 | image::ColorType::La16 | image::ColorType::Rgb16 | image::ColorType::Rgba16
+            );
+            let base_is_8bit_int = matches!(
+                base_color_type,
+                image::ColorType::L8 | image::ColorType::La8 | image::ColorType::Rgb8 | image::ColorType::Rgba8
+            );
+
             let mut rgba32_img = composited_image.to_rgba32f();
             for patch in decoded_patches {
                 if let (Some(ox), Some(oy)) = (patch.offset_x, patch.offset_y) {
@@ -817,7 +852,113 @@ pub fn composite_patches_on_image(
                     }
                 }
             }
-            composited_image = DynamicImage::ImageRgba32F(rgba32_img);
+
+            use image::{DynamicImage, ImageBuffer, Luma, LumaA, Rgb, Rgba};
+            composited_image = if base_is_gray {
+                let gray: ImageBuffer<Luma<f32>, Vec<f32>> = rgba32_img
+                    .pixels()
+                    .map(|p| {
+                        let y =
+                            0.2126 * p[0] as f32 + 0.7152 * p[1] as f32 + 0.0722 * p[2] as f32;
+                        Luma([y])
+                    })
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .map_err(|_| anyhow::anyhow!("Failed to repack Luma32F buffer"))?;
+                if base_has_alpha {
+                    let la: ImageBuffer<LumaA<f32>, Vec<f32>> = gray
+                        .pixels()
+                        .zip(rgba32_img.pixels())
+                        .map(|(l, a)| LumaA([l[0], a[3] as f32]))
+                        .collect::<Vec<_>>()
+                        .try_into()
+                        .map_err(|_| anyhow::anyhow!("Failed to repack LumaA32F"))?;
+                    DynamicImage::ImageLa32F(la)
+                } else {
+                    DynamicImage::ImageL32F(gray)
+                }
+            } else if base_has_alpha {
+                DynamicImage::ImageRgba32F(rgba32_img)
+            } else {
+                let rgb_buf: ImageBuffer<Rgb<f32>, Vec<f32>> = rgba32_img
+                    .pixels()
+                    .map(|p| Rgb([p[0] as f32, p[1] as f32, p[2] as f32]))
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .map_err(|_| anyhow::anyhow!("Failed to repack Rgb32F buffer"))?;
+                DynamicImage::ImageRgb32F(rgb_buf)
+            };
+
+            // Integer bit-depth round-trip: if the original image was 8-bit or
+            // 16-bit integer, convert back so the caller sees the same
+            // ColorType it handed in (otherwise downstream encoders may pick a
+            // 32F encoder for an 8-bit JPEG/PNG export and corrupt / fail).
+            if base_is_8bit_int {
+                use image::Pixel;
+                composited_image = match composited_image.color() {
+                    image::ColorType::Rgba32F => {
+                        DynamicImage::ImageRgba8(composited_image.to_rgba8())
+                    }
+                    image::ColorType::Rgb32F => DynamicImage::ImageRgb8(composited_image.to_rgb8()),
+                    image::ColorType::La32F => {
+                        // convert LumaA<f32> → La8
+                        let src = match &composited_image {
+                            DynamicImage::ImageLa32F(b) => b.clone(),
+                            _ => unreachable!(),
+                        };
+                        let dst = ImageBuffer::<LumaA<u8>, Vec<u8>>::from_vec(
+                            src.width(),
+                            src.height(),
+                            src.pixels()
+                                .flat_map(|p| {
+                                    let l = (p[0].clamp(0.0, 1.0) * 255.0).round() as u8;
+                                    let a = (p[1].clamp(0.0, 1.0) * 255.0).round() as u8;
+                                    [l, a]
+                                })
+                                .collect(),
+                        )
+                        .ok_or_else(|| anyhow::anyhow!("Failed to repack La8"))?;
+                        DynamicImage::ImageLa8(dst)
+                    }
+                    image::ColorType::L32F => {
+                        DynamicImage::ImageL8(composited_image.to_luma8())
+                    }
+                    _ => composited_image,
+                };
+            } else if base_is_16bit {
+                use image::Pixel;
+                composited_image = match composited_image.color() {
+                    image::ColorType::Rgba32F => {
+                        DynamicImage::ImageRgba16(composited_image.to_rgba16())
+                    }
+                    image::ColorType::Rgb32F => {
+                        DynamicImage::ImageRgb16(composited_image.to_rgb16())
+                    }
+                    image::ColorType::La32F => {
+                        let src = match &composited_image {
+                            DynamicImage::ImageLa32F(b) => b.clone(),
+                            _ => unreachable!(),
+                        };
+                        let dst = ImageBuffer::<LumaA<u16>, Vec<u16>>::from_vec(
+                            src.width(),
+                            src.height(),
+                            src.pixels()
+                                .flat_map(|p| {
+                                    let l = (p[0].clamp(0.0, 1.0) * 65535.0).round() as u16;
+                                    let a = (p[1].clamp(0.0, 1.0) * 65535.0).round() as u16;
+                                    [l, a]
+                                })
+                                .collect(),
+                        )
+                        .ok_or_else(|| anyhow::anyhow!("Failed to repack La16"))?;
+                        DynamicImage::ImageLa16(dst)
+                    }
+                    image::ColorType::L32F => {
+                        DynamicImage::ImageL16(composited_image.to_luma16())
+                    }
+                    _ => composited_image,
+                };
+            }
         }
     }
 

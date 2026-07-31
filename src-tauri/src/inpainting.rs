@@ -57,6 +57,13 @@ pub async fn generate_manual_cleanup_patch(
 
     let (img_w, img_h) = source_image.dimensions();
 
+    // Inpainting bug fix #1a (generate_manual_cleanup_patch): guard zero-dimension
+    // inputs before any mask / geometry work so we report a clear error instead of
+    // the downstream misleading "Mask is empty" message on Android / edge cases.
+    if img_w == 0 || img_h == 0 {
+        return Err("Source image has zero dimensions".to_string());
+    }
+
     let orientation_steps = current_adjustments
         .get("orientationSteps")
         .and_then(|v| v.as_u64())
@@ -404,6 +411,13 @@ pub async fn invoke_generative_replace_with_mask_def(
     };
 
     let (img_w, img_h) = source_image.dimensions();
+
+    // Inpainting bug fix #1b (invoke_generative_replace_with_mask_def): same
+    // zero-dimension guard as the manual-cleanup path. Prevents confusing
+    // "Mask is empty" errors when Android side sends an unloaded image.
+    if img_w == 0 || img_h == 0 {
+        return Err("Source image has zero dimensions".to_string());
+    }
 
     let orientation_steps = current_adjustments
         .get("orientationSteps")

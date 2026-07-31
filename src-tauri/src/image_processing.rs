@@ -2669,6 +2669,29 @@ pub fn remove_raw_artifacts_and_enhance(
         log::warn!("Skipping raw artifact removal: {}", e);
         return;
     }
+    // Inpainting / restoration bug fix #4: clamp strength params to sane
+    // ranges before entering the expensive pixel-parallel kernels.
+    // NaN/inf input (e.g. corrupted Android JSON slider value) would otherwise
+    // poison the entire YCbCr buffer via the Gaussian-weighted sums, producing
+    // fully-black output.  Extreme negative sigma is also nonsensical for an
+    // inverse-sigma weighting — 0.0 disables the pass cleanly.
+    let color_nr_inv_sigma = if color_nr_inv_sigma.is_finite() {
+        color_nr_inv_sigma.clamp(0.0, 5.0)
+    } else {
+        0.0
+    };
+    let sharpening_amount = if sharpening_amount.is_finite() {
+        sharpening_amount.clamp(-2.0, 5.0)
+    } else {
+        0.0
+    };
+
+    // Short-circuit: if neither effect is active, skip the RGB→YCbCr→RGB
+    // round-trip entirely (significant battery win on Android idle frames).
+    if color_nr_inv_sigma <= 0.0 && sharpening_amount.abs() <= 1e-4 {
+        return;
+    }
+
     let _guard = match ProcessingGuard::acquire() {
         Ok(g) => g,
         Err(e) => {
