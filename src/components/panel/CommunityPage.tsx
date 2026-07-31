@@ -148,7 +148,7 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
 
       // Also save a temp file path for compatibility with callers expecting
       // a path string.
-      const tempPath: string = await invoke(Invokes.SaveTempFile, {
+      const tempPath: string = await invoke<string>(Invokes.SaveTempFile, {
         bytes: Array.from(u8),
       }).catch(() => dataUrl);
       return tempPath;

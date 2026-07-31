@@ -26,15 +26,12 @@ jobs:
 
       - name: Check Formatting
         run: npm run format:check
-        continue-on-error: true
 
       - name: Run ESLint
         run: npm run lint
-        continue-on-error: true
 
       - name: Check Translation Sync
         run: npm run i18n:check
-        continue-on-error: true
 
   fmt:
     name: cargo fmt
@@ -51,7 +48,6 @@ jobs:
       - name: Check formatting
         working-directory: src-tauri
         run: cargo fmt -p RapidRAW -- --check
-        continue-on-error: true
 
   clippy:
     name: cargo clippy

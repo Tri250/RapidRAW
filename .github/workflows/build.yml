@@ -375,3 +375,50 @@ jobs:
           retention-days: 7
           compression-level: 6
           if-no-files-found: warn
+
+      - name: Verify artifacts & generate checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "::group::Artifact verification"
+          target_dir="src-tauri/target/${{ inputs.target || 'release' }}/bundle"
+          found=0
+          for pattern in nsis/*.exe nsis/*.nsis.zip *.deb *.rpm *.AppImage *.dmg; do
+            for f in $(find "$target_dir" -type f -path "*/$pattern" 2>/dev/null || true); do
+              if [[ -f "$f" && -s "$f" ]]; then
+                size=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null || echo "0")
+                if [[ "$size" -gt 1024 ]]; then
+                  echo "OK: $f ($size bytes)"
+                  sha256sum "$f" >> checksums.txt 2>/dev/null || shasum -a 256 "$f" >> checksums.txt 2>/dev/null || true
+                  found=$((found + 1))
+                else
+                  echo "::warning::Artifact too small: $f ($size bytes)"
+                fi
+              fi
+            done
+          done
+          if [[ "${{ inputs.mobile }}" == "android" ]]; then
+            for f in $(find src-tauri/gen/android/app/build/outputs -type f \( -name '*.apk' -o -name '*.aab' \) 2>/dev/null || true); do
+              if [[ -f "$f" && -s "$f" ]]; then
+                size=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null || echo "0")
+                if [[ "$size" -gt 1024 ]]; then
+                  echo "OK: $f ($size bytes)"
+                  sha256sum "$f" >> checksums.txt 2>/dev/null || shasum -a 256 "$f" >> checksums.txt 2>/dev/null || true
+                  found=$((found + 1))
+                else
+                  echo "::warning::Artifact too small: $f ($size bytes)"
+                fi
+              fi
+            done
+          fi
+          echo "::endgroup::"
+          if [[ "$found" -eq 0 && "${{ inputs.upload-artifacts }}" != "false" && "${{ inputs.tag-name }}" != "" ]]; then
+            echo "::error::No release artifacts found"
+            exit 1
+          fi
+          echo "Verified $found artifact(s)"
+          if [[ -f checksums.txt ]]; then
+            echo "::group::SHA256 checksums"
+            cat checksums.txt
+            echo "::endgroup::"
+          fi

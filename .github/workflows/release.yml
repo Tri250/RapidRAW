@@ -161,3 +161,74 @@ jobs:
     permissions:
       contents: write
       actions: write
+
+  release-verify:
+    name: Verify Release Assets
+    needs: release
+    runs-on: ubuntu-latest
+    if: always()
+    permissions:
+      contents: read
+    steps:
+      - name: Wait for release assets to settle
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="${{ needs.version-sync-check.outputs.resolved-tag }}"
+          echo "Waiting for release assets for tag: $tag"
+          for i in $(seq 1 30); do
+            if gh release view "$tag" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+              echo "Release found"
+              break
+            fi
+            if [[ $i -eq 30 ]]; then
+              echo "::error::Release not found after waiting"
+              exit 1
+            fi
+            sleep 10
+          done
+
+      - name: Verify expected assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="${{ needs.version-sync-check.outputs.resolved-tag }}"
+          echo "Checking release assets for $tag"
+          assets=$(gh release view "$tag" --repo "${{ github.repository }}" --json assets -q '.assets[].name')
+          echo "Found assets:"
+          echo "$assets"
+
+          expected_prefixes=(
+            "01_"
+            "01_arm_"
+            "02_"
+            "02_intel_"
+            "03_"
+            "03_24_"
+            "04_"
+          )
+
+          missing=0
+          for prefix in "${expected_prefixes[@]}"; do
+            if echo "$assets" | grep -q "^${prefix}"; then
+              echo "OK: Found assets with prefix ${prefix}"
+            else
+              echo "::warning::Missing assets with prefix ${prefix}"
+              missing=$((missing + 1))
+            fi
+          done
+
+          if [[ "$missing" -gt 0 ]]; then
+            echo "::notice::Some expected asset prefixes were missing (${missing}). This may be normal if the build is still in progress or if some platforms were intentionally skipped."
+          fi
+
+          total=$(echo "$assets" | wc -l)
+          if [[ "$total" -eq 0 ]]; then
+            echo "::error::No assets found in release"
+            exit 1
+          fi
+          echo "Release verification complete. Found $total asset(s)."

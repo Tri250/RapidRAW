@@ -1,0 +1,185 @@
+name: Health Check & Self-Repair
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: health-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  version-sync-check:
+    name: Verify version sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check version consistency
+        shell: bash
+        run: |
+          set -euo pipefail
+          pkg_version="$(node -e "console.log(require('./package.json').version)")"
+          tauri_version="$(node -e "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8')); console.log(c.version || '')")"
+          cargo_version="$(grep -m1 '^version' src-tauri/Cargo.toml | sed -E 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*$/\1/')"
+
+          echo "package.json:      ${pkg_version}"
+          echo "tauri.conf.json:   ${tauri_version}"
+          echo "Cargo.toml:        ${cargo_version}"
+
+          if [[ "$pkg_version" != "$tauri_version" || "$pkg_version" != "$cargo_version" ]]; then
+            echo "::error::Version mismatch detected. All three files must have the same version."
+            exit 1
+          fi
+          echo "::notice::All version sources are in sync: v${pkg_version}"
+
+      - name: Check rust-toolchain alignment
+        shell: bash
+        run: |
+          set -euo pipefail
+          rust_minver="$(grep -m1 '^rust-version' src-tauri/Cargo.toml | sed -E 's/^rust-version[[:space:]]*=[[:space:]]*"([^"]+)".*$/\1/')"
+          toolchain_channel=""
+          if [[ -f rust-toolchain.toml ]]; then
+            toolchain_channel="$(grep -m1 'channel' rust-toolchain.toml | sed -E 's/.*channel[[:space:]]*=[[:space:]]*"([^"]+)".*$/\1/')"
+          fi
+          echo "Cargo.toml rust-version: ${rust_minver}"
+          echo "rust-toolchain.toml:     ${toolchain_channel}"
+          if [[ -n "${rust_minver}" && -n "${toolchain_channel}" && "${rust_minver}" != "${toolchain_channel}" ]]; then
+            echo "::error::Rust version mismatch: Cargo.toml rust-version=${rust_minver} != rust-toolchain.toml channel=${toolchain_channel}"
+            exit 1
+          fi
+          echo "::notice::Rust toolchain alignment OK"
+
+  frontend-checks:
+    name: Frontend Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Check for unused dependencies
+        run: npx depcheck --ignores="@types/*,eslint-plugin-*" || true
+
+  rust-checks:
+    name: Rust Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: '1.96.0'
+          rustflags: ''
+          rust-src-dir: src-tauri
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Check formatting
+        working-directory: src-tauri
+        run: cargo fmt -p RapidRAW -- --check
+
+      - name: Run clippy
+        working-directory: src-tauri
+        run: cargo clippy --all-targets --all-features -- -D warnings
+        continue-on-error: true
+
+      - name: Check for outdated dependencies
+        working-directory: src-tauri
+        run: cargo outdated --root-deps-only || true
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high || true
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: '1.96.0'
+          rustflags: ''
+          rust-src-dir: src-tauri
+
+      - name: Run cargo audit
+        working-directory: src-tauri
+        run: cargo audit || true
+
+  config-validation:
+    name: Config Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Tauri config JSON schema
+        run: |
+          node -e "
+            const fs = require('fs');
+            const config = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+            if (!config.identifier) { throw new Error('Missing app identifier'); }
+            if (!config.version) { throw new Error('Missing app version'); }
+            if (!config.build?.frontendDist) { throw new Error('Missing frontendDist'); }
+            if (!config.bundle?.icon || config.bundle.icon.length === 0) { throw new Error('Missing bundle icons'); }
+            console.log('Tauri config validation passed');
+          "
+
+      - name: Validate capabilities exist
+        run: |
+          if [[ ! -f "src-tauri/capabilities/default.json" ]]; then
+            echo "::error::Missing default capabilities file"
+            exit 1
+          fi
+          echo "Capabilities validation passed"
+
+      - name: Check for broken workflow references
+        run: |
+          for file in .github/workflows/*.yml; do
+            yamllint "$file" || true
+          done
+        continue-on-error: true

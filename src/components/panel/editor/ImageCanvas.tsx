@@ -1600,7 +1600,7 @@ const ImageCanvas = memo(
       activeMaskContainerId,
       activeAiPatchContainerId,
       isMasking,
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+       
       isAiEditing,
     ]);
 

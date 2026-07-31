@@ -271,9 +271,7 @@ export function installFrontendLogBridge(): void {
     sendToBackend('error', ['Unhandled promise rejection', event.reason]);
   });
 
-  // @ts-expect-error - import.meta.hot is Vite-specific
-  const hot = (import.meta as ImportMeta & { hot?: { on: (event: string, cb: (payload: unknown) => void) => void } })
-    .hot;
+  const hot = import.meta.hot;
   if (hot?.on) {
     hot.on('vite:error', (payload: unknown) => {
       const err = isPlainRecord(payload) ? (getRecordField<unknown>(payload, 'err') ?? payload) : payload;

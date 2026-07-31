@@ -15,19 +15,12 @@ import CreateFolderModal from './CreateFolderModal';
 import RenameFolderModal from './RenameFolderModal';
 import RenameFileModal from './RenameFileModal';
 
-// @ts-expect-error React.lazy dynamic imports for code splitting
 const PanoramaModal = React.lazy(() => import('./PanoramaModal'));
-// @ts-expect-error React.lazy dynamic imports for code splitting
 const HdrModal = React.lazy(() => import('./HdrModal'));
-// @ts-expect-error React.lazy dynamic imports for code splitting
 const NegativeConversionModal = React.lazy(() => import('./NegativeConversionModal'));
-// @ts-expect-error React.lazy dynamic imports for code splitting
 const DenoiseModal = React.lazy(() => import('./DenoiseModal'));
-// @ts-expect-error React.lazy dynamic imports for code splitting
 const CullingModal = React.lazy(() => import('./CullingModal'));
-// @ts-expect-error React.lazy dynamic imports for code splitting
 const CollageModal = React.lazy(() => import('./CollageModal'));
-// @ts-expect-error React.lazy dynamic imports for code splitting
 const SmartAlbumModal = React.lazy(() => import('./SmartAlbumModal'));
 import { AppSettings, Invokes, AlbumItem, Album, AlbumGroup } from '../ui/AppProperties';
 import { CopyPasteSettings } from '../../utils/adjustments';
