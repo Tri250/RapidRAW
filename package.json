@@ -18,7 +18,9 @@
     "i18n:lint": "i18next-cli lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "health-check": "bash scripts/health-check.sh",
+    "health-check:android-ai": "bash scripts/android-ai-health-check.sh"
   },
   "dependencies": {
     "@clerk/react": "^6.12.0",
