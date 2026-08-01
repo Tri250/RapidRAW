@@ -35,6 +35,13 @@ fn get_execution_providers() -> Vec<ort::execution_providers::ExecutionProviderD
         eps.push(ROCmExecutionProvider::default().build());
     }
 
+    #[cfg(target_os = "android")]
+    {
+        // Attempt NNAPI for on-device NPU/GPU acceleration on Android.
+        // Falls back to CPU if NNAPI is unavailable on the device.
+        eps.push(NNAPIExecutionProvider::default().build());
+    }
+
     eps.push(CPUExecutionProvider::default().build());
     eps
 }
