@@ -1797,6 +1797,7 @@ struct AdjustmentScales {
 
     color_calibration_hue: f32,
     color_calibration_saturation: f32,
+    color_calibration_shadows_tint: f32,
 
     glow: f32,
     halation: f32,
@@ -1846,6 +1847,7 @@ const SCALES: AdjustmentScales = AdjustmentScales {
 
     color_calibration_hue: 400.0,
     color_calibration_saturation: 120.0,
+    color_calibration_shadows_tint: 100.0,
 
     glow: 100.0,
     halation: 100.0,
@@ -2308,7 +2310,7 @@ fn get_global_adjustments_from_json(
     let color_cal_settings = if is_visible("color") {
         ColorCalibrationSettings {
             shadows_tint: cal_obj["shadowsTint"].as_f64().unwrap_or(0.0) as f32
-                / SCALES.color_calibration_hue,
+                / SCALES.color_calibration_shadows_tint,
             red_hue: cal_obj["redHue"].as_f64().unwrap_or(0.0) as f32
                 / SCALES.color_calibration_hue,
             red_saturation: cal_obj["redSaturation"].as_f64().unwrap_or(0.0) as f32
@@ -4457,12 +4459,13 @@ fn cpu_apply_hue_shift(pix: &mut [f32], hue: f32) {
 
 #[inline]
 fn cpu_apply_creative_color(pix: &mut [f32], saturation: f32, vibrance: f32) {
-    let luma = cpu_get_luma(pix);
     if saturation.abs() > CPU_TINY_EPS {
+        let luma = cpu_get_luma(pix);
         let s = 1.0 + saturation;
         for c in 0..3 { pix[c] = cpu_mix(luma, pix[c], s); }
     }
     if vibrance.abs() < CPU_TINY_EPS { return; }
+    let luma = cpu_get_luma(pix);
     let c_max = cpu_max3(pix[0], pix[1], pix[2]);
     let c_min = cpu_min3(pix[0], pix[1], pix[2]);
     let delta = c_max - c_min;

@@ -141,10 +141,12 @@ pub async fn batch_denoise_images(
                 Ok((image, _)) => {
                     let is_raw = crate::formats::is_raw_file(&real_path);
                     let parent_dir = source_path.parent().unwrap_or(std::path::Path::new(""));
-                    let stem = source_path
-                        .file_stem()
-                        .unwrap_or_default()
-                        .to_string_lossy();
+                    let stem = crate::file_management::sanitize_filename(
+                        &source_path
+                            .file_stem()
+                            .unwrap_or_default()
+                            .to_string_lossy(),
+                    );
 
                     let (output_filename, image_to_save) = if is_raw {
                         (
@@ -213,10 +215,12 @@ pub async fn save_denoised_image(
     let parent_dir = first_path
         .parent()
         .ok_or_else(|| "Could not determine parent directory.".to_string())?;
-    let stem = first_path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("denoised");
+    let stem = crate::file_management::sanitize_filename(
+        first_path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("denoised"),
+    );
 
     let (output_filename, image_to_save): (String, DynamicImage) = if is_raw {
         let filename = format!("{}_Denoised.tiff", stem);

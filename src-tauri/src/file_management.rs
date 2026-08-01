@@ -333,6 +333,36 @@ pub(crate) fn looks_like_traversal(s: &str) -> bool {
     s.split(['/', '\\']).any(|seg| seg == "..")
 }
 
+/// Sanitize a single file or folder name so it is safe on all common
+/// filesystems (Windows, macOS, Linux, Android). Replaces characters that are
+/// invalid or commonly problematic (`< > : " / \ | ? * \0`) with `_`, trims
+/// trailing spaces and dots, and prefixes reserved Windows names.
+pub fn sanitize_filename(name: &str) -> String {
+    const INVALID: &[char] = &['<', '>', ':', '"', '/', '\\', '|', '?', '*', '\0'];
+    let mut sanitized: String = name
+        .chars()
+        .map(|c| if INVALID.contains(&c) { '_' } else { c })
+        .collect();
+    // Remove trailing spaces/dots which are illegal or confusing on Windows.
+    sanitized = sanitized.trim_end_matches(|c: char| c == ' ' || c == '.').to_string();
+
+    // Avoid reserved Windows device names (CON, PRN, AUX, NUL, COM1-9, LPT1-9)
+    // and any name that starts with one of them followed by a dot.
+    let upper = sanitized.to_uppercase();
+    const RESERVED: &[&str] = &[
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7",
+        "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    ];
+    if RESERVED.iter().any(|r| upper == *r || upper.starts_with(&format!("{}.", r))) {
+        sanitized = format!("_{}", sanitized);
+    }
+
+    if sanitized.is_empty() {
+        sanitized = "unnamed".to_string();
+    }
+    sanitized
+}
+
 /// Validate a destination/output folder before we write into it. Returns the
 /// canonicalized path on success, or an error describing why the path was
 /// rejected. We canonicalize the parent (which must already exist) and then
@@ -3467,7 +3497,7 @@ pub async fn import_files(
                         .extension()
                         .and_then(|s| s.to_str())
                         .unwrap_or("");
-                    let new_filename = format!("{}.{}", new_stem, extension);
+                    let new_filename = sanitize_filename(&format!("{}.{}", new_stem, extension));
                     let dest_file_path = final_dest_folder.join(new_filename);
 
                     if dest_file_path.exists() {
@@ -3521,7 +3551,7 @@ pub async fn import_files(
                     .extension()
                     .and_then(|s| s.to_str())
                     .unwrap_or("");
-                let new_filename = format!("{}.{}", new_stem, extension);
+                let new_filename = sanitize_filename(&format!("{}.{}", new_stem, extension));
                 let dest_file_path = final_dest_folder.join(new_filename);
 
                 if dest_file_path.exists() {
@@ -3641,7 +3671,7 @@ pub fn generate_filename_from_template(
     result = result.replace("{hh}", &local_date.format("%H").to_string());
     result = result.replace("{mm}", &local_date.format("%M").to_string());
 
-    result
+    sanitize_filename(&result)
 }
 
 #[tauri::command]

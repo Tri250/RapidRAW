@@ -2083,10 +2083,12 @@ async fn save_hdr(
     let parent_dir = first_path
         .parent()
         .ok_or_else(|| "Could not determine parent directory of the first image.".to_string())?;
-    let stem = first_path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("hdr");
+    let stem = crate::file_management::sanitize_filename(
+        first_path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("hdr"),
+    );
 
     let (output_filename, image_to_save): (String, DynamicImage) = if hdr_image.color().has_alpha()
     {
@@ -2132,10 +2134,12 @@ async fn save_collage(base64_data: String, first_path_str: String) -> Result<Str
     let parent_dir = first_path
         .parent()
         .ok_or_else(|| "Could not determine parent directory of the first image.".to_string())?;
-    let stem = first_path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("collage");
+    let stem = crate::file_management::sanitize_filename(
+        first_path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("collage"),
+    );
 
     let output_filename = format!("{}_Collage.png", stem);
     let output_path = parent_dir.join(output_filename);

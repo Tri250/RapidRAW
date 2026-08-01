@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import {
@@ -55,6 +55,25 @@ const DEFAULT_EXPORT_WIDTH = 3000;
 const INITIAL_SPACING = 15;
 const INITIAL_BORDER_RADIUS = 0;
 
+const detectMimeType = (bytes: Uint8Array): string => {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return 'image/jpeg';
+  }
+  if (bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    return 'image/png';
+  }
+  if (bytes.length >= 3 && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
+    return 'image/gif';
+  }
+  if (bytes.length >= 2 && bytes[0] === 0x42 && bytes[1] === 0x4d) {
+    return 'image/bmp';
+  }
+  if (bytes.length >= 4 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+    return 'image/webp';
+  }
+  return 'image/jpeg';
+};
+
 export default function CollageModal({ isOpen, onClose, onSave, sourceImages }: CollageModalProps) {
   const { t } = useTranslation();
 
@@ -102,6 +121,20 @@ export default function CollageModal({ isOpen, onClose, onSave, sourceImages }: 
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const imageElementsRef = useRef<Record<string, HTMLImageElement>>({});
 
+  const loadImageFromUrl = useCallback(
+    (url: string, path: string): Promise<LoadedImage> =>
+      new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          imageElementsRef.current[path] = img;
+          resolve({ path, url, width: img.width, height: img.height });
+        };
+        img.onerror = () => reject(new Error(`Failed to load image: ${path}`));
+        img.src = url;
+      }),
+    [],
+  );
+
   const resetImageOffsets = useCallback(() => {
     const initialStates: Record<string, ImageState> = {};
     loadedImages.forEach((img) => {
@@ -140,9 +173,20 @@ export default function CollageModal({ isOpen, onClose, onSave, sourceImages }: 
   useEffect(() => {
     if (!isOpen || sourceImages.length === 0) return;
 
+    const revokeExistingUrls = () => {
+      Object.values(imageElementsRef.current).forEach((img) => {
+        const src = img.src;
+        if (src && src.startsWith('blob:')) {
+          URL.revokeObjectURL(src);
+        }
+      });
+      imageElementsRef.current = {};
+    };
+
     const loadImages = async () => {
       setIsLoading(true);
       setError(null);
+      revokeExistingUrls();
       try {
         const imagePromises = sourceImages.map(async (imageFile) => {
           const metadata: any = await invoke(Invokes.LoadMetadata, { path: imageFile.path });
@@ -152,18 +196,29 @@ export default function CollageModal({ isOpen, onClose, onSave, sourceImages }: 
             path: imageFile.path,
             jsAdjustments: adjustments,
           });
-          const blob = new Blob([imageData as BlobPart], { type: 'image/jpeg' });
-          const url = URL.createObjectURL(blob);
 
-          return new Promise<LoadedImage>((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => {
-              imageElementsRef.current[imageFile.path] = img;
-              resolve({ path: imageFile.path, url, width: img.width, height: img.height });
-            };
-            img.onerror = () => reject(new Error(`Failed to load image: ${imageFile.path}`));
-            img.src = url;
-          });
+          if (!imageData || imageData.length === 0) {
+            throw new Error(`Empty preview returned for image: ${imageFile.path}`);
+          }
+
+          const mimeType = detectMimeType(imageData);
+          const blob = new Blob([imageData as BlobPart], { type: mimeType });
+          const previewUrl = URL.createObjectURL(blob);
+
+          try {
+            return await loadImageFromUrl(previewUrl, imageFile.path);
+          } catch (previewErr) {
+            URL.revokeObjectURL(previewUrl);
+            // Fallback: load the source file directly via the Tauri asset protocol.
+            // Skip for Android content URIs because they must be read through the
+            // content resolver (already attempted above).
+            const physicalPath = imageFile.path.split('?vc=')[0];
+            if (!physicalPath.startsWith('content://')) {
+              const assetUrl = convertFileSrc(physicalPath);
+              return await loadImageFromUrl(assetUrl, imageFile.path);
+            }
+            throw previewErr;
+          }
         });
 
         const results = await Promise.all(imagePromises);
@@ -191,9 +246,9 @@ export default function CollageModal({ isOpen, onClose, onSave, sourceImages }: 
     const timerId = setTimeout(loadImages, 300);
     return () => {
       clearTimeout(timerId);
-      Object.values(imageElementsRef.current).forEach((img) => URL.revokeObjectURL(img.src));
+      revokeExistingUrls();
     };
-  }, [isOpen, sourceImages, t]);
+  }, [isOpen, sourceImages, t, loadImageFromUrl]);
 
   useEffect(() => {
     if (loadedImages.length > 0) {
