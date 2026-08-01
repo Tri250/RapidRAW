@@ -1575,7 +1575,7 @@ pub fn run_sam_decoder(
         }
 
         mask_input = Array::from_shape_vec((1, 1, 256, 256), mask_input_flat)
-            .unwrap()
+            .map_err(|e| anyhow::anyhow!("Mask input shape mismatch: {}", e))?
             .into_dyn();
         has_mask_input = 1.0;
     }

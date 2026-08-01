@@ -317,7 +317,10 @@ pub async fn start_background_indexing(
                     .state::<AppState>()
                     .indexing_task_handle
                     .lock()
-                    .unwrap() = None;
+                    .unwrap_or_else(|e| {
+                        log::warn!("Indexing task handle mutex poisoned: {}", e);
+                        e.into_inner()
+                    }) = None;
                 return;
             }
         };
@@ -419,7 +422,10 @@ pub async fn start_background_indexing(
             .state::<AppState>()
             .indexing_task_handle
             .lock()
-            .unwrap() = None;
+            .unwrap_or_else(|e| {
+                log::warn!("Indexing task handle mutex poisoned: {}", e);
+                e.into_inner()
+            }) = None;
     });
 
     *state.indexing_task_handle.lock().unwrap_or_else(|e| {

@@ -3463,6 +3463,18 @@ pub fn perform_auto_analysis(image: &DynamicImage) -> AutoAdjustmentResults {
     let mut center_n = 0u32;
     let mut edge_n = 0u32;
 
+    // Gray-world white balance accumulators. We only accumulate pixels in the
+    // midtone range to avoid clipped highlights / crushed shadows skewing the
+    // average. This matches the behaviour of professional auto-WB algorithms
+    // which discount specular highlights and pure black regions.
+    const WB_LUMA_MIN: f32 = 16.0;
+    const WB_LUMA_MAX: f32 = 240.0;
+    const WB_SAT_MAX: f32 = 0.6; // exclude strongly colored pixels from gray-world avg
+    let mut wb_r_sum = 0.0f64;
+    let mut wb_g_sum = 0.0f64;
+    let mut wb_b_sum = 0.0f64;
+    let mut wb_n = 0u64;
+
     for (x, y, pixel) in rgb_image.enumerate_pixels() {
         let r = pixel[0] as f32;
         let g = pixel[1] as f32;
@@ -3489,9 +3501,62 @@ pub fn perform_auto_analysis(image: &DynamicImage) -> AutoAdjustmentResults {
             edge_sum += luma_norm;
             edge_n += 1;
         }
+
+        // Accumulate gray-world statistics for auto white balance.
+        if luma_f >= WB_LUMA_MIN && luma_f <= WB_LUMA_MAX {
+            let sat = if max_c > 0.0 { (max_c - min_c) / max_c } else { 0.0 };
+            if sat <= WB_SAT_MAX {
+                wb_r_sum += r as f64;
+                wb_g_sum += g as f64;
+                wb_b_sum += b as f64;
+                wb_n += 1;
+            }
+        }
     }
 
     mean_saturation /= total_pixels as f32;
+
+    // Compute auto white balance using the gray-world assumption.
+    // We compensate ~70% of the measured cast to avoid over-correcting scenes
+    // that are intentionally warm/cool (e.g. sunsets, candlelight).
+    //
+    // Shader model (cpu_apply_white_balance):
+    //   tr = (1 + temp*0.2) * (1 + tint*0.25)
+    //   tg = (1 + temp*0.05) * (1 - tint*0.25)
+    //   tb = (1 - temp*0.2) * (1 + tint*0.25)
+    // where temp = slider/25 and tint = slider/100.
+    //
+    // For slider values, per-unit R/B shift ≈ 0.2/25 = 0.008, and per-unit
+    // G shift ≈ 0.25/100 = 0.0025.
+    const WB_COMPENSATION: f64 = 0.7;
+    const TEMP_SLIDER_PER_RATIO: f64 = 1.0 / 0.008; // ≈ 125
+    const TINT_SLIDER_PER_RATIO: f64 = 1.0 / 0.0025; // = 400
+
+    let (temperature, tint) = if wb_n > 0 {
+        let r_avg = wb_r_sum / wb_n as f64;
+        let g_avg = wb_g_sum / wb_n as f64;
+        let b_avg = wb_b_sum / wb_n as f64;
+        let gray = (r_avg + g_avg + b_avg) / 3.0;
+
+        if gray > 1.0 {
+            // Warmth imbalance: R vs B. Positive (R>B) → image too warm →
+            // negative temperature slider cools it down.
+            let d_rb = (r_avg - b_avg) / gray;
+            let temp_slider = -WB_COMPENSATION * d_rb * TEMP_SLIDER_PER_RATIO;
+
+            // Tint imbalance: G vs midpoint of R,B. Positive (G>mid) → image
+            // too green → positive tint slider adds magenta to compensate.
+            let mid_rb = (r_avg + b_avg) / 2.0;
+            let d_g = (g_avg - mid_rb) / gray.max(1.0);
+            let tint_slider = WB_COMPENSATION * d_g * TINT_SLIDER_PER_RATIO;
+
+            (temp_slider, tint_slider)
+        } else {
+            (0.0, 0.0)
+        }
+    } else {
+        (0.0, 0.0)
+    };
 
     let percentile = |hist: &Vec<u32>, p: f64| -> usize {
         let target = (total_pixels * p) as u32;
@@ -3609,8 +3674,8 @@ pub fn perform_auto_analysis(image: &DynamicImage) -> AutoAdjustmentResults {
         shadows: shadows.clamp(-100.0, 100.0),
         vibrancy: vibrancy.clamp(-100.0, 100.0),
         vignette_amount: vignette_amount.clamp(-100.0, 100.0),
-        temperature: 0.0,
-        tint: 0.0,
+        temperature: temperature.clamp(-100.0, 100.0),
+        tint: tint.clamp(-100.0, 100.0),
         dehaze: dehaze.clamp(-100.0, 100.0),
         clarity: clarity.clamp(-100.0, 100.0),
         centre: centre.clamp(-100.0, 100.0),
@@ -3638,7 +3703,9 @@ pub fn auto_results_to_json(results: &AutoAdjustmentResults) -> serde_json::Valu
             "effects": true
         },
         "whites": results.whites,
-        "blacks": results.blacks
+        "blacks": results.blacks,
+        "temperature": results.temperature,
+        "tint": results.tint
     })
 }
 
@@ -3683,8 +3750,8 @@ pub fn detect_horizon_lines(state: tauri::State<AppState>) -> Result<Vec<Horizon
         .ok_or("No original image loaded")?;
 
     let (w, h) = loaded_image.image.as_ref().dimensions();
-    if w == 0 || h == 0 {
-        return Err("Image has zero dimensions".to_string());
+    if w < 3 || h < 3 {
+        return Err("Image too small for horizon detection".to_string());
     }
 
     // Convert to grayscale
@@ -3840,6 +3907,10 @@ fn compute_sobel_gradients(gray: &image::GrayImage) -> (Vec<f32>, Vec<f32>) {
     let mut mag = vec![0.0f32; total];
     let mut dir = vec![0.0f32; total];
 
+    if w < 3 || h < 3 {
+        return (mag, dir);
+    }
+
     for y in 1..(h - 1) {
         for x in 1..(w - 1) {
             // Sobel X kernel: [[-1,0,1],[-2,0,2],[-1,0,1]]
@@ -3868,6 +3939,10 @@ fn compute_sobel_gradients(gray: &image::GrayImage) -> (Vec<f32>, Vec<f32>) {
 fn non_maximum_suppression(mag: &[f32], dir: &[f32], w: u32, h: u32) -> Vec<f32> {
     let total = (w * h) as usize;
     let mut nms = vec![0.0f32; total];
+
+    if w < 3 || h < 3 {
+        return nms;
+    }
 
     for y in 1..(h - 1) {
         for x in 1..(w - 1) {
@@ -3937,6 +4012,9 @@ fn double_threshold_hysteresis(
     // Hysteresis: promote weak pixels connected to strong pixels
     let mut edges = strong.clone();
     let mut changed = true;
+    if w < 3 || h < 3 {
+        return edges;
+    }
     while changed {
         changed = false;
         for y in 1..(h - 1) {
@@ -5388,6 +5466,56 @@ fn cpu_apply_halation(
     pix[2] = contrast_b + halation_tint[2] * glow_intensity * amount * 2.5;
 }
 
+/// CPU implementation of lens flare effect.
+/// Matches the GPU shader's flare application. The GPU samples a flare
+/// texture; on CPU we use a procedural radial flare model centred on the
+/// image, which approximates the texture-based bloom for the fallback path.
+#[inline]
+fn cpu_apply_lens_flare(
+    pix: &mut [f32],
+    x: usize,
+    y: usize,
+    w: usize,
+    h: usize,
+    amount: f32,
+) {
+    if amount <= 0.0 {
+        return;
+    }
+
+    // Procedural flare: radial falloff from image centre.
+    let cx = w as f32 / 2.0;
+    let cy = h as f32 / 2.0;
+    let dx = x as f32 - cx;
+    let dy = y as f32 - cy;
+    let dist = (dx * dx + dy * dy).sqrt();
+    let max_dist = (cx * cx + cy * cy).sqrt().max(1.0);
+    let norm_dist = dist / max_dist;
+
+    // Flare intensity: bright near centre, falls off with distance.
+    let flare_intensity = (1.0 - norm_dist).max(0.0).powf(2.0);
+
+    // Flare color: warm white with slight tint, matching the GPU texture's
+    // typical warm optical flare appearance.
+    let flare_color = [1.0 * 1.4, 0.95 * 1.4, 0.85 * 1.4];
+    let flare_r = flare_color[0] * flare_color[0];
+    let flare_g = flare_color[1] * flare_color[1];
+    let flare_b = flare_color[2] * flare_color[2];
+
+    // High-light protection: reduce flare on already-bright pixels.
+    let linear_luma = cpu_get_luma(pix).max(0.0);
+    let perceptual_luma = if linear_luma <= 1.0 {
+        linear_luma.powf(1.0 / 2.2)
+    } else {
+        1.0 + (linear_luma - 1.0).powf(1.0 / 2.2)
+    };
+    let protection = 1.0 - cpu_smoothstep(0.7, 1.8, perceptual_luma);
+
+    pix[0] += flare_r * flare_intensity * amount * protection;
+    pix[1] += flare_g * flare_intensity * amount * protection;
+    pix[2] += flare_b * flare_intensity * amount * protection;
+}
+
 /// Apply the full color-adjustment pipeline on the CPU.
 /// This is the Android / no-GPU fallback path.
 pub fn apply_cpu_color_adjustments(
@@ -5512,6 +5640,11 @@ pub fn apply_cpu_color_adjustments(
                     pix, c_blur_rgb, g.halation_amount, is_raw,
                     g.exposure, g.brightness, g.contrast, g.whites,
                 );
+            }
+
+            // Lens flare (after halation, before dehaze — matching GPU shader).
+            if g.flare_amount > 0.0 {
+                cpu_apply_lens_flare(pix, x as usize, y as usize, w, h, g.flare_amount);
             }
 
             // Dehaze.

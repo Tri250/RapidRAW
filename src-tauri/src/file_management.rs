@@ -12,6 +12,33 @@ use std::sync::Arc;
 use std::sync::{Mutex, MutexGuard};
 use std::thread;
 
+use once_cell::sync::Lazy;
+
+// Pre-compiled XMP editing regexes. Compiled once at first use; if any pattern
+// is invalid the failure surfaces at startup rather than during a save.
+static RE_XMP_RATING_ATTR: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"xmp:Rating\s*=\s*"[^"]*""#).expect("invalid rating attr regex")
+});
+static RE_XMP_RATING_TAG: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"<xmp:Rating\s*>[^<]*</xmp:Rating>"#).expect("invalid rating tag regex")
+});
+static RE_XMP_LABEL_ATTR: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"xmp:Label\s*=\s*"[^"]*""#).expect("invalid label attr regex")
+});
+static RE_XMP_LABEL_TAG: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"<xmp:Label\s*>[^<]*</xmp:Label>"#).expect("invalid label tag regex")
+});
+static RE_XMP_LABEL_ATTR_WS: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"\s*xmp:Label\s*=\s*"[^"]*""#).expect("invalid label attr ws regex")
+});
+static RE_XMP_LABEL_TAG_WS: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"\s*<xmp:Label\s*>[^<]*</xmp:Label>"#).expect("invalid label tag ws regex")
+});
+static RE_XMP_DC_SUBJECT: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"(?s)<dc:subject>\s*<rdf:Bag>.*?</rdf:Bag>\s*</dc:subject>"#)
+        .expect("invalid dc:subject regex")
+});
+
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use image::codecs::jpeg::JpegEncoder;
@@ -3979,15 +4006,13 @@ pub fn sync_metadata_to_xmp(source_path: &Path, metadata: &ImageMetadata, create
         && let Ok(mut content) = fs::read_to_string(&xmp_file)
     {
         let rating_str = metadata.rating.to_string();
-        let re_rating_attr = Regex::new(r#"xmp:Rating\s*=\s*"[^"]*""#).unwrap();
-        let re_rating_tag = Regex::new(r#"<xmp:Rating\s*>[^<]*</xmp:Rating>"#).unwrap();
 
-        if re_rating_attr.is_match(&content) {
-            content = re_rating_attr
+        if RE_XMP_RATING_ATTR.is_match(&content) {
+            content = RE_XMP_RATING_ATTR
                 .replace(&content, format!("xmp:Rating=\"{}\"", rating_str))
                 .to_string();
-        } else if re_rating_tag.is_match(&content) {
-            content = re_rating_tag
+        } else if RE_XMP_RATING_TAG.is_match(&content) {
+            content = RE_XMP_RATING_TAG
                 .replace(&content, format!("<xmp:Rating>{}</xmp:Rating>", rating_str))
                 .to_string();
         } else if let Some(last_index) = content.rfind("</rdf:Description>") {
@@ -4013,15 +4038,12 @@ pub fn sync_metadata_to_xmp(source_path: &Path, metadata: &ImageMetadata, create
         }
 
         if let Some(lbl) = label {
-            let re_label_attr = Regex::new(r#"xmp:Label\s*=\s*"[^"]*""#).unwrap();
-            let re_label_tag = Regex::new(r#"<xmp:Label\s*>[^<]*</xmp:Label>"#).unwrap();
-
-            if re_label_attr.is_match(&content) {
-                content = re_label_attr
+            if RE_XMP_LABEL_ATTR.is_match(&content) {
+                content = RE_XMP_LABEL_ATTR
                     .replace(&content, format!("xmp:Label=\"{}\"", lbl))
                     .to_string();
-            } else if re_label_tag.is_match(&content) {
-                content = re_label_tag
+            } else if RE_XMP_LABEL_TAG.is_match(&content) {
+                content = RE_XMP_LABEL_TAG
                     .replace(&content, format!("<xmp:Label>{}</xmp:Label>", lbl))
                     .to_string();
             } else if let Some(last_index) = content.rfind("</rdf:Description>") {
@@ -4029,16 +4051,12 @@ pub fn sync_metadata_to_xmp(source_path: &Path, metadata: &ImageMetadata, create
                 content = format!("{} <xmp:Label>{}</xmp:Label>\n{}", start, lbl, end);
             }
         } else {
-            let re_label_attr = Regex::new(r#"\s*xmp:Label\s*=\s*"[^"]*""#).unwrap();
-            let re_label_tag = Regex::new(r#"\s*<xmp:Label\s*>[^<]*</xmp:Label>"#).unwrap();
-            content = re_label_attr.replace_all(&content, "").to_string();
-            content = re_label_tag.replace_all(&content, "").to_string();
+            content = RE_XMP_LABEL_ATTR_WS.replace_all(&content, "").to_string();
+            content = RE_XMP_LABEL_TAG_WS.replace_all(&content, "").to_string();
         }
 
-        let re_subject =
-            Regex::new(r#"(?s)<dc:subject>\s*<rdf:Bag>.*?</rdf:Bag>\s*</dc:subject>"#).unwrap();
         if normal_tags.is_empty() {
-            content = re_subject.replace_all(&content, "").to_string();
+            content = RE_XMP_DC_SUBJECT.replace_all(&content, "").to_string();
         } else {
             let mut bag = String::from("<dc:subject>\n    <rdf:Bag>\n");
             for t in normal_tags {
@@ -4046,8 +4064,8 @@ pub fn sync_metadata_to_xmp(source_path: &Path, metadata: &ImageMetadata, create
             }
             bag.push_str("    </rdf:Bag>\n   </dc:subject>");
 
-            if re_subject.is_match(&content) {
-                content = re_subject.replace(&content, bag).to_string();
+            if RE_XMP_DC_SUBJECT.is_match(&content) {
+                content = RE_XMP_DC_SUBJECT.replace(&content, bag).to_string();
             } else if let Some(last_index) = content.rfind("</rdf:Description>") {
                 let (start, end) = content.split_at(last_index);
                 content = format!("{} {}\n  {}", start, bag, end);

@@ -376,11 +376,7 @@
         "aiEdit_one": "AI Edit {{count}}",
         "aiEdit_other": "AI Edit {{count}}",
         "clone": "Clone {{count}}",
-        "clone_one": "",
-        "clone_other": "",
         "heal": "Heal {{count}}",
-        "heal_one": "",
-        "heal_other": "",
         "invertedName": "{{name}} Inverted",
         "quickErase": "Quick Erase {{count}}",
         "quickErase_one": "Quick Erase {{count}}",
@@ -417,8 +413,6 @@
       "applying": "Rating...",
       "applyToExif": "Apply to EXIF",
       "batchComplete": "Completed rating for {{count}} images",
-      "batchComplete_one": "",
-      "batchComplete_other": "",
       "batchProgress": "Rating {{current}}/{{total}}...",
       "description": "AI Description",
       "error": "Failed to generate rating: {{error}}",
@@ -892,8 +886,6 @@
       },
       "blemishActive": "Marking",
       "blemishCount": "{{count}} spots marked",
-      "blemishCount_one": "",
-      "blemishCount_other": "",
       "blemishHint": "Tap image to mark blemish spots",
       "blemishRemoval": "Blemish Removal",
       "blemishStart": "Start Marking",
@@ -1130,9 +1122,7 @@
       "delete": "Delete",
       "export": "Export",
       "rate": "Rate",
-      "selected": "{count} selected",
-      "selected_one": "",
-      "selected_other": ""
+      "selected": "{count} selected"
     },
     "community": {
       "actionSave": "Save",
@@ -1315,8 +1305,6 @@
       "opGreaterThan": "Greater Than",
       "opLessThan": "Less Than",
       "preview": "{count} photos match",
-      "preview_one": "",
-      "preview_other": "",
       "title": "Smart Albums",
       "valueFalse": "No",
       "valuePlaceholder": "Value",
@@ -1709,30 +1697,30 @@
     }
   },
   "presetGallery": {
-    "add": "添加",
-    "addSource": "添加源",
-    "addSourcePlaceholder": "输入 JSON URL...",
-    "addSourceRejected": "仅支持 HTTPS 且来自受信任域名（github.com、jsdelivr.net、getrapidraw.com 等）的源",
-    "backToLibrary": "返回图库",
-    "download": "保存到本地预设",
-    "downloaded": "已保存到 Community 文件夹",
-    "downloadFailed": "保存失败",
-    "downloading": "保存中…",
-    "imageLoadFailed": "图片加载失败",
-    "images": "张",
-    "noPresets": "暂无预设数据",
-    "noSources": "暂无在线样张源",
-    "noSourcesDesc": "点击\"添加源\"添加 JSON 链接",
-    "presets": "个预设",
-    "refresh": "刷新",
-    "refreshAll": "刷新所有源",
-    "removeSource": "移除",
-    "retry": "重试",
-    "saved": "已保存",
-    "saveToPreview": "保存以预览",
-    "showDetails": "查看详情",
-    "title": "在线样张",
-    "viewGallery": "查看样张"
+    "add": "Add",
+    "addSource": "Add Source",
+    "addSourcePlaceholder": "Enter JSON URL...",
+    "addSourceRejected": "Only HTTPS sources from trusted domains (github.com, jsdelivr.net, getrapidraw.com, etc.) are supported",
+    "backToLibrary": "Back to Library",
+    "download": "Save to Local Presets",
+    "downloaded": "Saved to Community folder",
+    "downloadFailed": "Save failed",
+    "downloading": "Saving…",
+    "imageLoadFailed": "Image failed to load",
+    "images": "images",
+    "noPresets": "No preset data available",
+    "noSources": "No online preset sources",
+    "noSourcesDesc": "Click \"Add Source\" to add a JSON link",
+    "presets": "presets",
+    "refresh": "Refresh",
+    "refreshAll": "Refresh All Sources",
+    "removeSource": "Remove",
+    "retry": "Retry",
+    "saved": "Saved",
+    "saveToPreview": "Save to Preview",
+    "showDetails": "View Details",
+    "title": "Online Presets",
+    "viewGallery": "View Gallery"
   },
   "settings": {
     "adjustments": {
@@ -1752,9 +1740,9 @@
       "shortcuts": "Controls"
     },
     "contact": {
-      "description": "抖音、小红书搜索「带娃的小陈工」",
-      "heading": "有任何问题或建议？",
-      "title": "联系我"
+      "description": "Search '带娃的小陈工' on Douyin / Xiaohongshu",
+      "heading": "Have a question or suggestion?",
+      "title": "Contact Me"
     },
     "controls": {
       "keyboardTitle": "Keyboard Controls",
@@ -1846,17 +1834,17 @@
       "xmpSyncDesc": "Sync ratings, color labels and tags to standard XMP sidecar files for compatibility with other photo editors."
     },
     "gpu": {
-      "acesNote": "注：ACES 色彩科学命令（color_convert_space / color_apply_aces_output / color_apply_aces_fitted 等）已注册到后端，可通过 useGpuPipeline hook 在自定义工作流中调用。",
-      "description": "检测轻量 GPU 调整管线与 ACES 色彩科学工具的可用性。这些工具作为主管线的补充，用于一次性快速预览与色空间转换。",
-      "idle": "未检测",
-      "pipelineStatus": "GPU 调整管线状态",
-      "pipelineStatusDesc": "检测轻量计算管线是否可在当前 GPU 上初始化。",
-      "ready": "可用",
-      "retest": "重新检测（清除缓存重试）",
-      "testing": "检测中…",
-      "title": "GPU 加速与色彩科学",
-      "unavailable": "不可用",
-      "unavailableReason": "当前 GPU 适配器无法初始化轻量计算管线，主管线仍可正常工作。"
+      "acesNote": "Note: ACES color science commands (color_convert_space / color_apply_aces_output / color_apply_aces_fitted, etc.) are registered in the backend and can be invoked via the useGpuPipeline hook in custom workflows.",
+      "description": "Detect availability of the lightweight GPU adjustment pipeline and ACES color science tools. These tools supplement the main pipeline for one-off fast previews and color space conversions.",
+      "idle": "Not Detected",
+      "pipelineStatus": "GPU Pipeline Status",
+      "pipelineStatusDesc": "Detect whether the lightweight compute pipeline can be initialized on the current GPU.",
+      "ready": "Available",
+      "retest": "Re-detect (clear cache and retry)",
+      "testing": "Detecting…",
+      "title": "GPU Acceleration & Color Science",
+      "unavailable": "Unavailable",
+      "unavailableReason": "The current GPU adapter cannot initialize the lightweight compute pipeline; the main pipeline still works normally."
     },
     "keybinds": {
       "actions": {
@@ -1929,14 +1917,14 @@
       "title": "My Lenses"
     },
     "presetGallery": {
-      "addSource": "添加数据源",
-      "addSourcePlaceholder": "输入 JSON 链接地址...",
-      "description": "管理在线样张 JSON 数据源，添加后可在图库中查看预设样张效果。",
-      "disabled": "已禁用",
-      "enabled": "已启用",
-      "noSources": "暂无数据源，请添加 JSON 链接。",
-      "removeSource": "移除数据源",
-      "title": "在线样张"
+      "addSource": "Add Data Source",
+      "addSourcePlaceholder": "Enter JSON link URL...",
+      "description": "Manage online preset JSON data sources. Once added, preset samples can be viewed in the gallery.",
+      "disabled": "Disabled",
+      "enabled": "Enabled",
+      "noSources": "No data sources yet. Please add a JSON link.",
+      "removeSource": "Remove Data Source",
+      "title": "Online Presets"
     },
     "processing": {
       "ai": {
@@ -2079,12 +2067,12 @@
       "workerThreadsDesc": "Number of parallel threads used to generate thumbnails. Higher values speed up library loading but use more CPU & RAM."
     },
     "selftest": {
-      "allPassed": "所有检测项通过",
-      "description": "运行全面深度自检以验证 GPU 管线、ROI 计算、预览渲染、缓存等图像处理链路组件的状态。",
-      "run": "运行深度自检",
-      "running": "检测中…",
-      "someFailed": "部分检测项未通过",
-      "title": "图像处理深度自检"
+      "allPassed": "All checks passed",
+      "description": "Run a comprehensive deep self-test to verify the state of image processing pipeline components such as GPU pipeline, ROI computation, preview rendering, and cache.",
+      "run": "Run Deep Self-Test",
+      "running": "Testing…",
+      "someFailed": "Some checks failed",
+      "title": "Image Processing Deep Self-Test"
     },
     "tagging": {
       "addCustomPlaceholder": "Add custom AI tags (comma separated)...",
