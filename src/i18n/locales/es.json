@@ -1821,8 +1821,8 @@
         },
         "title": "IA Generativa"
       },
-      "aiMirror": "",
-      "aiMirrorDesc": "",
+      "aiMirror": "URL del espejo de modelos de IA",
+      "aiMirrorDesc": "Establezca una URL de espejo personalizada para descargar modelos de IA (por ejemplo, https://hf-mirror.com para usuarios en China). Déjela vacía para usar las URL predeterminadas de HuggingFace.",
       "backend": "Backend de procesamiento",
       "backendDesc": "Selecciona la API de gráficos. Se recomienda 'Auto'. Puede solucionar bloqueos en algunos sistemas.",
       "backends": {

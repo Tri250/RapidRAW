@@ -1784,8 +1784,8 @@
         },
         "title": "Generative KI"
       },
-      "aiMirror": "",
-      "aiMirrorDesc": "",
+      "aiMirror": "KI-Modell-Spiegel-URL",
+      "aiMirrorDesc": "Legen Sie eine benutzerdefinierte Spiegel-URL zum Herunterladen von KI-Modellen fest (z. B. https://hf-mirror.com für Benutzer in China). Leer lassen, um die standardmäßigen HuggingFace-URLs zu verwenden.",
       "backend": "Verarbeitungs-Backend",
       "backendDesc": "Wählen Sie die Grafik-API. 'Auto' wird empfohlen. Kann Abstürze auf einigen Systemen beheben.",
       "backends": {

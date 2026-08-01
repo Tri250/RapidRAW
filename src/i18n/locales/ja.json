@@ -1777,8 +1777,8 @@
         },
         "title": "生成AI"
       },
-      "aiMirror": "",
-      "aiMirrorDesc": "",
+      "aiMirror": "AI モデル ミラー URL",
+      "aiMirrorDesc": "AI モデルのダウンロードに使用するカスタム ミラー URL を設定します（例：中国本土のユーザー向けに https://hf-mirror.com）。空のままにすると、デフォルトの HuggingFace URL が使用されます。",
       "backend": "処理バックエンド",
       "backendDesc": "グラフィックスAPIを選択します。「自動」を推奨します。一部のシステムでのクラッシュを回避できる場合があります。",
       "backends": {

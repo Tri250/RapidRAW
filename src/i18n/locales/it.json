@@ -1821,8 +1821,8 @@
         },
         "title": "AI Generativa"
       },
-      "aiMirror": "",
-      "aiMirrorDesc": "",
+      "aiMirror": "URL mirror modelli AI",
+      "aiMirrorDesc": "Imposta un URL mirror personalizzato per scaricare modelli AI (ad esempio https://hf-mirror.com per utenti in Cina). Lascia vuoto per utilizzare gli URL HuggingFace predefiniti.",
       "backend": "Backend di Elaborazione",
       "backendDesc": "Seleziona l'API grafica. 'Auto' è consigliata. Potrebbe risolvere i crash su alcuni sistemi.",
       "backends": {

@@ -1858,8 +1858,8 @@
         },
         "title": "Generatywne AI"
       },
-      "aiMirror": "",
-      "aiMirrorDesc": "",
+      "aiMirror": "URL lustrzanego odbicia modelu AI",
+      "aiMirrorDesc": "Ustaw niestandardowy adres URL lustrzanego odbicia do pobierania modeli AI (np. https://hf-mirror.com dla użytkowników w Chinach). Pozostaw puste, aby użyć domyślnych adresów URL HuggingFace.",
       "backend": "Backend przetwarzania",
       "backendDesc": "Wybierz interfejs API grafiki. 'Auto' jest zalecane. Może rozwiązać problemy z zawieszaniem się na niektórych systemach.",
       "backends": {

@@ -1778,8 +1778,8 @@
         },
         "title": "生成式 AI"
       },
-      "aiMirror": "",
-      "aiMirrorDesc": "",
+      "aiMirror": "AI 模型鏡像網址",
+      "aiMirrorDesc": "設定用於下載 AI 模型的自訂鏡像網址（例如，中國大陸使用者可使用 https://hf-mirror.com）。留空則使用預設的 HuggingFace 網址。",
       "backend": "處理後端",
       "backendDesc": "選擇圖形 API。推薦使用「自動」。在某些系統上可能解決崩潰問題。",
       "backends": {
