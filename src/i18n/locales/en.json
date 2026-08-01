@@ -1931,8 +1931,10 @@
     "presetGallery": {
       "addSource": "Add Data Source",
       "addSourcePlaceholder": "Enter JSON link URL...",
+      "addSourceRejected": "Only HTTPS sources from trusted domains (github.com, jsdelivr.net, getrapidraw.com, etc.) are supported.",
       "description": "Manage online preset JSON data sources. Once added, preset samples can be viewed in the gallery.",
       "disabled": "Disabled",
+      "duplicateSource": "This data source has already been added.",
       "enabled": "Enabled",
       "noSources": "No data sources yet. Please add a JSON link.",
       "removeSource": "Remove Data Source",

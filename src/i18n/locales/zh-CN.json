@@ -1957,14 +1957,16 @@
       "title": "我的镜头"
     },
     "presetGallery": {
-      "addSource": "",
-      "addSourcePlaceholder": "",
-      "description": "",
-      "disabled": "",
-      "enabled": "",
-      "noSources": "",
-      "removeSource": "",
-      "title": ""
+      "addSource": "添加数据源",
+      "addSourcePlaceholder": "输入 JSON 链接地址...",
+      "addSourceRejected": "仅支持来自受信任域名（github.com、jsdelivr.net、getrapidraw.com 等）的 HTTPS 数据源。",
+      "description": "管理在线预设 JSON 数据源。添加后，可在画廊中查看预设示例。",
+      "disabled": "已禁用",
+      "duplicateSource": "该数据源已添加。",
+      "enabled": "已启用",
+      "noSources": "暂无数据源，请添加 JSON 链接。",
+      "removeSource": "移除数据源",
+      "title": "在线预设"
     },
     "processing": {
       "ai": {

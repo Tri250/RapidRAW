@@ -29,12 +29,16 @@ const Switch = ({
   checked,
   className = '',
   disabled = false,
+  id,
   label,
   onChange,
   tooltip,
   trackClassName,
 }: SwitchProps) => {
-  const uniqueId = `switch-${label.replace(/\s+/g, '-').toLowerCase()}`;
+  // Respect an explicitly-provided id so consumers can wire up labels,
+  // tooltips, and test selectors. Fall back to a label-derived id only when
+  // no id was supplied (preserves prior behavior for existing call sites).
+  const uniqueId = id || `switch-${label.replace(/\s+/g, '-').toLowerCase()}`;
 
   const spring = {
     type: 'spring',

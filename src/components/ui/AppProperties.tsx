@@ -266,6 +266,10 @@ export interface AppSettings {
   enableLivePreviews?: boolean;
   livePreviewQuality?: string;
   enableAiTagging?: boolean;
+  /** Maximum number of AI tags to generate per image (1–20). */
+  aiTagCount?: number;
+  /** Custom AI tag whitelist. When non-empty, AI tagging only uses these tags. */
+  customAiTags?: string[];
   filterCriteria?: FilterCriteria;
   lastFolderState?: any;
   pinnedFolders?: any;

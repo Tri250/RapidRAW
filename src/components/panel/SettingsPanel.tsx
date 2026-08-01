@@ -113,6 +113,13 @@ interface MyLens {
 
 const EXECUTE_TIMEOUT = 3000;
 
+// Limits for user-supplied tag lists (tagging shortcuts & custom AI tags).
+// These guard against unbounded storage growth and UI clutter when a user
+// pastes a very long string into the add-tag input.
+const MAX_TAG_LENGTH = 32; // per-tag character cap
+const MAX_TAG_BATCH = 20; // tags accepted per single add operation
+const MAX_STORED_TAGS = 100; // hard ceiling on total stored tags
+
 const adjustmentVisibilityDefaults = {
   sharpening: true,
   presence: true,
@@ -746,12 +753,31 @@ const PresetGallerySourceManager = () => {
     })),
   );
   const [newSourceUrl, setNewSourceUrl] = useState('');
+  const [sourceError, setSourceError] = useState<string | null>(null);
 
   const handleAddSource = () => {
     const trimmed = newSourceUrl.trim();
     if (!trimmed) return;
-    addSource(trimmed); // addSource already triggers fetchSourcePresets internally
-    setNewSourceUrl('');
+    // addSource returns false for duplicates or non-whitelisted URLs (SSRF
+    // guard). Surface that failure to the user instead of silently clearing
+    // the input, which previously made it look like nothing happened.
+    const ok = addSource(trimmed);
+    if (ok) {
+      setSourceError(null);
+      setNewSourceUrl('');
+    } else {
+      const isDuplicate = sources.some((s) => s.url === trimmed);
+      setSourceError(
+        isDuplicate
+          ? t('settings.presetGallery.duplicateSource', {
+              defaultValue: 'This data source has already been added.',
+            })
+          : t('settings.presetGallery.addSourceRejected', {
+              defaultValue:
+                'Only HTTPS sources from trusted domains (github.com, jsdelivr.net, getrapidraw.com, etc.) are supported.',
+            }),
+      );
+    }
   };
 
   return (
@@ -761,7 +787,10 @@ const PresetGallerySourceManager = () => {
           <Input
             type="text"
             value={newSourceUrl}
-            onChange={(e) => setNewSourceUrl(e.target.value)}
+            onChange={(e) => {
+              setNewSourceUrl(e.target.value);
+              if (sourceError) setSourceError(null);
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
@@ -781,6 +810,11 @@ const PresetGallerySourceManager = () => {
           </button>
         </div>
       </div>
+      {sourceError && (
+        <Text variant={TextVariants.small} color={TextColors.secondary} className="text-red-400">
+          {sourceError}
+        </Text>
+      )}
 
       <div className="divide-y divide-border-color">
         {sources.map((source) => (
@@ -1125,6 +1159,10 @@ export default function SettingsPanel({
 
   const handleRemoveLens = (index: number) => {
     const currentLenses: MyLens[] = appSettings?.myLenses || [];
+    // Bounds check: guard against stale indices (e.g. double-click, race
+    // conditions, or out-of-sync render) to avoid silently dropping the
+    // wrong lens or no-op splice.
+    if (!Number.isInteger(index) || index < 0 || index >= currentLenses.length) return;
     const newLenses = [...currentLenses];
     newLenses.splice(index, 1);
     onSettingsChange({ ...appSettings, myLenses: newLenses });
@@ -1289,10 +1327,18 @@ export default function SettingsPanel({
     const parsedTags = newShortcut
       .split(',')
       .map((t) => t.trim().toLowerCase())
-      .filter((t) => t.length > 0);
+      .filter((t) => t.length > 0)
+      // Cap each tag length to keep the shortcut list manageable and prevent
+      // absurdly long entries from blowing up storage / UI rendering.
+      .slice(0, MAX_TAG_BATCH)
+      .map((t) => t.slice(0, MAX_TAG_LENGTH));
 
     if (parsedTags.length > 0) {
-      const uniqueShortcuts = Array.from(new Set([...taggingShortcuts, ...parsedTags])).sort();
+      const uniqueShortcuts = Array.from(new Set([...taggingShortcuts, ...parsedTags]))
+        .sort()
+        // Hard ceiling on total stored shortcuts so the settings payload
+        // cannot grow without bound.
+        .slice(0, MAX_STORED_TAGS);
       onSettingsChange({ ...appSettings, taggingShortcuts: uniqueShortcuts });
     }
     setNewShortcut('');
@@ -1314,10 +1360,14 @@ export default function SettingsPanel({
     const parsedTags = newAiTag
       .split(',')
       .map((t) => t.trim().toLowerCase())
-      .filter((t) => t.length > 0);
+      .filter((t) => t.length > 0)
+      .slice(0, MAX_TAG_BATCH)
+      .map((t) => t.slice(0, MAX_TAG_LENGTH));
 
     if (parsedTags.length > 0) {
-      const uniqueTags = Array.from(new Set([...customAiTags, ...parsedTags])).sort();
+      const uniqueTags = Array.from(new Set([...customAiTags, ...parsedTags]))
+        .sort()
+        .slice(0, MAX_STORED_TAGS);
       onSettingsChange({ ...appSettings, customAiTags: uniqueTags });
     }
     setNewAiTag('');
@@ -1560,7 +1610,17 @@ export default function SettingsPanel({
                           label={t('settings.general.enableOsTitlebar')}
                           onChange={(checked) => {
                             onSettingsChange({ ...appSettings, decorations: checked });
-                            getCurrentWindow().setDecorations(checked).catch(console.error);
+                            // If the window manager rejects the decoration
+                            // change (some WMs/protocols don't support
+                            // toggling at runtime), revert the persisted
+                            // setting so the toggle reflects reality rather
+                            // than silently desyncing.
+                            getCurrentWindow()
+                              .setDecorations(checked)
+                              .catch((err) => {
+                                console.error('Failed to toggle decorations:', err);
+                                onSettingsChange({ ...appSettings, decorations: !checked });
+                              });
                           }}
                         />
                       </SettingItem>
@@ -1851,9 +1911,15 @@ export default function SettingsPanel({
                                   step={1}
                                   value={appSettings?.aiTagCount ?? 10}
                                   defaultValue={10}
-                                  onChange={(e: any) =>
-                                    onSettingsChange({ ...appSettings, aiTagCount: parseInt(e.target.value) })
-                                  }
+                                  onChange={(e: any) => {
+                                    // Guard against NaN: parseInt may return NaN for
+                                    // empty/non-numeric strings, which would poison the
+                                    // settings store and break the slider binding.
+                                    const parsed = parseInt(e.target.value, 10);
+                                    if (!Number.isNaN(parsed)) {
+                                      onSettingsChange({ ...appSettings, aiTagCount: parsed });
+                                    }
+                                  }}
                                 />
                               </SettingItem>
 
