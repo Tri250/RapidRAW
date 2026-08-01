@@ -172,7 +172,7 @@ pub fn rgb_to_xyz(primaries: &ColorPrimaries) -> Mat3 {
         [r_xyz[2], g_xyz[2], b_xyz[2]],
     ];
 
-    let p_inv = mat3_inv(&p).unwrap_or_else(|_| {
+    let p_inv = mat3_inv(&p).unwrap_or_else(|| {
         log::warn!("Primaries matrix is singular, using identity as fallback");
         [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
     });
@@ -189,7 +189,7 @@ pub fn rgb_to_xyz(primaries: &ColorPrimaries) -> Mat3 {
 /// Compute the inverse (XYZ → RGB) matrix for the given primaries.
 pub fn xyz_to_rgb(primaries: &ColorPrimaries) -> Mat3 {
     let m = rgb_to_xyz(primaries);
-    mat3_inv(&m).unwrap_or_else(|_| {
+    mat3_inv(&m).unwrap_or_else(|| {
         log::warn!("RGB→XYZ matrix is singular, using identity as fallback");
         [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
     })
