@@ -97,7 +97,7 @@ jobs:
             fi
           fi
 
-          if [[ "$pkg_version" != "$tauri_version" || "$pkg_version" != "$cargo_version" ]]; then
+          if [[ "$pkg_version" != "$tauri_version" ]] || [[ "$pkg_version" != "$cargo_version" ]]; then
             echo "::error::Version mismatch detected. All three files must have the same version."
             exit 1
           fi
@@ -174,7 +174,7 @@ jobs:
 
   release-verify:
     name: Verify Release Assets
-    needs: release
+    needs: [version-sync-check, release]
     runs-on: ubuntu-latest
     if: always()
     permissions:

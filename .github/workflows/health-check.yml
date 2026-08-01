@@ -31,7 +31,7 @@ jobs:
           echo "tauri.conf.json:   ${tauri_version}"
           echo "Cargo.toml:        ${cargo_version}"
 
-          if [[ "$pkg_version" != "$tauri_version" || "$pkg_version" != "$cargo_version" ]]; then
+          if [[ "$pkg_version" != "$tauri_version" ]] || [[ "$pkg_version" != "$cargo_version" ]]; then
             echo "::error::Version mismatch detected. All three files must have the same version."
             exit 1
           fi
@@ -87,7 +87,6 @@ jobs:
         with:
           toolchain: '1.96.0'
           rustflags: ''
-          rust-src-dir: src-tauri
 
       - name: Install system dependencies
         run: |
@@ -137,7 +136,6 @@ jobs:
         with:
           toolchain: '1.96.0'
           rustflags: ''
-          rust-src-dir: src-tauri
 
       - name: Run cargo audit
         working-directory: src-tauri
@@ -183,3 +181,23 @@ jobs:
             yamllint "$file" || true
           done
         continue-on-error: true
+
+  android-ai-check:
+    name: Android AI Engine Health Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Android AI full health check
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/android-ai-health-check.sh

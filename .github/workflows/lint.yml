@@ -43,7 +43,6 @@ jobs:
         with:
           components: rustfmt
           rustflags: ''
-          rust-src-dir: src-tauri
 
       - name: Check formatting
         working-directory: src-tauri
@@ -59,7 +58,6 @@ jobs:
         with:
           components: clippy
           rustflags: ''
-          rust-src-dir: src-tauri
 
       - name: Install system dependencies
         run: |

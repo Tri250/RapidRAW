@@ -62,7 +62,7 @@ jobs:
           toolchain: '1.96.0'
           rustflags: ''
           target: ${{ inputs.target }}
-          rust-src-dir: src-tauri
+          components: ${{ inputs.mobile == 'android' && 'rust-src' || '' }}
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
@@ -102,7 +102,7 @@ jobs:
       - name: Set LIBCLANG_PATH (Windows)
         if: runner.os == 'Windows'
         shell: bash
-        run: echo "LIBCLANG_PATH=${{ runner.temp }}/llvm/bin" >> $GITHUB_ENV
+        run: echo "LIBCLANG_PATH=${{ runner.temp }}/llvm/bin" >> "$GITHUB_ENV"
 
       # ------------- Android Setup -------------
       - name: Set up JDK
@@ -121,7 +121,7 @@ jobs:
         uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r26d
+          ndk-version: r27c
           link-to-sdk: true
 
       - name: Install frontend dependencies
@@ -211,12 +211,14 @@ jobs:
         if: inputs.mobile == '' && runner.os == 'macOS' && steps.check-apple-secrets.outputs.has_apple_secrets == 'true'
         shell: bash
         run: |
-          echo "APPLE_CERTIFICATE=${{ secrets.APPLE_CERTIFICATE }}" >> "$GITHUB_ENV"
-          echo "APPLE_CERTIFICATE_PASSWORD=${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" >> "$GITHUB_ENV"
-          echo "APPLE_SIGNING_IDENTITY=${{ secrets.APPLE_SIGNING_IDENTITY }}" >> "$GITHUB_ENV"
-          echo "APPLE_ID=${{ secrets.APPLE_ID }}" >> "$GITHUB_ENV"
-          echo "APPLE_PASSWORD=${{ secrets.APPLE_PASSWORD }}" >> "$GITHUB_ENV"
-          echo "APPLE_TEAM_ID=${{ secrets.APPLE_TEAM_ID }}" >> "$GITHUB_ENV"
+          {
+            echo "APPLE_CERTIFICATE=${{ secrets.APPLE_CERTIFICATE }}"
+            echo "APPLE_CERTIFICATE_PASSWORD=${{ secrets.APPLE_CERTIFICATE_PASSWORD }}"
+            echo "APPLE_SIGNING_IDENTITY=${{ secrets.APPLE_SIGNING_IDENTITY }}"
+            echo "APPLE_ID=${{ secrets.APPLE_ID }}"
+            echo "APPLE_PASSWORD=${{ secrets.APPLE_PASSWORD }}"
+            echo "APPLE_TEAM_ID=${{ secrets.APPLE_TEAM_ID }}"
+          } >> "$GITHUB_ENV"
 
       - id: tauri-build
         name: Build with tauri-action
@@ -277,7 +279,14 @@ jobs:
             tauri_target="${tauri_target%%-*}"
             target_arg="--target $tauri_target"
           fi
-          npx tauri android build --verbose ${target_arg}${{ inputs.build-args && format(' {0}', inputs.build-args) || '' }}
+          build_args="${{ inputs.build-args }}"
+          if [[ -n "$build_args" ]]; then
+            # shellcheck disable=SC2086
+            npx tauri android build --verbose $target_arg $build_args
+          else
+            # shellcheck disable=SC2086
+            npx tauri android build --verbose $target_arg
+          fi
 
       - name: Prepare Android Release Assets
         if: inputs.mobile == 'android' && inputs.tag-name != ''
