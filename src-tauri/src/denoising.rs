@@ -203,10 +203,14 @@ pub async fn save_denoised_image(
     original_path_str: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<String, String> {
-    let denoised_image = state.denoise_result.lock_resilient().take().ok_or_else(|| {
-        "No denoised image found in memory. It might have already been saved or cleared."
-            .to_string()
-    })?;
+    let denoised_image = state
+        .denoise_result
+        .lock_resilient()
+        .take()
+        .ok_or_else(|| {
+            "No denoised image found in memory. It might have already been saved or cleared."
+                .to_string()
+        })?;
 
     let is_raw = crate::formats::is_raw_file(&original_path_str);
 

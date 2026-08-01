@@ -461,10 +461,7 @@ function DepthRangePicker({
           />
         )}
 
-        <div
-          className="absolute inset-0"
-          style={{ background: depthGradient }}
-        />
+        <div className="absolute inset-0" style={{ background: depthGradient }} />
         <div
           className="absolute inset-y-0 left-0 pointer-events-none"
           style={{ width: `${fadeLeftEdge}%`, background: maskOverlay }}

@@ -281,10 +281,18 @@ pub async fn generate_manual_cleanup_patch(
                             let src_x = (px_x as i32 + offset_x).clamp(0, img_w as i32 - 1) as u32;
                             let src_y = (px_y as i32 + offset_y).clamp(0, img_h as i32 - 1) as u32;
                             let src_px = source_image.get_pixel(src_x, src_y);
-                            color_image.put_pixel(dest_x, dest_y, Rgb([src_px[0], src_px[1], src_px[2]]));
+                            color_image.put_pixel(
+                                dest_x,
+                                dest_y,
+                                Rgb([src_px[0], src_px[1], src_px[2]]),
+                            );
                         } else {
                             let src_px = source_image.get_pixel(px_x, px_y);
-                            color_image.put_pixel(dest_x, dest_y, Rgb([src_px[0], src_px[1], src_px[2]]));
+                            color_image.put_pixel(
+                                dest_x,
+                                dest_y,
+                                Rgb([src_px[0], src_px[1], src_px[2]]),
+                            );
                         }
                     }
                 }

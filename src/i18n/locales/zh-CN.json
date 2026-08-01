@@ -376,7 +376,9 @@
         "aiEdit_one": "AI 编辑 {{count}}",
         "aiEdit_other": "AI 编辑 {{count}}",
         "clone": "克隆 {{count}}",
+        "clone_other": "",
         "heal": "修复 {{count}}",
+        "heal_other": "",
         "invertedName": "{{name}} 反转",
         "quickErase": "快速擦除 {{count}}",
         "quickErase_one": "快速擦除 {{count}}",
@@ -413,6 +415,7 @@
       "applying": "正在评分...",
       "applyToExif": "应用到 EXIF",
       "batchComplete": "完成 {{count}} 张图片评分",
+      "batchComplete_other": "",
       "batchProgress": "正在评分 {{current}}/{{total}}...",
       "description": "AI 描述",
       "error": "生成评分失败：{{error}}",
@@ -919,6 +922,7 @@
       },
       "blemishActive": "标记中",
       "blemishCount": "已标记 {{count}} 个瑕疵点",
+      "blemishCount_other": "",
       "blemishHint": "点击图片标记瑕疵点",
       "blemishRemoval": "祛除瑕疵",
       "blemishStart": "开始标记",
@@ -1156,7 +1160,8 @@
       "delete": "删除",
       "export": "导出",
       "rate": "评分",
-      "selected": "已选 {count} 张"
+      "selected": "已选 {count} 张",
+      "selected_other": ""
     },
     "community": {
       "actionSave": "保存",
@@ -1339,6 +1344,7 @@
       "opGreaterThan": "大于",
       "opLessThan": "小于",
       "preview": "匹配 {count} 张照片",
+      "preview_other": "",
       "title": "智能相册",
       "valueFalse": "否",
       "valuePlaceholder": "值",

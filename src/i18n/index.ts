@@ -31,6 +31,10 @@ i18n.use(initReactI18next).init({
   },
   lng: 'zh-CN',
   fallbackLng: 'en',
+  // Treat empty string values as missing so that incomplete plural variants
+  // (e.g. key_many: "") fall back to key_other / base form instead of
+  // rendering as blank text.
+  returnEmptyString: false,
   interpolation: {
     escapeValue: false,
   },

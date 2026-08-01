@@ -793,19 +793,32 @@ pub fn composite_patches_on_image(
             let base_color_type = base_image.color();
             let base_is_gray = matches!(
                 base_color_type,
-                image::ColorType::L8 | image::ColorType::La8 | image::ColorType::L16 | image::ColorType::La16
+                image::ColorType::L8
+                    | image::ColorType::La8
+                    | image::ColorType::L16
+                    | image::ColorType::La16
             );
             let base_has_alpha = matches!(
                 base_color_type,
-                image::ColorType::La8 | image::ColorType::Rgba8 | image::ColorType::La16 | image::ColorType::Rgba16 | image::ColorType::Rgba32F
+                image::ColorType::La8
+                    | image::ColorType::Rgba8
+                    | image::ColorType::La16
+                    | image::ColorType::Rgba16
+                    | image::ColorType::Rgba32F
             );
             let base_is_16bit = matches!(
                 base_color_type,
-                image::ColorType::L16 | image::ColorType::La16 | image::ColorType::Rgb16 | image::ColorType::Rgba16
+                image::ColorType::L16
+                    | image::ColorType::La16
+                    | image::ColorType::Rgb16
+                    | image::ColorType::Rgba16
             );
             let base_is_8bit_int = matches!(
                 base_color_type,
-                image::ColorType::L8 | image::ColorType::La8 | image::ColorType::Rgb8 | image::ColorType::Rgba8
+                image::ColorType::L8
+                    | image::ColorType::La8
+                    | image::ColorType::Rgb8
+                    | image::ColorType::Rgba8
             );
 
             let mut rgba32_img = composited_image.to_rgba32f();
@@ -863,7 +876,8 @@ pub fn composite_patches_on_image(
                     let raw: Vec<f32> = rgba32_img
                         .pixels()
                         .flat_map(|p| {
-                            let y = 0.2126 * p[0] as f32 + 0.7152 * p[1] as f32 + 0.0722 * p[2] as f32;
+                            let y =
+                                0.2126 * p[0] as f32 + 0.7152 * p[1] as f32 + 0.0722 * p[2] as f32;
                             [y, y, y, p[3] as f32]
                         })
                         .collect();
@@ -875,7 +889,8 @@ pub fn composite_patches_on_image(
                     let raw: Vec<f32> = rgba32_img
                         .pixels()
                         .flat_map(|p| {
-                            let y = 0.2126 * p[0] as f32 + 0.7152 * p[1] as f32 + 0.0722 * p[2] as f32;
+                            let y =
+                                0.2126 * p[0] as f32 + 0.7152 * p[1] as f32 + 0.0722 * p[2] as f32;
                             [y, y, y]
                         })
                         .collect();

@@ -3504,7 +3504,11 @@ pub fn perform_auto_analysis(image: &DynamicImage) -> AutoAdjustmentResults {
 
         // Accumulate gray-world statistics for auto white balance.
         if luma_f >= WB_LUMA_MIN && luma_f <= WB_LUMA_MAX {
-            let sat = if max_c > 0.0 { (max_c - min_c) / max_c } else { 0.0 };
+            let sat = if max_c > 0.0 {
+                (max_c - min_c) / max_c
+            } else {
+                0.0
+            };
             if sat <= WB_SAT_MAX {
                 wb_r_sum += r as f64;
                 wb_g_sum += g as f64;
@@ -4052,17 +4056,29 @@ fn double_threshold_hysteresis(
 const CPU_TINY_EPS: f32 = 1e-6;
 
 #[inline]
-fn cpu_max3(x: f32, y: f32, z: f32) -> f32 { x.max(y.max(z)) }
+fn cpu_max3(x: f32, y: f32, z: f32) -> f32 {
+    x.max(y.max(z))
+}
 #[inline]
-fn cpu_min3(x: f32, y: f32, z: f32) -> f32 { x.min(y.min(z)) }
+fn cpu_min3(x: f32, y: f32, z: f32) -> f32 {
+    x.min(y.min(z))
+}
 
 #[inline]
 fn cpu_srgb_to_linear(c: f32) -> f32 {
-    if c <= 0.04045 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) }
+    if c <= 0.04045 {
+        c / 12.92
+    } else {
+        ((c + 0.055) / 1.055).powf(2.4)
+    }
 }
 #[inline]
 fn cpu_linear_to_srgb(c: f32) -> f32 {
-    if c <= 0.0031308 { c * 12.92 } else { 1.055 * c.powf(1.0 / 2.4) - 0.055 }
+    if c <= 0.0031308 {
+        c * 12.92
+    } else {
+        1.055 * c.powf(1.0 / 2.4) - 0.055
+    }
 }
 #[inline]
 fn cpu_linear_to_srgb_vec3(p: &mut [f32]) {
@@ -4082,23 +4098,37 @@ fn cpu_get_luma(p: &[f32]) -> f32 {
     0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]
 }
 #[inline]
-fn cpu_get_maxc(p: &[f32]) -> f32 { cpu_max3(p[0], p[1], p[2]) }
+fn cpu_get_maxc(p: &[f32]) -> f32 {
+    cpu_max3(p[0], p[1], p[2])
+}
 
 #[inline]
-fn cpu_mix(a: f32, b: f32, t: f32) -> f32 { a + (b - a) * t }
+fn cpu_mix(a: f32, b: f32, t: f32) -> f32 {
+    a + (b - a) * t
+}
 #[inline]
 fn cpu_smoothstep(e0: f32, e1: f32, x: f32) -> f32 {
     let t = ((x - e0) / (e1 - e0)).clamp(0.0, 1.0);
     t * t * (3.0 - 2.0 * t)
 }
 #[inline]
-fn cpu_sign(v: f32) -> f32 { if v > 0.0 { 1.0 } else if v < 0.0 { -1.0 } else { 0.0 } }
+fn cpu_sign(v: f32) -> f32 {
+    if v > 0.0 {
+        1.0
+    } else if v < 0.0 {
+        -1.0
+    } else {
+        0.0
+    }
+}
 
 fn cpu_gaussian_blur_luma(data: &[f32], w: usize, h: usize, radius: f32) -> Vec<f32> {
     let r = (radius.max(1.0)) as usize;
     let mut hor = vec![0.0f32; w * h];
     let sigma = (r as f32) / 3.0;
-    let kernel: Vec<f32> = (0..=r).map(|x| (-(x as f32).powi(2) / (2.0 * sigma.powi(2))).exp()).collect();
+    let kernel: Vec<f32> = (0..=r)
+        .map(|x| (-(x as f32).powi(2) / (2.0 * sigma.powi(2))).exp())
+        .collect();
     let sum: f32 = kernel[0] + 2.0 * kernel.iter().skip(1).sum::<f32>();
 
     for y in 0..h {
@@ -4109,7 +4139,9 @@ fn cpu_gaussian_blur_luma(data: &[f32], w: usize, h: usize, radius: f32) -> Vec<
                 let xr = (x + k).min(w - 1);
                 let wl = if k == 0 { kernel[0] } else { kernel[k] };
                 acc += data[y * w + xl] * wl;
-                if k > 0 { acc += data[y * w + xr] * wl; }
+                if k > 0 {
+                    acc += data[y * w + xr] * wl;
+                }
             }
             hor[y * w + x] = acc / sum;
         }
@@ -4123,7 +4155,9 @@ fn cpu_gaussian_blur_luma(data: &[f32], w: usize, h: usize, radius: f32) -> Vec<
                 let yd = (y + k).min(h - 1);
                 let wl = if k == 0 { kernel[0] } else { kernel[k] };
                 acc += hor[yu * w + x] * wl;
-                if k > 0 { acc += hor[yd * w + x] * wl; }
+                if k > 0 {
+                    acc += hor[yd * w + x] * wl;
+                }
             }
             out[y * w + x] = acc / sum;
         }
@@ -4193,7 +4227,12 @@ fn cpu_create_blur_rgb_buffer(rgb: &[f32], w: usize, h: usize, scale: f32) -> Ve
     out
 }
 
-fn cpu_create_blur_luma_buffers(luma: &[f32], w: usize, h: usize, scale: f32) -> (Vec<f32>, Vec<f32>, Vec<f32>, Vec<f32>) {
+fn cpu_create_blur_luma_buffers(
+    luma: &[f32],
+    w: usize,
+    h: usize,
+    scale: f32,
+) -> (Vec<f32>, Vec<f32>, Vec<f32>, Vec<f32>) {
     let s = if scale < 1.0 { 1.0 } else { scale };
     let sharpness = 1.0 * s;
     let tonal = 5.0 * s;
@@ -4207,14 +4246,25 @@ fn cpu_create_blur_luma_buffers(luma: &[f32], w: usize, h: usize, scale: f32) ->
 }
 
 #[inline]
-fn cpu_apply_local_contrast(pix: &mut [f32], blur: f32, amount: f32, is_raw: bool, mode: u32, threshold: f32) {
-    if amount.abs() < CPU_TINY_EPS { return; }
+fn cpu_apply_local_contrast(
+    pix: &mut [f32],
+    blur: f32,
+    amount: f32,
+    is_raw: bool,
+    mode: u32,
+    threshold: f32,
+) {
+    if amount.abs() < CPU_TINY_EPS {
+        return;
+    }
     // Match shader apply_local_contrast:
     // - amount negative: mix towards blur
     // - amount positive: log2 ratio contrast boost with shadow/highlight protection
     if amount < 0.0 {
         let blur_amt = if mode == 0 { (-amount) * 0.5 } else { -amount };
-        for c in 0..3 { pix[c] = cpu_mix(pix[c], blur, blur_amt); }
+        for c in 0..3 {
+            pix[c] = cpu_mix(pix[c], blur, blur_amt);
+        }
         return;
     }
     let center_luma = cpu_get_luma(pix);
@@ -4222,7 +4272,9 @@ fn cpu_apply_local_contrast(pix: &mut [f32], blur: f32, amount: f32, is_raw: boo
     let shadow_prot = cpu_smoothstep(0.0, shadow_threshold, center_luma);
     let highlight_prot = 1.0 - cpu_smoothstep(0.9, 1.0, center_luma);
     let midtone_mask = shadow_prot * highlight_prot;
-    if midtone_mask < 0.001 { return; }
+    if midtone_mask < 0.001 {
+        return;
+    }
 
     let blurred_luma = blur;
     let safe_center = center_luma.max(0.0001);
@@ -4247,8 +4299,19 @@ fn cpu_apply_local_contrast(pix: &mut [f32], blur: f32, amount: f32, is_raw: boo
 }
 
 #[inline]
-fn cpu_apply_centre_local_contrast(pix: &mut [f32], centre: f32, x: u32, y: u32, w: u32, h: u32, blur: f32, is_raw: bool) {
-    if centre.abs() < CPU_TINY_EPS { return; }
+fn cpu_apply_centre_local_contrast(
+    pix: &mut [f32],
+    centre: f32,
+    x: u32,
+    y: u32,
+    w: u32,
+    h: u32,
+    blur: f32,
+    is_raw: bool,
+) {
+    if centre.abs() < CPU_TINY_EPS {
+        return;
+    }
     // Match GPU apply_centre_local_contrast: aspect-corrected mask with clarity_strength
     let full_dims_f = [w as f32, h as f32];
     let coord_f = [x as f32, y as f32];
@@ -4257,7 +4320,9 @@ fn cpu_apply_centre_local_contrast(pix: &mut [f32], centre: f32, x: u32, y: u32,
     let aspect = full_dims_f[1] / full_dims_f[0];
     let uv_centered_x = (coord_f[0] / full_dims_f[0] - 0.5) * 2.0;
     let uv_centered_y = (coord_f[1] / full_dims_f[1] - 0.5) * 2.0;
-    let d = (uv_centered_x * uv_centered_x + (uv_centered_y * aspect) * (uv_centered_y * aspect)).sqrt() * 0.5;
+    let d = (uv_centered_x * uv_centered_x + (uv_centered_y * aspect) * (uv_centered_y * aspect))
+        .sqrt()
+        * 0.5;
     let vignette_mask = cpu_smoothstep(midpoint - feather, midpoint + feather, d);
     let centre_mask = 1.0 - vignette_mask;
 
@@ -4271,20 +4336,28 @@ fn cpu_apply_centre_local_contrast(pix: &mut [f32], centre: f32, x: u32, y: u32,
 
 #[inline]
 fn cpu_apply_linear_exposure(pix: &mut [f32], exposure: f32) {
-    if exposure.abs() < CPU_TINY_EPS { return; }
+    if exposure.abs() < CPU_TINY_EPS {
+        return;
+    }
     let m = 2.0f32.powf(exposure);
-    pix[0] *= m; pix[1] *= m; pix[2] *= m;
+    pix[0] *= m;
+    pix[1] *= m;
+    pix[2] *= m;
 }
 
 #[inline]
 fn cpu_apply_filmic_exposure(pix: &mut [f32], brightness: f32) {
-    if brightness.abs() < CPU_TINY_EPS { return; }
+    if brightness.abs() < CPU_TINY_EPS {
+        return;
+    }
     // Match GPU apply_filmic_exposure: rational curve with chroma preservation
     const RATIONAL_CURVE_MIX: f32 = 0.95;
     const MIDTONE_STRENGTH: f32 = 1.2;
     const TOP_ANCHOR: f32 = 1.06;
     let original_luma = cpu_get_luma(pix);
-    if original_luma.abs() < 0.00001 { return; }
+    if original_luma.abs() < 0.00001 {
+        return;
+    }
     let direct_adj = brightness * (1.0 - RATIONAL_CURVE_MIX);
     let rational_adj = brightness * RATIONAL_CURVE_MIX;
     let scale = 2.0f32.powf(direct_adj);
@@ -4295,7 +4368,11 @@ fn cpu_apply_filmic_exposure(pix: &mut [f32], brightness: f32) {
     let shaped_norm = luma_norm / (luma_norm + (1.0 - luma_norm) * k);
     let shaped_luma_abs = luma_floor + shaped_norm * TOP_ANCHOR;
     let new_luma = cpu_sign(original_luma) * shaped_luma_abs * scale;
-    let chroma = [pix[0] - original_luma, pix[1] - original_luma, pix[2] - original_luma];
+    let chroma = [
+        pix[0] - original_luma,
+        pix[1] - original_luma,
+        pix[2] - original_luma,
+    ];
     let total_luma_scale = new_luma / original_luma;
     let luma_weight = new_luma.clamp(0.0, 2.0) * 0.5;
     let dynamic_exp = cpu_mix(0.95, 0.65, luma_weight);
@@ -4309,7 +4386,9 @@ fn cpu_apply_filmic_exposure(pix: &mut [f32], brightness: f32) {
 
 #[inline]
 fn cpu_apply_white_balance(pix: &mut [f32], temperature: f32, tint: f32) {
-    if temperature.abs() < CPU_TINY_EPS && tint.abs() < CPU_TINY_EPS { return; }
+    if temperature.abs() < CPU_TINY_EPS && tint.abs() < CPU_TINY_EPS {
+        return;
+    }
     // match shader: temp_kelvin_mult * tint_mult
     let tr = (1.0 + temperature * 0.2) * (1.0 + tint * 0.25);
     let tg = (1.0 + temperature * 0.05) * (1.0 - tint * 0.25);
@@ -4321,7 +4400,9 @@ fn cpu_apply_white_balance(pix: &mut [f32], temperature: f32, tint: f32) {
 
 #[inline]
 fn cpu_apply_dehaze(pix: &mut [f32], blur_luma: f32, dehaze: f32) {
-    if dehaze.abs() < CPU_TINY_EPS { return; }
+    if dehaze.abs() < CPU_TINY_EPS {
+        return;
+    }
     // Match GPU apply_dehaze: atmospheric light estimation with halo protection
     let atmospheric_r = 0.95f32;
     let atmospheric_g = 0.97f32;
@@ -4344,14 +4425,22 @@ fn cpu_apply_dehaze(pix: &mut [f32], blur_luma: f32, dehaze: f32) {
             (pix[1] - atmospheric_g) / t + atmospheric_g,
             (pix[2] - atmospheric_b) / t + atmospheric_b,
         ];
-        let rec_luma = cpu_get_luma(&[recovered[0].max(0.0), recovered[1].max(0.0), recovered[2].max(0.0)]);
+        let rec_luma = cpu_get_luma(&[
+            recovered[0].max(0.0),
+            recovered[1].max(0.0),
+            recovered[2].max(0.0),
+        ]);
         let shadow_lift = cpu_smoothstep(0.1, 0.0, rec_luma) * (1.0 - t) * 0.15;
         recovered[0] += shadow_lift;
         recovered[1] += shadow_lift;
         recovered[2] += shadow_lift;
         let haze_removed = 1.0 - t;
         let sat_boost = haze_removed * 0.5;
-        let final_luma = cpu_get_luma(&[recovered[0].max(0.0), recovered[1].max(0.0), recovered[2].max(0.0)]);
+        let final_luma = cpu_get_luma(&[
+            recovered[0].max(0.0),
+            recovered[1].max(0.0),
+            recovered[2].max(0.0),
+        ]);
         for c in 0..3 {
             recovered[c] = cpu_mix(final_luma, recovered[c], 1.0 + sat_boost);
             pix[c] = recovered[c].max(0.0);
@@ -4371,7 +4460,9 @@ fn cpu_apply_dehaze(pix: &mut [f32], blur_luma: f32, dehaze: f32) {
 
 #[inline]
 fn cpu_apply_centre_tonal_and_color(pix: &mut [f32], centre: f32, x: u32, y: u32, w: u32, h: u32) {
-    if centre.abs() < CPU_TINY_EPS { return; }
+    if centre.abs() < CPU_TINY_EPS {
+        return;
+    }
     // Match GPU apply_centre_tonal_and_color: filmic exposure + creative color
     let full_dims_f = [w as f32, h as f32];
     let coord_f = [x as f32, y as f32];
@@ -4380,7 +4471,9 @@ fn cpu_apply_centre_tonal_and_color(pix: &mut [f32], centre: f32, x: u32, y: u32
     let aspect = full_dims_f[1] / full_dims_f[0];
     let uv_centered_x = (coord_f[0] / full_dims_f[0] - 0.5) * 2.0;
     let uv_centered_y = (coord_f[1] / full_dims_f[1] - 0.5) * 2.0;
-    let d = (uv_centered_x * uv_centered_x + (uv_centered_y * aspect) * (uv_centered_y * aspect)).sqrt() * 0.5;
+    let d = (uv_centered_x * uv_centered_x + (uv_centered_y * aspect) * (uv_centered_y * aspect))
+        .sqrt()
+        * 0.5;
     let vignette_mask = cpu_smoothstep(midpoint - feather, midpoint + feather, d);
     let centre_mask = 1.0 - vignette_mask;
 
@@ -4402,7 +4495,14 @@ fn cpu_apply_centre_tonal_and_color(pix: &mut [f32], centre: f32, x: u32, y: u32
 }
 
 #[inline]
-fn cpu_apply_tonal_adjustments(pix: &mut [f32], blur: f32, contrast: f32, shadows: f32, whites: f32, blacks: f32) {
+fn cpu_apply_tonal_adjustments(
+    pix: &mut [f32],
+    blur: f32,
+    contrast: f32,
+    shadows: f32,
+    whites: f32,
+    blacks: f32,
+) {
     // Match GPU apply_tonal_adjustments: perceptual gamma with detail preservation
     let mut rgb = [pix[0], pix[1], pix[2]];
     let mut blur_luma = blur;
@@ -4411,7 +4511,9 @@ fn cpu_apply_tonal_adjustments(pix: &mut [f32], blur: f32, contrast: f32, shadow
     if whites.abs() > CPU_TINY_EPS {
         let white_level = 1.0 - whites * 0.25;
         let w_mult = 1.0 / white_level.max(0.01);
-        rgb[0] *= w_mult; rgb[1] *= w_mult; rgb[2] *= w_mult;
+        rgb[0] *= w_mult;
+        rgb[1] *= w_mult;
+        rgb[2] *= w_mult;
         blur_luma *= w_mult;
     }
 
@@ -4492,19 +4594,25 @@ fn cpu_apply_tonal_adjustments(pix: &mut [f32], blur: f32, contrast: f32, shadow
         }
     }
 
-    pix[0] = rgb[0]; pix[1] = rgb[1]; pix[2] = rgb[2];
+    pix[0] = rgb[0];
+    pix[1] = rgb[1];
+    pix[2] = rgb[2];
 }
 
 #[inline]
 fn cpu_apply_highlights_adjustment(pix: &mut [f32], _blur: f32, highlights: f32) {
-    if highlights.abs() < CPU_TINY_EPS { return; }
+    if highlights.abs() < CPU_TINY_EPS {
+        return;
+    }
     // Match GPU `apply_highlights_adjustment` (blur/is_raw unused on GPU side too).
     // Fixes prior sign bug: positive highlights now brighten (pow2) instead of darken.
     let pixel_luma = cpu_get_luma(&[pix[0].max(0.0), pix[1].max(0.0), pix[2].max(0.0)]);
     let safe_pixel_luma = pixel_luma.max(0.0001);
     let pixel_mask_input = (safe_pixel_luma * 1.5).tanh();
     let highlight_mask = cpu_smoothstep(0.3, 0.95, pixel_mask_input);
-    if highlight_mask < 0.001 { return; }
+    if highlight_mask < 0.001 {
+        return;
+    }
 
     let luma = pixel_luma;
     let mut final_color = [pix[0], pix[1], pix[2]];
@@ -4534,7 +4642,9 @@ fn cpu_apply_highlights_adjustment(pix: &mut [f32], _blur: f32, highlights: f32)
         final_color = [pix[0] * factor, pix[1] * factor, pix[2] * factor];
     }
 
-    for c in 0..3 { pix[c] = cpu_mix(pix[c], final_color[c], highlight_mask); }
+    for c in 0..3 {
+        pix[c] = cpu_mix(pix[c], final_color[c], highlight_mask);
+    }
 }
 
 #[inline]
@@ -4585,9 +4695,15 @@ fn cpu_hue_diff(a: f32, b: f32) -> f32 {
 
 #[inline]
 fn cpu_apply_hue_shift(pix: &mut [f32], hue: f32) {
-    if hue.abs() < CPU_TINY_EPS { return; }
+    if hue.abs() < CPU_TINY_EPS {
+        return;
+    }
     // Convert linear → sRGB (matching GPU apply_hue_shift which uses linear_to_srgb_extended)
-    let srgb = [cpu_linear_to_srgb(pix[0].max(0.0)), cpu_linear_to_srgb(pix[1].max(0.0)), cpu_linear_to_srgb(pix[2].max(0.0))];
+    let srgb = [
+        cpu_linear_to_srgb(pix[0].max(0.0)),
+        cpu_linear_to_srgb(pix[1].max(0.0)),
+        cpu_linear_to_srgb(pix[2].max(0.0)),
+    ];
     let (h, s, v) = cpu_rgb_to_hsv(&srgb);
     let nh = (h + hue + 360.0) % 360.0;
     let [r, g, b] = cpu_hsv_to_rgb(nh, s, v);
@@ -4607,13 +4723,19 @@ fn cpu_apply_creative_color(pix: &mut [f32], saturation: f32, vibrance: f32) {
     let luma = cpu_get_luma(pix);
     if saturation.abs() > CPU_TINY_EPS {
         let s = 1.0 + saturation;
-        for c in 0..3 { pix[c] = cpu_mix(luma, pix[c], s); }
+        for c in 0..3 {
+            pix[c] = cpu_mix(luma, pix[c], s);
+        }
     }
-    if vibrance.abs() < CPU_TINY_EPS { return; }
+    if vibrance.abs() < CPU_TINY_EPS {
+        return;
+    }
     let c_max = cpu_max3(pix[0], pix[1], pix[2]);
     let c_min = cpu_min3(pix[0], pix[1], pix[2]);
     let delta = c_max - c_min;
-    if delta < 0.02 { return; }
+    if delta < 0.02 {
+        return;
+    }
     let current_sat = delta / c_max.max(0.001);
     let (h, _, _) = cpu_rgb_to_hsv(pix);
     if vibrance > 0.0 {
@@ -4623,11 +4745,15 @@ fn cpu_apply_creative_color(pix: &mut [f32], saturation: f32, vibrance: f32) {
         let is_skin = cpu_smoothstep(35.0, 10.0, hue_dist);
         let skin_damp = cpu_mix(1.0, 0.6, is_skin);
         let amt = vibrance * sat_mask * skin_damp;
-        for c in 0..3 { pix[c] = cpu_mix(luma, pix[c], 1.0 + amt); }
+        for c in 0..3 {
+            pix[c] = cpu_mix(luma, pix[c], 1.0 + amt);
+        }
     } else {
         let desat_mask = 1.0 - cpu_smoothstep(0.2, 0.8, current_sat);
         let amt = vibrance * desat_mask;
-        for c in 0..3 { pix[c] = cpu_mix(luma, pix[c], 1.0 + amt); }
+        for c in 0..3 {
+            pix[c] = cpu_mix(luma, pix[c], 1.0 + amt);
+        }
     }
 }
 
@@ -4657,22 +4783,27 @@ fn cpu_apply_color_calibration(pix: &mut [f32], cal: &ColorCalibrationSettings) 
         masks[2] = c[2] / color_sum;
     }
 
-    let total_sat =
-        masks[0] * cal.red_saturation +
-        masks[1] * cal.green_saturation +
-        masks[2] * cal.blue_saturation;
+    let total_sat = masks[0] * cal.red_saturation
+        + masks[1] * cal.green_saturation
+        + masks[2] * cal.blue_saturation;
 
-    for i in 0..3 { c[i] += sat_vector[i] * total_sat; }
+    for i in 0..3 {
+        c[i] += sat_vector[i] * total_sat;
+    }
 
     let st = cal.shadows_tint;
     if st.abs() > 0.001 {
         let sl = cpu_get_luma(&[c[0].max(0.0), c[1].max(0.0), c[2].max(0.0)]);
         let mask = 1.0 - cpu_smoothstep(0.0, 0.3, sl);
         let tint_mult = [1.0 + st * 0.25, 1.0 - st * 0.25, 1.0 + st * 0.25];
-        for i in 0..3 { c[i] = cpu_mix(c[i], c[i] * tint_mult[i], mask); }
+        for i in 0..3 {
+            c[i] = cpu_mix(c[i], c[i] * tint_mult[i], mask);
+        }
     }
 
-    pix[0] = c[0]; pix[1] = c[1]; pix[2] = c[2];
+    pix[0] = c[0];
+    pix[1] = c[1];
+    pix[2] = c[2];
 }
 
 fn cpu_mat3_mul_vec3(m: &GpuMat3, v: &[f32; 3]) -> [f32; 3] {
@@ -4704,7 +4835,9 @@ fn cpu_apply_hsl_panel(pix: &mut [f32], hsl: &[HslColor; 8]) {
 
     let sat_mask = cpu_smoothstep(0.05, 0.20, orig_s);
     let lum_weight = cpu_smoothstep(0.0, 1.0, orig_s);
-    if sat_mask < 0.001 && lum_weight < 0.001 { return; }
+    if sat_mask < 0.001 && lum_weight < 0.001 {
+        return;
+    }
 
     const HSL_RANGES: [(f32, f32); 8] = [
         (358.0, 35.0), // Red
@@ -4724,7 +4857,9 @@ fn cpu_apply_hsl_panel(pix: &mut [f32], hsl: &[HslColor; 8]) {
         raw_inf[i] = inf;
         total_raw += inf;
     }
-    if total_raw < CPU_TINY_EPS { return; }
+    if total_raw < CPU_TINY_EPS {
+        return;
+    }
 
     let mut total_hue_shift = 0.0f32;
     let mut total_sat_mult = 0.0f32;
@@ -4741,7 +4876,9 @@ fn cpu_apply_hsl_panel(pix: &mut [f32], hsl: &[HslColor; 8]) {
 
     if orig_s * (1.0 + total_sat_mult) < 0.0001 {
         let final_lum = orig_luma * (1.0 + total_lum_adj);
-        pix[0] = final_lum; pix[1] = final_lum; pix[2] = final_lum;
+        pix[0] = final_lum;
+        pix[1] = final_lum;
+        pix[2] = final_lum;
         return;
     }
     let nh = (orig_h + total_hue_shift + 360.0) % 360.0;
@@ -4751,7 +4888,9 @@ fn cpu_apply_hsl_panel(pix: &mut [f32], hsl: &[HslColor; 8]) {
     let target_luma = orig_luma * (1.0 + total_lum_adj);
     if new_luma < 0.0001 {
         let t = target_luma.max(0.0);
-        pix[0] = t; pix[1] = t; pix[2] = t;
+        pix[0] = t;
+        pix[1] = t;
+        pix[2] = t;
         return;
     }
     let ratio = target_luma / new_luma;
@@ -4779,8 +4918,17 @@ fn cpu_apply_color_grading(
     let highlight_crossover = base_highlight_crossover - balance.max(0.0) * balance_range;
     let feather = 0.2 * blending;
     let final_shadow_crossover = shadow_crossover.min(highlight_crossover - 0.01);
-    let shadow_mask = 1.0 - cpu_smoothstep(final_shadow_crossover - feather, final_shadow_crossover + feather, luma);
-    let highlight_mask = cpu_smoothstep(highlight_crossover - feather, highlight_crossover + feather, luma);
+    let shadow_mask = 1.0
+        - cpu_smoothstep(
+            final_shadow_crossover - feather,
+            final_shadow_crossover + feather,
+            luma,
+        );
+    let highlight_mask = cpu_smoothstep(
+        highlight_crossover - feather,
+        highlight_crossover + feather,
+        luma,
+    );
     let midtone_mask = (1.0 - shadow_mask - highlight_mask).max(0.0);
     let global_mask = 1.0;
 
@@ -4797,26 +4945,57 @@ fn cpu_apply_color_grading(
     // helper: apply grade with mask, sat_strength, lum_strength using setting.
     // Match GPU shader `apply_color_grading`: tint only applied for positive
     // saturation, hue is already in degrees [0,360] (same struct as GPU path).
-    let apply_tint_sat = |gc: &mut [f32; 3], g: &ColorGradeSettings, mask: f32, sat_s: f32, lum_s: f32| {
-        if g.saturation > 0.001 {
-            let tint = cpu_hsv_to_rgb((g.hue + 360.0) % 360.0, 1.0, 1.0);
-            for i in 0..3 { gc[i] += (tint[i] - 0.5) * g.saturation * mask * sat_s; }
-        }
-        let l_adj = g.luminance * mask * lum_s;
-        for i in 0..3 { gc[i] += l_adj; }
-    };
+    let apply_tint_sat =
+        |gc: &mut [f32; 3], g: &ColorGradeSettings, mask: f32, sat_s: f32, lum_s: f32| {
+            if g.saturation > 0.001 {
+                let tint = cpu_hsv_to_rgb((g.hue + 360.0) % 360.0, 1.0, 1.0);
+                for i in 0..3 {
+                    gc[i] += (tint[i] - 0.5) * g.saturation * mask * sat_s;
+                }
+            }
+            let l_adj = g.luminance * mask * lum_s;
+            for i in 0..3 {
+                gc[i] += l_adj;
+            }
+        };
 
     apply_tint_sat(&mut gc, shadows, shadow_mask, shadow_sat_s, shadow_lum_s);
-    apply_tint_sat(&mut gc, midtones, midtone_mask, midtone_sat_s, midtone_lum_s);
-    apply_tint_sat(&mut gc, highlights, highlight_mask, highlight_sat_s, highlight_lum_s);
+    apply_tint_sat(
+        &mut gc,
+        midtones,
+        midtone_mask,
+        midtone_sat_s,
+        midtone_lum_s,
+    );
+    apply_tint_sat(
+        &mut gc,
+        highlights,
+        highlight_mask,
+        highlight_sat_s,
+        highlight_lum_s,
+    );
     apply_tint_sat(&mut gc, global, global_mask, global_sat_s, global_lum_s);
 
-    pix[0] = gc[0]; pix[1] = gc[1]; pix[2] = gc[2];
+    pix[0] = gc[0];
+    pix[1] = gc[1];
+    pix[2] = gc[2];
 }
 
 #[inline]
-fn cpu_apply_vignette(pix: &mut [f32], x: u32, y: u32, w: u32, h: u32, amount: f32, midpoint: f32, roundness: f32, feather: f32) {
-    if amount.abs() < CPU_TINY_EPS { return; }
+fn cpu_apply_vignette(
+    pix: &mut [f32],
+    x: u32,
+    y: u32,
+    w: u32,
+    h: u32,
+    amount: f32,
+    midpoint: f32,
+    roundness: f32,
+    feather: f32,
+) {
+    if amount.abs() < CPU_TINY_EPS {
+        return;
+    }
     // Match GPU vignette: aspect-corrected with roundness power curve
     let aspect = h as f32 / w as f32;
     let uv_centered_x = ((x as f32 + 0.5) / w as f32 - 0.5) * 2.0;
@@ -4830,9 +5009,13 @@ fn cpu_apply_vignette(pix: &mut [f32], x: u32, y: u32, w: u32, h: u32, amount: f
 
     if amount < 0.0 {
         let factor = 1.0 + amount * vignette_mask;
-        pix[0] *= factor; pix[1] *= factor; pix[2] *= factor;
+        pix[0] *= factor;
+        pix[1] *= factor;
+        pix[2] *= factor;
     } else {
-        for c in 0..3 { pix[c] = cpu_mix(pix[c], 1.0, amount * vignette_mask); }
+        for c in 0..3 {
+            pix[c] = cpu_mix(pix[c], 1.0, amount * vignette_mask);
+        }
     }
 }
 
@@ -4877,18 +5060,39 @@ fn agx_sigmoid(x: f32, power: f32) -> f32 {
 }
 
 #[inline]
-fn agx_scaled_sigmoid(x: f32, scale: f32, slope: f32, power: f32, transition_x: f32, transition_y: f32) -> f32 {
+fn agx_scaled_sigmoid(
+    x: f32,
+    scale: f32,
+    slope: f32,
+    power: f32,
+    transition_x: f32,
+    transition_y: f32,
+) -> f32 {
     scale * agx_sigmoid(slope * (x - transition_x) / scale, power) + transition_y
 }
 
 #[inline]
 fn agx_apply_curve_channel(x: f32) -> f32 {
     let result = if x < AGX_TOE_TRANSITION_X {
-        agx_scaled_sigmoid(x, AGX_TOE_SCALE, AGX_SLOPE, AGX_TOE_POWER, AGX_TOE_TRANSITION_X, AGX_TOE_TRANSITION_Y)
+        agx_scaled_sigmoid(
+            x,
+            AGX_TOE_SCALE,
+            AGX_SLOPE,
+            AGX_TOE_POWER,
+            AGX_TOE_TRANSITION_X,
+            AGX_TOE_TRANSITION_Y,
+        )
     } else if x <= AGX_SHOULDER_TRANSITION_X {
         AGX_SLOPE * x + AGX_INTERCEPT
     } else {
-        agx_scaled_sigmoid(x, AGX_SHOULDER_SCALE, AGX_SLOPE, AGX_SHOULDER_POWER, AGX_SHOULDER_TRANSITION_X, AGX_SHOULDER_TRANSITION_Y)
+        agx_scaled_sigmoid(
+            x,
+            AGX_SHOULDER_SCALE,
+            AGX_SLOPE,
+            AGX_SHOULDER_POWER,
+            AGX_SHOULDER_TRANSITION_X,
+            AGX_SHOULDER_TRANSITION_Y,
+        )
     };
     result.clamp(AGX_TARGET_BLACK_PRE_GAMMA, AGX_TARGET_WHITE_PRE_GAMMA)
 }
@@ -4932,7 +5136,11 @@ fn agx_tonemap(c: [f32; 3]) -> [f32; 3] {
     ]
 }
 
-fn cpu_apply_agx_tonemap_to_pixel(pix: &mut [f32], pipe_to_rendering: &GpuMat3, rendering_to_pipe: &GpuMat3) {
+fn cpu_apply_agx_tonemap_to_pixel(
+    pix: &mut [f32],
+    pipe_to_rendering: &GpuMat3,
+    rendering_to_pipe: &GpuMat3,
+) {
     // Match GPU agx_full_transform: compress → transform → tonemap → inverse transform
     let compressed = agx_compress_gamut([pix[0], pix[1], pix[2]]);
     let in_agx_space = cpu_mat3_mul_vec3(pipe_to_rendering, &compressed);
@@ -4957,18 +5165,26 @@ fn cpu_apply_basic_tonemap_for_raw(pix: &mut [f32]) {
 }
 
 fn cpu_hermite_interp(points: &[Point], count: u32, x: f32) -> f32 {
-    if count < 2 { return x; }
+    if count < 2 {
+        return x;
+    }
     let pts: Vec<&Point> = points.iter().take(count as usize).collect();
     // Normalize input from [0,1] to [0,255] to match the curve point coordinate space
     let x_norm = x * 255.0;
-    if x_norm <= pts[0].x { return pts[0].y / 255.0; }
-    if x_norm >= pts[pts.len() - 1].x { return pts[pts.len() - 1].y / 255.0; }
+    if x_norm <= pts[0].x {
+        return pts[0].y / 255.0;
+    }
+    if x_norm >= pts[pts.len() - 1].x {
+        return pts[pts.len() - 1].y / 255.0;
+    }
     for i in 0..pts.len() - 1 {
         let p1 = pts[i];
         let p2 = pts[i + 1];
         if x_norm <= p2.x {
             let dx = p2.x - p1.x;
-            if dx <= CPU_TINY_EPS { return p1.y / 255.0; }
+            if dx <= CPU_TINY_EPS {
+                return p1.y / 255.0;
+            }
             let t = (x_norm - p1.x) / dx;
             let t2 = t * t;
             let t3 = t2 * t;
@@ -5019,7 +5235,9 @@ fn cpu_hermite_interp(points: &[Point], count: u32, x: f32) -> f32 {
 
 #[inline]
 fn cpu_is_default_curve(points: &[Point], count: u32) -> bool {
-    if count < 2 { return false; }
+    if count < 2 {
+        return false;
+    }
     let pts: Vec<&Point> = points.iter().take(count as usize).collect();
     let mut is_identity = true;
     for p in &pts {
@@ -5087,7 +5305,9 @@ fn cpu_apply_all_curves(
         pix[1] = cpu_hermite_interp(luma_curve, luma_count, pix[1]);
         pix[2] = cpu_hermite_interp(luma_curve, luma_count, pix[2]);
     }
-    for c in 0..3 { pix[c] = pix[c].clamp(0.0, 1.0); }
+    for c in 0..3 {
+        pix[c] = pix[c].clamp(0.0, 1.0);
+    }
 }
 
 // Grain noise helpers (matching GPU gradient_noise + hash)
@@ -5115,10 +5335,22 @@ fn cpu_gradient_noise(px: f32, py: f32) -> f32 {
     let uy = fy * fy * fy * (fy * (fy * 6.0 - 15.0) + 10.0);
 
     // Gradient vectors at corners (matching GPU: hash + offset for gradient direction)
-    let ga = [cpu_grain_hash(ix, iy) * 2.0 - 1.0, cpu_grain_hash(ix + 11.0, iy + 37.0) * 2.0 - 1.0];
-    let gb = [cpu_grain_hash(ix + 1.0, iy) * 2.0 - 1.0, cpu_grain_hash(ix + 1.0 + 11.0, iy + 37.0) * 2.0 - 1.0];
-    let gc = [cpu_grain_hash(ix, iy + 1.0) * 2.0 - 1.0, cpu_grain_hash(ix + 11.0, iy + 1.0 + 37.0) * 2.0 - 1.0];
-    let gd = [cpu_grain_hash(ix + 1.0, iy + 1.0) * 2.0 - 1.0, cpu_grain_hash(ix + 1.0 + 11.0, iy + 1.0 + 37.0) * 2.0 - 1.0];
+    let ga = [
+        cpu_grain_hash(ix, iy) * 2.0 - 1.0,
+        cpu_grain_hash(ix + 11.0, iy + 37.0) * 2.0 - 1.0,
+    ];
+    let gb = [
+        cpu_grain_hash(ix + 1.0, iy) * 2.0 - 1.0,
+        cpu_grain_hash(ix + 1.0 + 11.0, iy + 37.0) * 2.0 - 1.0,
+    ];
+    let gc = [
+        cpu_grain_hash(ix, iy + 1.0) * 2.0 - 1.0,
+        cpu_grain_hash(ix + 11.0, iy + 1.0 + 37.0) * 2.0 - 1.0,
+    ];
+    let gd = [
+        cpu_grain_hash(ix + 1.0, iy + 1.0) * 2.0 - 1.0,
+        cpu_grain_hash(ix + 1.0 + 11.0, iy + 1.0 + 37.0) * 2.0 - 1.0,
+    ];
 
     let dot_00 = ga[0] * fx + ga[1] * fy;
     let dot_10 = gb[0] * (fx - 1.0) + gb[1] * fy;
@@ -5130,8 +5362,20 @@ fn cpu_gradient_noise(px: f32, py: f32) -> f32 {
     cpu_mix(bottom, top, uy)
 }
 
-fn cpu_apply_grain(pix: &mut [f32], x: u32, y: u32, _w: u32, _h: u32, amount: f32, size: f32, roughness: f32, scale: f32) {
-    if amount.abs() < CPU_TINY_EPS { return; }
+fn cpu_apply_grain(
+    pix: &mut [f32],
+    x: u32,
+    y: u32,
+    _w: u32,
+    _h: u32,
+    amount: f32,
+    size: f32,
+    roughness: f32,
+    scale: f32,
+) {
+    if amount.abs() < CPU_TINY_EPS {
+        return;
+    }
     // Match GPU grain: gradient noise with luma mask
     let grain_amount = amount * 0.5;
     let grain_frequency = (1.0 / size.max(0.1)) / scale;
@@ -5262,7 +5506,8 @@ fn cpu_apply_noise_reduction_pass(
             if luma_a > 0.001 {
                 let mut luma_sum = center_luma;
                 let mut weight_sum = 1.0_f32;
-                let stride_f = cpu_mix(1.0, 2.0, ((luma_a - 0.45) / 0.5).clamp(0.0, 1.0)) * res_factor;
+                let stride_f =
+                    cpu_mix(1.0, 2.0, ((luma_a - 0.45) / 0.5).clamp(0.0, 1.0)) * res_factor;
                 let stride = stride_f.round().max(1.0) as i32;
 
                 for dy in -2..=2 {
@@ -5471,14 +5716,7 @@ fn cpu_apply_halation(
 /// texture; on CPU we use a procedural radial flare model centred on the
 /// image, which approximates the texture-based bloom for the fallback path.
 #[inline]
-fn cpu_apply_lens_flare(
-    pix: &mut [f32],
-    x: usize,
-    y: usize,
-    w: usize,
-    h: usize,
-    amount: f32,
-) {
+fn cpu_apply_lens_flare(pix: &mut [f32], x: usize, y: usize, w: usize, h: usize, amount: f32) {
     if amount <= 0.0 {
         return;
     }
@@ -5518,10 +5756,7 @@ fn cpu_apply_lens_flare(
 
 /// Apply the full color-adjustment pipeline on the CPU.
 /// This is the Android / no-GPU fallback path.
-pub fn apply_cpu_color_adjustments(
-    image: &mut DynamicImage,
-    adjustments: &AllAdjustments,
-) {
+pub fn apply_cpu_color_adjustments(image: &mut DynamicImage, adjustments: &AllAdjustments) {
     let (width, height) = image.dimensions();
     if let Err(e) = validate_image_dimensions(width, height) {
         log::warn!("Skipping CPU color adjustments: {}", e);
@@ -5628,8 +5863,14 @@ pub fn apply_cpu_color_adjustments(
             if g.glow_amount > 0.0 {
                 let st_blur_rgb = &structure_blur_rgb[idx * 3..idx * 3 + 3];
                 cpu_apply_glow_bloom(
-                    pix, st_blur_rgb, g.glow_amount, is_raw,
-                    g.exposure, g.brightness, g.contrast, g.whites,
+                    pix,
+                    st_blur_rgb,
+                    g.glow_amount,
+                    is_raw,
+                    g.exposure,
+                    g.brightness,
+                    g.contrast,
+                    g.whites,
                 );
             }
 
@@ -5637,8 +5878,14 @@ pub fn apply_cpu_color_adjustments(
             if g.halation_amount > 0.0 {
                 let c_blur_rgb = &clarity_blur_rgb[idx * 3..idx * 3 + 3];
                 cpu_apply_halation(
-                    pix, c_blur_rgb, g.halation_amount, is_raw,
-                    g.exposure, g.brightness, g.contrast, g.whites,
+                    pix,
+                    c_blur_rgb,
+                    g.halation_amount,
+                    is_raw,
+                    g.exposure,
+                    g.brightness,
+                    g.contrast,
+                    g.whites,
                 );
             }
 
@@ -5724,7 +5971,17 @@ pub fn apply_cpu_color_adjustments(
             );
 
             // Grain.
-            cpu_apply_grain(pix, x, y, width, height, g.grain_amount, g.grain_size, g.grain_roughness, scale);
+            cpu_apply_grain(
+                pix,
+                x,
+                y,
+                width,
+                height,
+                g.grain_amount,
+                g.grain_size,
+                g.grain_roughness,
+                scale,
+            );
 
             // Clamp.
             pix[0] = pix[0].clamp(0.0, 1.0);

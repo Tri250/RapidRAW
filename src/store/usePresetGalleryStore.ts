@@ -704,10 +704,7 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
 
       // Persist the successful result to session cache.
       try {
-        sessionStorage.setItem(
-          cacheKey,
-          JSON.stringify({ timestamp: Date.now(), presets, sourceName: finalName }),
-        );
+        sessionStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), presets, sourceName: finalName }));
       } catch {
         /* ignore quota errors */
       }

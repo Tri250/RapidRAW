@@ -152,8 +152,8 @@ use crate::image_processing::{
     Crop, GeometryParams, RenderRequest, apply_coarse_rotation, apply_cpu_color_adjustments,
     apply_cpu_default_raw_processing, apply_flip, apply_geometry_warp, apply_linear_to_srgb,
     downscale_f32_image, get_all_adjustments_from_json, get_or_init_gpu_context,
-    process_and_get_dynamic_image, resolve_tonemapper_override, resolve_tonemapper_override_from_handle,
-    warp_image_geometry,
+    process_and_get_dynamic_image, resolve_tonemapper_override,
+    resolve_tonemapper_override_from_handle, warp_image_geometry,
 };
 use crate::mask_generation::{
     MaskDefinition, generate_mask_bitmap, get_cached_or_generate_mask,
@@ -645,8 +645,10 @@ fn apply_portrait_postprocessing(
             }) {
                 Ok(detector_arc) => {
                     let mut detector_guard = detector_arc.lock_resilient();
-                    let onnx_regions =
-                        crate::portrait_processing::detect_face_regions_onnx(image, &mut detector_guard);
+                    let onnx_regions = crate::portrait_processing::detect_face_regions_onnx(
+                        image,
+                        &mut detector_guard,
+                    );
                     if onnx_regions.is_empty() {
                         crate::portrait_processing::detect_face_regions(image)
                     } else {
@@ -1568,8 +1570,9 @@ async fn fetch_community_presets() -> Result<Vec<CommunityPreset>, String> {
     // In-memory cache keyed by url → (timestamp_ms, presets)
     use std::collections::HashMap;
     use std::sync::Mutex as StdMutex;
-    static PRESET_CACHE: once_cell::sync::Lazy<StdMutex<HashMap<String, (u128, Vec<CommunityPreset>)>>> =
-        once_cell::sync::Lazy::new(|| StdMutex::new(HashMap::new()));
+    static PRESET_CACHE: once_cell::sync::Lazy<
+        StdMutex<HashMap<String, (u128, Vec<CommunityPreset>)>>,
+    > = once_cell::sync::Lazy::new(|| StdMutex::new(HashMap::new()));
     const CACHE_TTL_MS: u128 = 10 * 60 * 1000; // 10 minutes
 
     let now_ms = std::time::SystemTime::now()
@@ -2169,7 +2172,12 @@ fn generate_preview_for_path(
     let base_image = {
         if crate::android_integration::is_android_content_uri(&source_path_str) {
             let bytes = crate::android_integration::read_android_content_uri(&source_path_str)
-                .map_err(|e| format!("Failed to read Android content URI '{}': {}", source_path_str, e))?;
+                .map_err(|e| {
+                    format!(
+                        "Failed to read Android content URI '{}': {}",
+                        source_path_str, e
+                    )
+                })?;
             load_and_composite(
                 &bytes,
                 &source_path_str,
@@ -2182,13 +2190,30 @@ fn generate_preview_for_path(
         } else {
             match read_file_mapped(&source_path) {
                 Ok(mmap) => load_and_composite(
-                    &mmap, &source_path_str, &js_adjustments, false, &settings, None,
-                ).map_err(|e| e.to_string())?,
+                    &mmap,
+                    &source_path_str,
+                    &js_adjustments,
+                    false,
+                    &settings,
+                    None,
+                )
+                .map_err(|e| e.to_string())?,
                 Err(e) => {
-                    log::warn!("Failed to mmap '{}': {}. Falling back to fs::read.", source_path_str, e);
+                    log::warn!(
+                        "Failed to mmap '{}': {}. Falling back to fs::read.",
+                        source_path_str,
+                        e
+                    );
                     let bytes = fs::read(&source_path).map_err(|io_err| io_err.to_string())?;
-                    load_and_composite(&bytes, &source_path_str, &js_adjustments, false, &settings, None)
-                        .map_err(|e| e.to_string())?
+                    load_and_composite(
+                        &bytes,
+                        &source_path_str,
+                        &js_adjustments,
+                        false,
+                        &settings,
+                        None,
+                    )
+                    .map_err(|e| e.to_string())?
                 }
             }
         }
@@ -2650,7 +2675,11 @@ pub fn run() {
             .unwrap_or(4);
         let capped = logical.min(4).max(2);
         tp_builder = tp_builder.num_threads(capped);
-        log::info!("mobile rayon pool capped to {} threads ({} logical CPUs)", capped, logical);
+        log::info!(
+            "mobile rayon pool capped to {} threads ({} logical CPUs)",
+            capped,
+            logical
+        );
     }
     let _ = tp_builder.build_global();
 

@@ -117,9 +117,7 @@ fn calculate_exposure_metric(image: &GrayImage) -> f64 {
     let clip_threshold_bright = 250usize.min(bins);
     let upper_bound = 256usize.min(bins);
 
-    let dark_pixels = channel[0..clip_threshold_dark]
-        .iter()
-        .sum::<u32>() as f64;
+    let dark_pixels = channel[0..clip_threshold_dark].iter().sum::<u32>() as f64;
     let bright_pixels = channel[clip_threshold_bright..upper_bound]
         .iter()
         .sum::<u32>() as f64;

@@ -121,7 +121,10 @@ pub fn progressive_seam_stitcher(
         println!("  - Progressively stitching '{}'", img_to_add_info.filename);
 
         let h_add = &global_homographies[&img_to_add_info.id];
-        let h_add_inv = h_add.try_inverse().unwrap_or_else(|| { log::warn!("Homography is singular, using identity as fallback"); Matrix3::identity() });
+        let h_add_inv = h_add.try_inverse().unwrap_or_else(|| {
+            log::warn!("Homography is singular, using identity as fallback");
+            Matrix3::identity()
+        });
         let img_to_add = &img_to_add_info.image;
 
         let ctx = SeamContext {
@@ -368,7 +371,10 @@ pub fn progressive_seam_stitcher(
 }
 
 fn find_adaptive_seam(ctx: &SeamContext) -> Option<SeamInfo> {
-    let h_add_inv = ctx.h_add.try_inverse().unwrap_or_else(|| { log::warn!("Homography is singular, using identity as fallback"); Matrix3::identity() });
+    let h_add_inv = ctx.h_add.try_inverse().unwrap_or_else(|| {
+        log::warn!("Homography is singular, using identity as fallback");
+        Matrix3::identity()
+    });
     let (w_add, h_add_img) = ctx.img_to_add.dimensions();
 
     let mut min_ox = u32::MAX;
@@ -432,7 +438,10 @@ fn find_adaptive_seam(ctx: &SeamContext) -> Option<SeamInfo> {
 }
 
 fn find_pairwise_seam_dp_vertical(ctx: &SeamContext) -> Vec<i32> {
-    let h_add_inv = ctx.h_add.try_inverse().unwrap_or_else(|| { log::warn!("Homography is singular, using identity as fallback"); Matrix3::identity() });
+    let h_add_inv = ctx.h_add.try_inverse().unwrap_or_else(|| {
+        log::warn!("Homography is singular, using identity as fallback");
+        Matrix3::identity()
+    });
     let (w_add, h_add_img) = ctx.img_to_add.dimensions();
     let out_width = ctx.out_width;
     let out_height = ctx.out_height;
@@ -535,7 +544,10 @@ fn find_pairwise_seam_dp_vertical(ctx: &SeamContext) -> Vec<i32> {
 }
 
 fn find_pairwise_seam_dp_horizontal(ctx: &SeamContext) -> Vec<i32> {
-    let h_add_inv = ctx.h_add.try_inverse().unwrap_or_else(|| { log::warn!("Homography is singular, using identity as fallback"); Matrix3::identity() });
+    let h_add_inv = ctx.h_add.try_inverse().unwrap_or_else(|| {
+        log::warn!("Homography is singular, using identity as fallback");
+        Matrix3::identity()
+    });
     let (w_add, h_add_img) = ctx.img_to_add.dimensions();
     let out_width = ctx.out_width;
     let out_height = ctx.out_height;

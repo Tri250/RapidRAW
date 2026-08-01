@@ -1600,7 +1600,7 @@ const ImageCanvas = memo(
       activeMaskContainerId,
       activeAiPatchContainerId,
       isMasking,
-       
+
       isAiEditing,
     ]);
 

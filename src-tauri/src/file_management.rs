@@ -16,21 +16,18 @@ use once_cell::sync::Lazy;
 
 // Pre-compiled XMP editing regexes. Compiled once at first use; if any pattern
 // is invalid the failure surfaces at startup rather than during a save.
-static RE_XMP_RATING_ATTR: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"xmp:Rating\s*=\s*"[^"]*""#).expect("invalid rating attr regex")
-});
+static RE_XMP_RATING_ATTR: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"xmp:Rating\s*=\s*"[^"]*""#).expect("invalid rating attr regex"));
 static RE_XMP_RATING_TAG: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r#"<xmp:Rating\s*>[^<]*</xmp:Rating>"#).expect("invalid rating tag regex")
 });
-static RE_XMP_LABEL_ATTR: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"xmp:Label\s*=\s*"[^"]*""#).expect("invalid label attr regex")
-});
+static RE_XMP_LABEL_ATTR: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"xmp:Label\s*=\s*"[^"]*""#).expect("invalid label attr regex"));
 static RE_XMP_LABEL_TAG: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r#"<xmp:Label\s*>[^<]*</xmp:Label>"#).expect("invalid label tag regex")
 });
-static RE_XMP_LABEL_ATTR_WS: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"\s*xmp:Label\s*=\s*"[^"]*""#).expect("invalid label attr ws regex")
-});
+static RE_XMP_LABEL_ATTR_WS: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"\s*xmp:Label\s*=\s*"[^"]*""#).expect("invalid label attr ws regex"));
 static RE_XMP_LABEL_TAG_WS: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r#"\s*<xmp:Label\s*>[^<]*</xmp:Label>"#).expect("invalid label tag ws regex")
 });
@@ -370,24 +367,29 @@ pub(crate) fn looks_like_traversal(s: &str) -> bool {
 /// - URL-unsafe / shell-unsafe: `% ( ) [ ] { } ; & # ! \` ~ ^ = +`
 pub fn sanitize_filename(name: &str) -> String {
     const INVALID: &[char] = &[
-        '<', '>', ':', '"', '/', '\\', '|', '?', '*', '\0',
-        '%', '(', ')', '[', ']', '{', '}', ';', '&', '#', '!', '`', '~', '^', '=', '+',
+        '<', '>', ':', '"', '/', '\\', '|', '?', '*', '\0', '%', '(', ')', '[', ']', '{', '}', ';',
+        '&', '#', '!', '`', '~', '^', '=', '+',
     ];
     let mut sanitized: String = name
         .chars()
         .map(|c| if INVALID.contains(&c) { '_' } else { c })
         .collect();
     // Remove trailing spaces/dots which are illegal or confusing on Windows.
-    sanitized = sanitized.trim_end_matches(|c: char| c == ' ' || c == '.').to_string();
+    sanitized = sanitized
+        .trim_end_matches(|c: char| c == ' ' || c == '.')
+        .to_string();
 
     // Avoid reserved Windows device names (CON, PRN, AUX, NUL, COM1-9, LPT1-9)
     // and any name that starts with one of them followed by a dot.
     let upper = sanitized.to_uppercase();
     const RESERVED: &[&str] = &[
-        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7",
-        "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
+        "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
     ];
-    if RESERVED.iter().any(|r| upper == *r || upper.starts_with(&format!("{}.", r))) {
+    if RESERVED
+        .iter()
+        .any(|r| upper == *r || upper.starts_with(&format!("{}.", r)))
+    {
         sanitized = format!("_{}", sanitized);
     }
 

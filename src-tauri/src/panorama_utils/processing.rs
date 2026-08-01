@@ -97,7 +97,11 @@ pub fn find_features_tuned(
 
 fn non_maximal_suppression(corners: &[Corner], radius: f32) -> Vec<KeyPoint> {
     let mut sorted_corners = corners.to_vec();
-    sorted_corners.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    sorted_corners.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     let mut result = Vec::new();
     let radius_sq = radius * radius;
     let mut is_suppressed_grid = vec![false; sorted_corners.len()];

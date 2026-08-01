@@ -710,76 +710,76 @@ pub fn gpu_apply_adjustments(
 
     #[cfg(not(target_os = "android"))]
     {
-    use base64::{Engine as _, engine::general_purpose};
+        use base64::{Engine as _, engine::general_purpose};
 
-    // Decode base64 image data
-    let image_data = general_purpose::STANDARD
-        .decode(&image_data_base64)
-        .map_err(|e| format!("Failed to decode base64 image data: {}", e))?;
+        // Decode base64 image data
+        let image_data = general_purpose::STANDARD
+            .decode(&image_data_base64)
+            .map_err(|e| format!("Failed to decode base64 image data: {}", e))?;
 
-    // Build uniforms from options, using defaults for None
-    let defaults = AdjustmentUniforms::default();
-    let uniforms = AdjustmentUniforms {
-        exposure: exposure.unwrap_or(defaults.exposure),
-        contrast: contrast.unwrap_or(defaults.contrast),
-        highlights: highlights.unwrap_or(defaults.highlights),
-        shadows: shadows.unwrap_or(defaults.shadows),
-        whites: whites.unwrap_or(defaults.whites),
-        blacks: blacks.unwrap_or(defaults.blacks),
-        saturation: saturation.unwrap_or(defaults.saturation),
-        vibrance: vibrance.unwrap_or(defaults.vibrance),
-        temperature: temperature.unwrap_or(defaults.temperature),
-        tint: tint.unwrap_or(defaults.tint),
-        sharpness: sharpness.unwrap_or(defaults.sharpness),
-        vignette: vignette.unwrap_or(defaults.vignette),
-        grain_amount: grain_amount.unwrap_or(defaults.grain_amount),
-        haze: haze.unwrap_or(defaults.haze),
-        clarity: clarity.unwrap_or(defaults.clarity),
-        dehaze: dehaze.unwrap_or(defaults.dehaze),
-    };
+        // Build uniforms from options, using defaults for None
+        let defaults = AdjustmentUniforms::default();
+        let uniforms = AdjustmentUniforms {
+            exposure: exposure.unwrap_or(defaults.exposure),
+            contrast: contrast.unwrap_or(defaults.contrast),
+            highlights: highlights.unwrap_or(defaults.highlights),
+            shadows: shadows.unwrap_or(defaults.shadows),
+            whites: whites.unwrap_or(defaults.whites),
+            blacks: blacks.unwrap_or(defaults.blacks),
+            saturation: saturation.unwrap_or(defaults.saturation),
+            vibrance: vibrance.unwrap_or(defaults.vibrance),
+            temperature: temperature.unwrap_or(defaults.temperature),
+            tint: tint.unwrap_or(defaults.tint),
+            sharpness: sharpness.unwrap_or(defaults.sharpness),
+            vignette: vignette.unwrap_or(defaults.vignette),
+            grain_amount: grain_amount.unwrap_or(defaults.grain_amount),
+            haze: haze.unwrap_or(defaults.haze),
+            clarity: clarity.unwrap_or(defaults.clarity),
+            dehaze: dehaze.unwrap_or(defaults.dehaze),
+        };
 
-    // Try to get or init the GPU pipeline from the global singleton.
-    // get_or_init never returns Err (failures are cached as Failed state),
-    // but we still need to inspect the cached state to decide what to do.
-    let guard = match GPU_PIPELINE_HANDLE.get_or_init() {
-        Ok(g) => g,
-        Err(e) => {
-            log::warn!(
-                "GPU pipeline initialization failed, returning original image: {}",
-                e
-            );
-            return Ok(image_data_base64);
-        }
-    };
+        // Try to get or init the GPU pipeline from the global singleton.
+        // get_or_init never returns Err (failures are cached as Failed state),
+        // but we still need to inspect the cached state to decide what to do.
+        let guard = match GPU_PIPELINE_HANDLE.get_or_init() {
+            Ok(g) => g,
+            Err(e) => {
+                log::warn!(
+                    "GPU pipeline initialization failed, returning original image: {}",
+                    e
+                );
+                return Ok(image_data_base64);
+            }
+        };
 
-    let pipeline = match &*guard {
-        PipelineState::Ready(p) => p,
-        PipelineState::Failed(msg) => {
-            log::warn!("GPU pipeline unavailable (cached failure): {}", msg);
-            return Err(format!("GPU pipeline unavailable: {}", msg));
-        }
-        PipelineState::Uninit => {
-            // Should not happen — get_or_init transitions out of Uninit.
-            return Err("GPU pipeline not initialized".to_string());
-        }
-    };
+        let pipeline = match &*guard {
+            PipelineState::Ready(p) => p,
+            PipelineState::Failed(msg) => {
+                log::warn!("GPU pipeline unavailable (cached failure): {}", msg);
+                return Err(format!("GPU pipeline unavailable: {}", msg));
+            }
+            PipelineState::Uninit => {
+                // Should not happen — get_or_init transitions out of Uninit.
+                return Err("GPU pipeline not initialized".to_string());
+            }
+        };
 
-    // Call apply_adjustments — if GPU fails, return error so the caller
-    // can fall back to the CPU rendering path instead of silently returning
-    // the unadjusted original image.
-    let result_data = apply_adjustments(pipeline, &image_data, width, height, uniforms)
-        .map_err(|e| format!("GPU apply_adjustments failed: {}", e))?;
+        // Call apply_adjustments — if GPU fails, return error so the caller
+        // can fall back to the CPU rendering path instead of silently returning
+        // the unadjusted original image.
+        let result_data = apply_adjustments(pipeline, &image_data, width, height, uniforms)
+            .map_err(|e| format!("GPU apply_adjustments failed: {}", e))?;
 
-    // Encode result as base64 PNG
-    // The result is raw RGBA8 pixels; encode as PNG using the image crate
-    let img = image::RgbaImage::from_raw(width, height, result_data)
-        .ok_or_else(|| "Failed to create image from GPU output".to_string())?;
-    let dynamic = image::DynamicImage::ImageRgba8(img);
-    let mut png_buf = std::io::Cursor::new(Vec::new());
-    dynamic
-        .write_to(&mut png_buf, image::ImageFormat::Png)
-        .map_err(|e| format!("Failed to encode PNG: {}", e))?;
+        // Encode result as base64 PNG
+        // The result is raw RGBA8 pixels; encode as PNG using the image crate
+        let img = image::RgbaImage::from_raw(width, height, result_data)
+            .ok_or_else(|| "Failed to create image from GPU output".to_string())?;
+        let dynamic = image::DynamicImage::ImageRgba8(img);
+        let mut png_buf = std::io::Cursor::new(Vec::new());
+        dynamic
+            .write_to(&mut png_buf, image::ImageFormat::Png)
+            .map_err(|e| format!("Failed to encode PNG: {}", e))?;
 
-    Ok(general_purpose::STANDARD.encode(png_buf.into_inner()))
+        Ok(general_purpose::STANDARD.encode(png_buf.into_inner()))
     } // #[cfg(not(target_os = "android"))]
 }

@@ -138,10 +138,7 @@ const CommunityPage = React.memo(({ onBackToLibrary, imageList, currentFolderPat
       }
       const dataUrl = `data:${blob.type || 'image/jpeg'};base64,${btoa(binary)}`;
       try {
-        sessionStorage.setItem(
-          cacheKey,
-          JSON.stringify({ timestamp: Date.now(), dataUrl }),
-        );
+        sessionStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), dataUrl }));
       } catch {
         /* ignore quota errors */
       }

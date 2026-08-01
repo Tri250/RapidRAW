@@ -14,7 +14,6 @@ use serde_json::Value;
 use tauri::Emitter;
 use tauri::Manager;
 
-use crate::{AppState, MutexResilient};
 use crate::exif_processing;
 use crate::file_management::{
     generate_filename_from_template, parse_virtual_path, read_file_mapped, validate_writable_folder,
@@ -32,6 +31,7 @@ use crate::lut_processing::{
     convert_image_to_cube_lut, generate_identity_lut_image, get_or_load_lut,
 };
 use crate::mask_generation::{MaskDefinition, generate_mask_bitmap};
+use crate::{AppState, MutexResilient};
 
 use crate::cache_utils::{calculate_full_job_hash, calculate_transform_hash};
 use crate::portrait_processing::{

@@ -1147,7 +1147,10 @@ pub fn run_lama_inpainting(
     if mw != w || mh != h {
         return Err(anyhow::anyhow!(
             "Inpainting mask dimensions {}x{} do not match image {}x{}",
-            mw, mh, w, h
+            mw,
+            mh,
+            w,
+            h
         ));
     }
 

@@ -1900,10 +1900,7 @@ pub fn apply_mask_feather(
 
     // Locate the mask container that contains the requested sub-mask.
     let masks_value = adjustments.get("masks").cloned().unwrap_or_default();
-    let mask_containers = masks_value
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
+    let mask_containers = masks_value.as_array().cloned().unwrap_or_default();
 
     let mut target_mask_def: Option<MaskDefinition> = None;
     for mut container in mask_containers {
@@ -1926,14 +1923,20 @@ pub fn apply_mask_feather(
     }
 
     let mut mask_def = target_mask_def.ok_or_else(|| {
-        format!("Mask container containing sub-mask '{}' not found", sub_mask_id)
+        format!(
+            "Mask container containing sub-mask '{}' not found",
+            sub_mask_id
+        )
     })?;
 
     // Isolate the target sub-mask so feathering applies to its own bitmap rather
     // than the combined container bitmap.
     mask_def.sub_masks.retain(|sm| sm.id == sub_mask_id);
     if mask_def.sub_masks.is_empty() {
-        return Err(format!("Sub-mask '{}' was removed during isolation", sub_mask_id));
+        return Err(format!(
+            "Sub-mask '{}' was removed during isolation",
+            sub_mask_id
+        ));
     }
 
     let loaded_image = state

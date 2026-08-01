@@ -2848,7 +2848,11 @@ pub fn apply_portrait_adjustments(
     // Brightness is -50..50 frontend → /50 → -1..1 internally (consistent with above).
     if (hair_hue.abs() > 1e-4 || hair_bright.abs() > 1e-4) && !filtered_faces.is_empty() {
         let hue_degrees = (hair_hue / 100.0) * 180.0; // 0..100 → 0..180, keep sign if frontend sends signed
-        let effective_hue = if hair_hue.abs() > 100.0 { hair_hue } else { hue_degrees }; // allow passthrough if already degrees
+        let effective_hue = if hair_hue.abs() > 100.0 {
+            hair_hue
+        } else {
+            hue_degrees
+        }; // allow passthrough if already degrees
         apply_hair_adjust(img, &filtered_faces, effective_hue, hair_bright / 50.0)?;
     }
 

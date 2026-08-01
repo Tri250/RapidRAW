@@ -480,8 +480,7 @@ export default function TransformModal({ isOpen, onClose, onApply, currentAdjust
           <div
             className="absolute inset-0 opacity-20 pointer-events-none"
             style={{
-              backgroundImage:
-                'radial-gradient(var(--color-grid-line, rgba(0,0,0,0.15)) 1px, transparent 1px)',
+              backgroundImage: 'radial-gradient(var(--color-grid-line, rgba(0,0,0,0.15)) 1px, transparent 1px)',
               backgroundSize: '24px 24px',
             }}
           ></div>
