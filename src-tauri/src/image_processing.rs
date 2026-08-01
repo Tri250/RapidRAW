@@ -4459,13 +4459,17 @@ fn cpu_apply_hue_shift(pix: &mut [f32], hue: f32) {
 
 #[inline]
 fn cpu_apply_creative_color(pix: &mut [f32], saturation: f32, vibrance: f32) {
+    // Match GPU shader: compute luma once from the original color and reuse
+    // it for both saturation and vibrance. The GPU shader does:
+    //   let luma = get_luma(processed);
+    //   if (sat != 0.0) { processed = mix(vec3(luma), processed, 1.0 + sat); }
+    //   ... vibrance uses the same `luma` variable ...
+    let luma = cpu_get_luma(pix);
     if saturation.abs() > CPU_TINY_EPS {
-        let luma = cpu_get_luma(pix);
         let s = 1.0 + saturation;
         for c in 0..3 { pix[c] = cpu_mix(luma, pix[c], s); }
     }
     if vibrance.abs() < CPU_TINY_EPS { return; }
-    let luma = cpu_get_luma(pix);
     let c_max = cpu_max3(pix[0], pix[1], pix[2]);
     let c_min = cpu_min3(pix[0], pix[1], pix[2]);
     let delta = c_max - c_min;

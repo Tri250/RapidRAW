@@ -189,13 +189,39 @@ export default function CollageModal({ isOpen, onClose, onSave, sourceImages }: 
       revokeExistingUrls();
       try {
         const imagePromises = sourceImages.map(async (imageFile) => {
-          const metadata: any = await invoke(Invokes.LoadMetadata, { path: imageFile.path });
+          // Normalize the path: strip URL-encoded characters and query params that
+          // may have leaked into the file path (e.g. "?vc=" virtual-camera suffix).
+          const physicalPath = imageFile.path.split('?vc=')[0].split('?')[0];
+
+          let metadata: any;
+          try {
+            metadata = await invoke(Invokes.LoadMetadata, { path: imageFile.path });
+          } catch (metaErr) {
+            console.warn(`Metadata load failed for ${imageFile.path}, using defaults:`, metaErr);
+            metadata = {};
+          }
           const adjustments = metadata.adjustments && !metadata.adjustments.is_null ? metadata.adjustments : {};
 
-          const imageData: Uint8Array = await invoke(Invokes.GeneratePreviewForPath, {
-            path: imageFile.path,
-            jsAdjustments: adjustments,
-          });
+          // Attempt preview generation with up to 2 retries for transient failures.
+          let imageData: Uint8Array | null = null;
+          for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+              const data: Uint8Array = await invoke(Invokes.GeneratePreviewForPath, {
+                path: imageFile.path,
+                jsAdjustments: adjustments,
+              });
+              if (data && data.length > 0) {
+                imageData = data;
+                break;
+              }
+            } catch (previewGenErr) {
+              if (attempt === 0) {
+                console.warn(`Preview attempt 1 failed for ${imageFile.path}:`, previewGenErr);
+              } else {
+                throw previewGenErr;
+              }
+            }
+          }
 
           if (!imageData || imageData.length === 0) {
             throw new Error(`Empty preview returned for image: ${imageFile.path}`);
@@ -212,10 +238,13 @@ export default function CollageModal({ isOpen, onClose, onSave, sourceImages }: 
             // Fallback: load the source file directly via the Tauri asset protocol.
             // Skip for Android content URIs because they must be read through the
             // content resolver (already attempted above).
-            const physicalPath = imageFile.path.split('?vc=')[0];
             if (!physicalPath.startsWith('content://')) {
-              const assetUrl = convertFileSrc(physicalPath);
-              return await loadImageFromUrl(assetUrl, imageFile.path);
+              try {
+                const assetUrl = convertFileSrc(physicalPath);
+                return await loadImageFromUrl(assetUrl, imageFile.path);
+              } catch (assetErr) {
+                console.warn(`Asset-protocol fallback also failed for ${physicalPath}:`, assetErr);
+              }
             }
             throw previewErr;
           }

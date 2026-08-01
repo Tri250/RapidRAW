@@ -335,10 +335,17 @@ pub(crate) fn looks_like_traversal(s: &str) -> bool {
 
 /// Sanitize a single file or folder name so it is safe on all common
 /// filesystems (Windows, macOS, Linux, Android). Replaces characters that are
-/// invalid or commonly problematic (`< > : " / \ | ? * \0`) with `_`, trims
-/// trailing spaces and dots, and prefixes reserved Windows names.
+/// invalid or commonly problematic with `_`, trims trailing spaces and dots,
+/// and prefixes reserved Windows names.
+///
+/// The full set of filtered characters covers:
+/// - Windows-illegal: `< > : " / \ | ? * \0`
+/// - URL-unsafe / shell-unsafe: `% ( ) [ ] { } ; & # ! \` ~ ^ = +`
 pub fn sanitize_filename(name: &str) -> String {
-    const INVALID: &[char] = &['<', '>', ':', '"', '/', '\\', '|', '?', '*', '\0'];
+    const INVALID: &[char] = &[
+        '<', '>', ':', '"', '/', '\\', '|', '?', '*', '\0',
+        '%', '(', ')', '[', ']', '{', '}', ';', '&', '#', '!', '`', '~', '^', '=', '+',
+    ];
     let mut sanitized: String = name
         .chars()
         .map(|c| if INVALID.contains(&c) { '_' } else { c })
