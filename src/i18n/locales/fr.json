@@ -1749,14 +1749,26 @@
       "title": "Mes objectifs"
     },
     "presetGallery": {
-      "addSource": "",
-      "addSourcePlaceholder": "",
+      "addSource": {
+        "addSource": "Ajouter une source de données"
+      },
+      "addSourcePlaceholder": {
+        "addSourcePlaceholder": "Entrez l'URL du lien JSON..."
+      },
       "description": "",
-      "disabled": "",
-      "enabled": "",
+      "disabled": {
+        "disabled": "Désactivé"
+      },
+      "enabled": {
+        "enabled": "Activé"
+      },
       "noSources": "",
-      "removeSource": "",
-      "title": ""
+      "removeSource": {
+        "removeSource": "Supprimer la source de données"
+      },
+      "title": "",
+      "addSourceRejected": "Seules les sources HTTPS provenant de domaines fiables (github.com, jsdelivr.net, getrapidraw.com, etc.) sont prises en charge.",
+      "duplicateSource": "Cette source de données a déjà été ajoutée."
     },
     "processing": {
       "ai": {

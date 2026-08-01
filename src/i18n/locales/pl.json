@@ -1786,14 +1786,26 @@
       "title": "Moje obiektywy"
     },
     "presetGallery": {
-      "addSource": "",
-      "addSourcePlaceholder": "",
+      "addSource": {
+        "addSource": "Dodaj źródło danych"
+      },
+      "addSourcePlaceholder": {
+        "addSourcePlaceholder": "Wprowadź adres URL łącza JSON..."
+      },
       "description": "",
-      "disabled": "",
-      "enabled": "",
+      "disabled": {
+        "disabled": "Wyłączony"
+      },
+      "enabled": {
+        "enabled": "Włączony"
+      },
       "noSources": "",
-      "removeSource": "",
-      "title": ""
+      "removeSource": {
+        "removeSource": "Usuń źródło danych"
+      },
+      "title": "",
+      "addSourceRejected": "Obsługiwane są tylko źródła HTTPS z zaufanych domen (github.com, jsdelivr.net, getrapidraw.com itp.).",
+      "duplicateSource": "To źródło danych zostało już dodane."
     },
     "processing": {
       "ai": {

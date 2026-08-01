@@ -1705,14 +1705,26 @@
       "title": "マイレンズ"
     },
     "presetGallery": {
-      "addSource": "",
-      "addSourcePlaceholder": "",
+      "addSource": {
+        "addSource": "データソースを追加"
+      },
+      "addSourcePlaceholder": {
+        "addSourcePlaceholder": "JSONリンクURLを入力..."
+      },
       "description": "",
-      "disabled": "",
-      "enabled": "",
+      "disabled": {
+        "disabled": "無効"
+      },
+      "enabled": {
+        "enabled": "有効"
+      },
       "noSources": "",
-      "removeSource": "",
-      "title": ""
+      "removeSource": {
+        "removeSource": "データソースを削除"
+      },
+      "title": "",
+      "addSourceRejected": "信頼できるドメイン（github.com、jsdelivr.net、getrapidraw.com など）の HTTPS ソースのみサポートされています。",
+      "duplicateSource": "このデータソースは既に追加されています。"
     },
     "processing": {
       "ai": {

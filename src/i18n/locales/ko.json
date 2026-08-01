@@ -1706,14 +1706,26 @@
       "title": "내 렌즈"
     },
     "presetGallery": {
-      "addSource": "",
-      "addSourcePlaceholder": "",
+      "addSource": {
+        "addSource": "데이터 소스 추가"
+      },
+      "addSourcePlaceholder": {
+        "addSourcePlaceholder": "JSON 링크 URL 입력..."
+      },
       "description": "",
-      "disabled": "",
-      "enabled": "",
+      "disabled": {
+        "disabled": "비활성화"
+      },
+      "enabled": {
+        "enabled": "활성화"
+      },
       "noSources": "",
-      "removeSource": "",
-      "title": ""
+      "removeSource": {
+        "removeSource": "데이터 소스 제거"
+      },
+      "title": "",
+      "addSourceRejected": "신뢰할 수 있는 도메인(github.com, jsdelivr.net, getrapidraw.com 등)의 HTTPS 소스만 지원됩니다.",
+      "duplicateSource": "이 데이터 소스는 이미 추가되었습니다."
     },
     "processing": {
       "ai": {

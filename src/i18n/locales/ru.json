@@ -1785,14 +1785,26 @@
       "title": "Мои объективы"
     },
     "presetGallery": {
-      "addSource": "",
-      "addSourcePlaceholder": "",
+      "addSource": {
+        "addSource": "Добавить источник данных"
+      },
+      "addSourcePlaceholder": {
+        "addSourcePlaceholder": "Введите URL ссылки JSON..."
+      },
       "description": "",
-      "disabled": "",
-      "enabled": "",
+      "disabled": {
+        "disabled": "Отключено"
+      },
+      "enabled": {
+        "enabled": "Включено"
+      },
       "noSources": "",
-      "removeSource": "",
-      "title": ""
+      "removeSource": {
+        "removeSource": "Удалить источник данных"
+      },
+      "title": "",
+      "addSourceRejected": "Поддерживаются только HTTPS-источники из доверенных доменов (github.com, jsdelivr.net, getrapidraw.com и т.д.).",
+      "duplicateSource": "Этот источник данных уже был добавлен."
     },
     "processing": {
       "ai": {

@@ -1749,14 +1749,26 @@
       "title": "I Miei Obiettivi"
     },
     "presetGallery": {
-      "addSource": "",
-      "addSourcePlaceholder": "",
+      "addSource": {
+        "addSource": "Aggiungi sorgente dati"
+      },
+      "addSourcePlaceholder": {
+        "addSourcePlaceholder": "Inserisci URL del collegamento JSON..."
+      },
       "description": "",
-      "disabled": "",
-      "enabled": "",
+      "disabled": {
+        "disabled": "Disattivato"
+      },
+      "enabled": {
+        "enabled": "Attivato"
+      },
       "noSources": "",
-      "removeSource": "",
-      "title": ""
+      "removeSource": {
+        "removeSource": "Rimuovi sorgente dati"
+      },
+      "title": "",
+      "addSourceRejected": "Sono supportate solo sorgenti HTTPS da domini affidabili (github.com, jsdelivr.net, getrapidraw.com, ecc.).",
+      "duplicateSource": "Questa sorgente dati è già stata aggiunta."
     },
     "processing": {
       "ai": {

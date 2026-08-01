@@ -1706,14 +1706,26 @@
       "title": "我的鏡頭"
     },
     "presetGallery": {
-      "addSource": "",
-      "addSourcePlaceholder": "",
+      "addSource": {
+        "addSource": "新增資料源"
+      },
+      "addSourcePlaceholder": {
+        "addSourcePlaceholder": "輸入 JSON 連結網址..."
+      },
       "description": "",
-      "disabled": "",
-      "enabled": "",
+      "disabled": {
+        "disabled": "已停用"
+      },
+      "enabled": {
+        "enabled": "已啟用"
+      },
       "noSources": "",
-      "removeSource": "",
-      "title": ""
+      "removeSource": {
+        "removeSource": "移除資料源"
+      },
+      "title": "",
+      "addSourceRejected": "僅支援來自受信任網域（github.com、jsdelivr.net、getrapidraw.com 等）的 HTTPS 資料源。",
+      "duplicateSource": "該資料源已新增。"
     },
     "processing": {
       "ai": {

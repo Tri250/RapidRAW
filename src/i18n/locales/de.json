@@ -1712,14 +1712,26 @@
       "title": "Meine Objektive"
     },
     "presetGallery": {
-      "addSource": "",
-      "addSourcePlaceholder": "",
+      "addSource": {
+        "addSource": "Datenquelle hinzufügen"
+      },
+      "addSourcePlaceholder": {
+        "addSourcePlaceholder": "JSON-Link-URL eingeben..."
+      },
       "description": "",
-      "disabled": "",
-      "enabled": "",
+      "disabled": {
+        "disabled": "Deaktiviert"
+      },
+      "enabled": {
+        "enabled": "Aktiviert"
+      },
       "noSources": "",
-      "removeSource": "",
-      "title": ""
+      "removeSource": {
+        "removeSource": "Datenquelle entfernen"
+      },
+      "title": "",
+      "addSourceRejected": "Es werden nur HTTPS-Quellen von vertrauenswürdigen Domains (github.com, jsdelivr.net, getrapidraw.com usw.) unterstützt.",
+      "duplicateSource": "Diese Datenquelle wurde bereits hinzugefügt."
     },
     "processing": {
       "ai": {

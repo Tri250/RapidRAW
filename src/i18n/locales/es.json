@@ -1749,14 +1749,26 @@
       "title": "Mis lentes"
     },
     "presetGallery": {
-      "addSource": "",
-      "addSourcePlaceholder": "",
+      "addSource": {
+        "addSource": "Añadir fuente de datos"
+      },
+      "addSourcePlaceholder": {
+        "addSourcePlaceholder": "Introduzca la URL del enlace JSON..."
+      },
       "description": "",
-      "disabled": "",
-      "enabled": "",
+      "disabled": {
+        "disabled": "Deshabilitado"
+      },
+      "enabled": {
+        "enabled": "Habilitado"
+      },
       "noSources": "",
-      "removeSource": "",
-      "title": ""
+      "removeSource": {
+        "removeSource": "Eliminar fuente de datos"
+      },
+      "title": "",
+      "addSourceRejected": "Solo se admiten fuentes HTTPS de dominios confiables (github.com, jsdelivr.net, getrapidraw.com, etc.).",
+      "duplicateSource": "Esta fuente de datos ya ha sido añadida."
     },
     "processing": {
       "ai": {
