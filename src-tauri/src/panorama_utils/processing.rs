@@ -296,7 +296,7 @@ pub fn find_homography_ransac(
     }
 
     if best_inliers.len() >= MIN_INLIERS_FOR_CONNECTION {
-        Some((best_h.unwrap(), best_inliers))
+        best_h.map(|h| (h, best_inliers))
     } else {
         None
     }

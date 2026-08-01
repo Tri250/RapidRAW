@@ -4053,6 +4053,68 @@ fn cpu_gaussian_blur_luma(data: &[f32], w: usize, h: usize, radius: f32) -> Vec<
     out
 }
 
+/// Gaussian blur for RGB data. Applies a separable Gaussian blur to each
+/// channel independently, returning a flattened RGB buffer.
+fn cpu_create_blur_rgb_buffer(rgb: &[f32], w: usize, h: usize, scale: f32) -> Vec<f32> {
+    let r = (scale.max(1.0)) as usize;
+    let sigma = (r as f32) / 3.0;
+    let kernel: Vec<f32> = (0..=r)
+        .map(|x| (-(x as f32).powi(2) / (2.0 * sigma.powi(2))).exp())
+        .collect();
+    let sum: f32 = kernel[0] + 2.0 * kernel.iter().skip(1).sum::<f32>();
+
+    // Horizontal pass
+    let mut hor = vec![0.0f32; w * h * 3];
+    for y in 0..h {
+        for x in 0..w {
+            let mut acc = [0.0f32; 3];
+            for k in 0..=r {
+                let xl = (x as isize - k as isize).max(0) as usize;
+                let xr = (x + k).min(w - 1);
+                let wl = if k == 0 { kernel[0] } else { kernel[k] };
+                let base_l = (y * w + xl) * 3;
+                let base_r = (y * w + xr) * 3;
+                for c in 0..3 {
+                    acc[c] += rgb[base_l + c] * wl;
+                    if k > 0 {
+                        acc[c] += rgb[base_r + c] * wl;
+                    }
+                }
+            }
+            let base = (y * w + x) * 3;
+            for c in 0..3 {
+                hor[base + c] = acc[c] / sum;
+            }
+        }
+    }
+
+    // Vertical pass
+    let mut out = vec![0.0f32; w * h * 3];
+    for y in 0..h {
+        for x in 0..w {
+            let mut acc = [0.0f32; 3];
+            for k in 0..=r {
+                let yu = (y as isize - k as isize).max(0) as usize;
+                let yd = (y + k).min(h - 1);
+                let wl = if k == 0 { kernel[0] } else { kernel[k] };
+                let base_u = (yu * w + x) * 3;
+                let base_d = (yd * w + x) * 3;
+                for c in 0..3 {
+                    acc[c] += hor[base_u + c] * wl;
+                    if k > 0 {
+                        acc[c] += hor[base_d + c] * wl;
+                    }
+                }
+            }
+            let base = (y * w + x) * 3;
+            for c in 0..3 {
+                out[base + c] = acc[c] / sum;
+            }
+        }
+    }
+    out
+}
+
 fn cpu_create_blur_luma_buffers(luma: &[f32], w: usize, h: usize, scale: f32) -> (Vec<f32>, Vec<f32>, Vec<f32>, Vec<f32>) {
     let s = if scale < 1.0 { 1.0 } else { scale };
     let sharpness = 1.0 * s;
@@ -5015,6 +5077,317 @@ pub fn validate_image_dimensions_public(width: u32, height: u32) -> Result<(), S
     validate_image_dimensions(width, height)
 }
 
+/// CPU implementation of chromatic aberration correction.
+/// Shifts the R and B channels radially from the image centre, matching
+/// the GPU shader's `apply_ca_correction`.
+fn cpu_apply_ca_correction(image: &mut Rgb32FImage, ca_rc: f32, ca_by: f32) {
+    if ca_rc.abs() < 0.000001 && ca_by.abs() < 0.000001 {
+        return;
+    }
+    let (w, h) = image.dimensions();
+    let center_x = w as f32 / 2.0;
+    let center_y = h as f32 / 2.0;
+    let original = image.clone();
+    let w_i = w as i32;
+    let h_i = h as i32;
+    let w_us = w as usize;
+
+    image
+        .as_flat_samples_mut()
+        .as_mut_slice()
+        .par_chunks_mut(3)
+        .enumerate()
+        .for_each(|(idx, px)| {
+            let x = (idx % w_us) as i32;
+            let y = (idx / w_us) as i32;
+            let pos_x = x as f32;
+            let pos_y = y as f32;
+            let to_center_x = pos_x - center_x;
+            let to_center_y = pos_y - center_y;
+            let dist = (to_center_x * to_center_x + to_center_y * to_center_y).sqrt();
+            if dist < 0.5 {
+                return;
+            }
+            let dir_x = to_center_x / dist;
+            let dir_y = to_center_y / dist;
+
+            let red_shift = dist * ca_rc;
+            let blue_shift = dist * ca_by;
+
+            let rx = (pos_x - dir_x * red_shift).round() as i32;
+            let ry = (pos_y - dir_y * red_shift).round() as i32;
+            let bx = (pos_x - dir_x * blue_shift).round() as i32;
+            let by = (pos_y - dir_y * blue_shift).round() as i32;
+
+            let rx = rx.clamp(0, w_i - 1) as u32;
+            let ry = ry.clamp(0, h_i - 1) as u32;
+            let bx = bx.clamp(0, w_i - 1) as u32;
+            let by = by.clamp(0, h_i - 1) as u32;
+
+            px[0] = original.get_pixel(rx, ry)[0];
+            px[2] = original.get_pixel(bx, by)[2];
+        });
+}
+
+/// CPU implementation of noise reduction.
+/// Simplified bilateral-like filter matching the GPU shader's
+/// `apply_noise_reduction`. Uses a 5×5 neighbourhood with luma and
+/// chroma separation.
+fn cpu_apply_noise_reduction_pass(
+    image: &mut Rgb32FImage,
+    luma_amount: f32,
+    color_amount: f32,
+    scale: f32,
+    is_raw: bool,
+) {
+    let luma_a = luma_amount.clamp(0.0, 1.0);
+    let color_a = color_amount.clamp(0.0, 1.0);
+    if luma_a < 0.001 && color_a < 0.001 {
+        return;
+    }
+
+    let (w, h) = image.dimensions();
+    let original = image.clone();
+    let w_i = w as i32;
+    let h_i = h as i32;
+    let w_us = w as usize;
+    let res_factor = scale.sqrt().clamp(0.5, 2.0);
+
+    let l_curve = luma_a.sqrt();
+    let l_spatial = cpu_mix(1.0, 1.5, l_curve);
+    let l_spat_n = -1.0 / (2.0 * l_spatial * l_spatial).max(1e-6);
+
+    let c_curve = color_a.sqrt();
+    let c_spatial = cpu_mix(1.0, 1.5, c_curve);
+    let c_spat_n = -1.0 / (2.0 * c_spatial * c_spatial).max(1e-6);
+
+    let _ = is_raw;
+
+    image
+        .as_flat_samples_mut()
+        .as_mut_slice()
+        .par_chunks_mut(3)
+        .enumerate()
+        .for_each(|(idx, px)| {
+            let xi = (idx % w_us) as i32;
+            let yi = (idx / w_us) as i32;
+            let center_luma = cpu_get_luma(px);
+            let center_chroma_r = px[0] - center_luma;
+            let center_chroma_g = px[1] - center_luma;
+            let center_chroma_b = px[2] - center_luma;
+
+            let mut new_luma = center_luma;
+            let mut new_chroma_r = center_chroma_r;
+            let mut new_chroma_g = center_chroma_g;
+            let mut new_chroma_b = center_chroma_b;
+
+            if luma_a > 0.001 {
+                let mut luma_sum = center_luma;
+                let mut weight_sum = 1.0_f32;
+                let stride_f = cpu_mix(1.0, 2.0, ((luma_a - 0.45) / 0.5).clamp(0.0, 1.0)) * res_factor;
+                let stride = stride_f.round().max(1.0) as i32;
+
+                for dy in -2..=2 {
+                    for dx in -2..=2 {
+                        if dx == 0 && dy == 0 {
+                            continue;
+                        }
+                        let sx = (xi + dx * stride).clamp(0, w_i - 1) as u32;
+                        let sy = (yi + dy * stride).clamp(0, h_i - 1) as u32;
+                        let s = original.get_pixel(sx, sy);
+                        let s_luma = cpu_get_luma(&[s[0], s[1], s[2]]);
+                        let spatial_dist = (dx * dx + dy * dy) as f32;
+                        let spatial_w = (spatial_dist * l_spat_n).exp();
+                        let luma_diff = s_luma - center_luma;
+                        let range_w = (-luma_diff * luma_diff * (l_curve * 8.0 + 0.5)).exp();
+                        let wt = spatial_w * range_w;
+                        luma_sum += s_luma * wt;
+                        weight_sum += wt;
+                    }
+                }
+                new_luma = luma_sum / weight_sum;
+            }
+
+            if color_a > 0.001 {
+                let mut chr_sum = [center_chroma_r, center_chroma_g, center_chroma_b];
+                let mut weight_sum = 1.0_f32;
+                let stride = 1_i32;
+
+                for dy in -2..=2 {
+                    for dx in -2..=2 {
+                        if dx == 0 && dy == 0 {
+                            continue;
+                        }
+                        let sx = (xi + dx * stride).clamp(0, w_i - 1) as u32;
+                        let sy = (yi + dy * stride).clamp(0, h_i - 1) as u32;
+                        let s = original.get_pixel(sx, sy);
+                        let s_luma = cpu_get_luma(&[s[0], s[1], s[2]]);
+                        let s_chr = [s[0] - s_luma, s[1] - s_luma, s[2] - s_luma];
+                        let spatial_dist = (dx * dx + dy * dy) as f32;
+                        let spatial_w = (spatial_dist * c_spat_n).exp();
+                        let chr_dist = (s_chr[0] - center_chroma_r).powi(2)
+                            + (s_chr[1] - center_chroma_g).powi(2)
+                            + (s_chr[2] - center_chroma_b).powi(2);
+                        let range_w = (-chr_dist * (c_curve * 4.0 + 0.5)).exp();
+                        let wt = spatial_w * range_w;
+                        chr_sum[0] += s_chr[0] * wt;
+                        chr_sum[1] += s_chr[1] * wt;
+                        chr_sum[2] += s_chr[2] * wt;
+                        weight_sum += wt;
+                    }
+                }
+                new_chroma_r = chr_sum[0] / weight_sum;
+                new_chroma_g = chr_sum[1] / weight_sum;
+                new_chroma_b = chr_sum[2] / weight_sum;
+            }
+
+            px[0] = (new_luma + new_chroma_r).max(0.0);
+            px[1] = (new_luma + new_chroma_g).max(0.0);
+            px[2] = (new_luma + new_chroma_b).max(0.0);
+        });
+}
+
+/// CPU implementation of glow/bloom effect.
+/// Matches the GPU shader's `apply_glow_bloom`.
+#[inline]
+fn cpu_apply_glow_bloom(
+    pix: &mut [f32],
+    blurred: &[f32],
+    amount: f32,
+    is_raw: bool,
+    exp: f32,
+    bright: f32,
+    _con: f32,
+    wh: f32,
+) {
+    if amount <= 0.0 {
+        return;
+    }
+
+    let mut blurred_linear = [blurred[0], blurred[1], blurred[2]];
+    if !is_raw {
+        cpu_srgb_to_linear_vec3(&mut blurred_linear);
+    }
+
+    cpu_apply_linear_exposure(&mut blurred_linear, exp);
+    cpu_apply_filmic_exposure(&mut blurred_linear, bright);
+    // cpu_apply_tonal_adjustments takes luma (f32), not RGB — compute luma
+    // from the input-space blurred color to match the GPU shader behaviour.
+    let blurred_luma = cpu_get_luma(blurred);
+    cpu_apply_tonal_adjustments(&mut blurred_linear, blurred_luma, 0.0, 0.0, wh, 0.0);
+
+    let linear_luma = cpu_get_luma(&blurred_linear).max(0.0);
+
+    let perceptual_luma = if linear_luma <= 1.0 {
+        linear_luma.max(0.0).powf(1.0 / 2.2)
+    } else {
+        1.0 + (linear_luma - 1.0).powf(1.0 / 2.2)
+    };
+
+    let luma_cutoff = cpu_mix(0.75, 0.08, amount.clamp(0.0, 1.0));
+    let cutoff_fade = cpu_smoothstep(luma_cutoff, luma_cutoff + 0.15, perceptual_luma);
+    let excess = (perceptual_luma - luma_cutoff).max(0.0);
+    let normalized = excess / 5.5;
+    let bloom_intensity = cpu_smoothstep(0.0, 1.0, normalized).powf(0.45);
+
+    let bloom_color = if linear_luma > 0.01 {
+        let ratio = [
+            blurred_linear[0] / linear_luma,
+            blurred_linear[1] / linear_luma,
+            blurred_linear[2] / linear_luma,
+        ];
+        [ratio[0] * 1.03, ratio[1] * 1.0, ratio[2] * 0.97]
+    } else {
+        [1.0, 0.99, 0.98]
+    };
+
+    let luma_factor = linear_luma.powf(0.6);
+    let black_gate = cpu_smoothstep(0.0, 0.5, linear_luma).powf(0.5);
+
+    let bloom_r = bloom_color[0] * bloom_intensity * luma_factor * cutoff_fade * black_gate;
+    let bloom_g = bloom_color[1] * bloom_intensity * luma_factor * cutoff_fade * black_gate;
+    let bloom_b = bloom_color[2] * bloom_intensity * luma_factor * cutoff_fade * black_gate;
+
+    let current_luma = cpu_get_luma(pix).max(0.0);
+    let protection = 1.0 - cpu_smoothstep(1.0, 2.2, current_luma);
+
+    pix[0] += bloom_r * amount * 3.8 * protection;
+    pix[1] += bloom_g * amount * 3.8 * protection;
+    pix[2] += bloom_b * amount * 3.8 * protection;
+}
+
+/// CPU implementation of halation effect.
+/// Matches the GPU shader's `apply_halation`.
+#[inline]
+fn cpu_apply_halation(
+    pix: &mut [f32],
+    blurred: &[f32],
+    amount: f32,
+    is_raw: bool,
+    exp: f32,
+    bright: f32,
+    _con: f32,
+    wh: f32,
+) {
+    if amount <= 0.0 {
+        return;
+    }
+
+    let mut blurred_linear = [blurred[0], blurred[1], blurred[2]];
+    if !is_raw {
+        cpu_srgb_to_linear_vec3(&mut blurred_linear);
+    }
+
+    cpu_apply_linear_exposure(&mut blurred_linear, exp);
+    cpu_apply_filmic_exposure(&mut blurred_linear, bright);
+    let blurred_luma = cpu_get_luma(blurred);
+    cpu_apply_tonal_adjustments(&mut blurred_linear, blurred_luma, 0.0, 0.0, wh, 0.0);
+
+    let linear_luma = cpu_get_luma(&blurred_linear).max(0.0);
+
+    let perceptual_luma = if linear_luma <= 1.0 {
+        linear_luma.max(0.0).powf(1.0 / 2.2)
+    } else {
+        1.0 + (linear_luma - 1.0).powf(1.0 / 2.2)
+    };
+
+    let luma_cutoff = cpu_mix(0.85, 0.1, amount.clamp(0.0, 1.0));
+    if perceptual_luma <= luma_cutoff {
+        return;
+    }
+
+    let excess = perceptual_luma - luma_cutoff;
+    let range = (1.5 - luma_cutoff).max(0.1);
+    let halation_mask = cpu_smoothstep(0.0, range * 0.6, excess);
+
+    let halation_core = [1.0, 0.15, 0.03];
+    let halation_fringe = [1.0, 0.32, 0.10];
+
+    let intensity_blend = cpu_smoothstep(0.0, 0.7, halation_mask);
+    let halation_tint = [
+        cpu_mix(halation_fringe[0], halation_core[0], intensity_blend),
+        cpu_mix(halation_fringe[1], halation_core[1], intensity_blend),
+        cpu_mix(halation_fringe[2], halation_core[2], intensity_blend),
+    ];
+
+    let glow_intensity = halation_mask * linear_luma;
+
+    let color_luma = cpu_get_luma(pix).max(0.0);
+    let desat_strength = halation_mask * 0.12;
+    let affected_r = cpu_mix(pix[0], color_luma, desat_strength);
+    let affected_g = cpu_mix(pix[1], color_luma, desat_strength);
+    let affected_b = cpu_mix(pix[2], color_luma, desat_strength);
+
+    let contrast_factor = 1.0 - halation_mask * 0.06;
+    let contrast_r = cpu_mix(0.5, affected_r, contrast_factor);
+    let contrast_g = cpu_mix(0.5, affected_g, contrast_factor);
+    let contrast_b = cpu_mix(0.5, affected_b, contrast_factor);
+
+    pix[0] = contrast_r + halation_tint[0] * glow_intensity * amount * 2.5;
+    pix[1] = contrast_g + halation_tint[1] * glow_intensity * amount * 2.5;
+    pix[2] = contrast_b + halation_tint[2] * glow_intensity * amount * 2.5;
+}
+
 /// Apply the full color-adjustment pipeline on the CPU.
 /// This is the Android / no-GPU fallback path.
 pub fn apply_cpu_color_adjustments(
@@ -5035,6 +5408,14 @@ pub fn apply_cpu_color_adjustments(
     let w = f32_image.width() as usize;
     let h = f32_image.height() as usize;
 
+    // Chromatic aberration correction (before sRGB→linear, matching GPU shader
+    // which applies CA on the raw texture load).
+    cpu_apply_ca_correction(
+        &mut f32_image,
+        adjustments.global.chromatic_aberration_red_cyan,
+        adjustments.global.chromatic_aberration_blue_yellow,
+    );
+
     // Convert sRGB → linear for non-RAW images, matching the GPU pipeline
     // (shader: `initial_linear_rgb = srgb_to_linear(color_from_texture)`).
     // Without this, all adjustments run in sRGB space and the final
@@ -5054,6 +5435,16 @@ pub fn apply_cpu_color_adjustments(
             });
     }
 
+    // Noise reduction (after sRGB→linear, before local contrast — matching
+    // the GPU shader pipeline order).
+    cpu_apply_noise_reduction_pass(
+        &mut f32_image,
+        adjustments.global.luma_noise_reduction,
+        adjustments.global.color_noise_reduction,
+        scale,
+        is_raw,
+    );
+
     // Build luma buffer from linear RGB.
     let mut luma_buffer: Vec<f32> = vec![0.0; w * h];
     f32_image
@@ -5066,6 +5457,20 @@ pub fn apply_cpu_color_adjustments(
 
     let (sharpness_blur, tonal_blur, clarity_blur, structure_blur) =
         cpu_create_blur_luma_buffers(&luma_buffer, w, h, scale.max(0.1));
+
+    // Build RGB blur buffers for glow/halation when needed.
+    // These are only created if glow_amount or halation_amount > 0 to avoid
+    // unnecessary memory allocation on the common path.
+    let g_ref = &adjustments.global;
+    let needs_glow_rgb = g_ref.glow_amount > 0.0 || g_ref.halation_amount > 0.0;
+    let (structure_blur_rgb, clarity_blur_rgb) = if needs_glow_rgb {
+        (
+            cpu_create_blur_rgb_buffer(f32_image.as_raw(), w, h, scale.max(0.1)),
+            cpu_create_blur_rgb_buffer(f32_image.as_raw(), w, h, scale.max(0.1) * 0.7),
+        )
+    } else {
+        (Vec::new(), Vec::new())
+    };
 
     let g = &adjustments.global;
     let (pipe_to_rendering, rendering_to_pipe) = calculate_agx_matrices_glam_cpu();
@@ -5090,6 +5495,24 @@ pub fn apply_cpu_color_adjustments(
 
             // Exposure.
             cpu_apply_linear_exposure(pix, g.exposure);
+
+            // Glow / bloom (after exposure, before dehaze — matching GPU shader).
+            if g.glow_amount > 0.0 {
+                let st_blur_rgb = &structure_blur_rgb[idx * 3..idx * 3 + 3];
+                cpu_apply_glow_bloom(
+                    pix, st_blur_rgb, g.glow_amount, is_raw,
+                    g.exposure, g.brightness, g.contrast, g.whites,
+                );
+            }
+
+            // Halation (after glow, before dehaze — matching GPU shader).
+            if g.halation_amount > 0.0 {
+                let c_blur_rgb = &clarity_blur_rgb[idx * 3..idx * 3 + 3];
+                cpu_apply_halation(
+                    pix, c_blur_rgb, g.halation_amount, is_raw,
+                    g.exposure, g.brightness, g.contrast, g.whites,
+                );
+            }
 
             // Dehaze.
             cpu_apply_dehaze(pix, st_blur, g.dehaze);

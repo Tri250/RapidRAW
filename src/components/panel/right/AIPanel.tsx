@@ -92,6 +92,7 @@ const SUB_MASK_CONFIG: any = {
     parameters: [{ key: 'feather', min: 0, max: 100, step: 1, multiplier: 100, defaultValue: 50 }],
   },
   [Mask.Brush]: { showBrushTools: true },
+  [Mask.Flow]: { showBrushTools: true },
   [Mask.Clone]: { showBrushTools: true },
   [Mask.Heal]: { showBrushTools: true },
   [Mask.Linear]: { parameters: [] },
@@ -2217,7 +2218,27 @@ function SettingsPanel({
               ))}
 
               {subMaskConfig.showBrushTools && brushSettings && (
-                <BrushTools settings={brushSettings} onSettingsChange={setBrushSettings} />
+                <>
+                  {activeSubMask.type === Mask.Flow && (
+                    <Slider
+                      label={t('editor.masks.brush.flow')}
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={activeSubMask.parameters?.flow ?? 10}
+                      onChange={(e: any) =>
+                        updateSubMask(activeSubMask.id, {
+                          parameters: {
+                            ...activeSubMask.parameters,
+                            flow: Number(e.target.value),
+                          },
+                        })
+                      }
+                      fillOrigin="min"
+                    />
+                  )}
+                  <BrushTools settings={brushSettings} onSettingsChange={setBrushSettings} />
+                </>
               )}
             </>
           )}

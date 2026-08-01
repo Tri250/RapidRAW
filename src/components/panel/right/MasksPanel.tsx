@@ -100,7 +100,7 @@ const SUB_MASK_CONFIG: Record<Mask, any> = {
     parameters: [{ key: 'feather', min: 0, max: 100, step: 1, multiplier: 100, defaultValue: 50 }],
   },
   [Mask.Brush]: { showBrushTools: true },
-  [Mask.Flow]: { showBrushTools: true, showFlowControl: true },
+  [Mask.Flow]: { showBrushTools: true },
   [Mask.Linear]: { parameters: [] },
   [Mask.Color]: {
     parameters: [
