@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use base64::{Engine as _, engine::general_purpose};
 use image::{GenericImageView, GrayImage, ImageFormat, Rgba};
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 
 use crate::MutexResilient;
 use crate::ai_connector;
