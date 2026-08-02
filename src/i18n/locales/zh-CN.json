@@ -1874,17 +1874,17 @@
       "xmpSyncDesc": "将评分、颜色标签和标签同步到标准 XMP 附属文件，以便与其他照片编辑器兼容。"
     },
     "gpu": {
-      "acesNote": "",
-      "description": "",
-      "idle": "",
-      "pipelineStatus": "",
-      "pipelineStatusDesc": "",
-      "ready": "",
-      "retest": "",
-      "testing": "",
-      "title": "",
-      "unavailable": "",
-      "unavailableReason": ""
+      "acesNote": "注：ACES 色彩科学命令（color_convert_space / color_apply_aces_output / color_apply_aces_fitted 等）已注册到后端，可通过 useGpuPipeline hook 在自定义工作流中调用。",
+      "description": "检测轻量 GPU 调整管线与 ACES 色彩科学工具的可用性。这些工具作为主管线的补充，用于一次性快速预览与色空间转换。",
+      "idle": "未检测",
+      "pipelineStatus": "GPU 调整管线状态",
+      "pipelineStatusDesc": "检测轻量计算管线是否可在当前 GPU 上初始化。",
+      "ready": "可用",
+      "retest": "重新检测（清除缓存重试）",
+      "testing": "检测中…",
+      "title": "GPU 加速与色彩科学",
+      "unavailable": "不可用",
+      "unavailableReason": "当前 GPU 适配器无法初始化轻量计算管线，主管线仍可正常工作。"
     },
     "keybinds": {
       "actions": {
