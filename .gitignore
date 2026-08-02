@@ -35,6 +35,10 @@ src-tauri/gen/*
 src-tauri/gen/android/app/src/main/assets/
 src-tauri/libs/
 
+# AI models are downloaded & SHA256-verified by build.rs at compile time.
+# Do not commit (~1.4GB); CI/local builds fetch them automatically.
+src-tauri/models/
+
 **/keystore.properties
 **/keystore.jks
 **/release-keystore.jks
