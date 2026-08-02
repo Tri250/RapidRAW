@@ -402,64 +402,136 @@ fn persist_downloaded_asset(dest: &Path, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
+/// Build a list of candidate URLs to try for a model download.
+/// Order: user-configured mirror -> hf-mirror.com -> huggingface.co (original).
+fn build_download_candidates(original_url: &str) -> Vec<String> {
+    let mut candidates = Vec::new();
+    let resolved = resolve_model_url(original_url);
+
+    // 1. User-configured or environment-based mirror (if different from original).
+    if resolved != original_url {
+        candidates.push(resolved.clone());
+    }
+
+    // 2. Chinese domestic mirror (hf-mirror.com).
+    if original_url.contains("huggingface.co") {
+        candidates.push(
+            original_url.replace("https://huggingface.co/", "https://hf-mirror.com/"),
+        );
+    }
+
+    // 3. Original HuggingFace URL (last resort).
+    if !candidates.contains(&original_url.to_string()) {
+        candidates.push(original_url.to_string());
+    }
+
+    candidates
+}
+
+async fn download_model_with_retries(url: &str, dest: &Path) -> Result<()> {
+    let candidates = build_download_candidates(url);
+    let max_attempts_per_host = 3;
+    let mut last_error = None;
+
+    for candidate in &candidates {
+        for attempt in 1..=max_attempts_per_host {
+            log::info!(
+                "Downloading model from {} (attempt {}/{})...",
+                candidate,
+                attempt,
+                max_attempts_per_host
+            );
+
+            let client = reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(300))
+                .connect_timeout(std::time::Duration::from_secs(30))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new());
+
+            match client.get(candidate).send().await {
+                Ok(response) => {
+                    if response.status().is_success() {
+                        match response.bytes().await {
+                            Ok(bytes) => {
+                                if bytes.len() < 1024 {
+                                    // Too small to be a real model file; likely an error page.
+                                    log::warn!(
+                                        "Download from {} returned only {} bytes, treating as failure",
+                                        candidate,
+                                        bytes.len()
+                                    );
+                                    last_error = Some(format!(
+                                        "Download from {} returned only {} bytes",
+                                        candidate,
+                                        bytes.len()
+                                    ));
+                                } else {
+                                    return persist_downloaded_asset(dest, &bytes);
+                                }
+                            }
+                            Err(e) => {
+                                log::warn!(
+                                    "Failed to read bytes from {} (attempt {}): {}",
+                                    candidate,
+                                    attempt,
+                                    e
+                                );
+                                last_error = Some(format!(
+                                    "Failed to read response bytes: {}",
+                                    e
+                                ));
+                            }
+                        }
+                    } else {
+                        log::warn!(
+                            "Download from {} failed with HTTP {} (attempt {})",
+                            candidate,
+                            response.status(),
+                            attempt
+                        );
+                        last_error = Some(format!(
+                            "HTTP {}",
+                            response.status()
+                        ));
+                    }
+                }
+                Err(e) => {
+                    log::warn!(
+                        "Request to {} failed (attempt {}): {}",
+                        candidate,
+                        attempt,
+                        e
+                    );
+                    last_error = Some(format!("{}", e));
+                }
+            }
+
+            if attempt < max_attempts_per_host {
+                let backoff = std::time::Duration::from_secs(2u64.pow(attempt));
+                log::info!("Retrying download in {:?}...", backoff);
+                tokio::time::sleep(backoff).await;
+            }
+        }
+    }
+
+    #[cfg(target_os = "android")]
+    {
+        return Err(anyhow::anyhow!(
+            "模型下载失败，请检查网络连接。建议：1. 切换网络重试；2. 前往「设置-通用-AI设置」配置模型镜像地址（推荐 hf-mirror.com）；3. 使用 Wi-Fi 网络。最后错误: {}",
+            last_error.unwrap_or_else(|| "Unknown".to_string())
+        ));
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        return Err(anyhow::anyhow!(
+            "Model download failed after exhausting all mirrors and retries. Last error: {}",
+            last_error.unwrap_or_else(|| "Unknown".to_string())
+        ));
+    }
+}
+
 async fn download_model(url: &str, dest: &Path) -> Result<()> {
-    let resolved_url = resolve_model_url(url);
-
-    // Primary attempt: resolved URL (respects user mirror or env var).
-    let response = match reqwest::get(&resolved_url).await {
-        Ok(r) if r.status().is_success() => r,
-        Ok(r) => {
-            let status = r.status();
-            // Fallback: if the primary URL is huggingface.co and fails, try
-            // hf-mirror.com automatically. This is critical on Android where
-            // huggingface.co may be unreachable without a VPN.
-            if resolved_url.contains("huggingface.co") {
-                let fallback = resolved_url.replace(
-                    "https://huggingface.co/",
-                    "https://hf-mirror.com/",
-                );
-                log::warn!(
-                    "Model download from {} failed ({}), trying fallback {}",
-                    resolved_url,
-                    status,
-                    fallback
-                );
-                let fb_resp = reqwest::get(&fallback).await?;
-                fb_resp.error_for_status()?
-            } else {
-                return Err(anyhow::anyhow!(
-                    "Model download failed: {} -> HTTP {}",
-                    resolved_url,
-                    status
-                ));
-            }
-        }
-        Err(e) => {
-            if resolved_url.contains("huggingface.co") {
-                let fallback = resolved_url.replace(
-                    "https://huggingface.co/",
-                    "https://hf-mirror.com/",
-                );
-                log::warn!(
-                    "Model download from {} failed ({}), trying fallback {}",
-                    resolved_url,
-                    e,
-                    fallback
-                );
-                let fb_resp = reqwest::get(&fallback).await?;
-                fb_resp.error_for_status()?
-            } else {
-                return Err(anyhow::anyhow!(
-                    "Model download failed: {} -> {}",
-                    resolved_url,
-                    e
-                ));
-            }
-        }
-    };
-
-    let bytes = response.bytes().await?;
-    persist_downloaded_asset(dest, &bytes)
+    download_model_with_retries(url, dest).await
 }
 
 fn verify_sha256(path: &Path, expected_hash: &str) -> Result<bool> {

@@ -10,7 +10,7 @@ import { useEditorStore } from '../store/useEditorStore';
 function formatAiError(prefix: string, raw: unknown): string {
   const msg = String(raw).toLowerCase();
 
-  // Model download / network failure patterns
+  // Model download / network failure patterns (English + Chinese)
   if (
     msg.includes('download') ||
     msg.includes('sending request') ||
@@ -20,7 +20,12 @@ function formatAiError(prefix: string, raw: unknown): string {
     msg.includes('mirror') ||
     msg.includes('network') ||
     msg.includes('dns') ||
-    msg.includes('http')
+    msg.includes('http') ||
+    msg.includes('模型下载失败') ||
+    msg.includes('网络连接') ||
+    msg.includes('下载失败') ||
+    msg.includes('网络') ||
+    msg.includes('请求失败')
   ) {
     return `${prefix}：模型下载失败，请检查网络连接或前往「设置-通用-AI设置」配置模型镜像地址（推荐 hf-mirror.com）`;
   }
