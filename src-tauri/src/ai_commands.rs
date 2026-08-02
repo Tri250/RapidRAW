@@ -1218,38 +1218,46 @@ pub fn spawn_ai_model_prefetch(app_handle: tauri::AppHandle) {
         let order = AiModelId::prefetch_order();
         let total = order.len();
         for (i, &id) in order.iter().enumerate() {
-            let payload = serde_json::json!({
-                "modelId": id,
-                "displayName": id.display_name(),
-                "index": i,
-                "total": total,
-            });
+            // Build the base event payload, then clone & extend per status.
+            // (serde_json::json! does not support struct-update `..payload`.)
+            let make_payload = |status: &str, extra: Option<(&str, String)>| {
+                let mut map = serde_json::Map::new();
+                map.insert("modelId".to_string(), serde_json::json!(id));
+                map.insert("displayName".to_string(), serde_json::json!(id.display_name()));
+                map.insert("index".to_string(), serde_json::json!(i));
+                map.insert("total".to_string(), serde_json::json!(total));
+                map.insert("status".to_string(), serde_json::json!(status));
+                if let Some((k, v)) = extra {
+                    map.insert(k.to_string(), serde_json::json!(v));
+                }
+                serde_json::Value::Object(map)
+            };
 
             if is_model_file_present(&handle, id) {
                 let _ = handle.emit(
                     "ai-model-prefetch-progress",
-                    serde_json::json!({ ..payload, "status": "present" }),
+                    make_payload("present", None),
                 );
                 continue;
             }
 
             let _ = handle.emit(
                 "ai-model-prefetch-progress",
-                serde_json::json!({ ..payload, "status": "downloading" }),
+                make_payload("downloading", None),
             );
 
             match prefetch_model_file(&handle, id).await {
                 Ok(_) => {
                     let _ = handle.emit(
                         "ai-model-prefetch-progress",
-                        serde_json::json!({ ..payload, "status": "ready" }),
+                        make_payload("ready", None),
                     );
                 }
                 Err(e) => {
                     log::warn!("Prefetch failed for {:?}: {}", id, e);
                     let _ = handle.emit(
                         "ai-model-prefetch-progress",
-                        serde_json::json!({ ..payload, "status": "error", "error": e.to_string() }),
+                        make_payload("error", Some(("error", e.to_string()))),
                     );
                 }
             }
