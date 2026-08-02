@@ -2550,8 +2550,10 @@ fn available_monitor_bounds(_window: &tauri::WebviewWindow) -> Vec<MonitorBounds
 }
 
 #[tauri::command]
-fn set_ai_model_mirror(mirror_url: String) -> Result<(), String> {
-    if mirror_url.is_empty() {
+fn set_ai_model_mirror(mirror_url: String, app_handle: tauri::AppHandle) -> Result<(), String> {
+    let trimmed = mirror_url.trim().to_string();
+
+    if trimmed.is_empty() {
         // SAFETY: This is safe in a single-threaded context during app initialization.
         // Environment variable mutations are not thread-safe, but this command is only
         // called from the main thread during setup and before any AI model downloads.
@@ -2562,11 +2564,33 @@ fn set_ai_model_mirror(mirror_url: String) -> Result<(), String> {
     } else {
         // SAFETY: Same as above — single-threaded context during app initialization.
         unsafe {
-            std::env::set_var("RAPIDRAW_HF_MIRROR", &mirror_url);
+            std::env::set_var("RAPIDRAW_HF_MIRROR", &trimmed);
         }
-        log::info!("AI model mirror URL set to: {}", mirror_url);
+        log::info!("AI model mirror URL set to: {}", trimmed);
     }
+
+    // Persist the mirror URL to settings so it survives restarts and can be
+    // displayed in the UI on next launch. Previously this was only stored in
+    // an env var, which is lost on every app restart and made the field appear
+    // empty even though the previous value was still in effect during that session.
+    if let Ok(mut settings) = app_settings::load_settings(app_handle.clone()) {
+        settings.ai_model_mirror_url = if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed)
+        };
+        let _ = app_settings::save_settings(settings, app_handle);
+    }
+
     Ok(())
+}
+
+/// Returns the currently persisted AI model mirror URL (may be empty).
+/// Reads from settings file so the value is consistent across restarts.
+#[tauri::command]
+fn get_ai_model_mirror(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let settings = app_settings::load_settings(app_handle).unwrap_or_default();
+    Ok(settings.ai_model_mirror_url.unwrap_or_default())
 }
 
 #[tauri::command]
@@ -2782,6 +2806,20 @@ pub fn run() {
                         std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
                         std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
                         std::env::set_var("NODEVICE_SELECT", "1");
+                    }
+                }
+
+                // Reapply the persisted AI model mirror URL on every startup so
+                // the RAPIDRAW_HF_MIRROR env var is set before any AI model
+                // download attempt. Without this, the user's mirror preference
+                // would be lost between sessions (env vars don't survive restart).
+                if let Some(mirror) = &settings.ai_model_mirror_url {
+                    let trimmed = mirror.trim();
+                    if trimmed.is_empty() {
+                        std::env::remove_var("RAPIDRAW_HF_MIRROR");
+                    } else {
+                        std::env::set_var("RAPIDRAW_HF_MIRROR", trimmed);
+                        log::info!("Applied persisted AI model mirror URL on startup: {}", trimmed);
                     }
                 }
 
@@ -3149,6 +3187,7 @@ pub fn run() {
             android_integration::save_to_android_gallery,
             android_integration::share_image,
             set_ai_model_mirror,
+            get_ai_model_mirror,
             // ── New P0/P1/P2 commands ──
             gpu_pipeline::gpu_apply_adjustments,
             gpu_pipeline::is_gpu_adjustment_pipeline_ready,

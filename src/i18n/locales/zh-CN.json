@@ -2106,15 +2106,19 @@
       "wgpuDescRecommended": "绕过浏览器编码，实现即时响应的实时预览。强烈推荐以获得最佳性能。",
       "wgpuLabel": "启用直接 WGPU 渲染",
       "workerThreads": "缩略图工作线程数",
-      "workerThreadsDesc": "用于生成缩略图的并行线程数。较高的值可加快图库加载速度，但会占用更多 CPU 和内存。"
+      "workerThreadsDesc": "用于生成缩略图的并行线程数。较高的值可加快图库加载速度，但会占用更多 CPU 和内存。",
+      "aiMirrorSet": "AI 模型镜像 URL 已设置。",
+      "aiMirrorCleared": "AI 模型镜像 URL 已清除。",
+      "aiMirrorFailed": "设置镜像 URL 失败。"
     },
     "selftest": {
-      "allPassed": "",
-      "description": "",
-      "run": "",
-      "running": "",
-      "someFailed": "",
-      "title": ""
+      "allPassed": "所有检测项通过",
+      "description": "运行全面深度自检以验证 GPU 管线、ROI 计算、预览渲染、缓存等图像处理链路组件的状态。",
+      "requiresImage": "请先在编辑器中选中一张图片再运行深度自检，自检需要一张当前编辑图片作为测试目标。",
+      "run": "运行深度自检",
+      "running": "检测中…",
+      "someFailed": "部分检测项未通过",
+      "title": "图像处理深度自检"
     },
     "tagging": {
       "addCustomPlaceholder": "添加自定义 AI 标签（逗号分隔）...",

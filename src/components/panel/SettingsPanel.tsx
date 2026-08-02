@@ -133,6 +133,10 @@ const adjustmentVisibilityDefaults = {
 const resolutions: OptionItem<number>[] = [
   { value: 720, label: '720px' },
   { value: 1280, label: '1280px' },
+  // 1440px is the Android default editor preview resolution. Without this
+  // option in the dropdown, the default value didn't match any selectable
+  // entry, so the Dropdown rendered with no current selection on Android.
+  { value: 1440, label: '1440px' },
   { value: 1920, label: '1920px' },
   { value: 2560, label: '2560px' },
   { value: 3840, label: '3840px' },
@@ -897,7 +901,7 @@ export default function SettingsPanel({
   const [recordingAction, setRecordingAction] = useState<string | null>(null);
 
   const [aiProvider, setAiProvider] = useState(appSettings?.aiProvider || 'cpu');
-  const [mirrorUrl, setMirrorUrl] = useState('');
+  const [mirrorUrl, setMirrorUrl] = useState(appSettings?.aiModelMirrorUrl || '');
   const [mirrorMessage, setMirrorMessage] = useState('');
   const [aiConnectorAddress, setAiConnectorAddress] = useState<string>(appSettings?.aiConnectorAddress || '');
   const [newShortcut, setNewShortcut] = useState('');
@@ -933,6 +937,7 @@ export default function SettingsPanel({
 
   const imageProcessingSelfTestRequest = useEditorStore((state) => state.imageProcessingSelfTestRequest);
   const imageProcessingSelfTestResult = useEditorStore((state) => state.imageProcessingSelfTestResult);
+  const hasSelectedImage = useEditorStore((state) => !!state.selectedImage?.path);
   const setEditor = useEditorStore((state) => state.setEditor);
 
   const settingCategories = useMemo(
@@ -962,11 +967,36 @@ export default function SettingsPanel({
       { value: 'gl', label: t('settings.processing.backends.gl') },
     ];
     return rawOptions.filter((opt) => {
+      // macOS only supports Metal (and the auto fallback); DX12/Vulkan/GL
+      // backends are not selectable there.
       if (opt.value === 'metal' && osPlatform !== 'macos') return false;
       if (opt.value === 'dx12' && osPlatform === 'macos') return false;
+      // Android only exposes Auto and Vulkan. The GL backend on Android is
+      // unstable (causes flicker / black webview) and DX12/Metal are not
+      // available at all — restrict the dropdown so users cannot pick a
+      // backend that would put the app into an unusable state.
+      if (osPlatform === 'android') {
+        return opt.value === 'auto' || opt.value === 'vulkan';
+      }
       return true;
     });
   }, [t, osPlatform]);
+
+  // Filter preview resolution options per platform. On Android, very high
+  // resolutions (2560/3840) cause OOM crashes and severe jank — hide them
+  // so users cannot accidentally select a value their device cannot handle.
+  const filteredResolutions = useMemo<OptionItem<number>[]>(() => {
+    if (osPlatform === 'android') {
+      return resolutions.filter((opt) => opt.value <= 1920);
+    }
+    return resolutions;
+  }, [osPlatform]);
+
+  // Android devices have fewer usable cores and much less RAM than desktops.
+  // Capping the slider max prevents the user from selecting a thread / cache
+  // count that would cause OOM kills or thermal throttling.
+  const workerThreadsMax = osPlatform === 'android' ? 6 : 10;
+  const imageCacheMax = osPlatform === 'android' ? 6 : 10;
 
   const linearRawOptions = useMemo<OptionItem<string>[]>(
     () => [
@@ -1020,6 +1050,7 @@ export default function SettingsPanel({
   useEffect(() => {
     setAiConnectorAddress(appSettings?.aiConnectorAddress || '');
     setAiProvider(appSettings?.aiProvider || 'cpu');
+    setMirrorUrl(appSettings?.aiModelMirrorUrl || '');
     setProcessingSettings({
       editorPreviewResolution: appSettings?.editorPreviewResolution || 1920,
       thumbnailResolution: appSettings?.thumbnailResolution || 720,
@@ -1099,13 +1130,27 @@ export default function SettingsPanel({
   };
 
   const handleMirrorUrlBlur = async () => {
+    const trimmed = mirrorUrl.trim();
     try {
-      await invoke(Invokes.SetAiModelMirror, { mirrorUrl: mirrorUrl.trim() });
-      setMirrorMessage(mirrorUrl.trim() ? 'AI model mirror URL set.' : 'AI model mirror URL cleared.');
+      // set_ai_model_mirror now persists to settings.json on the backend,
+      // so the value survives restarts and is reflected in appSettings on next load.
+      await invoke(Invokes.SetAiModelMirror, { mirrorUrl: trimmed });
+      // Keep appSettings in sync so the input shows the persisted value
+      // immediately and any other consumers of appSettings see the change.
+      await onSettingsChange({ ...appSettings, aiModelMirrorUrl: trimmed });
+      setMirrorMessage(
+        trimmed
+          ? t('settings.processing.aiMirrorSet', { defaultValue: 'AI model mirror URL set.' })
+          : t('settings.processing.aiMirrorCleared', { defaultValue: 'AI model mirror URL cleared.' }),
+      );
       setTimeout(() => setMirrorMessage(''), 3000);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to set mirror URL:', e);
-      setMirrorMessage('Failed to set mirror URL.');
+      setMirrorMessage(
+        t('settings.processing.aiMirrorFailed', {
+          defaultValue: 'Failed to set mirror URL.',
+        }),
+      );
     }
   };
 
@@ -1304,15 +1349,22 @@ export default function SettingsPanel({
   };
 
   const handleTestConnection = async () => {
-    if (!aiConnectorAddress) {
-      return;
-    }
+    const trimmedAddress = aiConnectorAddress.trim();
+    // Defensive: the Test button is disabled when the address is empty, but
+    // keep this guard so a programmatic call cannot proceed without input.
+    if (!trimmedAddress) return;
     setTestStatus({ testing: true, message: t('settings.processing.ai.connector.testing'), success: null });
     try {
-      await invoke(Invokes.TestAIConnectorConnection, { address: aiConnectorAddress });
+      await invoke(Invokes.TestAIConnectorConnection, { address: trimmedAddress });
       setTestStatus({ testing: false, message: t('settings.processing.ai.connector.success'), success: true });
-    } catch (err) {
-      setTestStatus({ testing: false, message: t('settings.processing.ai.connector.failed'), success: false });
+    } catch (err: any) {
+      // Include the backend's error message so the user can see *why* the
+      // connection failed (e.g. wrong port, refused connection, timeout)
+      // instead of only a generic "Connection failed." string.
+      const backendMsg = err?.message || (typeof err === 'string' ? err : '') || '';
+      const failedLabel = t('settings.processing.ai.connector.failed');
+      const display = backendMsg ? `${failedLabel} ${backendMsg}` : failedLabel;
+      setTestStatus({ testing: false, message: display, success: false });
       console.error('AI Connector connection test failed:', err);
     } finally {
       setTimeout(() => setTestStatus({ testing: false, message: '', success: null }), EXECUTE_TIMEOUT);
@@ -1628,6 +1680,7 @@ export default function SettingsPanel({
                   </div>
                 </div>
 
+                {!isDeviceSide && (
                 <div className="p-6 bg-surface rounded-xl shadow-md">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
                     {t('settings.gpu.title', { defaultValue: 'GPU 加速与色彩科学' })}
@@ -1660,6 +1713,7 @@ export default function SettingsPanel({
                     </div>
                   </div>
                 </div>
+                )}
 
                 <div className="p-6 bg-surface rounded-xl shadow-md">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
@@ -2176,7 +2230,7 @@ export default function SettingsPanel({
                                     onChange={(value: any) =>
                                       handleProcessingSettingChange('editorPreviewResolution', value)
                                     }
-                                    options={resolutions}
+                                    options={filteredResolutions}
                                     value={processingSettings.editorPreviewResolution}
                                     triggerClassName="bg-bg-primary"
                                   />
@@ -2203,7 +2257,7 @@ export default function SettingsPanel({
                                     onChange={(value: any) =>
                                       handleProcessingSettingChange('editorPreviewResolution', value)
                                     }
-                                    options={resolutions}
+                                    options={filteredResolutions}
                                     value={processingSettings.editorPreviewResolution}
                                     triggerClassName="bg-bg-primary"
                                   />
@@ -2311,10 +2365,10 @@ export default function SettingsPanel({
                       <Slider
                         label={t('settings.processing.threads')}
                         min={2}
-                        max={10}
+                        max={workerThreadsMax}
                         step={1}
-                        value={processingSettings.thumbnailWorkerThreads}
-                        defaultValue={4}
+                        value={Math.min(processingSettings.thumbnailWorkerThreads, workerThreadsMax)}
+                        defaultValue={osPlatform === 'android' ? 3 : 4}
                         onChange={(e: any) =>
                           handleProcessingSettingChange('thumbnailWorkerThreads', parseInt(e.target.value))
                         }
@@ -2329,10 +2383,10 @@ export default function SettingsPanel({
                       <Slider
                         label={t('settings.processing.images')}
                         min={2}
-                        max={10}
+                        max={imageCacheMax}
                         step={1}
-                        value={processingSettings.imageCacheSize}
-                        defaultValue={5}
+                        value={Math.min(processingSettings.imageCacheSize, imageCacheMax)}
+                        defaultValue={osPlatform === 'android' ? 4 : 5}
                         onChange={(e: any) => handleProcessingSettingChange('imageCacheSize', parseInt(e.target.value))}
                         fillOrigin="min"
                       />
@@ -2387,7 +2441,7 @@ export default function SettingsPanel({
                       />
                     </SettingItem>
 
-                    {osPlatform !== 'macos' && osPlatform !== 'windows' && (
+                    {osPlatform === 'linux' && (
                       <SettingItem
                         label={t('settings.processing.linuxCompat')}
                         description={t('settings.processing.linuxCompatDesc')}
@@ -2638,11 +2692,11 @@ export default function SettingsPanel({
                               {testStatus.message && (
                                 <Text
                                   color={testStatus.success ? TextColors.success : TextColors.error}
-                                  className="mt-2 flex items-center gap-2"
+                                  className="mt-2 flex items-start gap-2 break-words"
                                 >
-                                  {testStatus.success === true && <Wifi size={16} />}
-                                  {testStatus.success === false && <WifiOff size={16} />}
-                                  {testStatus.message}
+                                  {testStatus.success === true && <Wifi size={16} className="shrink-0 mt-0.5" />}
+                                  {testStatus.success === false && <WifiOff size={16} className="shrink-0 mt-0.5" />}
+                                  <span className="min-w-0">{testStatus.message}</span>
                                 </Text>
                               )}
                             </SettingItem>
@@ -2825,7 +2879,9 @@ export default function SettingsPanel({
                             imageProcessingSelfTestResult: null,
                           }))
                         }
-                        disabled={imageProcessingSelfTestRequest > 0 && !imageProcessingSelfTestResult}
+                        disabled={
+                          (imageProcessingSelfTestRequest > 0 && !imageProcessingSelfTestResult) || !hasSelectedImage
+                        }
                       >
                         <Activity size={16} className="mr-2" />
                         {t('settings.selftest.run', { defaultValue: '运行深度自检' })}
@@ -2837,6 +2893,22 @@ export default function SettingsPanel({
                         </span>
                       )}
                     </div>
+
+                    {!hasSelectedImage && (
+                      <Text
+                        as="div"
+                        color={TextColors.info}
+                        className="p-3 bg-blue-900/10 border border-blue-500/50 rounded-lg flex items-center gap-3"
+                      >
+                        <Info size={18} className="shrink-0" />
+                        <span>
+                          {t('settings.selftest.requiresImage', {
+                            defaultValue:
+                              '请先在编辑器中选中一张图片再运行深度自检，自检需要一张当前编辑图片作为测试目标。',
+                          })}
+                        </span>
+                      </Text>
+                    )}
 
                     <AnimatePresence>
                       {imageProcessingSelfTestResult && (
@@ -2870,7 +2942,7 @@ export default function SettingsPanel({
                               </Text>
                             </div>
                             <div className="space-y-2">
-                              {Object.entries(imageProcessingSelfTestResult.details).map(([name, detail]) => (
+                              {Object.entries(imageProcessingSelfTestResult.details || {}).map(([name, detail]) => (
                                 <div
                                   key={name}
                                   className={`flex items-start gap-2 text-sm p-2 rounded-md ${
