@@ -96,10 +96,11 @@ export function useAiMasking() {
 
   // AI operation timeout.
   // Android devices often need extra time for first-time model download + NNAPI warmup,
-  // so we use longer timeouts on that platform.
-  const AI_CLEANUP_TIMEOUT_MS = 30_000;
-  const AI_GENERATIVE_TIMEOUT_MS = isAndroid ? 120_000 : 60_000;
-  const AI_MASK_TIMEOUT_MS = isAndroid ? 90_000 : 45_000;
+  // so we use dramatically longer timeouts on that platform.
+  // NNAPI session creation on a cold start can take 2-3 minutes for the first model.
+  const AI_CLEANUP_TIMEOUT_MS = isAndroid ? 60_000 : 30_000;
+  const AI_GENERATIVE_TIMEOUT_MS = isAndroid ? 300_000 : 60_000;
+  const AI_MASK_TIMEOUT_MS = isAndroid ? 300_000 : 45_000;
 
   // Cleanup abort controllers on unmount.
   useEffect(() => {
@@ -157,7 +158,7 @@ export function useAiMasking() {
       cleanupAbortRef.current = cleanupAbort;
       const cleanupTimeout = setTimeout(() => {
         cleanupAbort.abort();
-        toast.error('Cleanup timed out – operation took too long');
+        toast.error('Cleanup 处理超时，请保持网络畅通并稍后再试');
       }, AI_CLEANUP_TIMEOUT_MS);
 
       try {
@@ -243,7 +244,7 @@ export function useAiMasking() {
       generativeAbortRef.current = genAbort;
       const genTimeout = setTimeout(() => {
         genAbort.abort();
-        toast.error('AI Replace timed out – operation took too long');
+        toast.error('AI Replace 处理超时，请保持网络畅通并稍后再试');
       }, AI_GENERATIVE_TIMEOUT_MS);
 
       try {
@@ -318,7 +319,7 @@ export function useAiMasking() {
       quickEraseAbortRef.current = abortController;
       const quickEraseTimeout = setTimeout(() => {
         abortController.abort();
-        toast.error('Quick Erase timed out – operation took too long');
+        toast.error('Quick Erase 处理超时，请保持网络畅通并稍后再试');
       }, AI_GENERATIVE_TIMEOUT_MS);
 
       // Device-side fix: for local/cpu mode, token is not needed. Only fetch for cloud mode.
@@ -495,7 +496,7 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error('AI Mask timed out – operation took too long');
+        toast.error('AI Mask 处理超时，请保持网络畅通并稍后再试');
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -569,7 +570,7 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error('AI Subject Mask timed out – operation took too long');
+        toast.error('AI Subject Mask 处理超时，请保持网络畅通并稍后再试');
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -639,7 +640,7 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error('AI Depth Mask timed out – operation took too long');
+        toast.error('AI Depth Mask 处理超时，请保持网络畅通并稍后再试');
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -703,7 +704,7 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error('AI Foreground Mask timed out – operation took too long');
+        toast.error('AI Foreground Mask 处理超时，请保持网络畅通并稍后再试');
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -761,7 +762,7 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error('AI Sky Mask timed out – operation took too long');
+        toast.error('AI Sky Mask 处理超时，请保持网络畅通并稍后再试');
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -822,7 +823,7 @@ export function useAiMasking() {
       generativeAbortRef.current = genAbort;
       const genTimeout = setTimeout(() => {
         genAbort.abort();
-        toast.error('Super Resolution timed out – operation took too long');
+        toast.error('Super Resolution 处理超时，请保持网络畅通并稍后再试');
       }, AI_GENERATIVE_TIMEOUT_MS);
 
       setEditor({ isGeneratingAi: true });
@@ -936,7 +937,7 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error('Color Range Mask timed out – operation took too long');
+        toast.error('Color Range Mask 处理超时，请保持网络畅通并稍后再试');
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -1006,7 +1007,7 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error('Luminance Range Mask timed out – operation took too long');
+        toast.error('Luminance Range Mask 处理超时，请保持网络畅通并稍后再试');
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -1072,7 +1073,7 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error('Mask Feather timed out – operation took too long');
+        toast.error('Mask Feather 处理超时，请保持网络畅通并稍后再试');
       }, AI_MASK_TIMEOUT_MS);
 
       try {
@@ -1121,7 +1122,7 @@ export function useAiMasking() {
     maskAbortRef.current = maskAbort;
     const maskTimeout = setTimeout(() => {
       maskAbort.abort();
-      toast.error('Auto Straighten timed out – operation took too long');
+      toast.error('Auto Straighten 处理超时，请保持网络畅通并稍后再试');
     }, AI_MASK_TIMEOUT_MS);
 
     try {
@@ -1155,7 +1156,7 @@ export function useAiMasking() {
     maskAbortRef.current = maskAbort;
     const maskTimeout = setTimeout(() => {
       maskAbort.abort();
-      toast.error('Horizon Detection timed out – operation took too long');
+      toast.error('Horizon Detection 处理超时，请保持网络畅通并稍后再试');
     }, AI_MASK_TIMEOUT_MS);
 
     try {
@@ -1191,7 +1192,7 @@ export function useAiMasking() {
       generativeAbortRef.current = genAbort;
       const genTimeout = setTimeout(() => {
         genAbort.abort();
-        toast.error('AI Sky Replace timed out – operation took too long');
+        toast.error('AI Sky Replace 处理超时，请保持网络畅通并稍后再试');
       }, AI_GENERATIVE_TIMEOUT_MS);
 
       setEditor({ isGeneratingAi: true });
@@ -1248,7 +1249,7 @@ export function useAiMasking() {
     generativeAbortRef.current = genAbort;
     const genTimeout = setTimeout(() => {
       genAbort.abort();
-      toast.error('AI Background Remove timed out – operation took too long');
+      toast.error('AI Background Remove 处理超时，请保持网络畅通并稍后再试');
     }, AI_GENERATIVE_TIMEOUT_MS);
 
     setEditor({ isGeneratingAi: true });
