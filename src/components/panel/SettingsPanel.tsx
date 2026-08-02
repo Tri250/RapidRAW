@@ -541,19 +541,26 @@ const CloudDashboard = () => {
 };
 
 interface CanvasInputModeSwitchProps {
-  mode: 'mouse' | 'trackpad';
-  onModeChange: (mode: 'mouse' | 'trackpad') => void;
+  mode: 'mouse' | 'trackpad' | 'touch';
+  onModeChange: (mode: 'mouse' | 'trackpad' | 'touch') => void;
+  isAndroid?: boolean;
 }
 
-const CanvasInputModeSwitch = ({ mode, onModeChange }: CanvasInputModeSwitchProps) => {
+const CanvasInputModeSwitch = ({ mode, onModeChange, isAndroid = false }: CanvasInputModeSwitchProps) => {
   const { t } = useTranslation();
 
   const canvasInputModes = useMemo(
-    () => [
-      { id: 'mouse', label: t('settings.controls.modes.mouse'), icon: Mouse },
-      { id: 'trackpad', label: t('settings.controls.modes.trackpad'), icon: Touchpad },
-    ],
-    [t],
+    () => {
+      const modes = [
+        { id: 'mouse', label: t('settings.controls.modes.mouse'), icon: Mouse },
+        { id: 'trackpad', label: t('settings.controls.modes.trackpad'), icon: Touchpad },
+      ];
+      if (isAndroid) {
+        modes.push({ id: 'touch', label: t('settings.controls.modes.touch', { defaultValue: 'Touch' }), icon: Scaling });
+      }
+      return modes;
+    },
+    [t, isAndroid],
   );
 
   return (
@@ -561,7 +568,7 @@ const CanvasInputModeSwitch = ({ mode, onModeChange }: CanvasInputModeSwitchProp
       {canvasInputModes.map((item) => (
         <button
           key={item.id}
-          onClick={() => onModeChange(item.id as 'mouse' | 'trackpad')}
+          onClick={() => onModeChange(item.id as 'mouse' | 'trackpad' | 'touch')}
           className={clsx(
             'relative flex-1 flex items-center justify-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
             {
@@ -1677,10 +1684,44 @@ export default function SettingsPanel({
                         />
                       </SettingItem>
                     )}
+
+                    <SettingItem
+                      label={t('settings.general.exifOverlay', { defaultValue: 'EXIF 信息叠加' })}
+                      description={t('settings.general.exifOverlayDesc', {
+                        defaultValue: '在编辑器预览上叠加显示相机参数、焦距等 EXIF 信息。',
+                      })}
+                    >
+                      <Dropdown
+                        onChange={(value: any) => onSettingsChange({ ...appSettings, exifOverlay: value })}
+                        options={[
+                          { value: 'off', label: t('settings.general.exifOverlayOff', { defaultValue: '关闭' }) },
+                          { value: 'minimal', label: t('settings.general.exifOverlayMinimal', { defaultValue: '精简' }) },
+                          { value: 'full', label: t('settings.general.exifOverlayFull', { defaultValue: '完整' }) },
+                        ]}
+                        value={appSettings?.exifOverlay || 'off'}
+                        triggerClassName="bg-bg-primary"
+                      />
+                    </SettingItem>
+
+                    <SettingItem
+                      label={t('settings.general.thumbnailAspectRatio', { defaultValue: '缩略图宽高比' })}
+                      description={t('settings.general.thumbnailAspectRatioDesc', {
+                        defaultValue: '设置图库中缩略图的宽高显示比例。',
+                      })}
+                    >
+                      <Dropdown
+                        onChange={(value: any) => onSettingsChange({ ...appSettings, thumbnailAspectRatio: value })}
+                        options={[
+                          { value: 'cover', label: t('settings.general.aspectCover', { defaultValue: '原始比例 (Cover)' }) },
+                          { value: 'square', label: t('settings.general.aspectSquare', { defaultValue: '正方形' }) },
+                        ]}
+                        value={appSettings?.thumbnailAspectRatio || 'cover'}
+                        triggerClassName="bg-bg-primary"
+                      />
+                    </SettingItem>
                   </div>
                 </div>
 
-                {!isDeviceSide && (
                 <div className="p-6 bg-surface rounded-xl shadow-md">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
                     {t('settings.gpu.title', { defaultValue: 'GPU 加速与色彩科学' })}
@@ -1705,15 +1746,16 @@ export default function SettingsPanel({
                       </div>
                       <GpuPipelineProbe isAndroid={isDeviceSide} />
                     </div>
+                    {!isDeviceSide && (
                     <div className="text-xs text-text-secondary/70 leading-relaxed">
                       {t('settings.gpu.acesNote', {
                         defaultValue:
                           '注：ACES 色彩科学命令（color_convert_space / color_apply_aces_output / color_apply_aces_fitted 等）已注册到后端，可通过 useGpuPipeline hook 在自定义工作流中调用。',
                       })}
                     </div>
+                    )}
                   </div>
                 </div>
-                )}
 
                 <div className="p-6 bg-surface rounded-xl shadow-md">
                   <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
