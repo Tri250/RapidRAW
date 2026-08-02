@@ -527,6 +527,9 @@ impl Default for AppSettings {
             exif_overlay: Some("off".to_string()),
             language: Some("zh-CN".to_string()),
             folder_tree_sort: Some(FolderTreeSort::default()),
+            #[cfg(target_os = "android")]
+            ai_model_mirror_url: Some("https://hf-mirror.com".to_string()),
+            #[cfg(not(target_os = "android"))]
             ai_model_mirror_url: None,
         }
     }
@@ -556,9 +559,18 @@ pub fn load_settings(app_handle: AppHandle) -> Result<AppSettings, String> {
         AppSettings::default()
     };
 
+    let mut settings_modified = false;
+
+    // Android: if no mirror URL is configured, apply the default domestic
+    // mirror automatically so users don't have to manually set it up.
+    #[cfg(target_os = "android")]
+    if settings.ai_model_mirror_url.is_none() || settings.ai_model_mirror_url.as_ref().unwrap().trim().is_empty() {
+        settings.ai_model_mirror_url = Some("https://hf-mirror.com".to_string());
+        settings_modified = true;
+    }
+
     let all_current_keys = all_available_adjustments();
     let default_included = default_included_adjustments();
-    let mut settings_modified = false;
 
     if settings.root_folders.is_empty()
         && let Some(last) = &settings.last_root_path

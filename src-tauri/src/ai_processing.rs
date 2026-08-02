@@ -404,7 +404,60 @@ fn persist_downloaded_asset(dest: &Path, bytes: &[u8]) -> Result<()> {
 
 async fn download_model(url: &str, dest: &Path) -> Result<()> {
     let resolved_url = resolve_model_url(url);
-    let response = reqwest::get(&resolved_url).await?.error_for_status()?;
+
+    // Primary attempt: resolved URL (respects user mirror or env var).
+    let response = match reqwest::get(&resolved_url).await {
+        Ok(r) if r.status().is_success() => r,
+        Ok(r) => {
+            let status = r.status();
+            // Fallback: if the primary URL is huggingface.co and fails, try
+            // hf-mirror.com automatically. This is critical on Android where
+            // huggingface.co may be unreachable without a VPN.
+            if resolved_url.contains("huggingface.co") {
+                let fallback = resolved_url.replace(
+                    "https://huggingface.co/",
+                    "https://hf-mirror.com/",
+                );
+                log::warn!(
+                    "Model download from {} failed ({}), trying fallback {}",
+                    resolved_url,
+                    status,
+                    fallback
+                );
+                let fb_resp = reqwest::get(&fallback).await?;
+                fb_resp.error_for_status()?
+            } else {
+                return Err(anyhow::anyhow!(
+                    "Model download failed: {} -> HTTP {}",
+                    resolved_url,
+                    status
+                ));
+            }
+        }
+        Err(e) => {
+            if resolved_url.contains("huggingface.co") {
+                let fallback = resolved_url.replace(
+                    "https://huggingface.co/",
+                    "https://hf-mirror.com/",
+                );
+                log::warn!(
+                    "Model download from {} failed ({}), trying fallback {}",
+                    resolved_url,
+                    e,
+                    fallback
+                );
+                let fb_resp = reqwest::get(&fallback).await?;
+                fb_resp.error_for_status()?
+            } else {
+                return Err(anyhow::anyhow!(
+                    "Model download failed: {} -> {}",
+                    resolved_url,
+                    e
+                ));
+            }
+        }
+    };
+
     let bytes = response.bytes().await?;
     persist_downloaded_asset(dest, &bytes)
 }

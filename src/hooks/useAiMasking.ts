@@ -2,6 +2,41 @@ import { useCallback, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'react-toastify';
 import { useEditorStore } from '../store/useEditorStore';
+
+/**
+ * Format a backend error into a user-friendly toast message.
+ * Detects network/model-download failures and gives actionable hints.
+ */
+function formatAiError(prefix: string, raw: unknown): string {
+  const msg = String(raw).toLowerCase();
+
+  // Model download / network failure patterns
+  if (
+    msg.includes('download') ||
+    msg.includes('sending request') ||
+    msg.includes('connect') ||
+    msg.includes('timeout') ||
+    msg.includes('huggingface') ||
+    msg.includes('mirror') ||
+    msg.includes('network') ||
+    msg.includes('dns') ||
+    msg.includes('http')
+  ) {
+    return `${prefix}：模型下载失败，请检查网络连接或前往「设置-通用-AI设置」配置模型镜像地址（推荐 hf-mirror.com）`;
+  }
+
+  // Out-of-memory / resource exhaustion
+  if (msg.includes('oom') || msg.includes('out of memory') || msg.includes('cannot allocate')) {
+    return `${prefix}：设备内存不足，请尝试降低「设置-性能」中的最大处理分辨率`;
+  }
+
+  // Generic fallback – truncate very long URLs from the raw message
+  let display = String(raw);
+  if (display.length > 120) {
+    display = display.slice(0, 120) + '…';
+  }
+  return `${prefix}：${display}`;
+}
 import { useEditorActions } from './useEditorActions';
 import { Adjustments, AiPatch, MaskContainer, Coord } from '../utils/adjustments';
 import { SubMask } from '../components/panel/right/Masks';
@@ -244,7 +279,7 @@ export function useAiMasking() {
           }));
           return;
         }
-        toast.error(`AI Replace Failed: ${err}`);
+        toast.error(formatAiError('AI 生成式替换失败', err));
         setAdjustments((prev: Adjustments) => ({
           ...prev,
           aiPatches: prev.aiPatches.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
@@ -478,7 +513,7 @@ export function useAiMasking() {
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
         if (maskAbort.signal.aborted) return;
-        toast.error(`AI Mask Failed: ${error}`);
+        toast.error(formatAiError('AI 智能消除失败', error));
       } finally {
         clearTimeout(maskTimeout);
         setEditor({ isGeneratingAiMask: false });
@@ -556,7 +591,7 @@ export function useAiMasking() {
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
         if (maskAbort.signal.aborted) return;
-        toast.error(`AI Subject Mask Failed: ${error}`);
+        toast.error(formatAiError('AI 主体识别失败', error));
       } finally {
         clearTimeout(maskTimeout);
         setEditor({ isGeneratingAiMask: false });
@@ -614,7 +649,7 @@ export function useAiMasking() {
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
         if (maskAbort.signal.aborted) return;
-        toast.error(`AI Depth Mask Failed: ${error}`);
+        toast.error(formatAiError('AI 深度蒙版失败', error));
       } finally {
         clearTimeout(maskTimeout);
         setEditor({ isGeneratingAiMask: false });
@@ -666,7 +701,7 @@ export function useAiMasking() {
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
         if (maskAbort.signal.aborted) return;
-        toast.error(`AI Foreground Mask Failed: ${error}`);
+        toast.error(formatAiError('AI 前景分离失败', error));
       } finally {
         clearTimeout(maskTimeout);
         setEditor({ isGeneratingAiMask: false });
@@ -718,7 +753,7 @@ export function useAiMasking() {
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
         if (maskAbort.signal.aborted) return;
-        toast.error(`AI Sky Mask Failed: ${error}`);
+        toast.error(formatAiError('AI 天空识别失败', error));
       } finally {
         clearTimeout(maskTimeout);
         setEditor({ isGeneratingAiMask: false });
@@ -788,7 +823,7 @@ export function useAiMasking() {
         toast.success(`Super resolution ${scale}x applied (${newWidth}×${newHeight})`);
       } catch (err: any) {
         if (genAbort.signal.aborted) return;
-        toast.error(`Super Resolution Failed: ${err.message || String(err)}`);
+        toast.error(formatAiError('超分辨率处理失败', err));
       } finally {
         clearTimeout(genTimeout);
         setEditor({ isGeneratingAi: false });
@@ -1124,7 +1159,7 @@ export function useAiMasking() {
         return url;
       } catch (error) {
         if (genAbort.signal.aborted) return null;
-        toast.error(`AI Sky Replace Failed: ${error}`);
+        toast.error(formatAiError('AI 天空替换失败', error));
         return null;
       } finally {
         clearTimeout(genTimeout);
@@ -1177,7 +1212,7 @@ export function useAiMasking() {
       return url;
     } catch (error) {
       if (genAbort.signal.aborted) return null;
-      toast.error(`AI Background Remove Failed: ${error}`);
+      toast.error(formatAiError('AI 背景移除失败', error));
       return null;
     } finally {
       clearTimeout(genTimeout);
