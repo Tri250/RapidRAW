@@ -85,6 +85,8 @@ export function useAiMasking() {
   const { setAdjustments } = useEditorActions();
   const setEditor = useEditorStore((state) => state.setEditor);
   const { getToken } = useAuth();
+  const osPlatform = useSettingsStore((state) => state.osPlatform);
+  const isAndroid = osPlatform === 'android';
 
   // Track in-flight requests for cancellation on unmount or re-trigger.
   const quickEraseAbortRef = useRef<AbortController | null>(null);
@@ -92,10 +94,12 @@ export function useAiMasking() {
   const cleanupAbortRef = useRef<AbortController | null>(null);
   const maskAbortRef = useRef<AbortController | null>(null);
 
-  // AI operation timeout (30s for cleanup, 60s for generative replace, 45s for mask operations).
+  // AI operation timeout.
+  // Android devices often need extra time for first-time model download + NNAPI warmup,
+  // so we use longer timeouts on that platform.
   const AI_CLEANUP_TIMEOUT_MS = 30_000;
-  const AI_GENERATIVE_TIMEOUT_MS = 60_000;
-  const AI_MASK_TIMEOUT_MS = 45_000;
+  const AI_GENERATIVE_TIMEOUT_MS = isAndroid ? 120_000 : 60_000;
+  const AI_MASK_TIMEOUT_MS = isAndroid ? 90_000 : 45_000;
 
   // Cleanup abort controllers on unmount.
   useEffect(() => {

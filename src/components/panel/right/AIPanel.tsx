@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
 import {
   DndContext,
   DragOverlay,
@@ -396,6 +397,7 @@ export default function AIPanel() {
   } = useAiMasking();
   const appSettings = useSettingsStore((s) => s.appSettings);
   const aiProvider = appSettings?.aiProvider || 'cpu';
+  const { isFeatureReady } = useAiModels();
 
   let user: any = null;
   let isSignedIn = false;
@@ -569,6 +571,17 @@ export default function AIPanel() {
     onSelectPatchContainer(null);
     onSelectSubMask(null);
   };
+
+  const onGenerativeReplaceWithModelCheck = useCallback(
+    (containerId: string, prompt: string, useFastInpaint: boolean) => {
+      if (useFastInpaint && !isFeatureReady('inpaint')) {
+        toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+        return;
+      }
+      handleGenerativeReplace(containerId, prompt, useFastInpaint);
+    },
+    [handleGenerativeReplace, isFeatureReady, t],
+  );
 
   const handleToggleExpand = (id: string) => {
     setExpandedContainers((prev) => {
@@ -1381,7 +1394,7 @@ export default function AIPanel() {
                   updateSubMask={updateSubMask}
                   isGeneratingAi={isGeneratingAi}
                   isGeneratingAiMask={isGeneratingAiMask}
-                  onGenerativeReplace={handleGenerativeReplace}
+                  onGenerativeReplace={onGenerativeReplaceWithModelCheck}
                   collapsibleState={collapsibleState}
                   setCollapsibleState={setCollapsibleState}
                   isGenerativeAvailable={isGenerativeAvailable}

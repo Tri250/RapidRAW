@@ -224,6 +224,15 @@ export const useAppInitialization = ({
         } catch (e) {
           console.error('Failed to notify backend of readiness:', e);
         }
+
+        // On Android, eagerly prefetch small AI models in the background so
+        // that first-time mask / inpaint operations don't time out waiting
+        // for a network download.
+        if (isAndroid) {
+          invoke(Invokes.PrefetchAiModels).catch((e) => {
+            console.warn('Background AI model prefetch failed on Android:', e);
+          });
+        }
       })
       .catch((err) => {
         console.error('Failed to load settings:', err);

@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
 import {
   DndContext,
   DragOverlay,
@@ -84,6 +85,7 @@ import { useEditorStore } from '../../../store/useEditorStore';
 import { useSettingsStore } from '../../../store/useSettingsStore';
 import { useProcessStore } from '../../../store/useProcessStore';
 import { useAiMasking } from '../../../hooks/useAiMasking';
+import { useAiModels } from '../../../hooks/useAiModels';
 import { useEditorActions } from '../../../hooks/useEditorActions';
 import { useUIStore } from '../../../store/useUIStore';
 import { useWaveformControls } from '../../../hooks/useWaveformControls';
@@ -585,6 +587,7 @@ export default function MasksPanel() {
     handleGenerateAiSubjectMask,
     handleDeleteMaskContainer: deleteMaskContainerFromHook,
   } = useAiMasking();
+  const { isFeatureReady } = useAiModels();
   const setCustomEscapeHandler = useUIStore((s) => s.setCustomEscapeHandler);
   const { appSettings, theme } = useSettingsStore(
     useShallow((state) => ({
@@ -832,6 +835,21 @@ export default function MasksPanel() {
     return subMask;
   };
 
+  const maskTypeToFeature = (type: Mask): import('../../../hooks/useAiModels').AiFeature | null => {
+    switch (type) {
+      case Mask.AiForeground:
+        return 'foregroundMask';
+      case Mask.AiSky:
+        return 'skyMask';
+      case Mask.AiDepth:
+        return 'depthMask';
+      case Mask.AiSubject:
+        return 'subjectMask';
+      default:
+        return null;
+    }
+  };
+
   const handleAddMaskContainer = (type: Mask) => {
     const subMask = createMaskLogic(type);
     const count = (adjustments.masks?.length || 0) + 1;
@@ -846,6 +864,11 @@ export default function MasksPanel() {
     onSelectMask(subMask.id);
     setExpandedContainers((prev) => new Set(prev).add(newContainer.id));
     if (type === Mask.Brush || type === Mask.Flow) selectBrushToolForNewMask();
+    const feature = maskTypeToFeature(type);
+    if (feature && !isFeatureReady(feature)) {
+      toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+      return;
+    }
     if (type === Mask.AiForeground) handleGenerateAiForegroundMask(subMask.id);
     else if (type === Mask.AiSky) handleGenerateAiSkyMask(subMask.id);
     else if (type === Mask.AiDepth) handleGenerateAiDepthMask(subMask.id, subMask.parameters);
@@ -878,6 +901,11 @@ export default function MasksPanel() {
     onSelectMask(subMask.id);
     setExpandedContainers((prev) => new Set(prev).add(containerId));
     if (type === Mask.Brush || type === Mask.Flow) selectBrushToolForNewMask();
+    const feature = maskTypeToFeature(type);
+    if (feature && !isFeatureReady(feature)) {
+      toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+      return;
+    }
     if (type === Mask.AiForeground) handleGenerateAiForegroundMask(subMask.id);
     else if (type === Mask.AiSky) handleGenerateAiSkyMask(subMask.id);
     else if (type === Mask.AiDepth) handleGenerateAiDepthMask(subMask.id, subMask.parameters);
