@@ -6,14 +6,15 @@ use std::io::Cursor;
 
 use base64::{Engine as _, engine::general_purpose};
 use image::{GenericImageView, GrayImage, ImageFormat, Rgba};
+use tauri::Emitter;
 
 use crate::MutexResilient;
 use crate::ai_connector;
 use crate::ai_processing::{
-    AiDepthMaskParameters, AiForegroundMaskParameters, AiSkyMaskParameters,
-    AiSubjectMaskParameters, CachedDepthMap, generate_image_embeddings, get_or_init_ai_models,
-    get_or_init_clip_models, run_depth_anything_model, run_sam_decoder, run_sky_seg_model,
-    run_u2netp_model,
+    AiDepthMaskParameters, AiForegroundMaskParameters, AiModelId, AiSkyMaskParameters,
+    AiSubjectMaskParameters, CachedDepthMap, generate_image_embeddings, get_or_init_clip_models,
+    get_or_init_onnx_model, is_model_file_present, prefetch_model_file, run_depth_anything_model,
+    run_sam_decoder, run_sky_seg_model, run_u2netp_model,
 };
 use crate::app_settings::load_settings;
 use crate::app_state::AppState;
@@ -41,14 +42,19 @@ pub async fn generate_ai_foreground_mask(
     state: tauri::State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<AiForegroundMaskParameters, String> {
-    let models = get_or_init_ai_models(&app_handle, &state.ai_state, &state.ai_init_lock)
-        .await
-        .map_err(|e| e.to_string())?;
+    let u2netp = get_or_init_onnx_model(
+        &app_handle,
+        &state.ai_state,
+        &state.ai_init_lock,
+        AiModelId::U2net,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
 
     let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
 
     let full_mask_image =
-        run_u2netp_model(warped_image.as_ref(), &models.u2netp).map_err(|e| e.to_string())?;
+        run_u2netp_model(warped_image.as_ref(), &*u2netp).map_err(|e| e.to_string())?;
     let base64_data = encode_to_base64_png(&full_mask_image)?;
 
     Ok(AiForegroundMaskParameters {
@@ -70,14 +76,19 @@ pub async fn generate_ai_sky_mask(
     state: tauri::State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<AiSkyMaskParameters, String> {
-    let models = get_or_init_ai_models(&app_handle, &state.ai_state, &state.ai_init_lock)
-        .await
-        .map_err(|e| e.to_string())?;
+    let sky_seg = get_or_init_onnx_model(
+        &app_handle,
+        &state.ai_state,
+        &state.ai_init_lock,
+        AiModelId::SkySeg,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
 
     let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
 
     let full_mask_image =
-        run_sky_seg_model(warped_image.as_ref(), &models.sky_seg).map_err(|e| e.to_string())?;
+        run_sky_seg_model(warped_image.as_ref(), &*sky_seg).map_err(|e| e.to_string())?;
 
     // Detect "no sky" case: if fewer than 0.1% of pixels are bright (above 128/255),
     // the model found no meaningful sky region. Return None so the frontend can show
@@ -122,9 +133,14 @@ pub async fn generate_ai_depth_mask(
     state: tauri::State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<AiDepthMaskParameters, String> {
-    let models = get_or_init_ai_models(&app_handle, &state.ai_state, &state.ai_init_lock)
-        .await
-        .map_err(|e| e.to_string())?;
+    let depth_model = get_or_init_onnx_model(
+        &app_handle,
+        &state.ai_state,
+        &state.ai_init_lock,
+        AiModelId::Depth,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
 
     let path_hash = {
         let mut hasher = blake3::Hasher::new();
@@ -150,7 +166,7 @@ pub async fn generate_ai_depth_mask(
             } else {
                 let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
                 let depth_img =
-                    run_depth_anything_model(warped_image.as_ref(), &models.depth_anything)
+                    run_depth_anything_model(warped_image.as_ref(), &*depth_model)
                         .map_err(|e| e.to_string())?;
                 let new_cache = CachedDepthMap {
                     path_hash: path_hash.clone(),
@@ -162,7 +178,7 @@ pub async fn generate_ai_depth_mask(
             }
         } else {
             let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
-            let depth_img = run_depth_anything_model(warped_image.as_ref(), &models.depth_anything)
+            let depth_img = run_depth_anything_model(warped_image.as_ref(), &*depth_model)
                 .map_err(|e| e.to_string())?;
             let new_cache = CachedDepthMap {
                 path_hash: path_hash.clone(),
@@ -211,9 +227,22 @@ pub async fn generate_ai_subject_mask(
     state: tauri::State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<AiSubjectMaskParameters, String> {
-    let models = get_or_init_ai_models(&app_handle, &state.ai_state, &state.ai_init_lock)
-        .await
-        .map_err(|e| e.to_string())?;
+    let sam_encoder = get_or_init_onnx_model(
+        &app_handle,
+        &state.ai_state,
+        &state.ai_init_lock,
+        AiModelId::SamEncoder,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+    let sam_decoder = get_or_init_onnx_model(
+        &app_handle,
+        &state.ai_state,
+        &state.ai_init_lock,
+        AiModelId::SamDecoder,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
 
     let path_hash = {
         let mut hasher = blake3::Hasher::new();
@@ -239,7 +268,7 @@ pub async fn generate_ai_subject_mask(
             } else {
                 let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
                 let mut new_embeddings =
-                    generate_image_embeddings(warped_image.as_ref(), &models.sam_encoder)
+                    generate_image_embeddings(warped_image.as_ref(), &*sam_encoder)
                         .map_err(|e| e.to_string())?;
                 new_embeddings.path_hash = path_hash.clone();
                 ai_state.embeddings = Some(new_embeddings.clone());
@@ -248,7 +277,7 @@ pub async fn generate_ai_subject_mask(
         } else {
             let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
             let mut new_embeddings =
-                generate_image_embeddings(warped_image.as_ref(), &models.sam_encoder)
+                generate_image_embeddings(warped_image.as_ref(), &*sam_encoder)
                     .map_err(|e| e.to_string())?;
             new_embeddings.path_hash = path_hash.clone();
             ai_state.embeddings = Some(new_embeddings.clone());
@@ -329,7 +358,7 @@ pub async fn generate_ai_subject_mask(
     let unrotated_end_point = (max_x, max_y);
 
     let mask_bitmap = run_sam_decoder(
-        &models.sam_decoder,
+        &*sam_decoder,
         &embeddings,
         unrotated_start_point,
         unrotated_end_point,
@@ -376,9 +405,14 @@ pub async fn precompute_ai_subject_mask(
     state: tauri::State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
-    let models = get_or_init_ai_models(&app_handle, &state.ai_state, &state.ai_init_lock)
-        .await
-        .map_err(|e| e.to_string())?;
+    let sam_encoder = get_or_init_onnx_model(
+        &app_handle,
+        &state.ai_state,
+        &state.ai_init_lock,
+        AiModelId::SamEncoder,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
 
     let path_hash = {
         let mut hasher = blake3::Hasher::new();
@@ -404,7 +438,7 @@ pub async fn precompute_ai_subject_mask(
     }
 
     let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
-    let mut new_embeddings = generate_image_embeddings(warped_image.as_ref(), &models.sam_encoder)
+    let mut new_embeddings = generate_image_embeddings(warped_image.as_ref(), &*sam_encoder)
         .map_err(|e| e.to_string())?;
 
     new_embeddings.path_hash = path_hash.clone();
@@ -774,13 +808,18 @@ pub async fn generate_ai_sky_replace(
     }
 
     // 1. Initialize AI models
-    let models = get_or_init_ai_models(&app_handle, &state.ai_state, &state.ai_init_lock)
-        .await
-        .map_err(|e| e.to_string())?;
+    let sky_seg = get_or_init_onnx_model(
+        &app_handle,
+        &state.ai_state,
+        &state.ai_init_lock,
+        AiModelId::SkySeg,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
 
     // 2. Generate sky mask using sky segmentation model
     let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
-    let sky_mask_img = run_sky_seg_model(warped_image.as_ref(), &models.sky_seg)
+    let sky_mask_img = run_sky_seg_model(warped_image.as_ref(), &*sky_seg)
         .map_err(|e| format!("Sky segmentation failed: {}", e))?;
 
     // Convert GrayImage mask to Vec<u8> and ensure dimensions match original image
@@ -944,15 +983,20 @@ pub async fn generate_ai_background_remove(
     }
 
     // 1. Initialize AI models
-    let models = get_or_init_ai_models(&app_handle, &state.ai_state, &state.ai_init_lock)
-        .await
-        .map_err(|e| e.to_string())?;
+    let u2netp = get_or_init_onnx_model(
+        &app_handle,
+        &state.ai_state,
+        &state.ai_init_lock,
+        AiModelId::U2net,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
 
     // 2. Generate foreground mask using u2netp (dedicated salient-object/foreground
     //    segmentation model). This is more accurate for background removal than the
     //    depth-estimation model used previously.
     let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
-    let fg_mask_img = run_u2netp_model(warped_image.as_ref(), &models.u2netp)
+    let fg_mask_img = run_u2netp_model(warped_image.as_ref(), &*u2netp)
         .map_err(|e| format!("Foreground segmentation failed: {}", e))?;
 
     // Resize mask to match original image dimensions if needed
@@ -1108,4 +1152,115 @@ pub async fn apply_super_resolution(
     })
     .await
     .map_err(|e| format!("Super resolution task failed: {}", e))?
+}
+
+// ---------------------------------------------------------------------------
+// On-device (端侧) AI model status & background prefetch
+//
+// These commands support the "device-side first" strategy: each model is
+// downloaded/loaded independently, the frontend can query which models are
+// ready, and a background prefetch warms small models first so basic AI
+// features become usable on Android without waiting for the large SAM models.
+// ---------------------------------------------------------------------------
+
+/// Per-model status entry returned by [`get_ai_model_status`].
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiModelStatusEntry {
+    pub id: AiModelId,
+    pub display_name: String,
+    /// Already loaded into memory (ready for inference).
+    pub loaded: bool,
+    /// File already present locally (downloaded or bundled); can be loaded
+    /// without a network fetch.
+    pub file_present: bool,
+}
+
+/// Return the readiness status of every on-device AI model. The frontend uses
+/// this to progressively enable AI features as their models become available,
+/// instead of blocking all AI until every model finishes downloading.
+#[tauri::command]
+pub async fn get_ai_model_status(
+    state: tauri::State<'_, AppState>,
+    app_handle: tauri::AppHandle,
+) -> Result<Vec<AiModelStatusEntry>, String> {
+    // Collect loaded-into-memory flags while holding the lock briefly.
+    let loaded_flags: Vec<bool> = {
+        let guard = state.ai_state.lock_resilient();
+        AiModelId::prefetch_order()
+            .iter()
+            .map(|&id| guard.as_ref().map(|s| s.is_model_loaded(id)).unwrap_or(false))
+            .collect()
+    };
+
+    let mut entries = Vec::new();
+    for (i, &id) in AiModelId::prefetch_order().iter().enumerate() {
+        entries.push(AiModelStatusEntry {
+            id,
+            display_name: id.display_name().to_string(),
+            loaded: loaded_flags[i],
+            file_present: is_model_file_present(&app_handle, id),
+        });
+    }
+    Ok(entries)
+}
+
+/// Spawn a background task that downloads AI models in priority order (small,
+/// cheap models first) so basic on-device features become usable ASAP. Emits
+/// `ai-model-prefetch-progress` per model and `ai-model-prefetch-complete`
+/// when done. Non-blocking — returns immediately.
+///
+/// On Android this is triggered on first launch so the user can keep editing
+/// while models download in the background.
+pub fn spawn_ai_model_prefetch(app_handle: tauri::AppHandle) {
+    let handle = app_handle.clone();
+    tokio::spawn(async move {
+        let order = AiModelId::prefetch_order();
+        let total = order.len();
+        for (i, &id) in order.iter().enumerate() {
+            let payload = serde_json::json!({
+                "modelId": id,
+                "displayName": id.display_name(),
+                "index": i,
+                "total": total,
+            });
+
+            if is_model_file_present(&handle, id) {
+                let _ = handle.emit(
+                    "ai-model-prefetch-progress",
+                    serde_json::json!({ ..payload, "status": "present" }),
+                );
+                continue;
+            }
+
+            let _ = handle.emit(
+                "ai-model-prefetch-progress",
+                serde_json::json!({ ..payload, "status": "downloading" }),
+            );
+
+            match prefetch_model_file(&handle, id).await {
+                Ok(_) => {
+                    let _ = handle.emit(
+                        "ai-model-prefetch-progress",
+                        serde_json::json!({ ..payload, "status": "ready" }),
+                    );
+                }
+                Err(e) => {
+                    log::warn!("Prefetch failed for {:?}: {}", id, e);
+                    let _ = handle.emit(
+                        "ai-model-prefetch-progress",
+                        serde_json::json!({ ..payload, "status": "error", "error": e.to_string() }),
+                    );
+                }
+            }
+        }
+        let _ = handle.emit("ai-model-prefetch-complete", true);
+    });
+}
+
+/// Tauri command wrapper around [`spawn_ai_model_prefetch`].
+#[tauri::command]
+pub async fn prefetch_ai_models(app_handle: tauri::AppHandle) -> Result<(), String> {
+    spawn_ai_model_prefetch(app_handle);
+    Ok(())
 }

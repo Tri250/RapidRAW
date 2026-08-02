@@ -10,8 +10,8 @@ use tokio::sync::{mpsc, oneshot};
 
 use crate::MutexResilient;
 use crate::ai_processing::{
-    self, get_or_init_ai_models, get_or_init_denoise_model, get_or_init_face_landmark_detector,
-    get_or_init_lama_model,
+    self, get_or_init_denoise_model, get_or_init_face_landmark_detector, get_or_init_lama_model,
+    get_or_init_onnx_model, AiModelId,
 };
 use crate::app_state::AppState;
 
@@ -338,7 +338,12 @@ async fn run_subject_mask(
     );
 
     let state = app_handle.state::<AppState>();
-    let models = get_or_init_ai_models(app_handle, &state.ai_state, &state.ai_init_lock).await?;
+    let sam_encoder =
+        get_or_init_onnx_model(app_handle, &state.ai_state, &state.ai_init_lock, AiModelId::SamEncoder)
+            .await?;
+    let sam_decoder =
+        get_or_init_onnx_model(app_handle, &state.ai_state, &state.ai_init_lock, AiModelId::SamDecoder)
+            .await?;
 
     emit_progress(
         app_handle,
@@ -347,7 +352,7 @@ async fn run_subject_mask(
         "Generating SAM embeddings…",
     );
 
-    let embeddings = ai_processing::generate_image_embeddings(image, &models.sam_encoder)?;
+    let embeddings = ai_processing::generate_image_embeddings(image, &*sam_encoder)?;
 
     emit_progress(
         app_handle,
@@ -357,7 +362,7 @@ async fn run_subject_mask(
     );
 
     let mask = ai_processing::run_sam_decoder(
-        &models.sam_decoder,
+        &*sam_decoder,
         &embeddings,
         (start_x, start_y),
         (end_x, end_y),
@@ -403,7 +408,9 @@ async fn run_depth_mask(
     );
 
     let state = app_handle.state::<AppState>();
-    let models = get_or_init_ai_models(app_handle, &state.ai_state, &state.ai_init_lock).await?;
+    let depth_model =
+        get_or_init_onnx_model(app_handle, &state.ai_state, &state.ai_init_lock, AiModelId::Depth)
+            .await?;
 
     emit_progress(
         app_handle,
@@ -412,7 +419,7 @@ async fn run_depth_mask(
         "Running Depth Anything model…",
     );
 
-    let depth_map = ai_processing::run_depth_anything_model(image, &models.depth_anything)?;
+    let depth_map = ai_processing::run_depth_anything_model(image, &*depth_model)?;
 
     emit_progress(
         app_handle,
@@ -447,7 +454,9 @@ async fn run_foreground_mask(
     );
 
     let state = app_handle.state::<AppState>();
-    let models = get_or_init_ai_models(app_handle, &state.ai_state, &state.ai_init_lock).await?;
+    let u2netp =
+        get_or_init_onnx_model(app_handle, &state.ai_state, &state.ai_init_lock, AiModelId::U2net)
+            .await?;
 
     emit_progress(
         app_handle,
@@ -456,7 +465,7 @@ async fn run_foreground_mask(
         "Running U²-Net foreground model…",
     );
 
-    let mask = ai_processing::run_u2netp_model(image, &models.u2netp)?;
+    let mask = ai_processing::run_u2netp_model(image, &*u2netp)?;
 
     emit_progress(
         app_handle,
@@ -486,7 +495,9 @@ async fn run_sky_mask(
     );
 
     let state = app_handle.state::<AppState>();
-    let models = get_or_init_ai_models(app_handle, &state.ai_state, &state.ai_init_lock).await?;
+    let sky_seg =
+        get_or_init_onnx_model(app_handle, &state.ai_state, &state.ai_init_lock, AiModelId::SkySeg)
+            .await?;
 
     emit_progress(
         app_handle,
@@ -495,7 +506,7 @@ async fn run_sky_mask(
         "Running sky segmentation model…",
     );
 
-    let mask = ai_processing::run_sky_seg_model(image, &models.sky_seg)?;
+    let mask = ai_processing::run_sky_seg_model(image, &*sky_seg)?;
 
     emit_progress(
         app_handle,

@@ -2865,6 +2865,16 @@ pub fn run() {
             file_management::start_metadata_workers(app_handle.clone());
             jxl_oxide::integration::register_image_decoding_hook();
 
+            // On Android, start a background prefetch of on-device AI models
+            // (small models first) so basic AI features become usable without
+            // blocking the editor while large models (SAM) download. The user
+            // can keep editing; the frontend enables each AI feature as its
+            // model becomes ready (see get_ai_model_status).
+            #[cfg(target_os = "android")]
+            {
+                ai_commands::spawn_ai_model_prefetch(app_handle.clone());
+            }
+
             let window_cfg = app.config().app.windows.first();
             let default_decorations = window_cfg.map(|c| c.decorations).unwrap_or(true);
             let decorations = settings.decorations.unwrap_or(default_decorations);
@@ -3109,6 +3119,8 @@ pub fn run() {
             ai_commands::test_ai_connector_connection,
             ai_commands::generate_ai_rating,
             ai_commands::generate_ai_ratings_batch,
+            ai_commands::get_ai_model_status,
+            ai_commands::prefetch_ai_models,
             inpainting::invoke_generative_replace_with_mask_def,
             inpainting::generate_manual_cleanup_patch,
             denoising::apply_denoising,

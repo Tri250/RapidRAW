@@ -182,14 +182,6 @@ fn format_oom_error(model_name: &str, error: &dyn std::fmt::Display) -> String {
     }
 }
 
-pub struct AiModels {
-    pub sam_encoder: Mutex<Session>,
-    pub sam_decoder: Mutex<Session>,
-    pub u2netp: Mutex<Session>,
-    pub sky_seg: Mutex<Session>,
-    pub depth_anything: Mutex<Session>,
-}
-
 pub struct ClipModels {
     pub model: Mutex<Session>,
     pub tokenizer: Tokenizer,
@@ -209,14 +201,89 @@ pub struct CachedDepthMap {
     pub original_size: (u32, u32),
 }
 
+/// Per-model AI state. Each ONNX model is stored independently so it can be
+/// downloaded and loaded lazily on first use without blocking the others.
+/// This fixes the previous behaviour where `get_or_init_ai_models` serially
+/// downloaded all 5 models (SAM encoder/decoder, U²-Net, sky seg, depth)
+/// before any single AI feature became usable — e.g. the small U²-Net
+/// foreground mask was blocked behind the large SAM encoder download.
 pub struct AiState {
-    pub models: Option<Arc<AiModels>>,
+    pub sam_encoder: Option<Arc<Mutex<Session>>>,
+    pub sam_decoder: Option<Arc<Mutex<Session>>>,
+    pub u2netp: Option<Arc<Mutex<Session>>>,
+    pub sky_seg: Option<Arc<Mutex<Session>>>,
+    pub depth_anything: Option<Arc<Mutex<Session>>>,
     pub denoise_model: Option<Arc<Mutex<Session>>>,
     pub clip_models: Option<Arc<ClipModels>>,
     pub lama_model: Option<Arc<Mutex<Session>>>,
     pub embeddings: Option<ImageEmbeddings>,
     pub depth_map: Option<CachedDepthMap>,
     pub face_landmark_detector: Option<Arc<Mutex<crate::face_landmark::FaceLandmarkDetector>>>,
+}
+
+impl Default for AiState {
+    fn default() -> Self {
+        Self {
+            sam_encoder: None,
+            sam_decoder: None,
+            u2netp: None,
+            sky_seg: None,
+            depth_anything: None,
+            denoise_model: None,
+            clip_models: None,
+            lama_model: None,
+            embeddings: None,
+            depth_map: None,
+            face_landmark_detector: None,
+        }
+    }
+}
+
+/// Logical model identifiers used for status reporting and prefetch ordering.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum AiModelId {
+    SamEncoder,
+    SamDecoder,
+    U2net,
+    SkySeg,
+    Depth,
+    Denoise,
+    Lama,
+    Clip,
+    FaceLandmark,
+}
+
+impl AiModelId {
+    /// All model ids in prefetch priority order (small/cheap models first so
+    /// basic on-device features become usable ASAP on Android).
+    pub fn prefetch_order() -> &'static [AiModelId] {
+        &[
+            AiModelId::U2net,
+            AiModelId::SkySeg,
+            AiModelId::Denoise,
+            AiModelId::Depth,
+            AiModelId::Lama,
+            AiModelId::SamEncoder,
+            AiModelId::SamDecoder,
+            AiModelId::Clip,
+            AiModelId::FaceLandmark,
+        ]
+    }
+
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            AiModelId::SamEncoder => "SAM Encoder",
+            AiModelId::SamDecoder => "SAM Decoder",
+            AiModelId::U2net => "Foreground Model",
+            AiModelId::SkySeg => "Sky Model",
+            AiModelId::Depth => "Depth Model",
+            AiModelId::Denoise => "Denoise Model",
+            AiModelId::Lama => "Inpainting Model",
+            AiModelId::Clip => "CLIP Model",
+            AiModelId::FaceLandmark => "Face Landmark Model",
+        }
+    }
 }
 
 fn edt_1d(f: &mut [f32], v: &mut [usize], z: &mut [f32], d: &mut [f32]) {
@@ -426,145 +493,338 @@ async fn download_and_verify_model(
     Ok(())
 }
 
-pub async fn get_or_init_ai_models(
+/// Manifest entry for a single ONNX model.
+struct ModelManifest {
+    id: AiModelId,
+    filename: &'static str,
+    url: &'static str,
+    sha256: &'static str,
+    display_name: &'static str,
+    required_mem_mb: u64,
+}
+
+fn manifest_for(id: AiModelId) -> Option<ModelManifest> {
+    Some(match id {
+        AiModelId::SamEncoder => ModelManifest {
+            id,
+            filename: ENCODER_FILENAME,
+            url: ENCODER_URL,
+            sha256: ENCODER_SHA256,
+            display_name: "SAM Encoder",
+            required_mem_mb: 500,
+        },
+        AiModelId::SamDecoder => ModelManifest {
+            id,
+            filename: DECODER_FILENAME,
+            url: DECODER_URL,
+            sha256: DECODER_SHA256,
+            display_name: "SAM Decoder",
+            required_mem_mb: 200,
+        },
+        AiModelId::U2net => ModelManifest {
+            id,
+            filename: U2NETP_FILENAME,
+            url: U2NETP_URL,
+            sha256: U2NETP_SHA256,
+            display_name: "Foreground Model",
+            required_mem_mb: 200,
+        },
+        AiModelId::SkySeg => ModelManifest {
+            id,
+            filename: SKYSEG_FILENAME,
+            url: SKYSEG_URL,
+            sha256: SKYSEG_SHA256,
+            display_name: "Sky Model",
+            required_mem_mb: 200,
+        },
+        AiModelId::Depth => ModelManifest {
+            id,
+            filename: DEPTH_FILENAME,
+            url: DEPTH_URL,
+            sha256: DEPTH_SHA256,
+            display_name: "Depth Model",
+            required_mem_mb: 300,
+        },
+        AiModelId::Denoise => ModelManifest {
+            id,
+            filename: DENOISE_FILENAME,
+            url: DENOISE_URL,
+            sha256: DENOISE_SHA256,
+            display_name: "Denoise Model",
+            required_mem_mb: 200,
+        },
+        AiModelId::Lama => ModelManifest {
+            id,
+            filename: LAMA_FILENAME,
+            url: LAMA_URL,
+            sha256: LAMA_SHA256,
+            display_name: "Inpainting Model",
+            required_mem_mb: 200,
+        },
+        // CLIP and FaceLandmark are not plain single-file ONNX models handled
+        // by the generic loader; they have dedicated init functions.
+        AiModelId::Clip | AiModelId::FaceLandmark => return None,
+    })
+}
+
+impl AiState {
+    fn get_onnx_model(&self, id: AiModelId) -> Option<&Arc<Mutex<Session>>> {
+        match id {
+            AiModelId::SamEncoder => self.sam_encoder.as_ref(),
+            AiModelId::SamDecoder => self.sam_decoder.as_ref(),
+            AiModelId::U2net => self.u2netp.as_ref(),
+            AiModelId::SkySeg => self.sky_seg.as_ref(),
+            AiModelId::Depth => self.depth_anything.as_ref(),
+            AiModelId::Denoise => self.denoise_model.as_ref(),
+            AiModelId::Lama => self.lama_model.as_ref(),
+            AiModelId::Clip | AiModelId::FaceLandmark => None,
+        }
+    }
+
+    fn set_onnx_model(&mut self, id: AiModelId, val: Arc<Mutex<Session>>) {
+        match id {
+            AiModelId::SamEncoder => self.sam_encoder = Some(val),
+            AiModelId::SamDecoder => self.sam_decoder = Some(val),
+            AiModelId::U2net => self.u2netp = Some(val),
+            AiModelId::SkySeg => self.sky_seg = Some(val),
+            AiModelId::Depth => self.depth_anything = Some(val),
+            AiModelId::Denoise => self.denoise_model = Some(val),
+            AiModelId::Lama => self.lama_model = Some(val),
+            AiModelId::Clip | AiModelId::FaceLandmark => {}
+        }
+    }
+
+    /// True if a model is already loaded into memory (ready for inference).
+    pub fn is_model_loaded(&self, id: AiModelId) -> bool {
+        match id {
+            AiModelId::SamEncoder => self.sam_encoder.is_some(),
+            AiModelId::SamDecoder => self.sam_decoder.is_some(),
+            AiModelId::U2net => self.u2netp.is_some(),
+            AiModelId::SkySeg => self.sky_seg.is_some(),
+            AiModelId::Depth => self.depth_anything.is_some(),
+            AiModelId::Denoise => self.denoise_model.is_some(),
+            AiModelId::Lama => self.lama_model.is_some(),
+            AiModelId::Clip => self.clip_models.is_some(),
+            AiModelId::FaceLandmark => self.face_landmark_detector.is_some(),
+        }
+    }
+}
+
+/// Resolve a model file path: prefer an already-downloaded & verified copy in
+/// the app data dir, then a bundled resource (small models shipped in the app
+/// bundle/APK), falling back to a network download.
+async fn ensure_model_file(
+    app_handle: &tauri::AppHandle,
+    models_dir: &Path,
+    filename: &str,
+    url: &str,
+    expected_hash: &str,
+    display_name: &str,
+) -> Result<PathBuf> {
+    let dest = models_dir.join(filename);
+    if verify_sha256(&dest, expected_hash)? {
+        return Ok(dest);
+    }
+
+    // Bundled resource (small models shipped in the app bundle / APK so basic
+    // on-device AI works on first launch without a network download).
+    if let Some(bundled) = bundled_model_path(app_handle, filename) {
+        if verify_sha256(&bundled, expected_hash)? {
+            // Copy into the writable models dir so the ONNX session always
+            // reads from a stable, writable path (resource_dir may be read-only).
+            let _ = fs::copy(&bundled, &dest);
+            if verify_sha256(&dest, expected_hash)? {
+                return Ok(dest);
+            }
+        }
+    }
+
+    download_and_verify_model(app_handle, models_dir, filename, url, expected_hash, display_name)
+        .await?;
+    Ok(dest)
+}
+
+fn bundled_model_path(app_handle: &tauri::AppHandle, filename: &str) -> Option<PathBuf> {
+    let resource_dir = app_handle.path().resource_dir().ok()?;
+    let candidate = resource_dir.join("models").join(filename);
+    if candidate.exists() {
+        Some(candidate)
+    } else {
+        None
+    }
+}
+
+/// Lazily download (if needed) and load a single ONNX model into its own slot
+/// in [`AiState`]. Each AI feature initialises only the model(s) it requires,
+/// so a small model (e.g. U²-Net) becomes usable without waiting for the large
+/// SAM encoder to download — the root cause of "models downloading, can't be
+/// fully used" on Android.
+pub async fn get_or_init_onnx_model(
     app_handle: &tauri::AppHandle,
     ai_state_mutex: &Mutex<Option<AiState>>,
     ai_init_lock: &TokioMutex<()>,
-) -> Result<Arc<AiModels>> {
-    if let Some(models) = ai_state_mutex
-        .lock_resilient()
-        .as_ref()
-        .and_then(|state| state.models.clone())
+    id: AiModelId,
+) -> Result<Arc<Mutex<Session>>> {
+    // Fast path: already loaded.
     {
-        return Ok(models);
+        let lock = ai_state_mutex.lock_resilient();
+        if let Some(arc) = lock.as_ref().and_then(|s| s.get_onnx_model(id).cloned()) {
+            return Ok(arc);
+        }
     }
 
     let _guard = ai_init_lock.lock().await;
 
-    if let Some(models) = ai_state_mutex
-        .lock_resilient()
-        .as_ref()
-        .and_then(|state| state.models.clone())
+    // Re-check after acquiring the init lock.
     {
-        return Ok(models);
+        let lock = ai_state_mutex.lock_resilient();
+        if let Some(arc) = lock.as_ref().and_then(|s| s.get_onnx_model(id).cloned()) {
+            return Ok(arc);
+        }
     }
 
+    let m = manifest_for(id)
+        .ok_or_else(|| anyhow!("Model {:?} is not a single-file ONNX model", id))?;
     let models_dir = get_models_dir(app_handle)?;
 
-    download_and_verify_model(
-        app_handle,
-        &models_dir,
-        ENCODER_FILENAME,
-        ENCODER_URL,
-        ENCODER_SHA256,
-        "SAM Encoder",
-    )
-    .await?;
-    download_and_verify_model(
-        app_handle,
-        &models_dir,
-        DECODER_FILENAME,
-        DECODER_URL,
-        DECODER_SHA256,
-        "SAM Decoder",
-    )
-    .await?;
-    download_and_verify_model(
-        app_handle,
-        &models_dir,
-        U2NETP_FILENAME,
-        U2NETP_URL,
-        U2NETP_SHA256,
-        "Foreground Model",
-    )
-    .await?;
-    download_and_verify_model(
-        app_handle,
-        &models_dir,
-        SKYSEG_FILENAME,
-        SKYSEG_URL,
-        SKYSEG_SHA256,
-        "Sky Model",
-    )
-    .await?;
-    download_and_verify_model(
-        app_handle,
-        &models_dir,
-        DEPTH_FILENAME,
-        DEPTH_URL,
-        DEPTH_SHA256,
-        "Depth Model",
-    )
-    .await?;
+    let model_path =
+        ensure_model_file(app_handle, &models_dir, m.filename, m.url, m.sha256, m.display_name)
+            .await?;
 
     let _ = ort::init().with_name("AI").commit();
+    check_available_memory(m.required_mem_mb)?;
 
-    // Memory threshold check: ensure sufficient memory before loading AI models on Android
-    check_available_memory(500)?; // Require at least 500MB available
-
-    let encoder_path = models_dir.join(ENCODER_FILENAME);
-    let decoder_path = models_dir.join(DECODER_FILENAME);
-    let u2netp_path = models_dir.join(U2NETP_FILENAME);
-    let sky_seg_path = models_dir.join(SKYSEG_FILENAME);
-    let depth_path = models_dir.join(DEPTH_FILENAME);
-
-    let sam_encoder = Session::builder()
-        .map_err(|e| anyhow::Error::msg(format_oom_error("SAM Encoder", &e)))?
+    let session = Session::builder()
+        .map_err(|e| anyhow::Error::msg(format_oom_error(m.display_name, &e)))?
         .with_execution_providers(get_execution_providers())
-        .map_err(|e| anyhow::Error::msg(format_oom_error("SAM Encoder", &e)))?
-        .commit_from_file(encoder_path)
-        .map_err(|e| anyhow::Error::msg(format_oom_error("SAM Encoder", &e)))?;
-    let sam_decoder = Session::builder()
-        .map_err(|e| anyhow::Error::msg(format_oom_error("SAM Decoder", &e)))?
-        .with_execution_providers(get_execution_providers())
-        .map_err(|e| anyhow::Error::msg(format_oom_error("SAM Decoder", &e)))?
-        .commit_from_file(decoder_path)
-        .map_err(|e| anyhow::Error::msg(format_oom_error("SAM Decoder", &e)))?;
-    let u2netp = Session::builder()
-        .map_err(|e| anyhow::Error::msg(format_oom_error("Foreground Model", &e)))?
-        .with_execution_providers(get_execution_providers())
-        .map_err(|e| anyhow::Error::msg(format_oom_error("Foreground Model", &e)))?
-        .commit_from_file(u2netp_path)
-        .map_err(|e| anyhow::Error::msg(format_oom_error("Foreground Model", &e)))?;
-    let sky_seg = Session::builder()
-        .map_err(|e| anyhow::Error::msg(format_oom_error("Sky Model", &e)))?
-        .with_execution_providers(get_execution_providers())
-        .map_err(|e| anyhow::Error::msg(format_oom_error("Sky Model", &e)))?
-        .commit_from_file(sky_seg_path)
-        .map_err(|e| anyhow::Error::msg(format_oom_error("Sky Model", &e)))?;
-    let depth_anything = Session::builder()
-        .map_err(|e| anyhow::Error::msg(format_oom_error("Depth Model", &e)))?
-        .with_execution_providers(get_execution_providers())
-        .map_err(|e| anyhow::Error::msg(format_oom_error("Depth Model", &e)))?
-        .commit_from_file(depth_path)
-        .map_err(|e| anyhow::Error::msg(format_oom_error("Depth Model", &e)))?;
+        .map_err(|e| anyhow::Error::msg(format_oom_error(m.display_name, &e)))?
+        .commit_from_file(&model_path)
+        .map_err(|e| anyhow::Error::msg(format_oom_error(m.display_name, &e)))?;
 
     crate::register_exit_handler();
 
-    let models = Arc::new(AiModels {
-        sam_encoder: Mutex::new(sam_encoder),
-        sam_decoder: Mutex::new(sam_decoder),
-        u2netp: Mutex::new(u2netp),
-        sky_seg: Mutex::new(sky_seg),
-        depth_anything: Mutex::new(depth_anything),
-    });
-
-    let mut ai_state_lock = ai_state_mutex.lock_resilient();
-    if let Some(state) = ai_state_lock.as_mut() {
-        state.models = Some(models.clone());
+    let arc = Arc::new(Mutex::new(session));
+    let mut lock = ai_state_mutex.lock_resilient();
+    if let Some(state) = lock.as_mut() {
+        state.set_onnx_model(id, arc.clone());
     } else {
-        *ai_state_lock = Some(AiState {
-            models: Some(models.clone()),
-            denoise_model: None,
-            clip_models: None,
-            lama_model: None,
-            embeddings: None,
-            depth_map: None,
-            face_landmark_detector: None,
-        });
+        let mut state = AiState::default();
+        state.set_onnx_model(id, arc.clone());
+        *lock = Some(state);
     }
 
-    Ok(models)
+    Ok(arc)
+}
+
+/// Check whether a model's file is already present locally (downloaded in the
+/// app data dir or bundled as a resource), without loading it. Used by the
+/// status query command and the prefetch routine.
+pub fn is_model_file_present(app_handle: &tauri::AppHandle, id: AiModelId) -> bool {
+    match id {
+        AiModelId::Clip => {
+            file_present(app_handle, CLIP_MODEL_FILENAME, CLIP_MODEL_SHA256)
+                && file_present(app_handle, CLIP_TOKENIZER_FILENAME, "")
+        }
+        AiModelId::FaceLandmark => {
+            file_present(app_handle, SCRFD_FILENAME, "")
+                && file_present(app_handle, FACE_LANDMARK_106_FILENAME, "")
+        }
+        _ => {
+            if let Some(m) = manifest_for(id) {
+                file_present(app_handle, m.filename, m.sha256)
+            } else {
+                false
+            }
+        }
+    }
+}
+
+fn file_present(app_handle: &tauri::AppHandle, filename: &str, expected_hash: &str) -> bool {
+    if let Ok(models_dir) = get_models_dir(app_handle) {
+        let dest = models_dir.join(filename);
+        if dest.exists() {
+            if expected_hash.is_empty() {
+                return true;
+            }
+            if let Ok(true) = verify_sha256(&dest, expected_hash) {
+                return true;
+            }
+        }
+    }
+    if let Some(bundled) = bundled_model_path(app_handle, filename) {
+        if expected_hash.is_empty() {
+            return bundled.exists();
+        }
+        if let Ok(true) = verify_sha256(&bundled, expected_hash) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Download (without loading) a single model file if missing. Used by the
+/// background prefetch routine so models are fetched ahead of use.
+pub async fn prefetch_model_file(
+    app_handle: &tauri::AppHandle,
+    id: AiModelId,
+) -> Result<()> {
+    let models_dir = get_models_dir(app_handle)?;
+
+    match id {
+        AiModelId::Clip => {
+            ensure_model_file(
+                app_handle,
+                &models_dir,
+                CLIP_MODEL_FILENAME,
+                CLIP_MODEL_URL,
+                CLIP_MODEL_SHA256,
+                "CLIP Model",
+            )
+            .await?;
+            // Tokenizer has no published sha256; download only if missing.
+            let tokenizer_path = models_dir.join(CLIP_TOKENIZER_FILENAME);
+            if !tokenizer_path.exists() {
+                let _ = app_handle.emit("ai-model-download-start", "CLIP Tokenizer");
+                let r = download_model(CLIP_TOKENIZER_URL, &tokenizer_path).await;
+                let _ = app_handle.emit("ai-model-download-finish", "CLIP Tokenizer");
+                r?;
+            }
+        }
+        AiModelId::FaceLandmark => {
+            download_model_if_missing(
+                app_handle,
+                &models_dir,
+                SCRFD_FILENAME,
+                SCRFD_URL,
+                "Face Detection Model",
+            )
+            .await
+            .map_err(|e| anyhow!(e))?;
+            download_model_if_missing(
+                app_handle,
+                &models_dir,
+                FACE_LANDMARK_106_FILENAME,
+                FACE_LANDMARK_106_URL,
+                "Face Landmark Model",
+            )
+            .await
+            .map_err(|e| anyhow!(e))?;
+        }
+        _ => {
+            if let Some(m) = manifest_for(id) {
+                ensure_model_file(
+                    app_handle,
+                    &models_dir,
+                    m.filename,
+                    m.url,
+                    m.sha256,
+                    m.display_name,
+                )
+                .await?;
+            }
+        }
+    }
+    Ok(())
 }
 
 pub async fn get_or_init_denoise_model(
@@ -621,13 +881,8 @@ pub async fn get_or_init_denoise_model(
         state.denoise_model = Some(denoise_model.clone());
     } else {
         *ai_state_lock = Some(AiState {
-            models: None,
             denoise_model: Some(denoise_model.clone()),
-            clip_models: None,
-            lama_model: None,
-            embeddings: None,
-            depth_map: None,
-            face_landmark_detector: None,
+            ..AiState::default()
         });
     }
 
@@ -702,13 +957,8 @@ pub async fn get_or_init_clip_models(
         state.clip_models = Some(clip_models.clone());
     } else {
         *ai_state_lock = Some(AiState {
-            models: None,
-            denoise_model: None,
             clip_models: Some(clip_models.clone()),
-            lama_model: None,
-            embeddings: None,
-            depth_map: None,
-            face_landmark_detector: None,
+            ..AiState::default()
         });
     }
 
@@ -770,13 +1020,8 @@ pub async fn get_or_init_lama_model(
         state.lama_model = Some(lama_model.clone());
     } else {
         *ai_state_lock = Some(AiState {
-            models: None,
-            denoise_model: None,
-            clip_models: None,
             lama_model: Some(lama_model.clone()),
-            embeddings: None,
-            depth_map: None,
-            face_landmark_detector: None,
+            ..AiState::default()
         });
     }
 
@@ -863,13 +1108,8 @@ pub async fn get_or_init_face_landmark_detector(
         state.face_landmark_detector = Some(detector.clone());
     } else {
         *ai_state_lock = Some(AiState {
-            models: None,
-            denoise_model: None,
-            clip_models: None,
-            lama_model: None,
-            embeddings: None,
-            depth_map: None,
             face_landmark_detector: Some(detector.clone()),
+            ..AiState::default()
         });
     }
 

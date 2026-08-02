@@ -135,6 +135,8 @@ export enum Invokes {
   PreviewGeometryTransform = 'preview_geometry_transform',
   SetAiModelMirror = 'set_ai_model_mirror',
   GetAiModelMirror = 'get_ai_model_mirror',
+  GetAiModelStatus = 'get_ai_model_status',
+  PrefetchAiModels = 'prefetch_ai_models',
   // Android
   ResolveAndroidContentUriName = 'resolve_android_content_uri_name',
   SaveToAndroidGallery = 'save_to_android_gallery',

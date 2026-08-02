@@ -37,7 +37,10 @@ src-tauri/libs/
 
 # AI models are downloaded & SHA256-verified by build.rs at compile time.
 # Do not commit (~1.4GB); CI/local builds fetch them automatically.
-src-tauri/models/
+# Exception: the small SAM decoder (8.4M) is bundled as a Tauri resource so
+# basic subject masking works on first launch without a network download.
+src-tauri/models/*
+!src-tauri/models/sam_vit_b_01ec64_decoder.onnx
 
 **/keystore.properties
 **/keystore.jks

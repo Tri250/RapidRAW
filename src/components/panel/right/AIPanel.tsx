@@ -68,6 +68,7 @@ import { useProcessStore } from '../../../store/useProcessStore';
 import { useUIStore } from '../../../store/useUIStore';
 import { useEditorActions } from '../../../hooks/useEditorActions';
 import { useAiMasking } from '../../../hooks/useAiMasking';
+import { useAiModels, type AiFeature } from '../../../hooks/useAiModels';
 
 interface DragData {
   type: 'Container' | 'SubMask' | 'Creation';
@@ -286,6 +287,83 @@ const ConnectionStatus = ({
           </motion.div>
         </div>
       )}
+    </div>
+  );
+};
+
+/**
+ * On-device (端侧) AI model status indicator.
+ *
+ * Shows download progress and per-feature readiness so users understand why an
+ * AI feature may not be available yet (models still downloading in the
+ * background). Features enable progressively as their models arrive — see
+ * `useAiModels` and `prefetch_ai_models` in the Rust backend.
+ */
+const DeviceModelStatus = () => {
+  const { t } = useTranslation();
+  const { readyCount, totalModels, isPrefetching, prefetchProgress, featureStatus } = useAiModels();
+
+  if (!isPrefetching && readyCount >= totalModels) return null;
+
+  const percent = totalModels > 0 ? Math.round((readyCount / totalModels) * 100) : 0;
+  const currentName = prefetchProgress?.displayName;
+
+  const featureChips: { feature: AiFeature; label: string }[] = [
+    { feature: 'foregroundMask', label: t('editor.ai.modelStatus.fg', { defaultValue: 'FG' }) },
+    { feature: 'skyMask', label: t('editor.ai.modelStatus.sky', { defaultValue: 'Sky' }) },
+    { feature: 'subjectMask', label: t('editor.ai.modelStatus.subject', { defaultValue: 'Subject' }) },
+    { feature: 'depthMask', label: t('editor.ai.modelStatus.depth', { defaultValue: 'Depth' }) },
+  ];
+
+  return (
+    <div className="bg-surface rounded-lg px-4 py-2.5">
+      <div className="flex items-center gap-2 mb-1.5">
+        {isPrefetching ? (
+          <Loader2 size={12} className="animate-spin text-accent" />
+        ) : (
+          <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+        )}
+        <Text variant={TextVariants.small} weight={TextWeights.medium}>
+          {isPrefetching
+            ? t('editor.ai.modelStatus.downloading', {
+                defaultValue: 'Loading on-device models ({{done}}/{{total}})',
+                done: readyCount,
+                total: totalModels,
+              })
+            : t('editor.ai.modelStatus.partial', {
+                defaultValue: 'On-device models {{done}}/{{total}} ready',
+                done: readyCount,
+                total: totalModels,
+              })}
+        </Text>
+        {currentName && isPrefetching && (
+          <Text variant={TextVariants.small} color={TextColors.secondary} className="truncate">
+            · {currentName}
+          </Text>
+        )}
+      </div>
+      <div className="w-full bg-bg-tertiary rounded-full h-1 border border-border-color mb-2">
+        <div
+          className="bg-accent h-1 rounded-full transition-all duration-500"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {featureChips.map((chip) => {
+          const status = featureStatus(chip.feature);
+          const color =
+            status === 'ready'
+              ? 'bg-green-500/20 text-green-500'
+              : status === 'downloading'
+                ? 'bg-accent/20 text-accent'
+                : 'bg-bg-tertiary text-text-secondary';
+          return (
+            <span key={chip.feature} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${color}`}>
+              {chip.label}
+            </span>
+          );
+        })}
+      </div>
     </div>
   );
 };
@@ -1103,6 +1181,7 @@ export default function AIPanel() {
                       isPro={!!isPro}
                       cloudUsage={cloudUsage}
                     />
+                    {aiProvider === 'cpu' && <DeviceModelStatus />}
 
                     <Text variant={TextVariants.heading} className="mb-2 mt-6">
                       {t('editor.ai.manualCleanupTitle')}
