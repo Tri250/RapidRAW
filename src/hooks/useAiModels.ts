@@ -12,15 +12,7 @@ import { Invokes } from '../components/ui/AppProperties';
  * `ai_processing.rs`.
  */
 export type AiModelId =
-  | 'samEncoder'
-  | 'samDecoder'
-  | 'u2net'
-  | 'skySeg'
-  | 'depth'
-  | 'denoise'
-  | 'lama'
-  | 'clip'
-  | 'faceLandmark';
+  'samEncoder' | 'samDecoder' | 'u2net' | 'skySeg' | 'depth' | 'denoise' | 'lama' | 'clip' | 'faceLandmark';
 
 export interface AiModelStatusEntry {
   id: AiModelId;
@@ -32,14 +24,7 @@ export interface AiModelStatusEntry {
 }
 
 export type AiFeature =
-  | 'subjectMask'
-  | 'foregroundMask'
-  | 'skyMask'
-  | 'depthMask'
-  | 'denoise'
-  | 'inpaint'
-  | 'rating'
-  | 'faceLandmark';
+  'subjectMask' | 'foregroundMask' | 'skyMask' | 'depthMask' | 'denoise' | 'inpaint' | 'rating' | 'faceLandmark';
 
 /** Maps each AI feature to the on-device models it requires. */
 const FEATURE_MODELS: Record<AiFeature, AiModelId[]> = {
@@ -157,10 +142,7 @@ export function useAiModels(): UseAiModelsResult {
     };
   }, [refresh]);
 
-  const readyCount = useMemo(
-    () => Object.values(models).filter((m) => m?.filePresent).length,
-    [models],
-  );
+  const readyCount = useMemo(() => Object.values(models).filter((m) => m?.filePresent).length, [models]);
 
   const isFeatureReady = useCallback(
     (feature: AiFeature): boolean => {

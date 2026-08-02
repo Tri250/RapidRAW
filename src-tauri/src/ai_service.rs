@@ -10,8 +10,8 @@ use tokio::sync::{mpsc, oneshot};
 
 use crate::MutexResilient;
 use crate::ai_processing::{
-    self, get_or_init_denoise_model, get_or_init_face_landmark_detector, get_or_init_lama_model,
-    get_or_init_onnx_model, AiModelId,
+    self, AiModelId, get_or_init_denoise_model, get_or_init_face_landmark_detector,
+    get_or_init_lama_model, get_or_init_onnx_model,
 };
 use crate::app_state::AppState;
 
@@ -338,12 +338,20 @@ async fn run_subject_mask(
     );
 
     let state = app_handle.state::<AppState>();
-    let sam_encoder =
-        get_or_init_onnx_model(app_handle, &state.ai_state, &state.ai_init_lock, AiModelId::SamEncoder)
-            .await?;
-    let sam_decoder =
-        get_or_init_onnx_model(app_handle, &state.ai_state, &state.ai_init_lock, AiModelId::SamDecoder)
-            .await?;
+    let sam_encoder = get_or_init_onnx_model(
+        app_handle,
+        &state.ai_state,
+        &state.ai_init_lock,
+        AiModelId::SamEncoder,
+    )
+    .await?;
+    let sam_decoder = get_or_init_onnx_model(
+        app_handle,
+        &state.ai_state,
+        &state.ai_init_lock,
+        AiModelId::SamDecoder,
+    )
+    .await?;
 
     emit_progress(
         app_handle,
@@ -408,9 +416,13 @@ async fn run_depth_mask(
     );
 
     let state = app_handle.state::<AppState>();
-    let depth_model =
-        get_or_init_onnx_model(app_handle, &state.ai_state, &state.ai_init_lock, AiModelId::Depth)
-            .await?;
+    let depth_model = get_or_init_onnx_model(
+        app_handle,
+        &state.ai_state,
+        &state.ai_init_lock,
+        AiModelId::Depth,
+    )
+    .await?;
 
     emit_progress(
         app_handle,
@@ -454,9 +466,13 @@ async fn run_foreground_mask(
     );
 
     let state = app_handle.state::<AppState>();
-    let u2netp =
-        get_or_init_onnx_model(app_handle, &state.ai_state, &state.ai_init_lock, AiModelId::U2net)
-            .await?;
+    let u2netp = get_or_init_onnx_model(
+        app_handle,
+        &state.ai_state,
+        &state.ai_init_lock,
+        AiModelId::U2net,
+    )
+    .await?;
 
     emit_progress(
         app_handle,
@@ -495,9 +511,13 @@ async fn run_sky_mask(
     );
 
     let state = app_handle.state::<AppState>();
-    let sky_seg =
-        get_or_init_onnx_model(app_handle, &state.ai_state, &state.ai_init_lock, AiModelId::SkySeg)
-            .await?;
+    let sky_seg = get_or_init_onnx_model(
+        app_handle,
+        &state.ai_state,
+        &state.ai_init_lock,
+        AiModelId::SkySeg,
+    )
+    .await?;
 
     emit_progress(
         app_handle,

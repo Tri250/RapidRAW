@@ -564,7 +564,14 @@ pub fn load_settings(app_handle: AppHandle) -> Result<AppSettings, String> {
     // Android: if no mirror URL is configured, apply the default domestic
     // mirror automatically so users don't have to manually set it up.
     #[cfg(target_os = "android")]
-    if settings.ai_model_mirror_url.is_none() || settings.ai_model_mirror_url.as_ref().unwrap().trim().is_empty() {
+    if settings.ai_model_mirror_url.is_none()
+        || settings
+            .ai_model_mirror_url
+            .as_ref()
+            .unwrap()
+            .trim()
+            .is_empty()
+    {
         settings.ai_model_mirror_url = Some("https://hf-mirror.com".to_string());
         settings_modified = true;
     }

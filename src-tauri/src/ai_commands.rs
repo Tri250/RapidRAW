@@ -166,9 +166,8 @@ pub async fn generate_ai_depth_mask(
                 cached.clone()
             } else {
                 let warped_image = get_cached_full_warped_image(&state, &js_adjustments)?;
-                let depth_img =
-                    run_depth_anything_model(warped_image.as_ref(), &*depth_model)
-                        .map_err(|e| e.to_string())?;
+                let depth_img = run_depth_anything_model(warped_image.as_ref(), &*depth_model)
+                    .map_err(|e| e.to_string())?;
                 let new_cache = CachedDepthMap {
                     path_hash: path_hash.clone(),
                     depth_image: depth_img,
@@ -1190,7 +1189,12 @@ pub async fn get_ai_model_status(
         let guard = state.ai_state.lock_resilient();
         AiModelId::prefetch_order()
             .iter()
-            .map(|&id| guard.as_ref().map(|s| s.is_model_loaded(id)).unwrap_or(false))
+            .map(|&id| {
+                guard
+                    .as_ref()
+                    .map(|s| s.is_model_loaded(id))
+                    .unwrap_or(false)
+            })
             .collect()
     };
 
@@ -1248,7 +1252,10 @@ pub fn spawn_ai_model_prefetch(app_handle: tauri::AppHandle) {
             let make_payload = |status: &str, extra: Option<(&str, String)>| {
                 let mut map = serde_json::Map::new();
                 map.insert("modelId".to_string(), serde_json::json!(id));
-                map.insert("displayName".to_string(), serde_json::json!(id.display_name()));
+                map.insert(
+                    "displayName".to_string(),
+                    serde_json::json!(id.display_name()),
+                );
                 map.insert("index".to_string(), serde_json::json!(i));
                 map.insert("total".to_string(), serde_json::json!(total));
                 map.insert("status".to_string(), serde_json::json!(status));
@@ -1259,10 +1266,7 @@ pub fn spawn_ai_model_prefetch(app_handle: tauri::AppHandle) {
             };
 
             if is_model_file_present(&handle, id) {
-                let _ = handle.emit(
-                    "ai-model-prefetch-progress",
-                    make_payload("present", None),
-                );
+                let _ = handle.emit("ai-model-prefetch-progress", make_payload("present", None));
                 continue;
             }
 
@@ -1273,10 +1277,7 @@ pub fn spawn_ai_model_prefetch(app_handle: tauri::AppHandle) {
 
             match prefetch_model_file(&handle, id).await {
                 Ok(_) => {
-                    let _ = handle.emit(
-                        "ai-model-prefetch-progress",
-                        make_payload("ready", None),
-                    );
+                    let _ = handle.emit("ai-model-prefetch-progress", make_payload("ready", None));
                 }
                 Err(e) => {
                     log::warn!("Prefetch failed for {:?}: {}", id, e);

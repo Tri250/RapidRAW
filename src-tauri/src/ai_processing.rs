@@ -424,9 +424,7 @@ fn build_download_candidates(original_url: &str) -> Vec<String> {
 
     // 2. Chinese domestic mirror (hf-mirror.com).
     if original_url.contains("huggingface.co") {
-        candidates.push(
-            original_url.replace("https://huggingface.co/", "https://hf-mirror.com/"),
-        );
+        candidates.push(original_url.replace("https://huggingface.co/", "https://hf-mirror.com/"));
     }
 
     // 3. Original HuggingFace URL (last resort).
@@ -485,10 +483,7 @@ async fn download_model_with_retries(url: &str, dest: &Path) -> Result<()> {
                                     attempt,
                                     e
                                 );
-                                last_error = Some(format!(
-                                    "Failed to read response bytes: {}",
-                                    e
-                                ));
+                                last_error = Some(format!("Failed to read response bytes: {}", e));
                             }
                         }
                     } else {
@@ -498,10 +493,7 @@ async fn download_model_with_retries(url: &str, dest: &Path) -> Result<()> {
                             response.status(),
                             attempt
                         );
-                        last_error = Some(format!(
-                            "HTTP {}",
-                            response.status()
-                        ));
+                        last_error = Some(format!("HTTP {}", response.status()));
                     }
                 }
                 Err(e) => {
@@ -773,8 +765,15 @@ async fn ensure_model_file(
         }
     }
 
-    download_and_verify_model(app_handle, models_dir, filename, url, expected_hash, display_name)
-        .await?;
+    download_and_verify_model(
+        app_handle,
+        models_dir,
+        filename,
+        url,
+        expected_hash,
+        display_name,
+    )
+    .await?;
     Ok(dest)
 }
 
@@ -821,9 +820,15 @@ pub async fn get_or_init_onnx_model(
         .ok_or_else(|| anyhow!("Model {:?} is not a single-file ONNX model", id))?;
     let models_dir = get_models_dir(app_handle)?;
 
-    let model_path =
-        ensure_model_file(app_handle, &models_dir, m.filename, m.url, m.sha256, m.display_name)
-            .await?;
+    let model_path = ensure_model_file(
+        app_handle,
+        &models_dir,
+        m.filename,
+        m.url,
+        m.sha256,
+        m.display_name,
+    )
+    .await?;
 
     let _ = ort::init().with_name("AI").commit();
     check_available_memory(m.required_mem_mb)?;
@@ -898,10 +903,7 @@ fn file_present(app_handle: &tauri::AppHandle, filename: &str, expected_hash: &s
 
 /// Download (without loading) a single model file if missing. Used by the
 /// background prefetch routine so models are fetched ahead of use.
-pub async fn prefetch_model_file(
-    app_handle: &tauri::AppHandle,
-    id: AiModelId,
-) -> Result<()> {
+pub async fn prefetch_model_file(app_handle: &tauri::AppHandle, id: AiModelId) -> Result<()> {
     let models_dir = get_models_dir(app_handle)?;
 
     match id {
