@@ -1214,7 +1214,11 @@ pub async fn get_ai_model_status(
 /// while models download in the background.
 pub fn spawn_ai_model_prefetch(app_handle: tauri::AppHandle) {
     let handle = app_handle.clone();
-    tokio::spawn(async move {
+    // Use tauri::async_runtime::spawn (not tokio::spawn): this fn is invoked
+    // from the synchronous Tauri `setup` closure, which is NOT a tokio runtime
+    // context. A bare `tokio::spawn` here panics with "no reactor running" and
+    // — because Android aborts on panic — crashes the app on launch.
+    tauri::async_runtime::spawn(async move {
         let order = AiModelId::prefetch_order();
         let total = order.len();
         for (i, &id) in order.iter().enumerate() {
