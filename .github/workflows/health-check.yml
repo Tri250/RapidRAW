@@ -31,6 +31,17 @@ jobs:
           echo "tauri.conf.json:   ${tauri_version}"
           echo "Cargo.toml:        ${cargo_version}"
 
+          # Check Android versionName
+          android_props_file="src-tauri/gen/android/app/tauri.properties"
+          if [[ -f "$android_props_file" ]]; then
+            android_version_name="$(grep 'tauri.android.versionName' "$android_props_file" | cut -d'=' -f2 | tr -d ' ')"
+            echo "Android version:   ${android_version_name}"
+            if [[ "$pkg_version" != "$android_version_name" ]]; then
+              echo "::error::Android version mismatch: ${android_version_name} != ${pkg_version}"
+              exit 1
+            fi
+          fi
+
           if [[ "$pkg_version" != "$tauri_version" ]] || [[ "$pkg_version" != "$cargo_version" ]]; then
             echo "::error::Version mismatch detected. All three files must have the same version."
             exit 1
@@ -111,6 +122,10 @@ jobs:
         run: cargo clippy --all-targets --all-features -- -D warnings
         continue-on-error: true
 
+      - name: Install cargo-outdated
+        working-directory: src-tauri
+        run: cargo install cargo-outdated --locked || true
+
       - name: Check for outdated dependencies
         working-directory: src-tauri
         run: cargo outdated --root-deps-only || true
@@ -136,6 +151,10 @@ jobs:
         with:
           toolchain: '1.96.0'
           rustflags: ''
+
+      - name: Install cargo-audit
+        working-directory: src-tauri
+        run: cargo install cargo-audit --locked || true
 
       - name: Run cargo audit
         working-directory: src-tauri
@@ -174,6 +193,9 @@ jobs:
             exit 1
           fi
           echo "Capabilities validation passed"
+
+      - name: Install yamllint
+        run: pip install yamllint || true
 
       - name: Check for broken workflow references
         run: |

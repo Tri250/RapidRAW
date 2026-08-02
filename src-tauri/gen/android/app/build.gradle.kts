@@ -16,6 +16,7 @@ val tauriProperties = Properties().apply {
 android {
     compileSdk = 36
     namespace = "io.github.CyberTimon.RapidRAW"
+    ndkVersion = "27.2.12479018"
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "false"
         applicationId = "io.github.CyberTimon.RapidRAW"

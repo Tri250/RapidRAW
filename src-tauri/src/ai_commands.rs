@@ -3,6 +3,7 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::io::Cursor;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use base64::{Engine as _, engine::general_purpose};
 use image::{GenericImageView, GrayImage, ImageFormat, Rgba};
@@ -1213,12 +1214,32 @@ pub async fn get_ai_model_status(
 /// On Android this is triggered on first launch so the user can keep editing
 /// while models download in the background.
 pub fn spawn_ai_model_prefetch(app_handle: tauri::AppHandle) {
+    static PREFETCH_RUNNING: AtomicBool = AtomicBool::new(false);
+
+    if PREFETCH_RUNNING
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        log::info!("AI model prefetch already in progress, skipping");
+        return;
+    }
+
+    // RAII guard: guarantees the flag is released on every exit path of the
+    // spawned task (normal completion, early return, or panic).
+    struct PrefetchGuard;
+    impl Drop for PrefetchGuard {
+        fn drop(&mut self) {
+            PREFETCH_RUNNING.store(false, Ordering::SeqCst);
+        }
+    }
+
     let handle = app_handle.clone();
     // Use tauri::async_runtime::spawn (not tokio::spawn): this fn is invoked
     // from the synchronous Tauri `setup` closure, which is NOT a tokio runtime
     // context. A bare `tokio::spawn` here panics with "no reactor running" and
     // — because Android aborts on panic — crashes the app on launch.
     tauri::async_runtime::spawn(async move {
+        let _guard = PrefetchGuard;
         let order = AiModelId::prefetch_order();
         let total = order.len();
         for (i, &id) in order.iter().enumerate() {

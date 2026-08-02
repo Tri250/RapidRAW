@@ -434,3 +434,19 @@ jobs:
             cat checksums.txt
             echo "::endgroup::"
           fi
+
+      - name: Upload checksums to release
+        if: inputs.tag-name != '' && hashFiles('checksums.txt') != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ -f checksums.txt ]]; then
+            for i in 1 2 3; do
+              if gh release upload "${{ inputs.tag-name }}" checksums.txt --clobber; then
+                exit 0
+              fi
+              sleep $((i * 5))
+            done
+            echo "::warning::Failed to upload checksums after 3 attempts"
+          fi

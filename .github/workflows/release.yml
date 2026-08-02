@@ -17,7 +17,7 @@ permissions:
 
 concurrency:
   group: release-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   # Pre-release gate: ensure version numbers are consistent across

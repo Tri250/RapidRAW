@@ -282,12 +282,14 @@ export function useAiMasking() {
         setEditor({ activeAiPatchContainerId: null, activeAiSubMaskId: null });
       } catch (err: any) {
         if (err.name === 'AbortError' || genAbort.signal.aborted) {
+          patchesSentToBackend.delete(patchId);
           setAdjustments((prev: Adjustments) => ({
             ...prev,
             aiPatches: prev.aiPatches.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
           }));
           return;
         }
+        patchesSentToBackend.delete(patchId);
         toast.error(formatAiError('AI 生成式替换失败', err));
         setAdjustments((prev: Adjustments) => ({
           ...prev,
@@ -295,7 +297,9 @@ export function useAiMasking() {
         }));
       } finally {
         clearTimeout(genTimeout);
-        setEditor({ isGeneratingAi: false });
+        if (generativeAbortRef.current === genAbort) {
+          setEditor({ isGeneratingAi: false });
+        }
       }
     },
     [setAdjustments, setEditor],
@@ -420,12 +424,14 @@ export function useAiMasking() {
         setEditor({ activeAiPatchContainerId: null, activeAiSubMaskId: null });
       } catch (err: any) {
         if (abortController.signal.aborted) {
+          patchesSentToBackend.delete(patchId);
           setAdjustments((prev: Adjustments) => ({
             ...prev,
             aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
           }));
           return;
         }
+        patchesSentToBackend.delete(patchId);
         toast.error(`Quick Erase Failed: ${err.message || String(err)}`);
         setAdjustments((prev: Adjustments) => ({
           ...prev,
@@ -433,7 +439,9 @@ export function useAiMasking() {
         }));
       } finally {
         clearTimeout(quickEraseTimeout);
-        setEditor({ isGeneratingAi: false });
+        if (quickEraseAbortRef.current === abortController) {
+          setEditor({ isGeneratingAi: false });
+        }
       }
     },
     [setAdjustments, setEditor],
@@ -521,11 +529,17 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
-        if (maskAbort.signal.aborted) return;
+        if (maskAbort.signal.aborted) {
+          patchesSentToBackend.delete(subMaskId);
+          return;
+        }
+        patchesSentToBackend.delete(subMaskId);
         toast.error(formatAiError('AI 智能消除失败', error));
       } finally {
         clearTimeout(maskTimeout);
-        setEditor({ isGeneratingAiMask: false });
+        if (maskAbortRef.current === maskAbort) {
+          setEditor({ isGeneratingAiMask: false });
+        }
       }
     },
     [setEditor, updateSubMask],
@@ -599,11 +613,17 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
-        if (maskAbort.signal.aborted) return;
+        if (maskAbort.signal.aborted) {
+          patchesSentToBackend.delete(subMaskId);
+          return;
+        }
+        patchesSentToBackend.delete(subMaskId);
         toast.error(formatAiError('AI 主体识别失败', error));
       } finally {
         clearTimeout(maskTimeout);
-        setEditor({ isGeneratingAiMask: false });
+        if (maskAbortRef.current === maskAbort) {
+          setEditor({ isGeneratingAiMask: false });
+        }
       }
     },
     [setEditor, updateSubMask],
@@ -657,11 +677,17 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
-        if (maskAbort.signal.aborted) return;
+        if (maskAbort.signal.aborted) {
+          patchesSentToBackend.delete(subMaskId);
+          return;
+        }
+        patchesSentToBackend.delete(subMaskId);
         toast.error(formatAiError('AI 深度蒙版失败', error));
       } finally {
         clearTimeout(maskTimeout);
-        setEditor({ isGeneratingAiMask: false });
+        if (maskAbortRef.current === maskAbort) {
+          setEditor({ isGeneratingAiMask: false });
+        }
       }
     },
     [setEditor, updateSubMask],
@@ -709,11 +735,17 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
-        if (maskAbort.signal.aborted) return;
+        if (maskAbort.signal.aborted) {
+          patchesSentToBackend.delete(subMaskId);
+          return;
+        }
+        patchesSentToBackend.delete(subMaskId);
         toast.error(formatAiError('AI 前景分离失败', error));
       } finally {
         clearTimeout(maskTimeout);
-        setEditor({ isGeneratingAiMask: false });
+        if (maskAbortRef.current === maskAbort) {
+          setEditor({ isGeneratingAiMask: false });
+        }
       }
     },
     [setEditor, updateSubMask],
@@ -761,11 +793,17 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
-        if (maskAbort.signal.aborted) return;
+        if (maskAbort.signal.aborted) {
+          patchesSentToBackend.delete(subMaskId);
+          return;
+        }
+        patchesSentToBackend.delete(subMaskId);
         toast.error(formatAiError('AI 天空识别失败', error));
       } finally {
         clearTimeout(maskTimeout);
-        setEditor({ isGeneratingAiMask: false });
+        if (maskAbortRef.current === maskAbort) {
+          setEditor({ isGeneratingAiMask: false });
+        }
       }
     },
     [setEditor, updateSubMask],
@@ -835,7 +873,9 @@ export function useAiMasking() {
         toast.error(formatAiError('超分辨率处理失败', err));
       } finally {
         clearTimeout(genTimeout);
-        setEditor({ isGeneratingAi: false });
+        if (generativeAbortRef.current === genAbort) {
+          setEditor({ isGeneratingAi: false });
+        }
       }
     },
     [setEditor],
@@ -940,11 +980,17 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
-        if (maskAbort.signal.aborted) return;
+        if (maskAbort.signal.aborted) {
+          patchesSentToBackend.delete(subMaskId);
+          return;
+        }
+        patchesSentToBackend.delete(subMaskId);
         toast.error(`Color Range Mask Failed: ${error}`);
       } finally {
         clearTimeout(maskTimeout);
-        setEditor({ isGeneratingAiMask: false });
+        if (maskAbortRef.current === maskAbort) {
+          setEditor({ isGeneratingAiMask: false });
+        }
       }
     },
     [setEditor, updateSubMask],
@@ -1000,11 +1046,17 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
-        if (maskAbort.signal.aborted) return;
+        if (maskAbort.signal.aborted) {
+          patchesSentToBackend.delete(subMaskId);
+          return;
+        }
+        patchesSentToBackend.delete(subMaskId);
         toast.error(`Luminance Range Mask Failed: ${error}`);
       } finally {
         clearTimeout(maskTimeout);
-        setEditor({ isGeneratingAiMask: false });
+        if (maskAbortRef.current === maskAbort) {
+          setEditor({ isGeneratingAiMask: false });
+        }
       }
     },
     [setEditor, updateSubMask],
@@ -1047,7 +1099,11 @@ export function useAiMasking() {
         patchesSentToBackend.delete(subMaskId);
         updateSubMask(subMaskId, { parameters: mergedParameters });
       } catch (error) {
-        if (maskAbort.signal.aborted) return;
+        if (maskAbort.signal.aborted) {
+          patchesSentToBackend.delete(subMaskId);
+          return;
+        }
+        patchesSentToBackend.delete(subMaskId);
         toast.error(`Mask Feather Failed: ${error}`);
       } finally {
         clearTimeout(maskTimeout);
@@ -1065,6 +1121,7 @@ export function useAiMasking() {
     maskAbortRef.current = maskAbort;
     const maskTimeout = setTimeout(() => {
       maskAbort.abort();
+      toast.error('Auto Straighten timed out – operation took too long');
     }, AI_MASK_TIMEOUT_MS);
 
     try {
@@ -1098,6 +1155,7 @@ export function useAiMasking() {
     maskAbortRef.current = maskAbort;
     const maskTimeout = setTimeout(() => {
       maskAbort.abort();
+      toast.error('Horizon Detection timed out – operation took too long');
     }, AI_MASK_TIMEOUT_MS);
 
     try {
@@ -1172,7 +1230,9 @@ export function useAiMasking() {
         return null;
       } finally {
         clearTimeout(genTimeout);
-        setEditor({ isGeneratingAi: false });
+        if (generativeAbortRef.current === genAbort) {
+          setEditor({ isGeneratingAi: false });
+        }
       }
     },
     [setEditor],
@@ -1225,7 +1285,9 @@ export function useAiMasking() {
       return null;
     } finally {
       clearTimeout(genTimeout);
-      setEditor({ isGeneratingAi: false });
+      if (generativeAbortRef.current === genAbort) {
+        setEditor({ isGeneratingAi: false });
+      }
     }
   }, [setEditor]);
 

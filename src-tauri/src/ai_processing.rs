@@ -386,11 +386,17 @@ fn persist_downloaded_asset(dest: &Path, bytes: &[u8]) -> Result<()> {
 
     {
         let mut file = fs::File::create(&tmp_path)?;
-        file.write_all(bytes)?;
-        file.sync_all()?;
+        if let Err(e) = file.write_all(bytes) {
+            let _ = fs::remove_file(&tmp_path);
+            return Err(e.into());
+        }
+        if let Err(e) = file.sync_all() {
+            let _ = fs::remove_file(&tmp_path);
+            return Err(e.into());
+        }
     }
 
-    fs::rename(&tmp_path, dest).or_else(|rename_error| -> std::io::Result<()> {
+    if let Err(e) = fs::rename(&tmp_path, dest).or_else(|rename_error| -> std::io::Result<()> {
         if dest.exists() {
             fs::remove_file(dest)?;
             fs::rename(&tmp_path, dest)?;
@@ -398,7 +404,10 @@ fn persist_downloaded_asset(dest: &Path, bytes: &[u8]) -> Result<()> {
         } else {
             Err(rename_error)
         }
-    })?;
+    }) {
+        let _ = fs::remove_file(&tmp_path);
+        return Err(e.into());
+    }
     Ok(())
 }
 

@@ -127,20 +127,29 @@ export function useAiModels(): UseAiModelsResult {
       if (payload.status === 'ready' || payload.status === 'present' || payload.status === 'error') {
         refresh();
       }
-    }).then((un) => active && unlisteners.push(un));
+    }).then((un) => {
+      unlisteners.push(un);
+      if (!active) un();
+    });
 
     listen<boolean>('ai-model-prefetch-complete', () => {
       if (!active) return;
       setIsPrefetching(false);
       setPrefetchProgress(null);
       refresh();
-    }).then((un) => active && unlisteners.push(un));
+    }).then((un) => {
+      unlisteners.push(un);
+      if (!active) un();
+    });
 
     // Also refresh when the legacy per-model download events fire (on-demand
     // loading triggered by clicking an AI feature).
     listen<string>('ai-model-download-finish', () => {
       if (active) refresh();
-    }).then((un) => active && unlisteners.push(un));
+    }).then((un) => {
+      unlisteners.push(un);
+      if (!active) un();
+    });
 
     return () => {
       active = false;
