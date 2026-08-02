@@ -2078,11 +2078,15 @@
       "wgpuDescRecommended": "Bypasses browser encoding for instantly responsive live previews. Highly recommended for performance.",
       "wgpuLabel": "Enable Direct WGPU Render",
       "workerThreads": "Thumbnail Worker Threads",
-      "workerThreadsDesc": "Number of parallel threads used to generate thumbnails. Higher values speed up library loading but use more CPU & RAM."
+      "workerThreadsDesc": "Number of parallel threads used to generate thumbnails. Higher values speed up library loading but use more CPU & RAM.",
+      "aiMirrorSet": "AI model mirror URL set.",
+      "aiMirrorCleared": "AI model mirror URL cleared.",
+      "aiMirrorFailed": "Failed to set mirror URL."
     },
     "selftest": {
       "allPassed": "All checks passed",
       "description": "Run a comprehensive deep self-test to verify the state of image processing pipeline components such as GPU pipeline, ROI computation, preview rendering, and cache.",
+      "requiresImage": "Please select an image in the editor before running the deep self-test — the test needs a currently edited image as its target.",
       "run": "Run Deep Self-Test",
       "running": "Testing…",
       "someFailed": "Some checks failed",

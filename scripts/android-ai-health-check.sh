@@ -224,11 +224,20 @@ echo ""
 echo "[5/10] Checking AI model download URL reachability..."
 
 if command -v curl >/dev/null 2>&1; then
-  http_code="$(curl -s -o /dev/null -w "%{http_code}" "https://huggingface.co/CyberTimon/RapidRAW-Models" || echo '000')"
-  if [[ "$http_code" == "200" ]]; then
-    ok "HuggingFace model repository reachable (HTTP 200)"
-  else
-    warn_msg "HuggingFace returned HTTP $http_code - model downloads may be blocked"
+  # Primary: huggingface.co. Fallback: hf-mirror.com (used when HF is blocked
+  # by network e.g. sandbox proxy). Either being reachable is sufficient
+  # since build.rs / ai_processing.rs honor RAPIDRAW_HF_MIRROR env var.
+  hf_reachable=false
+  for url in "https://huggingface.co/CyberTimon/RapidRAW-Models" "https://hf-mirror.com/CyberTimon/RapidRAW-Models"; do
+    http_code="$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$url" || echo '000')"
+    if [[ "$http_code" == "200" ]]; then
+      ok "Model repository reachable via $url (HTTP 200)"
+      hf_reachable=true
+      break
+    fi
+  done
+  if [[ "$hf_reachable" != "true" ]]; then
+    warn_msg "All model mirrors unreachable (HF: $http_code) - set RAPIDRAW_HF_MIRROR to a reachable mirror"
   fi
 else
   warn_msg "curl not available, skipping URL reachability check"
@@ -293,6 +302,9 @@ echo ""
 echo "[7/10] Checking Android compilation prerequisites..."
 
 if command -v cargo >/dev/null 2>&1; then
+  # Detect android target via rustup OR filesystem (rustup may fail when the
+  # active toolchain manifest is partially installed). Either signal is enough.
+  android_target_found=false
   set +e
   target_output="$(timeout 10s rustup target list --installed 2>/dev/null)"
   rustup_exit=$?
@@ -300,17 +312,35 @@ if command -v cargo >/dev/null 2>&1; then
   if [[ "$rustup_exit" -eq 124 ]]; then
     warn_msg "rustup target list timed out (toolchain update may be in progress)"
   elif echo "$target_output" | grep -q 'aarch64-linux-android'; then
-    ok "Android target aarch64-linux-android installed"
+    ok "Android target aarch64-linux-android installed (rustup)"
+    android_target_found=true
   else
+    # Filesystem fallback: scan installed toolchains for the target's rustlib dir.
+    for tc_dir in /root/.rustup/toolchains/*-x86_64-unknown-linux-gnu; do
+      if [[ -d "$tc_dir/lib/rustlib/aarch64-linux-android" ]]; then
+        ok "Android target aarch64-linux-android installed (filesystem: $(basename "$tc_dir"))"
+        android_target_found=true
+        break
+      fi
+    done
+  fi
+  if [[ "$android_target_found" != "true" ]]; then
     warn_msg "Android target aarch64-linux-android not installed"
     echo "       Run: rustup target add aarch64-linux-android"
   fi
 
-  # Check for required NDK environment
-  if [[ -n "${ANDROID_NDK_HOME:-}" || -n "${NDK_HOME:-}" ]]; then
-    ok "Android NDK environment detected"
-  else
-    warn_msg "ANDROID_NDK_HOME / NDK_HOME not set"
+  # Check NDK: env var OR well-known paths (env may not propagate to subshells).
+  ndk_found=false
+  for ndk_candidate in "${ANDROID_NDK_HOME:-}" "${NDK_HOME:-}" "/opt/android-ndk-r27c" "/opt/android-ndk" "$HOME/Android/Sdk/ndk"/*; do
+    [[ -z "$ndk_candidate" ]] && continue
+    if [[ -x "$ndk_candidate/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android30-clang" ]]; then
+      ok "Android NDK detected at $ndk_candidate"
+      ndk_found=true
+      break
+    fi
+  done
+  if [[ "$ndk_found" != "true" ]]; then
+    warn_msg "ANDROID_NDK_HOME / NDK_HOME not set and no NDK found in common paths"
   fi
 else
   warn_msg "cargo not found, skipping Rust compilation checks"

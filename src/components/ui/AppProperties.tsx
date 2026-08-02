@@ -134,6 +134,7 @@ export enum Invokes {
   GetImageDimensions = 'get_image_dimensions',
   PreviewGeometryTransform = 'preview_geometry_transform',
   SetAiModelMirror = 'set_ai_model_mirror',
+  GetAiModelMirror = 'get_ai_model_mirror',
   // Android
   ResolveAndroidContentUriName = 'resolve_android_content_uri_name',
   SaveToAndroidGallery = 'save_to_android_gallery',
@@ -311,6 +312,8 @@ export interface AppSettings {
   language?: string;
   folderTreeSort?: FolderTreeSort;
   fontFamily?: string;
+  /** Persisted HuggingFace mirror URL for AI model downloads. */
+  aiModelMirrorUrl?: string;
 }
 
 export interface BrushSettings {

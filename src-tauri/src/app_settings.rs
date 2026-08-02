@@ -434,6 +434,10 @@ pub struct AppSettings {
     pub language: Option<String>,
     #[serde(default)]
     pub folder_tree_sort: Option<FolderTreeSort>,
+    /// Persisted HuggingFace mirror URL. Applied to the RAPIDRAW_HF_MIRROR
+    /// env var on app startup so the setting survives restarts.
+    #[serde(default)]
+    pub ai_model_mirror_url: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -523,6 +527,7 @@ impl Default for AppSettings {
             exif_overlay: Some("off".to_string()),
             language: Some("zh-CN".to_string()),
             folder_tree_sort: Some(FolderTreeSort::default()),
+            ai_model_mirror_url: None,
         }
     }
 }

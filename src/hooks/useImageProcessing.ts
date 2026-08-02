@@ -677,8 +677,25 @@ export function useImageProcessing(
       }
 
       try {
-        await invoke(Invokes.IsGpuAdjustmentPipelineReady);
-        mark('gpu_pipeline_invoke', true, 'GPU pipeline invoke reachable');
+        // The command returns a boolean indicating whether the lightweight
+        // GPU adjustment pipeline is actually initialized — not just whether
+        // the invoke is reachable. On Android the command short-circuits to
+        // `false` (wgpu init is disabled to avoid ANR), so checking only the
+        // absence of a thrown error would falsely report success.
+        const ready = await invoke<boolean>(Invokes.IsGpuAdjustmentPipelineReady);
+        const osPlatform = useSettingsStore.getState().osPlatform;
+        if (ready) {
+          mark('gpu_pipeline_invoke', true, 'GPU pipeline ready');
+        } else if (osPlatform === 'android') {
+          // Android intentionally disables the GPU adjustment pipeline; the
+          // main CPU/GPU pipeline still handles rendering. This is a known
+          // platform limitation, not a regression — report as informational
+          // (ok: true) so the self-test overall status is not misleadingly
+          // marked as failed for an expected condition.
+          mark('gpu_pipeline_invoke', true, 'GPU adjustment pipeline disabled on Android (by design); main pipeline in use');
+        } else {
+          mark('gpu_pipeline_invoke', false, 'GPU pipeline not ready (check GPU driver / compatibility)');
+        }
       } catch (e: any) {
         mark('gpu_pipeline_invoke', false, `GPU pipeline invoke failed: ${e?.message || String(e)}`);
       }

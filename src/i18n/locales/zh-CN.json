@@ -1874,17 +1874,17 @@
       "xmpSyncDesc": "将评分、颜色标签和标签同步到标准 XMP 附属文件，以便与其他照片编辑器兼容。"
     },
     "gpu": {
-      "acesNote": "",
-      "description": "",
-      "idle": "",
-      "pipelineStatus": "",
-      "pipelineStatusDesc": "",
-      "ready": "",
-      "retest": "",
-      "testing": "",
-      "title": "",
-      "unavailable": "",
-      "unavailableReason": ""
+      "acesNote": "注：ACES 色彩科学命令（color_convert_space / color_apply_aces_output / color_apply_aces_fitted 等）已注册到后端，可通过 useGpuPipeline hook 在自定义工作流中调用。",
+      "description": "检测轻量 GPU 调整管线与 ACES 色彩科学工具的可用性。这些工具作为主管线的补充，用于一次性快速预览与色空间转换。",
+      "idle": "未检测",
+      "pipelineStatus": "GPU 调整管线状态",
+      "pipelineStatusDesc": "检测轻量计算管线是否可在当前 GPU 上初始化。",
+      "ready": "可用",
+      "retest": "重新检测（清除缓存重试）",
+      "testing": "检测中…",
+      "title": "GPU 加速与色彩科学",
+      "unavailable": "不可用",
+      "unavailableReason": "当前 GPU 适配器无法初始化轻量计算管线，主管线仍可正常工作。"
     },
     "keybinds": {
       "actions": {
@@ -2106,15 +2106,19 @@
       "wgpuDescRecommended": "绕过浏览器编码，实现即时响应的实时预览。强烈推荐以获得最佳性能。",
       "wgpuLabel": "启用直接 WGPU 渲染",
       "workerThreads": "缩略图工作线程数",
-      "workerThreadsDesc": "用于生成缩略图的并行线程数。较高的值可加快图库加载速度，但会占用更多 CPU 和内存。"
+      "workerThreadsDesc": "用于生成缩略图的并行线程数。较高的值可加快图库加载速度，但会占用更多 CPU 和内存。",
+      "aiMirrorSet": "AI 模型镜像 URL 已设置。",
+      "aiMirrorCleared": "AI 模型镜像 URL 已清除。",
+      "aiMirrorFailed": "设置镜像 URL 失败。"
     },
     "selftest": {
-      "allPassed": "",
-      "description": "",
-      "run": "",
-      "running": "",
-      "someFailed": "",
-      "title": ""
+      "allPassed": "所有检测项通过",
+      "description": "运行全面深度自检以验证 GPU 管线、ROI 计算、预览渲染、缓存等图像处理链路组件的状态。",
+      "requiresImage": "请先在编辑器中选中一张图片再运行深度自检，自检需要一张当前编辑图片作为测试目标。",
+      "run": "运行深度自检",
+      "running": "检测中…",
+      "someFailed": "部分检测项未通过",
+      "title": "图像处理深度自检"
     },
     "tagging": {
       "addCustomPlaceholder": "添加自定义 AI 标签（逗号分隔）...",
