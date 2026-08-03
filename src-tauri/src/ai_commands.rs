@@ -1280,18 +1280,12 @@ pub fn spawn_ai_model_prefetch(app_handle: tauri::AppHandle) {
                     // Eagerly initialise the ONNX session so the first real AI
                     // command doesn't pay the NNAPI warm-up cost (which can take
                     // 1-3 minutes on a cold start).
-                    let _ = handle.emit(
-                        "ai-model-prefetch-progress",
-                        make_payload("warming", None),
-                    );
+                    let _ =
+                        handle.emit("ai-model-prefetch-progress", make_payload("warming", None));
                     let state = handle.state::<AppState>();
-                    let _ = get_or_init_onnx_model(
-                        &handle,
-                        &state.ai_state,
-                        &state.ai_init_lock,
-                        id,
-                    )
-                    .await;
+                    let _ =
+                        get_or_init_onnx_model(&handle, &state.ai_state, &state.ai_init_lock, id)
+                            .await;
                     let _ = handle.emit("ai-model-prefetch-progress", make_payload("ready", None));
                 }
                 Err(e) => {
