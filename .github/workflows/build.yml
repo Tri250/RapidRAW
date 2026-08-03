@@ -59,7 +59,7 @@ jobs:
       - name: Install Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: '1.96.0'
+          toolchain: '1.92.0'
           rustflags: ''
           target: ${{ inputs.target }}
           components: ${{ inputs.mobile == 'android' && 'rust-src' || '' }}
@@ -123,6 +123,40 @@ jobs:
         with:
           ndk-version: r27c
           link-to-sdk: true
+
+      # Download ONNX Runtime Android native library for APK packaging.
+      # ort-sys 2.0.0-rc.10 uses ORT 1.22.0 but its dist.txt has no Android
+      # target, so we must manually provide libonnxruntime.so for the
+      # load-dynamic runtime to dlopen it.
+      - name: Download ONNX Runtime Android library
+        if: inputs.mobile == 'android'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ORT_VERSION="1.22.0"
+          # Map Rust target triple to Android ABI
+          case "${{ inputs.target }}" in
+            aarch64-linux-android) abi="arm64-v8a" ;;
+            armv7-linux-androideabi) abi="armeabi-v7a" ;;
+            i686-linux-android) abi="x86" ;;
+            x86_64-linux-android) abi="x86_64" ;;
+            *) abi="arm64-v8a" ;;
+          esac
+          echo "Downloading ONNX Runtime ${ORT_VERSION} for Android ${abi}"
+          ORT_ZIP="${{ runner.temp }}/onnxruntime-android-${ORT_VERSION}.zip"
+          curl -fSL -o "$ORT_ZIP" \
+            "https://github.com/microsoft/onnxruntime/releases/download/v${ORT_VERSION}/onnxruntime-android-${ORT_VERSION}.zip"
+          # Extract the .so for the target ABI into jniLibs so the Android
+          # Gradle plugin packages it into the APK automatically.
+          JNI_DIR="src-tauri/gen/android/app/src/main/jniLibs/${abi}"
+          mkdir -p "$JNI_DIR"
+          unzip -jo "$ORT_ZIP" "libs/${abi}/libonnxruntime.so" -d "$JNI_DIR"
+          ls -lh "$JNI_DIR/libonnxruntime.so"
+          # Also populate ORT_LIB_LOCATION for the ort-sys build script
+          ORT_LIB_DIR="${{ github.workspace }}/src-tauri/libs/${abi}"
+          mkdir -p "$ORT_LIB_DIR"
+          cp "$JNI_DIR/libonnxruntime.so" "$ORT_LIB_DIR/"
+          echo "ORT_LIB_LOCATION=${ORT_LIB_DIR}" >> "$GITHUB_ENV"
 
       - name: Install frontend dependencies
         run: npm ci
@@ -256,20 +290,12 @@ jobs:
           CI: 'false'
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          # ORT_LIB_LOCATION is set dynamically by the download step above
           ORT_SKIP_DOWNLOAD: '1'
           ORT_STRATEGY: manual
         run: |
           set -euo pipefail
-          # Map Rust target triple to Android ABI name for ORT lib path
-          case "${{ inputs.target }}" in
-            aarch64-linux-android) abi="arm64-v8a" ;;
-            armv7-linux-androideabi) abi="armeabi-v7a" ;;
-            i686-linux-android) abi="x86" ;;
-            x86_64-linux-android) abi="x86_64" ;;
-            *) abi="arm64-v8a" ;;
-          esac
-          export ORT_LIB_LOCATION="${{ github.workspace }}/src-tauri/libs/${abi}"
-          echo "Using ORT_LIB_LOCATION=$ORT_LIB_LOCATION (abi=$abi)"
+          echo "Using ORT_LIB_LOCATION=$ORT_LIB_LOCATION"
           # tauri android build --target accepts short names (aarch64, armv7, i686, x86_64)
           # while Rust toolchain setup needs the full triple (e.g. aarch64-linux-android)
           target_arg=""
