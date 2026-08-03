@@ -16,21 +16,19 @@
     <!-- Notification permission for Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Foreground service for long-running AI/image processing tasks (Android 14+) -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <!-- Wake lock to prevent device sleep during batch processing -->
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Partial media access for Android 14+ (user-selected photos) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
 
     <!-- AndroidTV support -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
+    <!-- Touchscreen not required (AndroidTV compatibility) -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
     <application
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/Theme.rapid_raw"
         android:usesCleartextTraffic="${usesCleartextTraffic}"
-        android:requestLegacyExternalStorage="true"
         android:allowBackup="true"
         android:fullBackupContent="@xml/backup_rules"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -53,7 +51,10 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-                <!-- AndroidTV support -->
+            </intent-filter>
+            <!-- AndroidTV support (separate intent-filter for leanback launcher) -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
             <!-- Open image files via content:// URIs from galleries/files apps -->
