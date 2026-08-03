@@ -150,7 +150,8 @@ use crate::hdr_deghosting::{align_hdr_frames, assert_uniform_dimensions, load_hd
 use crate::image_loader::{composite_patches_on_image, load_and_composite};
 use crate::image_processing::{
     Crop, GeometryParams, RenderRequest, apply_coarse_rotation, apply_cpu_color_adjustments,
-    apply_cpu_default_raw_processing, apply_flip, apply_geometry_warp, apply_linear_to_srgb,
+    apply_cpu_color_adjustments_fast, apply_cpu_default_raw_processing, apply_flip,
+    apply_geometry_warp, apply_linear_to_srgb,
     downscale_f32_image, get_all_adjustments_from_json, get_or_init_gpu_context,
     process_and_get_dynamic_image, resolve_tonemapper_override,
     resolve_tonemapper_override_from_handle, warp_image_geometry,
@@ -757,6 +758,17 @@ fn process_preview_job(
     let use_wgpu_renderer = false;
 
     let has_roi = roi.is_some();
+    // On Android (CPU-only path), use a more aggressive interactive divisor
+    // and lower JPEG quality to keep real-time preview responsive. The CPU
+    // color adjustment pipeline processes every pixel sequentially; halving
+    // the resolution quadruples throughput.
+    #[cfg(target_os = "android")]
+    let (interactive_divisor, interactive_quality) = match live_quality {
+        "full" => (if has_roi { 1.5_f32 } else { 1.2_f32 }, 75_u8),
+        "performance" => (if has_roi { 2.5_f32 } else { 2.0_f32 }, 55_u8),
+        _ => (if has_roi { 2.0_f32 } else { 1.5_f32 }, 65_u8),
+    };
+    #[cfg(not(target_os = "android"))]
     let (interactive_divisor, interactive_quality) = match live_quality {
         "full" => (1.0_f32, 85_u8),
         "performance" => (if has_roi { 1.8_f32 } else { 1.5_f32 }, 65_u8),
@@ -860,8 +872,15 @@ fn process_preview_job(
         )
     } else {
         // Android / no-GPU path: bypass WGPU compute entirely and use CPU color adjustments.
+        // During interactive drag, use a fast path that skips expensive operations
+        // (noise reduction, local contrast, glow/halation/flare, grain) to maintain
+        // real-time responsiveness. The full pipeline runs when the drag ends.
         let mut cpu_image = (*processing_image).clone();
-        apply_cpu_color_adjustments(&mut cpu_image, &final_adjustments);
+        if is_interactive {
+            apply_cpu_color_adjustments_fast(&mut cpu_image, &final_adjustments);
+        } else {
+            apply_cpu_color_adjustments(&mut cpu_image, &final_adjustments);
+        }
         // Convert Rgb32F -> Rgba8 for the encoding pipeline.
         Ok(DynamicImage::ImageRgba8(cpu_image.to_rgba8()))
     };
@@ -875,7 +894,11 @@ fn process_preview_job(
                 final_processed_image_result.as_ref().err()
             );
             let mut cpu_image = (*processing_image).clone();
-            apply_cpu_color_adjustments(&mut cpu_image, &final_adjustments);
+            if is_interactive {
+                apply_cpu_color_adjustments_fast(&mut cpu_image, &final_adjustments);
+            } else {
+                apply_cpu_color_adjustments(&mut cpu_image, &final_adjustments);
+            }
             let rgba_image = cpu_image.to_rgba8();
             (Ok(DynamicImage::ImageRgba8(rgba_image)), false)
         } else {

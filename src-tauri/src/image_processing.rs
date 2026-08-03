@@ -5991,3 +5991,145 @@ pub fn apply_cpu_color_adjustments(image: &mut DynamicImage, adjustments: &AllAd
 
     *image = DynamicImage::ImageRgb32F(f32_image);
 }
+
+/// Fast-path CPU color adjustments for interactive (slider drag) previews.
+///
+/// Skips expensive operations that are imperceptible at low resolution during
+/// a quick drag: noise reduction, local contrast (sharpness/clarity/structure/
+/// centre), glow/halation/lens flare, and grain. Also avoids creating blur
+/// buffers entirely, which saves both allocation and computation.
+///
+/// All color-affecting adjustments (exposure, white balance, tonal, highlights,
+/// HSL, color grading, curves, etc.) are still applied so the user sees an
+/// accurate color response in real time. When the drag ends, the full
+/// `apply_cpu_color_adjustments` runs to produce the final high-quality frame.
+pub fn apply_cpu_color_adjustments_fast(image: &mut DynamicImage, adjustments: &AllAdjustments) {
+    let (width, height) = image.dimensions();
+    if let Err(e) = validate_image_dimensions(width, height) {
+        log::warn!("Skipping CPU fast color adjustments: {}", e);
+        return;
+    }
+
+    let is_raw = adjustments.global.is_raw_image != 0;
+
+    // Convert to RGB32F for processing.
+    let mut f32_image = image.to_rgb32f();
+
+    // Chromatic aberration correction (cheap, applied before sRGB→linear).
+    cpu_apply_ca_correction(
+        &mut f32_image,
+        adjustments.global.chromatic_aberration_red_cyan,
+        adjustments.global.chromatic_aberration_blue_yellow,
+    );
+
+    // Convert sRGB → linear for non-RAW images (matching full pipeline).
+    if !is_raw {
+        f32_image
+            .as_flat_samples_mut()
+            .as_mut_slice()
+            .par_chunks_mut(3)
+            .for_each(|pix| {
+                cpu_srgb_to_linear_vec3(pix);
+            });
+    }
+
+    let g = &adjustments.global;
+    let (pipe_to_rendering, rendering_to_pipe) = calculate_agx_matrices_glam_cpu();
+    let img_w = f32_image.width() as usize;
+
+    // Single-pass pixel processing — no blur buffers needed.
+    f32_image
+        .par_chunks_mut(3)
+        .enumerate()
+        .for_each(|(idx, pix)| {
+            let x = (idx % img_w) as u32;
+            let y = (idx / img_w) as u32;
+
+            // Exposure.
+            cpu_apply_linear_exposure(pix, g.exposure);
+
+            // Dehaze (simplified — no structure blur, use pixel luma directly).
+            cpu_apply_dehaze(pix, cpu_get_luma(pix), g.dehaze);
+
+            // Centre tonal & color.
+            cpu_apply_centre_tonal_and_color(pix, g.centre, x, y, width, height);
+
+            // White balance.
+            cpu_apply_white_balance(pix, g.temperature, g.tint);
+
+            // Brightness (filmic exposure).
+            cpu_apply_filmic_exposure(pix, g.brightness);
+
+            // Tonal adjustments (pass 0 for blur — detail preservation is
+            // approximate but color response is accurate).
+            cpu_apply_tonal_adjustments(pix, 0.0, g.contrast, g.shadows, g.whites, g.blacks);
+
+            // Highlights (blur param is unused in the implementation).
+            cpu_apply_highlights_adjustment(pix, 0.0, g.highlights);
+
+            // Color calibration.
+            cpu_apply_color_calibration(pix, &g.color_calibration);
+
+            // HSL.
+            cpu_apply_hsl_panel(pix, &g.hsl);
+
+            // Hue shift.
+            cpu_apply_hue_shift(pix, g.hue);
+
+            // Saturation / vibrance.
+            cpu_apply_creative_color(pix, g.saturation, g.vibrance);
+
+            // Color grading.
+            cpu_apply_color_grading(
+                pix,
+                &g.color_grading_shadows,
+                &g.color_grading_midtones,
+                &g.color_grading_highlights,
+                &g.color_grading_global,
+                g.color_grading_blending,
+                g.color_grading_balance,
+            );
+
+            // Vignette.
+            cpu_apply_vignette(
+                pix,
+                x,
+                y,
+                width,
+                height,
+                g.vignette_amount,
+                g.vignette_midpoint,
+                g.vignette_roundness,
+                g.vignette_feather,
+            );
+
+            // Tonemap.
+            if g.tonemapper_mode > 0.5 {
+                cpu_apply_agx_tonemap_to_pixel(pix, &pipe_to_rendering, &rendering_to_pipe);
+            } else if is_raw {
+                cpu_apply_basic_tonemap_for_raw(pix);
+            } else {
+                cpu_linear_to_srgb_vec3(pix);
+            }
+
+            // Curves.
+            cpu_apply_all_curves(
+                pix,
+                &g.luma_curve,
+                g.luma_curve_count,
+                &g.red_curve,
+                g.red_curve_count,
+                &g.green_curve,
+                g.green_curve_count,
+                &g.blue_curve,
+                g.blue_curve_count,
+            );
+
+            // Clamp.
+            pix[0] = pix[0].clamp(0.0, 1.0);
+            pix[1] = pix[1].clamp(0.0, 1.0);
+            pix[2] = pix[2].clamp(0.0, 1.0);
+        });
+
+    *image = DynamicImage::ImageRgb32F(f32_image);
+}

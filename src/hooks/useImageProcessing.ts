@@ -10,6 +10,13 @@ import { Invokes, Panel } from '../components/ui/AppProperties';
 import { debouncedSave } from './useEditorActions';
 import { globalImageCache } from '../utils/ImageLRUCache';
 
+// Android uses CPU-only rendering (wgpu renderer disabled). Reduce
+// preview resolution and concurrency to keep real-time preview smooth.
+const ANDROID_MAX_PREVIEW_RES = 1280;
+const ANDROID_DRAG_RES = 800;
+const ANDROID_FIRST_RENDER_RES = 640;
+const ANDROID_MAX_INFLIGHT = 2;
+
 export function useImageProcessing(
   transformWrapperRef: any,
   prevAdjustmentsRef: React.RefObject<any>,
@@ -36,6 +43,8 @@ export function useImageProcessing(
 
   const activeRightPanel = useUIStore((state) => state.activeRightPanel);
   const appSettings = useSettingsStore((state) => state.appSettings);
+  const osPlatform = useSettingsStore((state) => state.osPlatform);
+  const isAndroid = osPlatform === 'android';
   const multiSelectedPaths = useLibraryStore((state) => state.multiSelectedPaths);
 
   const inFlightCountRef = useRef(0);
@@ -125,7 +134,7 @@ export function useImageProcessing(
 
       let effectiveRes = targetRes;
       if (dragging && effectiveRes) {
-        const dragMax = 1440;
+        const dragMax = isAndroid ? ANDROID_DRAG_RES : 1440;
         if (effectiveRes > dragMax) effectiveRes = dragMax;
       }
 
@@ -287,7 +296,7 @@ export function useImageProcessing(
         }
       }
     },
-    [selectedImage?.path, calculateROI, isWaveformVisible, setEditor, previewJobIdRef, latestRenderedJobIdRef],
+    [selectedImage?.path, calculateROI, isWaveformVisible, setEditor, previewJobIdRef, latestRenderedJobIdRef, isAndroid],
   );
 
   const flushPipelineRetryTimerRef = useRef<number | null>(null);
@@ -300,7 +309,8 @@ export function useImageProcessing(
   const flushPipeline = useCallback(() => {
     if (!pendingApplyRef.current) return;
 
-    if (inFlightCountRef.current >= 3) {
+    const maxInFlight = isAndroid ? ANDROID_MAX_INFLIGHT : 3;
+    if (inFlightCountRef.current >= maxInFlight) {
       if (flushPipelineRetryTimerRef.current === null) {
         flushPipelineRetryTimerRef.current = window.setTimeout(() => {
           flushPipelineRetryTimerRef.current = null;
@@ -327,7 +337,7 @@ export function useImageProcessing(
         requestAnimationFrame(() => flushPipelineRef.current());
       }
     });
-  }, [executeApplyAdjustments]);
+  }, [executeApplyAdjustments, isAndroid]);
 
   // Keep the ref in sync after every (re)creation.
   flushPipelineRef.current = flushPipeline;
@@ -359,6 +369,13 @@ export function useImageProcessing(
 
   const calculateTargetRes = useCallback(() => {
     const baseTargetRes = appSettings?.editorPreviewResolution || 1920;
+
+    // Android CPU-only path: cap preview resolution to avoid janky previews.
+    // The CPU color adjustment pipeline is significantly slower than wgpu,
+    // so processing at 1920px causes noticeable lag during slider interaction.
+    if (isAndroid && baseTargetRes > ANDROID_MAX_PREVIEW_RES) {
+      return ANDROID_MAX_PREVIEW_RES;
+    }
     if (!(appSettings?.enableZoomHifi ?? true) || displaySize.width === 0) {
       return baseTargetRes;
     }
@@ -394,6 +411,7 @@ export function useImageProcessing(
     displaySize.width,
     displaySize.height,
     originalSize,
+    isAndroid,
   ]);
 
   // Use ref + useEffect pattern instead of useMemo so that the OLD debounced
@@ -529,12 +547,12 @@ export function useImageProcessing(
 
     if (isSliderDragging) {
       if (appSettings?.enableLivePreviews !== false) {
-        const dragRes = Math.min(targetRes, 1280);
+        const dragRes = Math.min(targetRes, isAndroid ? ANDROID_DRAG_RES : 1280);
         currentResRef.current = dragRes;
         applyAdjustments(renderAdjustments, true, dragRes);
       }
     } else if (firstRender) {
-      const quickRes = Math.min(targetRes, 960);
+      const quickRes = Math.min(targetRes, isAndroid ? ANDROID_FIRST_RENDER_RES : 960);
       currentResRef.current = quickRes;
       applyAdjustments(renderAdjustments, false, quickRes);
       // Progressive upscale after fast first frame
@@ -599,6 +617,7 @@ export function useImageProcessing(
     calculateTargetRes,
     debouncedSave,
     originalSize,
+    isAndroid,
   ]);
 
   useEffect(() => {
