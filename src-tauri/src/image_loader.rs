@@ -48,6 +48,8 @@ pub struct LoadImageResult {
     pub metadata: ImageMetadata,
     pub exif: HashMap<String, String>,
     pub is_raw: bool,
+    #[serde(default)]
+    pub is_incamera_multiexposure: bool,
 }
 
 #[derive(Deserialize)]
@@ -1032,7 +1034,7 @@ pub async fn load_image(
     let (source_path, sidecar_path) = parse_virtual_path(&path);
     let source_path_str = source_path.to_string_lossy().to_string();
 
-    let metadata: ImageMetadata = crate::exif_processing::load_sidecar(&sidecar_path);
+    let mut metadata: ImageMetadata = crate::exif_processing::load_sidecar(&sidecar_path);
 
     let settings = load_settings(app_handle.clone()).unwrap_or_default();
 
@@ -1125,6 +1127,17 @@ pub async fn load_image(
         return Err("Load cancelled".to_string());
     }
 
+    // Canon in-camera multiple-exposure files produce unreliable camera WB.
+    // The flag is injected into the EXIF map by read_exif_data_from_bytes()
+    // (and persisted in the .rrexif sidecar), so it survives cache hits.
+    let is_incamera_multiexposure = exif_data
+        .get("InCameraMultiExposure")
+        .map(|v| v.eq_ignore_ascii_case("true") || v == "1")
+        .unwrap_or(false);
+    if is_incamera_multiexposure {
+        crate::multi_exposure::neutralize_adjustments_wb(&mut metadata.adjustments);
+    }
+
     let (orig_width, orig_height) = pristine_arc.as_ref().dimensions();
 
     *resilient_lock(&state.original_image) = Some(LoadedImage {
@@ -1139,5 +1152,6 @@ pub async fn load_image(
         metadata,
         exif: exif_data,
         is_raw,
+        is_incamera_multiexposure,
     })
 }

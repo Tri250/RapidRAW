@@ -58,10 +58,12 @@ mod hdr_deghosting;
 mod image_loader;
 mod image_processing;
 mod inpainting;
+mod lens_blur;
 mod lens_correction;
 mod lut_processing;
 mod lut_processor;
 mod mask_generation;
+mod multi_exposure;
 mod negative_conversion;
 mod panorama_stitching;
 mod panorama_utils;
@@ -924,6 +926,18 @@ fn process_preview_job(
             &state,
             app_handle,
         );
+
+        // AI Lens Blur (Bokeh) — applied after color/portrait adjustments, before encoding.
+        // Only runs on non-interactive (full) renders to avoid perf impact during drag.
+        if !is_interactive {
+            let blur_result = lens_blur::apply_lens_blur(
+                Cow::Borrowed(&final_processed_image),
+                &adjustments_clone,
+            );
+            if let Cow::Owned(blurred) = blur_result {
+                final_processed_image = blurred;
+            }
+        }
 
         let final_processed_image = Arc::new(final_processed_image);
         let final_rgba_image = match &*final_processed_image {
@@ -2439,9 +2453,73 @@ enum LaunchRequest {
     None,
     OpenFile(String),
     EditSession(ExternalEditSession),
+    HeadlessExport(HeadlessExportSession),
+}
+
+#[derive(Clone, Debug)]
+struct HeadlessExportSession {
+    source: String,
+    output: String,
+    format: String,
+    quality: u8,
+    keep_metadata: bool,
+    adjustments_override: Option<String>,
 }
 
 fn parse_launch_args(args: &[String]) -> LaunchRequest {
+    // Headless export subcommand: `rapidraw export <source> --output <path> [options]`
+    if args.first().map(|s| s.as_str()) == Some("export") {
+        let mut iter = args.iter().skip(1);
+        let mut source = String::new();
+        let mut output = String::new();
+        let mut format = String::from("jpeg");
+        let mut quality: u8 = 90;
+        let mut keep_metadata = false;
+        let mut adjustments_override: Option<String> = None;
+
+        if let Some(src) = iter.next()
+            && !src.starts_with('-')
+        {
+            source = src.clone();
+        }
+
+        while let Some(arg) = iter.next() {
+            match arg.as_str() {
+                "--output" => {
+                    if let Some(out) = iter.next() {
+                        output = out.clone();
+                    }
+                }
+                "--format" => {
+                    if let Some(fmt) = iter.next() {
+                        format = fmt.clone();
+                    }
+                }
+                "--quality" => {
+                    if let Some(q) = iter.next() {
+                        quality = q.parse().unwrap_or(90);
+                    }
+                }
+                "--keep-metadata" => keep_metadata = true,
+                "--adjustments" => {
+                    if let Some(adj) = iter.next() {
+                        adjustments_override = Some(adj.clone());
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        return LaunchRequest::HeadlessExport(HeadlessExportSession {
+            source,
+            output,
+            format,
+            quality,
+            keep_metadata,
+            adjustments_override,
+        });
+    }
+
     let mut edit: Option<String> = None;
     let mut output: Option<String> = None;
     let mut format: Option<String> = None;
@@ -2498,8 +2576,33 @@ fn emit_launch_request(app_handle: &tauri::AppHandle, request: LaunchRequest) {
         LaunchRequest::OpenFile(path) => {
             handle_file_open(app_handle, PathBuf::from(path));
         }
+        LaunchRequest::HeadlessExport(_) => {
+            log::error!("Headless export cannot be attached to an already running GUI instance.");
+        }
         LaunchRequest::None => {}
     }
+}
+
+/// Execute a headless (no-GUI) export session.
+///
+/// This loads the source image, applies adjustments (from sidecar or CLI override),
+/// and writes the output file — all without creating a window.
+fn run_headless_export(
+    session: &HeadlessExportSession,
+    app_handle: &tauri::AppHandle,
+) -> Result<(), String> {
+    use crate::export_processing::{export_single_image_headless, HeadlessExportOptions};
+
+    let opts = HeadlessExportOptions {
+        source: session.source.clone(),
+        output: session.output.clone(),
+        format: session.format.clone(),
+        quality: session.quality,
+        keep_metadata: session.keep_metadata,
+        adjustments_override: session.adjustments_override.clone(),
+    };
+
+    export_single_image_headless(opts, app_handle)
 }
 
 #[derive(serde::Serialize, Default)]
@@ -2783,6 +2886,20 @@ pub fn run() {
                     LaunchRequest::OpenFile(path) => {
                         log::info!("Windows/Linux initial open: Storing path {} for later.", &path);
                         *state.initial_file_path.lock_resilient() = Some(path);
+                    }
+                    LaunchRequest::HeadlessExport(session) => {
+                        log::info!("Headless export requested for: {}", &session.source);
+                        match run_headless_export(&session, app.handle()) {
+                            Ok(()) => {
+                                log::info!("Headless export completed successfully.");
+                                std::process::exit(0);
+                            }
+                            Err(e) => {
+                                log::error!("Headless export failed: {}", e);
+                                eprintln!("Error: {}", e);
+                                std::process::exit(1);
+                            }
+                        }
                     }
                     LaunchRequest::None => {}
                 }

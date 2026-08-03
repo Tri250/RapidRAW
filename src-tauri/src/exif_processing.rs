@@ -1109,6 +1109,13 @@ pub fn read_exif_data_from_bytes(path: &str, file_bytes: &[u8]) -> HashMap<Strin
     if is_raw_file(path)
         && let Some(map) = extract_metadata(file_bytes)
     {
+        // Append Canon in-camera multi-exposure detection result so the
+        // frontend / WB-neutralization path can react without re-reading
+        // the file. The flag is persisted alongside the EXIF sidecar.
+        let mut map = map;
+        if crate::multi_exposure::is_incamera_multiexposure_canon(file_bytes) {
+            map.insert("InCameraMultiExposure".to_string(), "true".to_string());
+        }
         return map;
     }
 
@@ -1118,6 +1125,11 @@ pub fn read_exif_data_from_bytes(path: &str, file_bytes: &[u8]) -> HashMap<Strin
             let raw_val = field.display_value().with_unit(&exif).to_string();
             exif_data.insert(field.tag.to_string(), truncate_large_exif(&raw_val));
         }
+    }
+    // Multi-exposure detection applies to Canon TIFF/CR2-style files too,
+    // even when the rawler metadata extractor didn't handle them.
+    if crate::multi_exposure::is_incamera_multiexposure_canon(file_bytes) {
+        exif_data.insert("InCameraMultiExposure".to_string(), "true".to_string());
     }
     exif_data
 }

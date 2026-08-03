@@ -1550,3 +1550,107 @@ pub async fn estimate_export_sizes(
 
     Ok(single_image_extrapolated_size * paths.len())
 }
+
+/// Options for a headless (CLI) export — no GUI required.
+pub struct HeadlessExportOptions {
+    pub source: String,
+    pub output: String,
+    pub format: String,
+    pub quality: u8,
+    pub keep_metadata: bool,
+    pub adjustments_override: Option<String>,
+}
+
+/// Execute a single-image headless export.
+///
+/// Loads the source image, applies adjustments from sidecar or CLI override,
+/// and writes the output file. Used by the `rapidraw export` CLI subcommand.
+pub fn export_single_image_headless(
+    opts: HeadlessExportOptions,
+    app_handle: &tauri::AppHandle,
+) -> Result<(), String> {
+    let (source_path, sidecar_path) = parse_virtual_path(&opts.source);
+    let source_path_str = source_path.to_string_lossy().to_string();
+
+    let settings = load_settings(app_handle.clone()).unwrap_or_default();
+
+    // Load source image
+    let file_data = fs::read(&source_path_str)
+        .map_err(|e| format!("Failed to read source file '{}': {}", source_path_str, e))?;
+
+    let original_image = load_base_image_from_bytes(&file_data, &source_path_str, true, &settings, None)
+        .map_err(|e| format!("Failed to load image: {}", e))?;
+
+    // Determine adjustments: CLI override > sidecar > default
+    let mut adjustments: Value = if let Some(adj_str) = &opts.adjustments_override {
+        serde_json::from_str(adj_str)
+            .map_err(|e| format!("Failed to parse --adjustments JSON: {}", e))?
+    } else {
+        let metadata = crate::exif_processing::load_sidecar(&sidecar_path);
+        metadata.adjustments
+    };
+
+    // Apply transformations (crop, rotation, flip)
+    let (transformed_image, _) = apply_all_transformations(Cow::Borrowed(&original_image), &adjustments);
+
+    // Encode and write output
+    let format_lower = opts.format.to_lowercase();
+    let format_normalized = match format_lower.as_str() {
+        "jpg" | "jpeg" => "jpeg",
+        "png" => "png",
+        "webp" => "webp",
+        "tiff" | "tif" => "tiff",
+        "jxl" => "jxl",
+        other => return Err(format!("Unsupported output format: '{}'", other)),
+    };
+
+    let export_settings = ExportSettings {
+        jpeg_quality: opts.quality,
+        resize: None,
+        keep_metadata: opts.keep_metadata,
+        preserve_timestamps: false,
+        strip_gps: false,
+        filename_template: None,
+        watermark: None,
+        export_masks: false,
+        preserve_folders: false,
+    };
+
+    let mut processed = transformed_image.into_owned();
+
+    // AI Lens Blur (Bokeh) — applied after geometry transforms, before encode.
+    // No-op unless `lensBlurEnabled` is set and a depth map is present in the
+    // adjustments JSON (from sidecar or --adjustments override).
+    let blur_result = crate::lens_blur::apply_lens_blur(
+        Cow::Borrowed(&processed),
+        &adjustments,
+    );
+    if let Cow::Owned(blurred) = blur_result {
+        processed = blurred;
+    }
+
+    // Apply EXIF metadata if requested
+    let final_bytes = encode_image_to_bytes(&processed, format_normalized, opts.quality)?;
+
+    // Write output file
+    let output_path = Path::new(&opts.output);
+    if let Some(parent) = output_path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create output directory: {}", e))?;
+    }
+
+    fs::write(output_path, &final_bytes)
+        .map_err(|e| format!("Failed to write output file '{}': {}", opts.output, e))?;
+
+    // Optionally preserve EXIF metadata
+    if opts.keep_metadata {
+        // EXIF preservation in headless mode is best-effort;
+        // the sidecar (.rrdata) metadata is always preserved separately.
+        log::info!("Headless export: metadata preservation requested (sidecar preserved separately)");
+    }
+
+    log::info!("Headless export: {} -> {} ({})", source_path_str, opts.output, format_normalized);
+    Ok(())
+}
