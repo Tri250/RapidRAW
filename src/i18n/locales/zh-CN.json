@@ -401,13 +401,32 @@
         "invertSelection": "反转选区",
         "placeholder": "例如，一片花海",
         "quickEraseDesc": "填充选区以移除对象。",
+        "quickEraseFailed": "快速橡皮擦失败",
+        "quickEraseTimeout": "快速橡皮擦处理超时，请检查网络或稍后重试。",
         "selectionPropertiesTitle": "选区属性",
         "useBasicInpaint": "使用基础图像修复"
       },
       "skyReplace": "天空替换",
       "skyReplaceTooltip": "AI 自动替换天空",
       "superResolution": "超分辨率",
-      "superResolutionTooltip": "使用 AI 超分辨率将图像放大（2x/3x/4x）"
+      "superResolutionTooltip": "使用 AI 超分辨率将图像放大（2x/3x/4x）",
+      "timeout": {
+        "autoStraighten": "自动拉直超时，请重试。",
+        "bgRemove": "AI 背景移除超时，请检查网络后重试。",
+        "cleanup": "清理处理超时，请检查网络后重试。",
+        "colorRange": "颜色范围蒙版超时，请重试。",
+        "depthMask": "AI 深度蒙版超时，请检查网络后重试。",
+        "feather": "蒙版羽化超时，请重试。",
+        "foregroundMask": "AI 前景蒙版超时，请检查网络后重试。",
+        "horizonDetect": "地平线检测超时，请重试。",
+        "luminanceRange": "亮度范围蒙版超时，请重试。",
+        "mask": "AI 蒙版超时，请检查网络后重试。",
+        "replace": "AI 替换超时，请检查网络后重试。",
+        "skyMask": "AI 天空蒙版超时，请检查网络后重试。",
+        "skyReplace": "AI 天空替换超时，请检查网络后重试。",
+        "subjectMask": "AI 主体蒙版超时，请检查网络后重试。",
+        "superResolution": "超分辨率处理超时，请检查网络后重试。"
+      }
     },
     "aiRating": {
       "applied": "已写入 EXIF",

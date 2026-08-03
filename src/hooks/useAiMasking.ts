@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useEditorStore } from '../store/useEditorStore';
 
 /**
@@ -82,6 +83,7 @@ const findSubMask = (adjustments: Adjustments, subMaskId: string): SubMask | und
 };
 
 export function useAiMasking() {
+  const { t } = useTranslation();
   const { setAdjustments } = useEditorActions();
   const setEditor = useEditorStore((state) => state.setEditor);
   const { getToken } = useAuth();
@@ -158,7 +160,7 @@ export function useAiMasking() {
       cleanupAbortRef.current = cleanupAbort;
       const cleanupTimeout = setTimeout(() => {
         cleanupAbort.abort();
-        toast.error('Cleanup 处理超时，请保持网络畅通并稍后再试');
+        toast.error(t('editor.ai.timeout.cleanup', { defaultValue: 'Cleanup timed out. Please check your network and try again.' }));
       }, AI_CLEANUP_TIMEOUT_MS);
 
       try {
@@ -244,7 +246,7 @@ export function useAiMasking() {
       generativeAbortRef.current = genAbort;
       const genTimeout = setTimeout(() => {
         genAbort.abort();
-        toast.error('AI Replace 处理超时，请保持网络畅通并稍后再试');
+        toast.error(t('editor.ai.timeout.replace', { defaultValue: 'AI Replace timed out. Please check your network and try again.' }));
       }, AI_GENERATIVE_TIMEOUT_MS);
 
       try {
@@ -311,6 +313,21 @@ export function useAiMasking() {
       const { selectedImage, adjustments, isGeneratingAi, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path || isGeneratingAi) return;
 
+      // Check if the inpaint model is ready before proceeding (device-side).
+      const aiProvider = useSettingsStore.getState().appSettings?.aiProvider || 'cpu';
+      if (aiProvider === 'cpu') {
+        try {
+          const entries = await invoke<Array<{ id: string; filePresent: boolean }>>('get_ai_model_status');
+          const lamaEntry = entries.find((e) => e.id === 'lama');
+          if (lamaEntry && !lamaEntry.filePresent) {
+            toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+            return;
+          }
+        } catch {
+          // If status query fails, proceed anyway — the backend will handle it.
+        }
+      }
+
       // Cancel any previous quick erase request.
       if (quickEraseAbortRef.current) {
         quickEraseAbortRef.current.abort();
@@ -319,11 +336,10 @@ export function useAiMasking() {
       quickEraseAbortRef.current = abortController;
       const quickEraseTimeout = setTimeout(() => {
         abortController.abort();
-        toast.error('Quick Erase 处理超时，请保持网络畅通并稍后再试');
+        toast.error(t('editor.ai.quickEraseTimeout', { defaultValue: 'Quick Erase timed out. Please check your network or try again.' }));
       }, AI_GENERATIVE_TIMEOUT_MS);
 
-      // Device-side fix: for local/cpu mode, token is not needed. Only fetch for cloud mode.
-      const aiProvider = useSettingsStore.getState().appSettings?.aiProvider || 'cpu';
+      // Token only needed for cloud mode (aiProvider already resolved above).
       let token: string | null = null;
       if (aiProvider === 'cloud') {
         try {
@@ -433,7 +449,7 @@ export function useAiMasking() {
           return;
         }
         patchesSentToBackend.delete(patchId);
-        toast.error(`Quick Erase Failed: ${err.message || String(err)}`);
+        toast.error(formatAiError(t('editor.ai.quickEraseFailed', { defaultValue: 'Quick Erase failed' }), err));
         setAdjustments((prev: Adjustments) => ({
           ...prev,
           aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
@@ -496,7 +512,7 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error('AI Mask 处理超时，请保持网络畅通并稍后再试');
+        toast.error(t('editor.ai.timeout.mask', { defaultValue: 'AI Mask timed out. Please check your network and try again.' }));
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -570,7 +586,7 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error('AI Subject Mask 处理超时，请保持网络畅通并稍后再试');
+        toast.error(t('editor.ai.timeout.subjectMask', { defaultValue: 'AI Subject Mask timed out. Please check your network and try again.' }));
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -640,7 +656,7 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error('AI Depth Mask 处理超时，请保持网络畅通并稍后再试');
+        toast.error(t('editor.ai.timeout.depthMask', { defaultValue: 'AI Depth Mask timed out. Please check your network and try again.' }));
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -704,7 +720,7 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error('AI Foreground Mask 处理超时，请保持网络畅通并稍后再试');
+        toast.error(t('editor.ai.timeout.foregroundMask', { defaultValue: 'AI Foreground Mask timed out. Please check your network and try again.' }));
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -762,7 +778,7 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error('AI Sky Mask 处理超时，请保持网络畅通并稍后再试');
+        toast.error(t('editor.ai.timeout.skyMask', { defaultValue: 'AI Sky Mask timed out. Please check your network and try again.' }));
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -823,7 +839,7 @@ export function useAiMasking() {
       generativeAbortRef.current = genAbort;
       const genTimeout = setTimeout(() => {
         genAbort.abort();
-        toast.error('Super Resolution 处理超时，请保持网络畅通并稍后再试');
+        toast.error(t('editor.ai.timeout.superResolution', { defaultValue: 'Super Resolution timed out. Please check your network and try again.' }));
       }, AI_GENERATIVE_TIMEOUT_MS);
 
       setEditor({ isGeneratingAi: true });
@@ -937,7 +953,7 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error('Color Range Mask 处理超时，请保持网络畅通并稍后再试');
+        toast.error(t('editor.ai.timeout.colorRange', { defaultValue: 'Color Range Mask timed out. Please try again.' }));
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -1007,7 +1023,7 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error('Luminance Range Mask 处理超时，请保持网络畅通并稍后再试');
+        toast.error(t('editor.ai.timeout.luminanceRange', { defaultValue: 'Luminance Range Mask timed out. Please try again.' }));
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -1073,7 +1089,7 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error('Mask Feather 处理超时，请保持网络畅通并稍后再试');
+        toast.error(t('editor.ai.timeout.feather', { defaultValue: 'Mask Feather timed out. Please try again.' }));
       }, AI_MASK_TIMEOUT_MS);
 
       try {
@@ -1122,7 +1138,7 @@ export function useAiMasking() {
     maskAbortRef.current = maskAbort;
     const maskTimeout = setTimeout(() => {
       maskAbort.abort();
-      toast.error('Auto Straighten 处理超时，请保持网络畅通并稍后再试');
+      toast.error(t('editor.ai.timeout.autoStraighten', { defaultValue: 'Auto Straighten timed out. Please try again.' }));
     }, AI_MASK_TIMEOUT_MS);
 
     try {
@@ -1156,7 +1172,7 @@ export function useAiMasking() {
     maskAbortRef.current = maskAbort;
     const maskTimeout = setTimeout(() => {
       maskAbort.abort();
-      toast.error('Horizon Detection 处理超时，请保持网络畅通并稍后再试');
+      toast.error(t('editor.ai.timeout.horizonDetect', { defaultValue: 'Horizon Detection timed out. Please try again.' }));
     }, AI_MASK_TIMEOUT_MS);
 
     try {
@@ -1192,7 +1208,7 @@ export function useAiMasking() {
       generativeAbortRef.current = genAbort;
       const genTimeout = setTimeout(() => {
         genAbort.abort();
-        toast.error('AI Sky Replace 处理超时，请保持网络畅通并稍后再试');
+        toast.error(t('editor.ai.timeout.skyReplace', { defaultValue: 'AI Sky Replace timed out. Please check your network and try again.' }));
       }, AI_GENERATIVE_TIMEOUT_MS);
 
       setEditor({ isGeneratingAi: true });
@@ -1249,7 +1265,7 @@ export function useAiMasking() {
     generativeAbortRef.current = genAbort;
     const genTimeout = setTimeout(() => {
       genAbort.abort();
-      toast.error('AI Background Remove 处理超时，请保持网络畅通并稍后再试');
+        toast.error(t('editor.ai.timeout.bgRemove', { defaultValue: 'AI Background Remove timed out. Please check your network and try again.' }));
     }, AI_GENERATIVE_TIMEOUT_MS);
 
     setEditor({ isGeneratingAi: true });

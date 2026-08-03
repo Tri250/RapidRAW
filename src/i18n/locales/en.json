@@ -412,13 +412,32 @@
         "invertSelection": "Invert Selection",
         "placeholder": "e.g., a field of flowers",
         "quickEraseDesc": "Fill selection to remove the object.",
+        "quickEraseFailed": "Quick Erase failed",
+        "quickEraseTimeout": "Quick Erase timed out. Please check your network or try again.",
         "selectionPropertiesTitle": "Selection Properties",
         "useBasicInpaint": "Use basic inpainting"
       },
       "skyReplace": "Sky Replace",
       "skyReplaceTooltip": "AI Sky Replace",
       "superResolution": "Super Resolution",
-      "superResolutionTooltip": "Use AI super resolution to upscale image (2x/3x/4x)"
+      "superResolutionTooltip": "Use AI super resolution to upscale image (2x/3x/4x)",
+      "timeout": {
+        "autoStraighten": "Auto Straighten timed out. Please try again.",
+        "bgRemove": "AI Background Remove timed out. Please check your network and try again.",
+        "cleanup": "Cleanup timed out. Please check your network and try again.",
+        "colorRange": "Color Range Mask timed out. Please try again.",
+        "depthMask": "AI Depth Mask timed out. Please check your network and try again.",
+        "feather": "Mask Feather timed out. Please try again.",
+        "foregroundMask": "AI Foreground Mask timed out. Please check your network and try again.",
+        "horizonDetect": "Horizon Detection timed out. Please try again.",
+        "luminanceRange": "Luminance Range Mask timed out. Please try again.",
+        "mask": "AI Mask timed out. Please check your network and try again.",
+        "replace": "AI Replace timed out. Please check your network and try again.",
+        "skyMask": "AI Sky Mask timed out. Please check your network and try again.",
+        "skyReplace": "AI Sky Replace timed out. Please check your network and try again.",
+        "subjectMask": "AI Subject Mask timed out. Please check your network and try again.",
+        "superResolution": "Super Resolution timed out. Please check your network and try again."
+      }
     },
     "aiRating": {
       "applied": "Written to EXIF",
