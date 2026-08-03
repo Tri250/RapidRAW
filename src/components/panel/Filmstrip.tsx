@@ -9,6 +9,7 @@ import Text from '../ui/Text';
 import { TextColors, TextVariants, TextWeights } from '../../types/typography';
 import { useProcessStore } from '../../store/useProcessStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { useSwipeNavigation } from '../../hooks/useTouchGestures';
 const HORIZONTAL_PADDING = 4;
 const ITEM_GAP = 8;
 
@@ -678,46 +679,24 @@ export default function Filmstrip({
   const [size, setSize] = useState({ height: 0, width: 0 });
   const [focusedIndex, setFocusedIndex] = useState(-1);
 
-  const osPlatform = useSettingsStore((s) => s.osPlatform);
-  const isAndroid = osPlatform === 'android';
-
-  // Touch swipe navigation for Android
-  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
-
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent) => {
-      if (!isAndroid) return;
-      const touch = e.touches[0];
-      touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
-    },
-    [isAndroid],
-  );
-
-  const handleTouchEnd = useCallback(
-    (e: React.TouchEvent) => {
-      if (!isAndroid || !touchStartRef.current || !selectedImage || imageList.length === 0) return;
-      const touch = e.changedTouches[0];
-      const dx = touch.clientX - touchStartRef.current.x;
-      const dy = touch.clientY - touchStartRef.current.y;
-      const dt = Date.now() - touchStartRef.current.time;
-      touchStartRef.current = null;
-
-      // Only trigger on fast horizontal swipes
-      if (dt > 500 || Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
-
+  // Touch swipe navigation using shared hook
+  useSwipeNavigation({
+    threshold: 50,
+    onSwipeLeft: () => {
+      if (!selectedImage || imageList.length === 0) return;
       const currentIndex = imageList.findIndex((img) => img.path === selectedImage.path);
-      if (currentIndex === -1) return;
-
-      if (dx < 0 && currentIndex < imageList.length - 1) {
-        // Swipe left -> next image
-        onImageSelect?.(imageList[currentIndex + 1].path, e as any);
-      } else if (dx > 0 && currentIndex > 0) {
-        // Swipe right -> previous image
-        onImageSelect?.(imageList[currentIndex - 1].path, e as any);
+      if (currentIndex >= 0 && currentIndex < imageList.length - 1) {
+        onImageSelect?.(imageList[currentIndex + 1].path, {} as any);
       }
     },
-    [isAndroid, selectedImage, imageList, onImageSelect],
-  );
+    onSwipeRight: () => {
+      if (!selectedImage || imageList.length === 0) return;
+      const currentIndex = imageList.findIndex((img) => img.path === selectedImage.path);
+      if (currentIndex > 0) {
+        onImageSelect?.(imageList[currentIndex - 1].path, {} as any);
+      }
+    },
+  });
 
   useEffect(() => {
     const el = containerRef.current;
@@ -750,8 +729,6 @@ export default function Filmstrip({
       className="h-full w-full"
       tabIndex={0}
       onClick={onClearSelection}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
       onFocus={() => {
         if (focusedIndex === -1 && imageList.length > 0) {
           const initialIndex = selectedImage ? imageList.findIndex((img) => img.path === selectedImage.path) : 0;

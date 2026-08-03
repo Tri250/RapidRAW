@@ -281,17 +281,18 @@ for f in "${rust_files[@]}"; do
     issues=$((issues + 1))
   fi
 
-  # Check file compiles (basic syntax via rustfmt check with timeout)
-  if command -v rustfmt >/dev/null 2>&1; then
-    if timeout 10s rustfmt --check "$f" >/dev/null 2>&1; then
-      ok "$f syntax OK"
+  # Check file compiles (basic syntax via cargo fmt check with timeout)
+  # Use cargo fmt --check instead of bare rustfmt to respect project config (rustfmt.toml).
+  if command -v cargo >/dev/null 2>&1; then
+    if timeout 10s cargo fmt --check --manifest-path src-tauri/Cargo.toml -- "$f" >/dev/null 2>&1; then
+      ok "$(basename "$f") syntax OK"
     elif [[ $? -eq 124 ]]; then
-      warn_msg "$f rustfmt timed out (toolchain update may be in progress)"
+      warn_msg "$(basename "$f") cargo fmt check timed out"
     else
-      warn_msg "$f has formatting issues (run: cargo fmt)"
+      warn_msg "$(basename "$f") has formatting issues (run: cargo fmt)"
     fi
   else
-    ok "$f exists (rustfmt not available for syntax check)"
+    ok "$(basename "$f") exists (cargo not available for syntax check)"
   fi
 done
 
@@ -482,7 +483,7 @@ fi
 
 # Check useTouchGestures integration
 touch_gestures_used=false
-for f in src/components/views/EditorView.tsx src/components/panel/Editor.tsx src/components/panel/editor/ImageCanvas.tsx; do
+for f in src/components/views/EditorView.tsx src/components/panel/Editor.tsx src/components/panel/editor/ImageCanvas.tsx src/components/panel/Filmstrip.tsx; do
   if [[ -f "$f" ]] && grep -q "usePinchZoom\|useTwoFingerRotate\|useCanvasPan\|useSwipeNavigation" "$f" 2>/dev/null; then
     ok "useTouchGestures integrated in $(basename "$f")"
     touch_gestures_used=true
