@@ -9,4 +9,6 @@
     <exclude domain="file" path="models/" />
     <exclude domain="external" path="models/" />
     <exclude domain="file" path="cache/" />
+    <exclude domain="external" path=".lut_cache/" />
+    <exclude domain="external" path=".library/" />
 </full-backup-content>

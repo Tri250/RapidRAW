@@ -440,6 +440,14 @@ async fn download_model_with_retries(url: &str, dest: &Path) -> Result<()> {
     let max_attempts_per_host = 3;
     let mut last_error = None;
 
+    // Maximum model file size: 1 GB on desktop, 500 MB on Android.
+    // Prevents OOM from loading extremely large files into memory on
+    // memory-constrained mobile devices.
+    #[cfg(target_os = "android")]
+    const MAX_MODEL_SIZE: usize = 500 * 1024 * 1024;
+    #[cfg(not(target_os = "android"))]
+    const MAX_MODEL_SIZE: usize = 1024 * 1024 * 1024;
+
     for candidate in &candidates {
         for attempt in 1..=max_attempts_per_host {
             log::info!(
@@ -458,6 +466,24 @@ async fn download_model_with_retries(url: &str, dest: &Path) -> Result<()> {
             match client.get(candidate).send().await {
                 Ok(response) => {
                     if response.status().is_success() {
+                        // Check Content-Length header before downloading to avoid
+                        // downloading files that are obviously too large.
+                        if let Some(content_length) = response.content_length() {
+                            if content_length as usize > MAX_MODEL_SIZE {
+                                log::warn!(
+                                    "Download from {} reports {} bytes, exceeds max {} bytes",
+                                    candidate,
+                                    content_length,
+                                    MAX_MODEL_SIZE
+                                );
+                                last_error = Some(format!(
+                                    "File too large ({} MB exceeds {} MB limit)",
+                                    content_length / (1024 * 1024),
+                                    MAX_MODEL_SIZE / (1024 * 1024)
+                                ));
+                                continue;
+                            }
+                        }
                         match response.bytes().await {
                             Ok(bytes) => {
                                 if bytes.len() < 1024 {
@@ -471,6 +497,17 @@ async fn download_model_with_retries(url: &str, dest: &Path) -> Result<()> {
                                         "Download from {} returned only {} bytes",
                                         candidate,
                                         bytes.len()
+                                    ));
+                                } else if bytes.len() > MAX_MODEL_SIZE {
+                                    log::warn!(
+                                        "Downloaded {} bytes from {}, exceeds {} byte limit",
+                                        bytes.len(),
+                                        candidate,
+                                        MAX_MODEL_SIZE
+                                    );
+                                    last_error = Some(format!(
+                                        "Downloaded file too large ({} MB)",
+                                        bytes.len() / (1024 * 1024)
                                     ));
                                 } else {
                                     return persist_downloaded_asset(dest, &bytes);
