@@ -86,58 +86,55 @@ pub fn apply_lens_blur<'a>(
     let mut result = src_rgb.clone();
 
     // Process each pixel in parallel
-    result
-        .par_chunks_mut(3)
-        .enumerate()
-        .for_each(|(idx, dst)| {
-            let px = (idx % w as usize) as u32;
-            let py = (idx / w as usize) as u32;
+    result.par_chunks_mut(3).enumerate().for_each(|(idx, dst)| {
+        let px = (idx % w as usize) as u32;
+        let py = (idx / w as usize) as u32;
 
-            let depth_val = depth_resized.get_pixel(px, py).0[0] as f32 / 255.0;
+        let depth_val = depth_resized.get_pixel(px, py).0[0] as f32 / 255.0;
 
-            // Compute blur weight based on depth
-            let blur_weight = compute_blur_weight(depth_val, min_depth, max_depth, min_fade, max_fade);
-            if blur_weight < 0.001 {
-                // In focus — keep original
-                return;
+        // Compute blur weight based on depth
+        let blur_weight = compute_blur_weight(depth_val, min_depth, max_depth, min_fade, max_fade);
+        if blur_weight < 0.001 {
+            // In focus — keep original
+            return;
+        }
+
+        // Accumulate weighted samples from the bokeh disc
+        let mut r_acc = 0.0f32;
+        let mut g_acc = 0.0f32;
+        let mut b_acc = 0.0f32;
+        let mut weight_sum = 0.0f32;
+
+        for tap in &taps {
+            let sx = px as i32 + tap.x;
+            let sy = py as i32 + tap.y;
+
+            if sx < 0 || sy < 0 || sx >= w as i32 || sy >= h as i32 {
+                continue;
             }
 
-            // Accumulate weighted samples from the bokeh disc
-            let mut r_acc = 0.0f32;
-            let mut g_acc = 0.0f32;
-            let mut b_acc = 0.0f32;
-            let mut weight_sum = 0.0f32;
+            let s_idx = (sy as usize) * (w as usize) + (sx as usize);
+            let src_raw = src_rgb.as_raw();
+            let src_pix = &src_raw[s_idx * 3..s_idx * 3 + 3];
 
-            for tap in &taps {
-                let sx = px as i32 + tap.x;
-                let sy = py as i32 + tap.y;
+            r_acc += src_pix[0] * tap.weight;
+            g_acc += src_pix[1] * tap.weight;
+            b_acc += src_pix[2] * tap.weight;
+            weight_sum += tap.weight;
+        }
 
-                if sx < 0 || sy < 0 || sx >= w as i32 || sy >= h as i32 {
-                    continue;
-                }
+        if weight_sum > 0.0 {
+            let inv_w = 1.0 / weight_sum;
+            let blurred_r = r_acc * inv_w;
+            let blurred_g = g_acc * inv_w;
+            let blurred_b = b_acc * inv_w;
 
-                let s_idx = (sy as usize) * (w as usize) + (sx as usize);
-                let src_raw = src_rgb.as_raw();
-                let src_pix = &src_raw[s_idx * 3..s_idx * 3 + 3];
-
-                r_acc += src_pix[0] * tap.weight;
-                g_acc += src_pix[1] * tap.weight;
-                b_acc += src_pix[2] * tap.weight;
-                weight_sum += tap.weight;
-            }
-
-            if weight_sum > 0.0 {
-                let inv_w = 1.0 / weight_sum;
-                let blurred_r = r_acc * inv_w;
-                let blurred_g = g_acc * inv_w;
-                let blurred_b = b_acc * inv_w;
-
-                // Blend between original and blurred based on blur_weight
-                dst[0] = dst[0] * (1.0 - blur_weight) + blurred_r * blur_weight;
-                dst[1] = dst[1] * (1.0 - blur_weight) + blurred_g * blur_weight;
-                dst[2] = dst[2] * (1.0 - blur_weight) + blurred_b * blur_weight;
-            }
-        });
+            // Blend between original and blurred based on blur_weight
+            dst[0] = dst[0] * (1.0 - blur_weight) + blurred_r * blur_weight;
+            dst[1] = dst[1] * (1.0 - blur_weight) + blurred_g * blur_weight;
+            dst[2] = dst[2] * (1.0 - blur_weight) + blurred_b * blur_weight;
+        }
+    });
 
     // Convert the processed RGB32F buffer back to Rgba8 to preserve
     // compatibility with the downstream preview/export pipeline (which
@@ -160,7 +157,11 @@ pub fn apply_lens_blur<'a>(
 fn generate_bokeh_taps(radius: f32, shape: &str) -> Vec<BokehTap> {
     let r = radius.ceil() as i32;
     if r < 1 {
-        return vec![BokehTap { x: 0, y: 0, weight: 1.0 }];
+        return vec![BokehTap {
+            x: 0,
+            y: 0,
+            weight: 1.0,
+        }];
     }
 
     let r_f = radius as f32;

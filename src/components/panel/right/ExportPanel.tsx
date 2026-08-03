@@ -37,6 +37,7 @@ import { Invokes, SelectedImage, AppSettings } from '../../ui/AppProperties';
 import ExportPresetsList from '../../ui/ExportPresetsList';
 import { useExportSettings } from '../../../hooks/useExportSettings';
 import { useOsPlatform } from '../../../hooks/useOsPlatform';
+import AndroidShareSheet from '../../ui/AndroidShareSheet';
 import Text from '../../ui/Text';
 import { TextColors, TextVariants, TextWeights } from '../../../types/typography';
 import { useShallow } from 'zustand/react/shallow';
@@ -290,6 +291,7 @@ export default function ExportPanel({
   const [watermarkImageAspectRatio, setWatermarkImageAspectRatio] = useState(1);
   const [imageAspectRatio, setImageAspectRatio] = useState(16 / 9);
   const [lastExportedFilePath, setLastExportedFilePath] = useState<string | null>(null);
+  const [showAndroidShareSheet, setShowAndroidShareSheet] = useState(false);
   const filenameInputRef = useRef<HTMLInputElement>(null);
   const osPlatform = useOsPlatform();
   const isAndroid = osPlatform === 'android';
@@ -1014,42 +1016,27 @@ export default function ExportPanel({
           <Button
             variant="secondary"
             className="w-full"
-            onClick={async () => {
-              try {
-                // Map file format to MIME type for Android share Intent
-                // Formats not widely supported by social apps (TIFF, JXL) fall back to image/*
-                const getMimeType = (fmt: string) => {
-                  switch (fmt) {
-                    case 'png':
-                      return 'image/png';
-                    case 'webp':
-                      return 'image/webp';
-                    case 'avif':
-                      return 'image/avif';
-                    case 'tiff':
-                      return 'image/*'; // Most social apps don't support TIFF, use wildcard
-                    case 'jxl':
-                      return 'image/*'; // JPEG XL not widely supported, use wildcard
-                    default:
-                      return 'image/jpeg';
-                  }
-                };
-                const mimeType = getMimeType(fileFormat);
-                await invoke(Invokes.ShareImage, {
-                  filePath: lastExportedFilePath,
-                  mimeType,
-                  title: t('export.share.title'),
-                });
-              } catch (err) {
-                console.error('Failed to share image:', err);
-                toast.error(`Failed to share image: ${err}`);
-              }
-            }}
+            onClick={() => setShowAndroidShareSheet(true)}
           >
             <Share2 size={18} className="mr-2" /> {t('export.share.button')}
           </Button>
         )}
       </div>
+      {isAndroid && lastExportedFilePath && (
+        <AndroidShareSheet
+          filePath={lastExportedFilePath}
+          mimeType={(() => {
+            switch (fileFormat) {
+              case 'png': return 'image/png';
+              case 'webp': return 'image/webp';
+              case 'avif': return 'image/avif';
+              default: return 'image/jpeg';
+            }
+          })()}
+          visible={showAndroidShareSheet}
+          onClose={() => setShowAndroidShareSheet(false)}
+        />
+      )}
     </div>
   );
 }

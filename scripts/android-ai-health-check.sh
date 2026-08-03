@@ -448,6 +448,146 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 11. Android frontend UI component integration check
+# ---------------------------------------------------------------------------
+echo ""
+echo "[11/14] Checking Android frontend UI component integration..."
+
+# Check AndroidBottomNav integration
+if grep -q "import AndroidBottomNav" src/components/views/EditorView.tsx 2>/dev/null; then
+  ok "AndroidBottomNav integrated in EditorView"
+else
+  fail_msg "AndroidBottomNav NOT integrated in EditorView"
+fi
+
+# Check AndroidShareSheet integration
+android_share_sheet_used=false
+for f in src/components/views/EditorView.tsx src/components/panel/right/ExportPanel.tsx src/App.tsx; do
+  if [[ -f "$f" ]] && grep -q "AndroidShareSheet" "$f" 2>/dev/null; then
+    ok "AndroidShareSheet integrated in $(basename "$f")"
+    android_share_sheet_used=true
+    break
+  fi
+done
+if [[ "$android_share_sheet_used" != "true" ]]; then
+  warn_msg "AndroidShareSheet defined but NOT integrated in any view (component exists but unreferenced)"
+fi
+
+# Check useAndroidBackHandler integration
+if grep -q "useAndroidBackHandler" src/App.tsx 2>/dev/null; then
+  ok "useAndroidBackHandler integrated in App.tsx"
+else
+  fail_msg "useAndroidBackHandler NOT integrated in App.tsx"
+fi
+
+# Check useTouchGestures integration
+touch_gestures_used=false
+for f in src/components/views/EditorView.tsx src/components/panel/Editor.tsx src/components/panel/editor/ImageCanvas.tsx; do
+  if [[ -f "$f" ]] && grep -q "usePinchZoom\|useTwoFingerRotate\|useCanvasPan\|useSwipeNavigation" "$f" 2>/dev/null; then
+    ok "useTouchGestures integrated in $(basename "$f")"
+    touch_gestures_used=true
+    break
+  fi
+done
+if [[ "$touch_gestures_used" != "true" ]]; then
+  warn_msg "useTouchGestures hooks defined but NOT integrated (unreferenced Android touch gesture hooks)"
+fi
+
+# Check i18n keys for Android share sheet
+if [[ -f "src/i18n/locales/en.json" ]]; then
+  if grep -q '"androidShare"' src/i18n/locales/en.json 2>/dev/null; then
+    ok "Android share i18n keys present in en.json"
+  else
+    warn_msg "Android share i18n keys missing in en.json"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# 12. Blanket lint suppression check (Rust)
+# ---------------------------------------------------------------------------
+echo ""
+echo "[12/14] Checking for blanket lint suppression in Rust code..."
+
+# Exclude comment lines when checking for lint suppression
+if grep -v '^\s*//' src-tauri/src/lib.rs | grep -q '#!\[allow(dead_code)\]' 2>/dev/null; then
+  fail_msg "Crate-level #![allow(dead_code)] detected in lib.rs (should be per-module)"
+else
+  ok "No crate-level #![allow(dead_code)] in lib.rs"
+fi
+
+if grep -v '^\s*//' src-tauri/src/lib.rs | grep -q '#!\[allow(unused_variables)\]' 2>/dev/null; then
+  fail_msg "Crate-level #![allow(unused_variables)] detected in lib.rs (should be per-module)"
+else
+  ok "No crate-level #![allow(unused_variables)] in lib.rs"
+fi
+
+# Verify targeted allows exist in WIP modules
+wip_modules=("ai_service" "ai_labeling" "color_science" "gpu_pipeline" "portrait_processing")
+for mod in "${wip_modules[@]}"; do
+  if [[ -f "src-tauri/src/${mod}.rs" ]]; then
+    if grep -q '#!\[allow(dead_code)\]' "src-tauri/src/${mod}.rs" 2>/dev/null; then
+      ok "${mod}.rs has targeted #![allow(dead_code)]"
+    else
+      warn_msg "${mod}.rs is a WIP module but missing #![allow(dead_code)]"
+    fi
+  fi
+done
+
+# ---------------------------------------------------------------------------
+# 13. tauri.properties version consistency check
+# ---------------------------------------------------------------------------
+echo ""
+echo "[13/14] Checking tauri.properties version consistency..."
+
+tauri_props="src-tauri/gen/android/app/tauri.properties"
+if [[ -f "$tauri_props" ]]; then
+  version_code="$(grep 'tauri.android.versionCode' "$tauri_props" | cut -d'=' -f2 | tr -d ' ')"
+  version_name="$(grep 'tauri.android.versionName' "$tauri_props" | cut -d'=' -f2 | tr -d ' ')"
+
+  if [[ "$version_code" == "1829" ]]; then
+    ok "versionCode=$version_code (matches v1.8.29)"
+  else
+    warn_msg "versionCode=$version_code (expected 1829 for v1.8.29)"
+  fi
+
+  if [[ "$version_name" == "1.8.29" ]]; then
+    ok "versionName=$version_name"
+  else
+    warn_msg "versionName=$version_name (expected 1.8.29)"
+  fi
+
+  # Verify versionCode matches versionName pattern: major*1000 + minor*100 + patch
+  expected_code="$(echo "$version_name" | awk -F. '{print $1*1000 + $2*100 + $3}')"
+  if [[ "$version_code" == "$expected_code" ]]; then
+    ok "versionCode ($version_code) matches versionName ($version_name)"
+  else
+    fail_msg "versionCode ($version_code) does not match versionName ($version_name), expected $expected_code"
+  fi
+else
+  warn_msg "tauri.properties not found"
+fi
+
+# ---------------------------------------------------------------------------
+# 14. ProGuard rules completeness check
+# ---------------------------------------------------------------------------
+echo ""
+echo "[14/14] Checking ProGuard rules completeness..."
+
+proguard_file="src-tauri/gen/android/app/proguard-rules.pro"
+if [[ -f "$proguard_file" ]]; then
+  required_rules=("rustls.platformverifier" "org.tauri" "androidx.core.content.FileProvider" "ai.onnxruntime")
+  for rule in "${required_rules[@]}"; do
+    if grep -q "$rule" "$proguard_file" 2>/dev/null; then
+      ok "ProGuard rule for '$rule' present"
+    else
+      fail_msg "Missing ProGuard rule for '$rule'"
+    fi
+  done
+else
+  fail_msg "proguard-rules.pro not found"
+fi
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 echo ""

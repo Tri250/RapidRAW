@@ -1,3 +1,7 @@
+// WIP: some AI labeling helper functions are implemented but not yet
+// wired into all call sites. Remove this allow once integration is complete.
+#![allow(dead_code)]
+
 /// AI Labeling Infrastructure
 ///
 /// Provides vector embedding generation, storage, and similarity search

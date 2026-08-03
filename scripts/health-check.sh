@@ -11,7 +11,7 @@ fail=0
 
 # 1. Version sync check
 echo ""
-echo "[1/7] Checking version sync..."
+echo "[1/10] Checking version sync..."
 pkg_version="$(node -e "console.log(require('./package.json').version)")"
 tauri_version="$(node -e "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8')); console.log(c.version || '')")"
 cargo_version="$(grep -m1 '^version' src-tauri/Cargo.toml | sed -E 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*$/\1/')"
@@ -28,7 +28,7 @@ fi
 
 # 2. Rust toolchain alignment
 echo ""
-echo "[2/7] Checking Rust toolchain alignment..."
+echo "[2/10] Checking Rust toolchain alignment..."
 rust_minver="$(grep -m1 '^rust-version' src-tauri/Cargo.toml | sed -E 's/^rust-version[[:space:]]*=[[:space:]]*"([^"]+)".*$/\1/')"
 toolchain_channel=""
 if [[ -f rust-toolchain.toml ]]; then
@@ -43,7 +43,7 @@ fi
 
 # 3. Node dependencies
 echo ""
-echo "[3/7] Checking Node dependencies..."
+echo "[3/10] Checking Node dependencies..."
 if [[ ! -d node_modules ]]; then
   echo "  REPAIR: Installing node_modules..."
   npm install
@@ -53,7 +53,7 @@ fi
 
 # 4. Frontend type check
 echo ""
-echo "[4/7] Running frontend type check..."
+echo "[4/10] Running frontend type check..."
 if npm run typecheck >/dev/null 2>&1; then
   echo "  OK: TypeScript type check passed"
 else
@@ -63,7 +63,7 @@ fi
 
 # 5. Frontend tests
 echo ""
-echo "[5/7] Running frontend tests..."
+echo "[5/10] Running frontend tests..."
 if npm run test >/dev/null 2>&1; then
   echo "  OK: Frontend tests passed"
 else
@@ -73,7 +73,7 @@ fi
 
 # 6. Tauri config validation
 echo ""
-echo "[6/7] Validating Tauri config..."
+echo "[6/10] Validating Tauri config..."
 if node -e "
   const fs = require('fs');
   const config = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
@@ -90,7 +90,7 @@ fi
 
 # 7. Capabilities check
 echo ""
-echo "[7/7] Checking capabilities..."
+echo "[7/10] Checking capabilities..."
 if [[ -f "src-tauri/capabilities/default.json" ]]; then
   echo "  OK: Default capabilities file exists"
 else
@@ -237,6 +237,23 @@ if grep -q 'check_available_memory' src-tauri/src/ai_processing.rs 2>/dev/null; 
   echo "  OK: Android memory guard implemented"
 else
   echo "  WARN: Android memory guard not detected"
+fi
+
+# 11. Blanket lint suppression check
+echo ""
+echo "[11/11] Checking blanket lint suppression in Rust..."
+# Exclude comment lines when checking for lint suppression
+if grep -v '^\s*//' src-tauri/src/lib.rs | grep -q '#!\[allow(dead_code)\]' 2>/dev/null; then
+  echo "  FAIL: Crate-level #![allow(dead_code)] in lib.rs - should be per-module"
+  fail=1
+else
+  echo "  OK: No crate-level #![allow(dead_code)] in lib.rs"
+fi
+if grep -v '^\s*//' src-tauri/src/lib.rs | grep -q '#!\[allow(unused_variables)\]' 2>/dev/null; then
+  echo "  FAIL: Crate-level #![allow(unused_variables)] in lib.rs - should be per-module"
+  fail=1
+else
+  echo "  OK: No crate-level #![allow(unused_variables)] in lib.rs"
 fi
 
 echo ""

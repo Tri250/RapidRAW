@@ -1,11 +1,11 @@
-// Crate-level lint allows: new architecture modules (ai_service, ai_labeling,
-// color_science, gpu_pipeline, portrait_processing, etc.) contain functions
-// that are fully implemented but not yet wired into all call sites. These
-// allows prevent CI clippy (-D warnings) from blocking releases during the
-// incremental integration phase.
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(unused_assignments)]
+// Crate-level lint allows: these are code-style / complexity lints that
+// produce noise across the entire codebase and are not indicative of bugs.
+// They are intentionally allowed at the crate root so new code does not need
+// per-item annotations for common patterns.
+//
+// Dead-code / unused-variables lints are NOT allowed at the crate level;
+// individual modules that still have WIP integration use targeted
+// #[allow(dead_code)] at their module root.
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::explicit_auto_deref)]
 #![allow(clippy::if_same_then_else)]
@@ -2591,7 +2591,7 @@ fn run_headless_export(
     session: &HeadlessExportSession,
     app_handle: &tauri::AppHandle,
 ) -> Result<(), String> {
-    use crate::export_processing::{export_single_image_headless, HeadlessExportOptions};
+    use crate::export_processing::{HeadlessExportOptions, export_single_image_headless};
 
     let opts = HeadlessExportOptions {
         source: session.source.clone(),

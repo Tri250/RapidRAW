@@ -1,3 +1,6 @@
+// WIP: some portrait processing functions are implemented but not yet
+// wired into all call sites. Remove this allow once integration is complete.
+#![allow(dead_code)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::needless_range_loop)]

@@ -35,7 +35,8 @@ pub fn is_incamera_multiexposure_canon(file_bytes: &[u8]) -> bool {
         let maker_note_offset = find_ifd_entry(file_bytes, exif_ifd_offset, 0x927C)? as usize;
 
         // Find multiple-exposure block (tag 0x4021) within MakerNote
-        let multi_exp_block_offset = find_ifd_entry(file_bytes, maker_note_offset, 0x4021)? as usize;
+        let multi_exp_block_offset =
+            find_ifd_entry(file_bytes, maker_note_offset, 0x4021)? as usize;
 
         // The flag is a 4-byte value at offset +4 within the block
         let flag_offset = multi_exp_block_offset + 4;
@@ -94,10 +95,7 @@ fn find_ifd_entry(file_bytes: &[u8], ifd_offset: usize, tag_id: u16) -> Option<u
 /// # Returns
 /// Neutralized coefficients (all 1.0) if multiple exposure is detected,
 /// otherwise the original coefficients unchanged.
-pub fn neutralize_wb_if_multiexposure(
-    wb_coeffs: [f32; 4],
-    file_bytes: &[u8],
-) -> [f32; 4] {
+pub fn neutralize_wb_if_multiexposure(wb_coeffs: [f32; 4], file_bytes: &[u8]) -> [f32; 4] {
     if is_incamera_multiexposure_canon(file_bytes) {
         log::info!("[raw_hdr_wb] multi-exposure CR2 detected, neutralizing WB");
         let mut neutralized = wb_coeffs;
@@ -145,10 +143,7 @@ pub fn neutralize_adjustments_wb(adjustments: &mut serde_json::Value) {
     if adjustments.get("color").is_none() {
         adjustments["color"] = serde_json::json!({});
     }
-    if let Some(color) = adjustments
-        .get_mut("color")
-        .and_then(|c| c.as_object_mut())
-    {
+    if let Some(color) = adjustments.get_mut("color").and_then(|c| c.as_object_mut()) {
         color.insert("temperature".to_string(), serde_json::json!(0));
         color.insert("tint".to_string(), serde_json::json!(0));
         log::info!("[raw_hdr_wb] neutralizing color.temperature/tint for multi-exposure file");

@@ -1578,8 +1578,9 @@ pub fn export_single_image_headless(
     let file_data = fs::read(&source_path_str)
         .map_err(|e| format!("Failed to read source file '{}': {}", source_path_str, e))?;
 
-    let original_image = load_base_image_from_bytes(&file_data, &source_path_str, true, &settings, None)
-        .map_err(|e| format!("Failed to load image: {}", e))?;
+    let original_image =
+        load_base_image_from_bytes(&file_data, &source_path_str, true, &settings, None)
+            .map_err(|e| format!("Failed to load image: {}", e))?;
 
     // Determine adjustments: CLI override > sidecar > default
     let mut adjustments: Value = if let Some(adj_str) = &opts.adjustments_override {
@@ -1591,7 +1592,8 @@ pub fn export_single_image_headless(
     };
 
     // Apply transformations (crop, rotation, flip)
-    let (transformed_image, _) = apply_all_transformations(Cow::Borrowed(&original_image), &adjustments);
+    let (transformed_image, _) =
+        apply_all_transformations(Cow::Borrowed(&original_image), &adjustments);
 
     // Encode and write output
     let format_lower = opts.format.to_lowercase();
@@ -1621,10 +1623,7 @@ pub fn export_single_image_headless(
     // AI Lens Blur (Bokeh) — applied after geometry transforms, before encode.
     // No-op unless `lensBlurEnabled` is set and a depth map is present in the
     // adjustments JSON (from sidecar or --adjustments override).
-    let blur_result = crate::lens_blur::apply_lens_blur(
-        Cow::Borrowed(&processed),
-        &adjustments,
-    );
+    let blur_result = crate::lens_blur::apply_lens_blur(Cow::Borrowed(&processed), &adjustments);
     if let Cow::Owned(blurred) = blur_result {
         processed = blurred;
     }
@@ -1648,9 +1647,16 @@ pub fn export_single_image_headless(
     if opts.keep_metadata {
         // EXIF preservation in headless mode is best-effort;
         // the sidecar (.rrdata) metadata is always preserved separately.
-        log::info!("Headless export: metadata preservation requested (sidecar preserved separately)");
+        log::info!(
+            "Headless export: metadata preservation requested (sidecar preserved separately)"
+        );
     }
 
-    log::info!("Headless export: {} -> {} ({})", source_path_str, opts.output, format_normalized);
+    log::info!(
+        "Headless export: {} -> {} ({})",
+        source_path_str,
+        opts.output,
+        format_normalized
+    );
     Ok(())
 }

@@ -1,4 +1,13 @@
 {
+  "androidShare": {
+    "cancel": "Cancel",
+    "more": "More",
+    "qq": "QQ",
+    "systemShareTitle": "Share Image",
+    "titleDefault": "Share to",
+    "wechat": "WeChat",
+    "weibo": "Weibo"
+  },
   "adjustments": {
     "basic": {
       "blacks": "Blacks",
