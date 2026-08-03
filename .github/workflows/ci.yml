@@ -35,8 +35,8 @@ jobs:
           - platform: 'macos-14'
             target: aarch64-apple-darwin
             asset-prefix: '02'
-          # macOS Intel
-          - platform: 'macos-13'
+          # macOS Intel (cross-compile on Apple Silicon runner)
+          - platform: 'macos-14'
             target: x86_64-apple-darwin
             asset-prefix: '02_intel'
           # Ubuntu x64

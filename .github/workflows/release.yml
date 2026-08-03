@@ -134,8 +134,10 @@ jobs:
             build-args: ''
             target: aarch64-apple-darwin
             asset-prefix: '02'
-          # macOS Intel
-          - platform: 'macos-13'
+          # macOS Intel (cross-compile on Apple Silicon runner)
+          # macos-13 runners are scarce; macos-14 (M1+) can cross-compile
+          # x86_64-apple-darwin reliably with Rust's --target flag.
+          - platform: 'macos-14'
             build-args: ''
             target: x86_64-apple-darwin
             asset-prefix: '02_intel'
