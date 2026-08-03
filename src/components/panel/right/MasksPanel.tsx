@@ -866,7 +866,9 @@ export default function MasksPanel() {
     if (type === Mask.Brush || type === Mask.Flow) selectBrushToolForNewMask();
     const feature = maskTypeToFeature(type);
     if (feature && !isFeatureReady(feature)) {
-      toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+      toast.info(
+        t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }),
+      );
       return;
     }
     if (type === Mask.AiForeground) handleGenerateAiForegroundMask(subMask.id);
@@ -903,7 +905,9 @@ export default function MasksPanel() {
     if (type === Mask.Brush || type === Mask.Flow) selectBrushToolForNewMask();
     const feature = maskTypeToFeature(type);
     if (feature && !isFeatureReady(feature)) {
-      toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+      toast.info(
+        t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }),
+      );
       return;
     }
     if (type === Mask.AiForeground) handleGenerateAiForegroundMask(subMask.id);

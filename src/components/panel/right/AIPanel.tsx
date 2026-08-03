@@ -344,10 +344,7 @@ const DeviceModelStatus = () => {
         )}
       </div>
       <div className="w-full bg-bg-tertiary rounded-full h-1 border border-border-color mb-2">
-        <div
-          className="bg-accent h-1 rounded-full transition-all duration-500"
-          style={{ width: `${percent}%` }}
-        />
+        <div className="bg-accent h-1 rounded-full transition-all duration-500" style={{ width: `${percent}%` }} />
       </div>
       <div className="flex flex-wrap gap-1">
         {featureChips.map((chip) => {
@@ -575,7 +572,9 @@ export default function AIPanel() {
   const onGenerativeReplaceWithModelCheck = useCallback(
     (containerId: string, prompt: string, useFastInpaint: boolean) => {
       if (useFastInpaint && !isFeatureReady('inpaint')) {
-        toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+        toast.info(
+          t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }),
+        );
         return;
       }
       handleGenerativeReplace(containerId, prompt, useFastInpaint);

@@ -296,7 +296,15 @@ export function useImageProcessing(
         }
       }
     },
-    [selectedImage?.path, calculateROI, isWaveformVisible, setEditor, previewJobIdRef, latestRenderedJobIdRef, isAndroid],
+    [
+      selectedImage?.path,
+      calculateROI,
+      isWaveformVisible,
+      setEditor,
+      previewJobIdRef,
+      latestRenderedJobIdRef,
+      isAndroid,
+    ],
   );
 
   const flushPipelineRetryTimerRef = useRef<number | null>(null);
@@ -711,7 +719,11 @@ export function useImageProcessing(
           // platform limitation, not a regression — report as informational
           // (ok: true) so the self-test overall status is not misleadingly
           // marked as failed for an expected condition.
-          mark('gpu_pipeline_invoke', true, 'GPU adjustment pipeline disabled on Android (by design); main pipeline in use');
+          mark(
+            'gpu_pipeline_invoke',
+            true,
+            'GPU adjustment pipeline disabled on Android (by design); main pipeline in use',
+          );
         } else {
           mark('gpu_pipeline_invoke', false, 'GPU pipeline not ready (check GPU driver / compatibility)');
         }

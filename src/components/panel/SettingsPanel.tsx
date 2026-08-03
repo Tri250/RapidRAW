@@ -1681,38 +1681,38 @@ export default function SettingsPanel({
                 </div>
 
                 {!isDeviceSide && (
-                <div className="p-6 bg-surface rounded-xl shadow-md">
-                  <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
-                    {t('settings.gpu.title', { defaultValue: 'GPU 加速与色彩科学' })}
-                  </Text>
-                  <Text className="mb-4">
-                    {t('settings.gpu.description', {
-                      defaultValue:
-                        '检测轻量 GPU 调整管线与 ACES 色彩科学工具的可用性。这些工具作为主管线的补充，用于一次性快速预览与色空间转换。',
-                    })}
-                  </Text>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between gap-4 p-4 bg-bg-primary rounded-lg border border-border-color">
-                      <div className="min-w-0">
-                        <Text variant={TextVariants.heading} className="mb-1">
-                          {t('settings.gpu.pipelineStatus', { defaultValue: 'GPU 调整管线状态' })}
-                        </Text>
-                        <Text variant={TextVariants.small} color={TextColors.secondary}>
-                          {t('settings.gpu.pipelineStatusDesc', {
-                            defaultValue: '检测轻量计算管线是否可在当前 GPU 上初始化。',
-                          })}
-                        </Text>
-                      </div>
-                      <GpuPipelineProbe isAndroid={isDeviceSide} />
-                    </div>
-                    <div className="text-xs text-text-secondary/70 leading-relaxed">
-                      {t('settings.gpu.acesNote', {
+                  <div className="p-6 bg-surface rounded-xl shadow-md">
+                    <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
+                      {t('settings.gpu.title', { defaultValue: 'GPU 加速与色彩科学' })}
+                    </Text>
+                    <Text className="mb-4">
+                      {t('settings.gpu.description', {
                         defaultValue:
-                          '注：ACES 色彩科学命令（color_convert_space / color_apply_aces_output / color_apply_aces_fitted 等）已注册到后端，可通过 useGpuPipeline hook 在自定义工作流中调用。',
+                          '检测轻量 GPU 调整管线与 ACES 色彩科学工具的可用性。这些工具作为主管线的补充，用于一次性快速预览与色空间转换。',
                       })}
+                    </Text>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between gap-4 p-4 bg-bg-primary rounded-lg border border-border-color">
+                        <div className="min-w-0">
+                          <Text variant={TextVariants.heading} className="mb-1">
+                            {t('settings.gpu.pipelineStatus', { defaultValue: 'GPU 调整管线状态' })}
+                          </Text>
+                          <Text variant={TextVariants.small} color={TextColors.secondary}>
+                            {t('settings.gpu.pipelineStatusDesc', {
+                              defaultValue: '检测轻量计算管线是否可在当前 GPU 上初始化。',
+                            })}
+                          </Text>
+                        </div>
+                        <GpuPipelineProbe isAndroid={isDeviceSide} />
+                      </div>
+                      <div className="text-xs text-text-secondary/70 leading-relaxed">
+                        {t('settings.gpu.acesNote', {
+                          defaultValue:
+                            '注：ACES 色彩科学命令（color_convert_space / color_apply_aces_output / color_apply_aces_fitted 等）已注册到后端，可通过 useGpuPipeline hook 在自定义工作流中调用。',
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
                 )}
 
                 <div className="p-6 bg-surface rounded-xl shadow-md">
