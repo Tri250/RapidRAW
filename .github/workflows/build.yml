@@ -124,10 +124,12 @@ jobs:
           ndk-version: r27c
           link-to-sdk: true
 
-      # Download ONNX Runtime Android native library for APK packaging.
+      # Download ONNX Runtime Android native library for ort-sys build script.
       # ort-sys 2.0.0-rc.10 uses ORT 1.22.0 but its dist.txt has no Android
-      # target, so we must manually provide libonnxruntime.so for the
-      # load-dynamic runtime to dlopen it.
+      # target. The onnxruntime-android Maven AAR is added as a Gradle dep
+      # (see build.gradle.kts) which packages the .so into the APK at build
+      # time.  Here we also extract a copy for ORT_LIB_LOCATION so the Rust
+      # ort-sys build script (manual strategy) can find the library.
       - name: Download ONNX Runtime Android library
         if: inputs.mobile == 'android'
         shell: bash
@@ -142,20 +144,18 @@ jobs:
             x86_64-linux-android) abi="x86_64" ;;
             *) abi="arm64-v8a" ;;
           esac
-          echo "Downloading ONNX Runtime ${ORT_VERSION} for Android ${abi}"
-          ORT_ZIP="${{ runner.temp }}/onnxruntime-android-${ORT_VERSION}.zip"
-          curl -fSL -o "$ORT_ZIP" \
-            "https://github.com/microsoft/onnxruntime/releases/download/v${ORT_VERSION}/onnxruntime-android-${ORT_VERSION}.zip"
-          # Extract the .so for the target ABI into jniLibs so the Android
-          # Gradle plugin packages it into the APK automatically.
-          JNI_DIR="src-tauri/gen/android/app/src/main/jniLibs/${abi}"
-          mkdir -p "$JNI_DIR"
-          unzip -jo "$ORT_ZIP" "libs/${abi}/libonnxruntime.so" -d "$JNI_DIR"
-          ls -lh "$JNI_DIR/libonnxruntime.so"
-          # Also populate ORT_LIB_LOCATION for the ort-sys build script
+          echo "Downloading ONNX Runtime ${ORT_VERSION} Android AAR for ${abi}"
+          ORT_AAR="${{ runner.temp }}/onnxruntime-android-${ORT_VERSION}.aar"
+          curl -fSL -o "$ORT_AAR" \
+            "https://repo1.maven.org/maven2/com/microsoft/onnxruntime/onnxruntime-android/${ORT_VERSION}/onnxruntime-android-${ORT_VERSION}.aar"
+          # Extract the .so for the target ABI into ORT_LIB_LOCATION
           ORT_LIB_DIR="${{ github.workspace }}/src-tauri/libs/${abi}"
           mkdir -p "$ORT_LIB_DIR"
-          cp "$JNI_DIR/libonnxruntime.so" "$ORT_LIB_DIR/"
+          # AAR is a ZIP; native libs are under jni/${abi}/
+          unzip -jo "$ORT_AAR" "jni/${abi}/libonnxruntime.so" -d "$ORT_LIB_DIR" || \
+            unzip -jo "$ORT_AAR" "libs/${abi}/libonnxruntime.so" -d "$ORT_LIB_DIR" || \
+            { echo "::error::Could not find libonnxruntime.so in AAR for ${abi}"; exit 1; }
+          ls -lh "$ORT_LIB_DIR/libonnxruntime.so"
           echo "ORT_LIB_LOCATION=${ORT_LIB_DIR}" >> "$GITHUB_ENV"
 
       - name: Install frontend dependencies

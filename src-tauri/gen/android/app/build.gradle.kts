@@ -96,6 +96,10 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.10.1")
     implementation("com.google.android.material:material:1.12.0")
     implementation("rustls:rustls-platform-verifier:0.1.1")
+    // ONNX Runtime Android native library (ort-sys 2.0.0-rc.10 = ORT 1.22.0).
+    // Provides libonnxruntime.so for arm64-v8a which the ort Rust crate
+    // loads at runtime via dlopen (load-dynamic feature).
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.22.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.4")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")
