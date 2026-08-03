@@ -18,16 +18,17 @@
 
 # === ONNX Runtime Rules ===
 -keep class ai.onnxruntime.** { *; }
+-keep class com.microsoft.onnxruntime.** { *; }
+-dontwarn ai.onnxruntime.**
+-dontwarn com.microsoft.onnxruntime.**
 -keep class org.bytedeco.** { *; }
+-dontwarn org.bytedeco.**
 
 # === Tokenizers (used by CLIP model) ===
 -keep class com.tokenizers.** { *; }
 
 # === NDK Context (Rust-JNI bridge) ===
 -keep class android.app.NativeActivity { *; }
--keepclasswithmembernames class * {
-    native <methods>;
-}
 
 # === AndroidX Rules ===
 -keep class androidx.core.content.FileProvider { *; }
