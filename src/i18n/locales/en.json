@@ -412,11 +412,11 @@
         "invertSelection": "Invert Selection",
         "placeholder": "e.g., a field of flowers",
         "quickEraseDesc": "Fill selection to remove the object.",
-        "quickEraseFailed": "Quick Erase failed",
-        "quickEraseTimeout": "Quick Erase timed out. Please check your network or try again.",
         "selectionPropertiesTitle": "Selection Properties",
         "useBasicInpaint": "Use basic inpainting"
       },
+      "quickEraseFailed": "Quick Erase failed",
+      "quickEraseTimeout": "Quick Erase timed out. Please check your network or try again.",
       "skyReplace": "Sky Replace",
       "skyReplaceTooltip": "AI Sky Replace",
       "superResolution": "Super Resolution",
@@ -502,6 +502,10 @@
         "sky": "Sky",
         "subject": "Subject",
         "depth": "Depth"
+      },
+      "errorHint": {
+        "downloadFailed": "Model download failed. Please check your network or configure a mirror URL in Settings > AI Settings (hf-mirror.com recommended).",
+        "oom": "Device memory insufficient. Try lowering the max processing resolution in Settings > Performance."
       }
     },
     "aiRating": {

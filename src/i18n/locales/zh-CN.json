@@ -1,4 +1,13 @@
 {
+  "androidShare": {
+    "cancel": "取消",
+    "more": "更多",
+    "qq": "QQ",
+    "systemShareTitle": "分享图片",
+    "titleDefault": "分享到",
+    "wechat": "微信",
+    "weibo": "微博"
+  },
   "adjustments": {
     "basic": {
       "blacks": "黑色",
@@ -401,11 +410,11 @@
         "invertSelection": "反转选区",
         "placeholder": "例如，一片花海",
         "quickEraseDesc": "填充选区以移除对象。",
-        "quickEraseFailed": "快速橡皮擦失败",
-        "quickEraseTimeout": "快速橡皮擦处理超时，请检查网络或稍后重试。",
         "selectionPropertiesTitle": "选区属性",
         "useBasicInpaint": "使用基础图像修复"
       },
+      "quickEraseFailed": "快速橡皮擦失败",
+      "quickEraseTimeout": "快速橡皮擦处理超时，请检查网络或稍后重试。",
       "skyReplace": "天空替换",
       "skyReplaceTooltip": "AI 自动替换天空",
       "superResolution": "超分辨率",
@@ -491,6 +500,10 @@
         "sky": "天空",
         "subject": "主体",
         "depth": "深度"
+      },
+      "errorHint": {
+        "downloadFailed": "模型下载失败，请检查网络连接或前往「设置-通用-AI设置」配置模型镜像地址（推荐 hf-mirror.com）",
+        "oom": "设备内存不足，请尝试降低「设置-性能」中的最大处理分辨率"
       }
     },
     "aiRating": {
@@ -1258,9 +1271,9 @@
       "headerDesc": "发现社区创建的预设。",
       "headerTitle": "社区预设",
       "noPresets": "暂无社区预设",
-      "noPreview": "",
+      "noPreview": "暂无预览",
       "presetBy": "作者 {{creator}}",
-      "presetCount": "",
+      "presetCount": "个预设",
       "refresh": "刷新样张",
       "retry": "重试",
       "searchPlaceholder": "搜索预设...",
@@ -1777,7 +1790,7 @@
       "cancel": "取消",
       "fileNamingTemplate": "文件命名模板",
       "newName": "新名称",
-      "overwriteWarning": "",
+      "overwriteWarning": "已存在同名文件，保存将覆盖现有文件。",
       "save": "保存",
       "titleMultiple": "重命名 {{count}} 张图像",
       "titleMultiple_one": "重命名 {{count}} 张图像",
@@ -1821,30 +1834,30 @@
     }
   },
   "presetGallery": {
-    "add": "",
-    "addSource": "",
-    "addSourcePlaceholder": "",
-    "addSourceRejected": "",
-    "backToLibrary": "",
-    "download": "",
-    "downloaded": "",
-    "downloadFailed": "",
-    "downloading": "",
-    "imageLoadFailed": "",
-    "images": "",
-    "noPresets": "",
-    "noSources": "",
-    "noSourcesDesc": "",
-    "presets": "",
-    "refresh": "",
-    "refreshAll": "",
-    "removeSource": "",
-    "retry": "",
-    "saved": "",
-    "saveToPreview": "",
-    "showDetails": "",
-    "title": "",
-    "viewGallery": ""
+    "add": "添加",
+    "addSource": "添加数据源",
+    "addSourcePlaceholder": "输入 JSON 链接地址...",
+    "addSourceRejected": "仅支持来自受信任域名（github.com、jsdelivr.net、getrapidraw.com 等）的 HTTPS 数据源。",
+    "backToLibrary": "返回图库",
+    "download": "保存到本地预设",
+    "downloaded": "已保存到社区文件夹",
+    "downloadFailed": "保存失败",
+    "downloading": "保存中…",
+    "imageLoadFailed": "图像加载失败",
+    "images": "图片",
+    "noPresets": "暂无预设数据",
+    "noSources": "暂无在线预设数据源",
+    "noSourcesDesc": "点击「添加数据源」添加 JSON 链接",
+    "presets": "预设",
+    "refresh": "刷新",
+    "refreshAll": "刷新所有数据源",
+    "removeSource": "移除",
+    "retry": "重试",
+    "saved": "已保存",
+    "saveToPreview": "保存到预览",
+    "showDetails": "查看详情",
+    "title": "在线预设",
+    "viewGallery": "查看画廊"
   },
   "settings": {
     "adjustments": {
@@ -1864,9 +1877,9 @@
       "shortcuts": "控制"
     },
     "contact": {
-      "description": "",
-      "heading": "",
-      "title": ""
+      "description": "在抖音/小红书搜索「带娃的小陈工」",
+      "heading": "有问题或建议？",
+      "title": "联系作者"
     },
     "controls": {
       "keyboardTitle": "键盘控制",
@@ -2235,15 +2248,15 @@
     "thanks": {
       "description": "热爱摄影的开发者，为摄影爱好者打造专业工具。我只是「带娃的小陈工」，一名热爱摄影的开发者。",
       "list": {
-        "darktable": "",
-        "depth": "",
-        "lama": "",
-        "lensfun": "",
-        "negpy": "",
-        "nind": "",
-        "rawler": "",
-        "sam2": "",
-        "u2net": "",
+        "darktable": "为部分参考实现提供了指导。",
+        "depth": "提供强大的单目深度估计模型，支撑 AI 深度蒙版能力。",
+        "lama": "提供强大且简洁的图像修复模型，支持内容感知填充和物体移除。",
+        "lensfun": "提供宝贵的开源库和全面的镜头校正数据库。",
+        "negpy": "为负片转换逻辑提供灵感。",
+        "nind": "提供 AI 降噪模型，支撑 RapidRAW 的 AI 降噪能力。",
+        "rawler": "提供优秀的 Rust 库，为 RAW 文件处理奠定基础。",
+        "sam2": "提供基础模型，用于 AI 主体检测能力。",
+        "u2net": "提供鲁棒的架构，用于 AI 天空和前景检测能力。",
         "you": "感谢您使用和支持 RapidRAW。您的关注使本项目持续发展。",
         "youLabel": "您"
       },
