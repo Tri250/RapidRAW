@@ -437,6 +437,22 @@
         "skyReplace": "AI Sky Replace timed out. Please check your network and try again.",
         "subjectMask": "AI Subject Mask timed out. Please check your network and try again.",
         "superResolution": "Super Resolution timed out. Please check your network and try again."
+      },
+      "skyMask": {
+        "noSky": "No sky detected in image",
+        "failed": "AI Sky Mask failed"
+      },
+      "subjectMask": {
+        "noSubject": "No subject detected in image",
+        "failed": "AI Subject Mask failed"
+      },
+      "skyReplace": {
+        "completed": "AI Sky Replace completed",
+        "failed": "AI Sky Replace failed"
+      },
+      "bgRemove": {
+        "completed": "AI Background Remove completed",
+        "failed": "AI Background Remove failed"
       }
     },
     "aiRating": {

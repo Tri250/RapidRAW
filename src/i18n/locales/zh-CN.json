@@ -426,6 +426,22 @@
         "skyReplace": "AI 天空替换超时，请检查网络后重试。",
         "subjectMask": "AI 主体蒙版超时，请检查网络后重试。",
         "superResolution": "超分辨率处理超时，请检查网络后重试。"
+      },
+      "skyMask": {
+        "noSky": "未检测到天空",
+        "failed": "AI天空识别失败"
+      },
+      "subjectMask": {
+        "noSubject": "未检测到主体",
+        "failed": "AI主体识别失败"
+      },
+      "skyReplace": {
+        "completed": "AI天空替换完成",
+        "failed": "AI天空替换失败"
+      },
+      "bgRemove": {
+        "completed": "AI背景移除完成",
+        "failed": "AI背景移除失败"
       }
     },
     "aiRating": {

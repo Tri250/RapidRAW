@@ -581,6 +581,20 @@ export function useAiMasking() {
       const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path) return;
 
+      // Check if SAM models are ready before proceeding (device-side).
+      const aiProvider = useSettingsStore.getState().appSettings?.aiProvider || 'cpu';
+      if (aiProvider === 'cpu') {
+        try {
+          const entries = await invoke<Array<{ id: string; filePresent: boolean }>>('get_ai_model_status');
+          const samReady = entries.some((e) => e.id === 'samEncoder' && e.filePresent) &&
+                          entries.some((e) => e.id === 'samDecoder' && e.filePresent);
+          if (!samReady) {
+            toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+            return;
+          }
+        } catch { /* proceed anyway */ }
+      }
+
       maskAbortRef.current?.abort();
       const maskAbort = new AbortController();
       maskAbortRef.current = maskAbort;
@@ -618,7 +632,7 @@ export function useAiMasking() {
         const newParameters = normalizeMaskData(rawNewParameters);
 
         if (!newParameters.mask_data_base64) {
-          toast.error('AI Subject Mask: No subject detected in image');
+          toast.error(t('editor.ai.subjectMask.noSubject', { defaultValue: 'No subject detected in image' }));
           return;
         }
 
@@ -635,7 +649,7 @@ export function useAiMasking() {
           return;
         }
         patchesSentToBackend.delete(subMaskId);
-        toast.error(formatAiError('AI 主体识别失败', error));
+        toast.error(formatAiError(t('editor.ai.subjectMask.failed', { defaultValue: 'AI Subject Mask failed' }), error));
       } finally {
         clearTimeout(maskTimeout);
         if (maskAbortRef.current === maskAbort) {
@@ -773,6 +787,19 @@ export function useAiMasking() {
       const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path) return;
 
+      // Check if skySeg model is ready before proceeding (device-side).
+      const aiProvider = useSettingsStore.getState().appSettings?.aiProvider || 'cpu';
+      if (aiProvider === 'cpu') {
+        try {
+          const entries = await invoke<Array<{ id: string; filePresent: boolean }>>('get_ai_model_status');
+          const skySegReady = entries.some((e) => e.id === 'skySeg' && e.filePresent);
+          if (!skySegReady) {
+            toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+            return;
+          }
+        } catch { /* proceed anyway */ }
+      }
+
       maskAbortRef.current?.abort();
       const maskAbort = new AbortController();
       maskAbortRef.current = maskAbort;
@@ -798,7 +825,7 @@ export function useAiMasking() {
         const newParameters = normalizeMaskData(rawNewParameters);
 
         if (!newParameters.mask_data_base64) {
-          toast.error('AI Sky Mask: No sky detected in image');
+          toast.error(t('editor.ai.skyMask.noSky', { defaultValue: 'No sky detected in image' }));
           return;
         }
 
@@ -815,7 +842,7 @@ export function useAiMasking() {
           return;
         }
         patchesSentToBackend.delete(subMaskId);
-        toast.error(formatAiError('AI 天空识别失败', error));
+        toast.error(formatAiError(t('editor.ai.skyMask.failed', { defaultValue: 'AI Sky Mask failed' }), error));
       } finally {
         clearTimeout(maskTimeout);
         if (maskAbortRef.current === maskAbort) {
@@ -1202,6 +1229,19 @@ export function useAiMasking() {
       const { selectedImage, adjustments, isGeneratingAi } = useEditorStore.getState();
       if (!selectedImage?.path || isGeneratingAi) return null;
 
+      // Check if skySeg model is ready before proceeding (device-side).
+      const aiProvider = useSettingsStore.getState().appSettings?.aiProvider || 'cpu';
+      if (aiProvider === 'cpu') {
+        try {
+          const entries = await invoke<Array<{ id: string; filePresent: boolean }>>('get_ai_model_status');
+          const skySegReady = entries.some((e) => e.id === 'skySeg' && e.filePresent);
+          if (!skySegReady) {
+            toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+            return null;
+          }
+        } catch { /* proceed anyway */ }
+      }
+
       // Cancel any previous generative AI request and set up timeout.
       generativeAbortRef.current?.abort();
       const genAbort = new AbortController();
@@ -1239,11 +1279,11 @@ export function useAiMasking() {
           return { finalPreviewUrl: url };
         });
 
-        toast.success('AI Sky Replace completed');
+        toast.success(t('editor.ai.skyReplace.completed', { defaultValue: 'AI Sky Replace completed' }));
         return url;
       } catch (error) {
         if (genAbort.signal.aborted) return null;
-        toast.error(formatAiError('AI 天空替换失败', error));
+        toast.error(formatAiError(t('editor.ai.skyReplace.failed', { defaultValue: 'AI Sky Replace failed' }), error));
         return null;
       } finally {
         clearTimeout(genTimeout);
@@ -1258,6 +1298,19 @@ export function useAiMasking() {
   const handleGenerateAiBackgroundRemove = useCallback(async (): Promise<string | null> => {
     const { selectedImage, adjustments, isGeneratingAi } = useEditorStore.getState();
     if (!selectedImage?.path || isGeneratingAi) return null;
+
+    // Check if u2net model is ready before proceeding (device-side).
+    const aiProvider = useSettingsStore.getState().appSettings?.aiProvider || 'cpu';
+    if (aiProvider === 'cpu') {
+      try {
+        const entries = await invoke<Array<{ id: string; filePresent: boolean }>>('get_ai_model_status');
+        const u2netReady = entries.some((e) => e.id === 'u2net' && e.filePresent);
+        if (!u2netReady) {
+          toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+          return null;
+        }
+      } catch { /* proceed anyway */ }
+    }
 
     // Cancel any previous generative AI request and set up timeout.
     generativeAbortRef.current?.abort();
@@ -1294,11 +1347,11 @@ export function useAiMasking() {
         return { finalPreviewUrl: url };
       });
 
-      toast.success('AI Background Remove completed');
+      toast.success(t('editor.ai.bgRemove.completed', { defaultValue: 'AI Background Remove completed' }));
       return url;
     } catch (error) {
       if (genAbort.signal.aborted) return null;
-      toast.error(formatAiError('AI 背景移除失败', error));
+      toast.error(formatAiError(t('editor.ai.bgRemove.failed', { defaultValue: 'AI Background Remove failed' }), error));
       return null;
     } finally {
       clearTimeout(genTimeout);
