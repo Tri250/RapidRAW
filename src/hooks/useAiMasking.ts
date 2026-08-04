@@ -199,7 +199,7 @@ export function useAiMasking() {
           }));
           return;
         }
-        toast.error(`Cleanup Failed: ${err.message || String(err)}`);
+        toast.error(formatAiError(t('editor.ai.cleanup.failed', { defaultValue: 'Cleanup failed' }), err));
         setAdjustments((prev: Adjustments) => ({
           ...prev,
           aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
@@ -293,7 +293,7 @@ export function useAiMasking() {
           return;
         }
         patchesSentToBackend.delete(patchId);
-        toast.error(formatAiError('AI 生成式替换失败', err));
+        toast.error(formatAiError(t('editor.ai.generativeReplace.failed', { defaultValue: 'Generative Replace failed' }), err));
         setAdjustments((prev: Adjustments) => ({
           ...prev,
           aiPatches: prev.aiPatches.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
@@ -534,7 +534,7 @@ export function useAiMasking() {
 
         const newParameters = normalizeMaskData(rawNewParameters);
         if (!newParameters.mask_data_base64) {
-          toast.error('AI Mask: No mask data generated');
+          toast.error(t('editor.ai.mask.noMaskData', { defaultValue: 'AI Mask: No mask data generated' }));
           return;
         }
 
@@ -551,7 +551,7 @@ export function useAiMasking() {
           return;
         }
         patchesSentToBackend.delete(subMaskId);
-        toast.error(formatAiError('AI 智能消除失败', error));
+        toast.error(formatAiError(t('editor.ai.mask.failed', { defaultValue: 'AI Mask failed' }), error));
       } finally {
         clearTimeout(maskTimeout);
         if (maskAbortRef.current === maskAbort) {
@@ -665,6 +665,19 @@ export function useAiMasking() {
       const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path) return;
 
+      // Check if depth model is ready before proceeding (device-side).
+      const aiProvider = useSettingsStore.getState().appSettings?.aiProvider || 'cpu';
+      if (aiProvider === 'cpu') {
+        try {
+          const entries = await invoke<Array<{ id: string; filePresent: boolean }>>('get_ai_model_status');
+          const depthReady = entries.some((e) => e.id === 'depth' && e.filePresent);
+          if (!depthReady) {
+            toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+            return;
+          }
+        } catch { /* proceed anyway */ }
+      }
+
       maskAbortRef.current?.abort();
       const maskAbort = new AbortController();
       maskAbortRef.current = maskAbort;
@@ -696,7 +709,7 @@ export function useAiMasking() {
         const newParameters = normalizeMaskData(rawNewParameters);
 
         if (!newParameters.mask_data_base64) {
-          toast.error('AI Depth Mask: No depth data generated');
+          toast.error(t('editor.ai.depthMask.noDepthData', { defaultValue: 'No depth data generated' }));
           return;
         }
 
@@ -713,7 +726,7 @@ export function useAiMasking() {
           return;
         }
         patchesSentToBackend.delete(subMaskId);
-        toast.error(formatAiError('AI 深度蒙版失败', error));
+        toast.error(formatAiError(t('editor.ai.depthMask.failed', { defaultValue: 'AI Depth Mask failed' }), error));
       } finally {
         clearTimeout(maskTimeout);
         if (maskAbortRef.current === maskAbort) {
@@ -728,6 +741,19 @@ export function useAiMasking() {
     async (subMaskId: string) => {
       const { selectedImage, adjustments, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path) return;
+
+      // Check if u2net model is ready before proceeding (device-side).
+      const aiProvider = useSettingsStore.getState().appSettings?.aiProvider || 'cpu';
+      if (aiProvider === 'cpu') {
+        try {
+          const entries = await invoke<Array<{ id: string; filePresent: boolean }>>('get_ai_model_status');
+          const u2netReady = entries.some((e) => e.id === 'u2net' && e.filePresent);
+          if (!u2netReady) {
+            toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+            return;
+          }
+        } catch { /* proceed anyway */ }
+      }
 
       maskAbortRef.current?.abort();
       const maskAbort = new AbortController();
@@ -754,7 +780,7 @@ export function useAiMasking() {
         const newParameters = normalizeMaskData(rawNewParameters);
 
         if (!newParameters.mask_data_base64) {
-          toast.error('AI Foreground Mask: No foreground detected in image');
+          toast.error(t('editor.ai.foregroundMask.noForeground', { defaultValue: 'No foreground detected in image' }));
           return;
         }
 
@@ -771,7 +797,7 @@ export function useAiMasking() {
           return;
         }
         patchesSentToBackend.delete(subMaskId);
-        toast.error(formatAiError('AI 前景分离失败', error));
+        toast.error(formatAiError(t('editor.ai.foregroundMask.failed', { defaultValue: 'AI Foreground Mask failed' }), error));
       } finally {
         clearTimeout(maskTimeout);
         if (maskAbortRef.current === maskAbort) {
@@ -857,7 +883,7 @@ export function useAiMasking() {
     async (scale: number = 2.0) => {
       const { selectedImage, originalSize } = useEditorStore.getState();
       if (!selectedImage?.path) {
-        toast.error('No image selected for super resolution');
+        toast.error(t('editor.ai.superResolution.noImage', { defaultValue: 'No image selected for super resolution' }));
         return;
       }
 
@@ -911,10 +937,15 @@ export function useAiMasking() {
           };
         });
 
-        toast.success(`Super resolution ${scale}x applied (${newWidth}×${newHeight})`);
+        toast.success(t('editor.ai.superResolution.applied', {
+          defaultValue: 'Super resolution {{scale}}x applied ({{width}}×{{height}})',
+          scale,
+          width: newWidth,
+          height: newHeight,
+        }));
       } catch (err: any) {
         if (genAbort.signal.aborted) return;
-        toast.error(formatAiError('超分辨率处理失败', err));
+        toast.error(formatAiError(t('editor.ai.superResolution.failed', { defaultValue: 'Super Resolution failed' }), err));
       } finally {
         clearTimeout(genTimeout);
         if (generativeAbortRef.current === genAbort) {
@@ -1012,7 +1043,7 @@ export function useAiMasking() {
         const newParameters = normalizeMaskData(rawNewParameters);
 
         if (!newParameters.mask_data_base64) {
-          toast.error('Color Range Mask: No matching colors found');
+          toast.error(t('editor.ai.colorRange.noMatch', { defaultValue: 'No matching colors found' }));
           return;
         }
 
@@ -1029,7 +1060,7 @@ export function useAiMasking() {
           return;
         }
         patchesSentToBackend.delete(subMaskId);
-        toast.error(`Color Range Mask Failed: ${error}`);
+        toast.error(formatAiError(t('editor.ai.colorRange.failed', { defaultValue: 'Color Range Mask failed' }), error));
       } finally {
         clearTimeout(maskTimeout);
         if (maskAbortRef.current === maskAbort) {
@@ -1078,7 +1109,7 @@ export function useAiMasking() {
         const newParameters = normalizeMaskData(rawNewParameters);
 
         if (!newParameters.mask_data_base64) {
-          toast.error('Luminance Range Mask: No matching luminance range found');
+          toast.error(t('editor.ai.luminanceRange.noMatch', { defaultValue: 'No matching luminance range found' }));
           return;
         }
 
@@ -1095,7 +1126,7 @@ export function useAiMasking() {
           return;
         }
         patchesSentToBackend.delete(subMaskId);
-        toast.error(`Luminance Range Mask Failed: ${error}`);
+        toast.error(formatAiError(t('editor.ai.luminanceRange.failed', { defaultValue: 'Luminance Range Mask failed' }), error));
       } finally {
         clearTimeout(maskTimeout);
         if (maskAbortRef.current === maskAbort) {
@@ -1148,7 +1179,7 @@ export function useAiMasking() {
           return;
         }
         patchesSentToBackend.delete(subMaskId);
-        toast.error(`Mask Feather Failed: ${error}`);
+        toast.error(formatAiError(t('editor.ai.feather.failed', { defaultValue: 'Mask Feather failed' }), error));
       } finally {
         clearTimeout(maskTimeout);
       }
@@ -1183,7 +1214,7 @@ export function useAiMasking() {
       return horizonAngle;
     } catch (error) {
       if (maskAbort.signal.aborted) return null;
-      toast.error(`Auto Straighten Failed: ${error}`);
+      toast.error(formatAiError(t('editor.ai.autoStraighten.failed', { defaultValue: 'Auto Straighten failed' }), error));
       return null;
     } finally {
       clearTimeout(maskTimeout);
@@ -1217,7 +1248,7 @@ export function useAiMasking() {
       return Array.isArray(lines) ? lines : null;
     } catch (error) {
       if (maskAbort.signal.aborted) return null;
-      toast.error(`Horizon Detection Failed: ${error}`);
+      toast.error(formatAiError(t('editor.ai.horizonDetect.failed', { defaultValue: 'Horizon Detection failed' }), error));
       return null;
     } finally {
       clearTimeout(maskTimeout);

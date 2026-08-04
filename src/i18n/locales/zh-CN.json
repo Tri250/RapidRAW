@@ -427,6 +427,18 @@
         "subjectMask": "AI 主体蒙版超时，请检查网络后重试。",
         "superResolution": "超分辨率处理超时，请检查网络后重试。"
       },
+      "mask": {
+        "noMaskData": "未生成蒙版数据",
+        "failed": "AI蒙版生成失败"
+      },
+      "depthMask": {
+        "noDepthData": "未生成深度数据",
+        "failed": "AI深度蒙版失败"
+      },
+      "foregroundMask": {
+        "noForeground": "未检测到前景",
+        "failed": "AI前景分离失败"
+      },
       "skyMask": {
         "noSky": "未检测到天空",
         "failed": "AI天空识别失败"
@@ -442,6 +454,43 @@
       "bgRemove": {
         "completed": "AI背景移除完成",
         "failed": "AI背景移除失败"
+      },
+      "cleanup": {
+        "failed": "清理操作失败"
+      },
+      "generativeReplace": {
+        "failed": "AI生成式替换失败"
+      },
+      "superResolution": {
+        "noImage": "未选择图像",
+        "applied": "超分辨率 {{scale}}x 已应用（{{width}}×{{height}}）",
+        "failed": "超分辨率处理失败"
+      },
+      "colorRange": {
+        "noMatch": "未找到匹配颜色",
+        "failed": "颜色范围蒙版失败"
+      },
+      "luminanceRange": {
+        "noMatch": "未找到匹配亮度范围",
+        "failed": "亮度范围蒙版失败"
+      },
+      "feather": {
+        "failed": "蒙版羽化失败"
+      },
+      "autoStraighten": {
+        "failed": "自动拉直失败"
+      },
+      "horizonDetect": {
+        "failed": "地平线检测失败"
+      },
+      "modelStatus": {
+        "waitForDownload": "AI模型正在下载中，请稍候…",
+        "downloading": "正在加载端侧模型（{{done}}/{{total}}）",
+        "partial": "端侧模型 {{done}}/{{total}} 已就绪",
+        "fg": "前景",
+        "sky": "天空",
+        "subject": "主体",
+        "depth": "深度"
       }
     },
     "aiRating": {

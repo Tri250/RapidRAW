@@ -438,6 +438,18 @@
         "subjectMask": "AI Subject Mask timed out. Please check your network and try again.",
         "superResolution": "Super Resolution timed out. Please check your network and try again."
       },
+      "mask": {
+        "noMaskData": "AI Mask: No mask data generated",
+        "failed": "AI Mask failed"
+      },
+      "depthMask": {
+        "noDepthData": "No depth data generated",
+        "failed": "AI Depth Mask failed"
+      },
+      "foregroundMask": {
+        "noForeground": "No foreground detected in image",
+        "failed": "AI Foreground Mask failed"
+      },
       "skyMask": {
         "noSky": "No sky detected in image",
         "failed": "AI Sky Mask failed"
@@ -453,6 +465,43 @@
       "bgRemove": {
         "completed": "AI Background Remove completed",
         "failed": "AI Background Remove failed"
+      },
+      "cleanup": {
+        "failed": "Cleanup failed"
+      },
+      "generativeReplace": {
+        "failed": "Generative Replace failed"
+      },
+      "superResolution": {
+        "noImage": "No image selected for super resolution",
+        "applied": "Super resolution {{scale}}x applied ({{width}}×{{height}})",
+        "failed": "Super Resolution failed"
+      },
+      "colorRange": {
+        "noMatch": "No matching colors found",
+        "failed": "Color Range Mask failed"
+      },
+      "luminanceRange": {
+        "noMatch": "No matching luminance range found",
+        "failed": "Luminance Range Mask failed"
+      },
+      "feather": {
+        "failed": "Mask Feather failed"
+      },
+      "autoStraighten": {
+        "failed": "Auto Straighten failed"
+      },
+      "horizonDetect": {
+        "failed": "Horizon Detection failed"
+      },
+      "modelStatus": {
+        "waitForDownload": "AI model is still downloading, please wait…",
+        "downloading": "Loading on-device models ({{done}}/{{total}})",
+        "partial": "On-device models {{done}}/{{total}} ready",
+        "fg": "FG",
+        "sky": "Sky",
+        "subject": "Subject",
+        "depth": "Depth"
       }
     },
     "aiRating": {

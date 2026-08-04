@@ -582,6 +582,26 @@ export default function AIPanel() {
     [handleGenerativeReplace, isFeatureReady, t],
   );
 
+  const handleSkyReplaceWithCheck = useCallback(() => {
+    if (!isFeatureReady('skyMask')) {
+      toast.info(
+        t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }),
+      );
+      return;
+    }
+    handleGenerateAiSkyReplace();
+  }, [isFeatureReady, handleGenerateAiSkyReplace, t]);
+
+  const handleBgRemoveWithCheck = useCallback(() => {
+    if (!isFeatureReady('foregroundMask')) {
+      toast.info(
+        t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }),
+      );
+      return;
+    }
+    handleGenerateAiBackgroundRemove();
+  }, [isFeatureReady, handleGenerateAiBackgroundRemove, t]);
+
   const handleToggleExpand = (id: string) => {
     setExpandedContainers((prev) => {
       const next = new Set(prev);
@@ -635,6 +655,34 @@ export default function AIPanel() {
   };
 
   const handleAddAiPatchContainer = (type: Mask) => {
+    // Pre-check model readiness before creating the container — if the required
+    // model isn't ready yet, show a hint and skip creation entirely so we don't
+    // leave orphan containers in the state.
+    if (type === Mask.AiForeground && !isFeatureReady('foregroundMask')) {
+      toast.info(
+        t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }),
+      );
+      return;
+    }
+    if (type === Mask.AiSubject && !isFeatureReady('subjectMask')) {
+      toast.info(
+        t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }),
+      );
+      return;
+    }
+    if (type === Mask.AiSky && !isFeatureReady('skyMask')) {
+      toast.info(
+        t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }),
+      );
+      return;
+    }
+    if (type === Mask.QuickEraser && !isFeatureReady('inpaint')) {
+      toast.info(
+        t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }),
+      );
+      return;
+    }
+
     const subMask = createMaskLogic(type);
 
     let name: string;
@@ -698,6 +746,26 @@ export default function AIPanel() {
     mode: SubMaskMode = SubMaskMode.Additive,
     insertIndex: number = -1,
   ) => {
+    // Pre-check model readiness before adding the sub-mask.
+    if (type === Mask.AiForeground && !isFeatureReady('foregroundMask')) {
+      toast.info(
+        t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }),
+      );
+      return;
+    }
+    if (type === Mask.AiSubject && !isFeatureReady('subjectMask')) {
+      toast.info(
+        t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }),
+      );
+      return;
+    }
+    if (type === Mask.AiSky && !isFeatureReady('skyMask')) {
+      toast.info(
+        t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }),
+      );
+      return;
+    }
+
     const subMask = createMaskLogic(type, mode);
     setAdjustments((prev: Adjustments) => ({
       ...prev,
@@ -1255,7 +1323,7 @@ export default function AIPanel() {
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           className={`bg-surface text-text-primary rounded-lg p-2 flex flex-col items-center justify-center gap-2 aspect-square transition-colors ${isGeneratingAi ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card-active active:bg-accent/20'}`}
-                          onClick={() => !isGeneratingAi && handleGenerateAiSkyReplace()}
+                          onClick={() => !isGeneratingAi && handleSkyReplaceWithCheck()}
                           disabled={isGeneratingAi}
                           data-tooltip={t('editor.ai.skyReplaceTooltip', { defaultValue: 'AI Sky Replace' })}
                         >
@@ -1266,7 +1334,7 @@ export default function AIPanel() {
                         </button>
                         <button
                           className={`bg-surface text-text-primary rounded-lg p-2 flex flex-col items-center justify-center gap-2 aspect-square transition-colors ${isGeneratingAi ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card-active active:bg-accent/20'}`}
-                          onClick={() => !isGeneratingAi && handleGenerateAiBackgroundRemove()}
+                          onClick={() => !isGeneratingAi && handleBgRemoveWithCheck()}
                           disabled={isGeneratingAi}
                           data-tooltip={t('editor.ai.bgRemoveTooltip', { defaultValue: 'AI Background Remove' })}
                         >
