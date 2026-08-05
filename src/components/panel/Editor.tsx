@@ -790,6 +790,10 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
       }
 
       if (e.pointerType === 'mouse') e.currentTarget.setPointerCapture(e.pointerId);
+      else if (e.pointerType === 'touch') {
+        // On Android/touch, also capture pointer for reliable pan/pinch tracking
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+      }
     },
     [isPanningDisabled],
   );

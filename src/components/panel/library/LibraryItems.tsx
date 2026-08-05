@@ -204,7 +204,11 @@ const ThumbnailComponent = ({
         onImageClick(path, e);
       }}
       onContextMenu={(e: any) => onContextMenu(e, path)}
-      onDoubleClick={() => onImageDoubleClick(path)}
+      onDoubleClick={() => {
+        // On Android, single click already enters the editor via onImageClick,
+        // so skip double-click to prevent duplicate navigation
+        if (!isAndroid) onImageDoubleClick(path);
+      }}
     >
       <div className="relative w-full flex-1 min-h-0 z-0 bg-surface">
         {layers.length > 0 && (
@@ -520,6 +524,8 @@ const ListItemComponent = ({
   const data = useProcessStore((s) => s.thumbnails[path]);
   const exifOverlay = useSettingsStore((s) => s.appSettings?.exifOverlay || ExifOverlay.Off);
 
+  const isAndroid = useSettingsStore((s) => s.osPlatform) === 'android';
+
   const [showPlaceholder, setShowPlaceholder] = useState(false);
   const [layers, setLayers] = useState<ImageLayer[]>([]);
 
@@ -654,7 +660,11 @@ const ListItemComponent = ({
         onImageClick(path, e);
       }}
       onContextMenu={(e: any) => onContextMenu(e, path)}
-      onDoubleClick={() => onImageDoubleClick(path)}
+      onDoubleClick={() => {
+        // On Android, single click already enters the editor via onImageClick,
+        // so skip double-click to prevent duplicate navigation
+        if (!isAndroid) onImageDoubleClick(path);
+      }}
     >
       <div
         style={{ width: getW('thumbnail') }}

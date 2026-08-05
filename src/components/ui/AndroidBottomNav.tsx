@@ -18,6 +18,7 @@ import { useUIStore } from '../../store/useUIStore';
 
 interface AndroidBottomNavProps {
   isAndroid: boolean;
+  onBackToLibrary?: () => void;
 }
 
 interface NavItem {
@@ -39,7 +40,7 @@ const navItems: NavItem[] = [
   { panel: Panel.Export, icon: FileInput, labelKey: 'editor.android.bottomNav.export' },
 ];
 
-export default function AndroidBottomNav({ isAndroid }: AndroidBottomNavProps) {
+export default function AndroidBottomNav({ isAndroid, onBackToLibrary }: AndroidBottomNavProps) {
   const { t } = useTranslation();
   const activeRightPanel = useUIStore((s) => s.activeRightPanel);
   const setRightPanel = useUIStore((s) => s.setRightPanel);
@@ -55,11 +56,15 @@ export default function AndroidBottomNav({ isAndroid }: AndroidBottomNavProps) {
             <button
               key={labelKey}
               className={clsx(
-                'flex flex-col items-center justify-center gap-0.5 px-2 py-1 rounded-md transition-colors flex-1 min-w-[64px]',
+                'flex flex-col items-center justify-center gap-0.5 px-2 py-1 rounded-md transition-colors flex-1 min-w-[56px] min-h-[44px]',
                 isActive ? 'text-accent' : 'text-text-secondary',
               )}
               onClick={() => {
                 if (panel === null) {
+                  // "Library" button: navigate back to library view
+                  if (onBackToLibrary) {
+                    onBackToLibrary();
+                  }
                   setRightPanel(null);
                 } else {
                   setRightPanel(activeRightPanel === panel ? null : panel);

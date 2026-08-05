@@ -22,8 +22,10 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
   const resetHistory = useEditorStore((s) => s.resetHistory);
   const setLibrary = useLibraryStore((s) => s.setLibrary);
   const appSettings = useSettingsStore((s) => s.appSettings);
+  const osPlatform = useSettingsStore((s) => s.osPlatform);
 
   const isWgpuActive = appSettings?.useWgpuRenderer !== false && selectedImage?.isReady && hasRenderedFirstFrame;
+  const isAndroid = osPlatform === 'android';
 
   useEffect(() => {
     if (selectedImage && !selectedImage.isReady && selectedImage.path) {
@@ -107,7 +109,8 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
 
           // Generate an initial CPU-based preview as fallback when wgpu is enabled.
           // This ensures the editor displays an image immediately, even if wgpu
-          // takes longer to initialize (common on Windows with some GPU drivers).
+          // takes longer to initialize (common on Windows with some GPU drivers,
+          // and on Android after low-memory recovery where the GPU context may be lost).
           if (appSettings?.useWgpuRenderer !== false) {
             try {
               const previewResult: ArrayBuffer | null = await invoke(Invokes.GeneratePreviewForPath, {
@@ -124,16 +127,22 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
                   if (!isEffectActive) {
                     // Effect was cancelled during invoke — revoke the blob to avoid leak
                     URL.revokeObjectURL(url);
-                  } else if (!useEditorStore.getState().hasRenderedFirstFrame) {
-                    setEditor((state) => {
-                      const prevUrl = state.finalPreviewUrl;
-                      if (prevUrl && prevUrl.startsWith('blob:')) {
-                        setTimeout(() => URL.revokeObjectURL(prevUrl), 100);
-                      }
-                      return { finalPreviewUrl: url };
-                    });
                   } else {
-                    URL.revokeObjectURL(url);
+                    const currentHasRenderedFirstFrame = useEditorStore.getState().hasRenderedFirstFrame;
+                    // On Android (or after low-memory recovery), always apply the CPU preview
+                    // as fallback because the WGPU surface may not be ready yet.
+                    // On desktop, only apply if the first wgpu frame hasn't rendered yet.
+                    if (!currentHasRenderedFirstFrame || isAndroid) {
+                      setEditor((state) => {
+                        const prevUrl = state.finalPreviewUrl;
+                        if (prevUrl && prevUrl.startsWith('blob:')) {
+                          setTimeout(() => URL.revokeObjectURL(prevUrl), 100);
+                        }
+                        return { finalPreviewUrl: url };
+                      });
+                    } else {
+                      URL.revokeObjectURL(url);
+                    }
                   }
                 }
               }
@@ -155,7 +164,25 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
           if (isEffectActive) {
             console.error('Failed to load image:', err);
             toast.error(`Failed to load image: ${err}`);
-            setEditor({ selectedImage: null });
+            // On Android, LoadImage may fail transiently (e.g., GPU context lost after
+            // low-memory recovery). Instead of kicking the user out of the editor,
+            // keep the selectedImage with its thumbnail as a displayable fallback
+            // and allow the user to stay in the editor. They can navigate back manually.
+            if (isAndroid && selectedImage?.thumbnailUrl) {
+              setEditor((state) => {
+                if (state.selectedImage && state.selectedImage.path === selectedImage.path) {
+                  return {
+                    selectedImage: {
+                      ...state.selectedImage,
+                      isReady: false,
+                    },
+                  };
+                }
+                return state;
+              });
+            } else {
+              setEditor({ selectedImage: null });
+            }
           }
         } finally {
           setLibrary({ isViewLoading: false });
@@ -179,6 +206,7 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
     selectedImage?.path,
     selectedImage?.isReady,
     appSettings?.editorPreviewResolution,
+    isAndroid,
     resetHistory,
     setEditor,
     setLibrary,

@@ -108,7 +108,19 @@ export function useAndroidBackHandler() {
         // TRIM_MEMORY_RUNNING_LOW or higher
         if (editor.finalPreviewUrl && typeof URL !== 'undefined' && URL.revokeObjectURL) {
           URL.revokeObjectURL(editor.finalPreviewUrl);
-          editor.setEditor({ finalPreviewUrl: null });
+          // Mark for re-generation: set isReady to false so preview gets regenerated when user returns
+          // Also reset hasRenderedFirstFrame so the CPU preview fallback works during re-load
+          editor.setEditor({
+            finalPreviewUrl: null,
+            hasRenderedFirstFrame: false,
+            selectedImage: editor.selectedImage ? { ...editor.selectedImage, isReady: false } : null,
+          });
+        } else if (editor.selectedImage?.isReady) {
+          // Even if no finalPreviewUrl to revoke, still mark for re-generation and reset wgpu state
+          editor.setEditor({
+            hasRenderedFirstFrame: false,
+            selectedImage: { ...editor.selectedImage, isReady: false },
+          });
         }
         if (editor.uncroppedAdjustedPreviewUrl && typeof URL !== 'undefined' && URL.revokeObjectURL) {
           URL.revokeObjectURL(editor.uncroppedAdjustedPreviewUrl);

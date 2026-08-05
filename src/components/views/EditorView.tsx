@@ -312,7 +312,7 @@ export default function EditorView({
       <div className={clsx('flex-1 flex flex-col min-w-0', isCompactPortrait && 'min-h-0')}>
         {editorNode}
         {!isCompactPortrait && editorBottomBarNode}
-        {isAndroid && <AndroidBottomNav isAndroid={isAndroid} />}
+        {isAndroid && <AndroidBottomNav isAndroid={isAndroid} onBackToLibrary={handleBackToLibrary} />}
       </div>
       <div
         className={clsx(
