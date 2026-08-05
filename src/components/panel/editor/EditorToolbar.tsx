@@ -414,6 +414,10 @@ const EditorToolbar = memo(
             )}
             onMouseEnter={() => setIsInfoHovered(true)}
             onMouseLeave={() => setIsInfoHovered(false)}
+            onClick={() => {
+              // On Android/touch, toggle the info panel on tap since hover is not available
+              if (isAndroid) setIsInfoHovered((prev) => !prev);
+            }}
             style={{
               top: '10px',
               transform: 'translateX(-50%)',

@@ -198,7 +198,10 @@ const ThumbnailComponent = ({
 
   return (
     <div
-      className="aspect-square bg-surface rounded-md overflow-hidden cursor-pointer group relative flex flex-col transition-all duration-150 transform-gpu [-webkit-mask-image:-webkit-radial-gradient(white,black)]"
+      className={clsx(
+        'aspect-square bg-surface rounded-md overflow-hidden cursor-pointer group relative flex flex-col transition-all duration-150 transform-gpu [-webkit-mask-image:-webkit-radial-gradient(white,black)]',
+        isAndroid && 'active:scale-[0.97] active:opacity-90',
+      )}
       onClick={(e: any) => {
         e.stopPropagation();
         onImageClick(path, e);
@@ -654,7 +657,11 @@ const ListItemComponent = ({
 
   return (
     <div
-      className={`flex items-center w-full h-full border-b border-border-color/30 cursor-pointer transition-colors duration-150 ${stateClass}`}
+      className={clsx(
+        'flex items-center w-full h-full border-b border-border-color/30 cursor-pointer transition-colors duration-150',
+        stateClass,
+        isAndroid && 'active:opacity-80',
+      )}
       onClick={(e: any) => {
         e.stopPropagation();
         onImageClick(path, e);

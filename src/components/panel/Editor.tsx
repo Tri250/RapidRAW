@@ -998,6 +998,9 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
 
   const hasDisplayableImage = finalPreviewUrl || selectedImage?.thumbnailUrl;
   const showSpinner = isLoading && !hasDisplayableImage;
+  // On Android, show a subtle loading overlay even when a thumbnail is available,
+  // so the user knows the full-resolution preview is still loading.
+  const showThumbnailLoadingOverlay = isAndroid && isLoading && hasDisplayableImage && !finalPreviewUrl;
 
   useLayoutEffect(() => {
     const container = imageContainerRef.current;
@@ -2072,6 +2075,14 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
             )}
           >
             <Loader2 size={48} className="animate-spin text-accent" />
+          </div>
+        )}
+
+        {/* Android: subtle loading indicator when thumbnail is shown but full preview is still loading */}
+        {showThumbnailLoadingOverlay && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 bg-black/50 rounded-full px-4 py-2 pointer-events-none">
+            <Loader2 size={16} className="animate-spin text-white/80" />
+            <span className="text-white/80 text-xs font-medium">Loading preview...</span>
           </div>
         )}
 

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { toast } from 'react-toastify';
 import { useUIStore } from '../store/useUIStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useEditorStore } from '../store/useEditorStore';
@@ -103,6 +104,7 @@ export function useAndroidBackHandler() {
     // Android low memory handler - release cached images and previews
     (window as any).__handleLowMemory = (level: number) => {
       const editor = useEditorStore.getState();
+      let didReleasePreviews = false;
       // Release cached preview URLs to free memory
       if (level >= 10) {
         // TRIM_MEMORY_RUNNING_LOW or higher
@@ -115,12 +117,14 @@ export function useAndroidBackHandler() {
             hasRenderedFirstFrame: false,
             selectedImage: editor.selectedImage ? { ...editor.selectedImage, isReady: false } : null,
           });
+          didReleasePreviews = true;
         } else if (editor.selectedImage?.isReady) {
           // Even if no finalPreviewUrl to revoke, still mark for re-generation and reset wgpu state
           editor.setEditor({
             hasRenderedFirstFrame: false,
             selectedImage: { ...editor.selectedImage, isReady: false },
           });
+          didReleasePreviews = true;
         }
         if (editor.uncroppedAdjustedPreviewUrl && typeof URL !== 'undefined' && URL.revokeObjectURL) {
           URL.revokeObjectURL(editor.uncroppedAdjustedPreviewUrl);
@@ -135,6 +139,10 @@ export function useAndroidBackHandler() {
       if (level >= 15) {
         // TRIM_MEMORY_RUNNING_CRITICAL
         editor.setEditor({ histogram: null, waveform: null });
+      }
+      // Show a brief toast so the user knows the preview will reload
+      if (didReleasePreviews && editor.selectedImage) {
+        toast.info('Reloading preview...', { autoClose: 2000, hideProgressBar: true });
       }
     };
 
