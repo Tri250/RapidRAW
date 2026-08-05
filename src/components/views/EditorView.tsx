@@ -354,7 +354,10 @@ export default function EditorView({
                 />
               </div>
             )}
-            <div className="shrink-0 border-t border-surface">{editorBottomBarComponent}</div>
+            {/* Hide BottomBar on Android when no panel is active to avoid visual duplication with AndroidBottomNav */}
+            {!(isAndroid && !activeRightPanel) && (
+              <div className="shrink-0 border-t border-surface">{editorBottomBarComponent}</div>
+            )}
           </>
         ) : (
           <SidePanelArea
