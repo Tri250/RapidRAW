@@ -1305,7 +1305,7 @@ export default function AIPanel() {
                           weight={TextWeights.medium}
                           className="mb-2 text-center"
                         >
-                          {t('editor.ai.superResolution')}
+                          {t('editor.ai.superResolutionLabel', { defaultValue: 'Super Resolution' })}
                         </Text>
                         <div className="grid grid-cols-3 gap-1.5">
                           {([2, 3, 4] as const).map((s) => (

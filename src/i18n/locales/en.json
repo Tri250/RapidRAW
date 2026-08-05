@@ -336,7 +336,10 @@
         "switchToSubtract": "Switch to Subtract"
       },
       "addNewEdit": "Add New Edit",
-      "bgRemove": "BG Remove",
+      "bgRemove": {
+        "completed": "AI Background Remove completed",
+        "failed": "AI Background Remove failed"
+      },
       "bgRemoveTooltip": "AI Background Remove",
       "brush": {
         "add": "Add",
@@ -417,9 +420,17 @@
       },
       "quickEraseFailed": "Quick Erase failed",
       "quickEraseTimeout": "Quick Erase timed out. Please check your network or try again.",
-      "skyReplace": "Sky Replace",
+      "skyReplace": {
+        "completed": "AI Sky Replace completed",
+        "failed": "AI Sky Replace failed"
+      },
       "skyReplaceTooltip": "AI Sky Replace",
-      "superResolution": "Super Resolution",
+      "superResolution": {
+        "noImage": "No image selected for super resolution",
+        "applied": "Super resolution {{scale}}x applied ({{width}}×{{height}})",
+        "failed": "Super Resolution failed"
+      },
+      "superResolutionLabel": "Super Resolution",
       "superResolutionTooltip": "Use AI super resolution to upscale image (2x/3x/4x)",
       "timeout": {
         "autoStraighten": "Auto Straighten timed out. Please try again.",
@@ -458,24 +469,11 @@
         "noSubject": "No subject detected in image",
         "failed": "AI Subject Mask failed"
       },
-      "skyReplace": {
-        "completed": "AI Sky Replace completed",
-        "failed": "AI Sky Replace failed"
-      },
-      "bgRemove": {
-        "completed": "AI Background Remove completed",
-        "failed": "AI Background Remove failed"
-      },
       "cleanup": {
         "failed": "Cleanup failed"
       },
       "generativeReplace": {
         "failed": "Generative Replace failed"
-      },
-      "superResolution": {
-        "noImage": "No image selected for super resolution",
-        "applied": "Super resolution {{scale}}x applied ({{width}}×{{height}})",
-        "failed": "Super Resolution failed"
       },
       "colorRange": {
         "noMatch": "No matching colors found",
@@ -1101,7 +1099,8 @@
         "inpaint": "AI",
         "masks": "Masks",
         "portrait": "Portrait",
-        "presets": "Presets"
+        "presets": "Presets",
+        "settings": "Settings"
       }
     },
     "toolbar": {
@@ -1118,6 +1117,9 @@
         "undo": "Undo (Ctrl+Z) or History (Right-click)"
       },
       "vc": "VC"
+    },
+    "layout": {
+      "split": "Split"
     }
   },
   "export": {
@@ -1354,7 +1356,8 @@
         "sortDescending": "Sort Descending",
         "thumbnailFit": "Thumbnail Fit",
         "thumbnailSize": "Thumbnail Size",
-        "title": "View Options"
+        "title": "View Options",
+        "culling": "Culling"
       }
     },
     "import": {
@@ -1472,6 +1475,31 @@
       "communityPresets": "Community Presets",
       "goHome": "Go to Home",
       "importImages": "Import Images"
+    },
+    "culling": {
+      "altThumbnailLoading": "Loading thumbnail...",
+      "altCullingPreviewHighRes": "High resolution preview",
+      "metadata": "Metadata",
+      "dimensions": "Dimensions",
+      "cameraSettings": "Camera Settings",
+      "shutterSpeed": "Shutter Speed",
+      "aperture": "Aperture",
+      "iso": "ISO",
+      "focalLength": "Focal Length",
+      "noMetadataAvailable": "No metadata available",
+      "rateAndLabel": "Rate & Label",
+      "rating": "Rating",
+      "colorLabel": "Color Label",
+      "none": "None",
+      "tags": "Tags",
+      "noTagsAdded": "No tags added",
+      "addTagPlaceholder": "Add tag...",
+      "vc": "VC",
+      "editImage": "Edit Image",
+      "syncZoomAndPan": "Sync Zoom & Pan",
+      "toggleFit": "Toggle Fit",
+      "selectImagesToCompare": "Select images to compare",
+      "clickThumbnailsHint": "Click thumbnails in the sidebar to select them for comparison"
     }
   },
   "masks": {

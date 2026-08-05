@@ -407,6 +407,7 @@
       "skyReplace": "",
       "skyReplaceTooltip": "",
       "superResolution": "",
+      "superResolutionLabel": "超解像度",
       "superResolutionTooltip": ""
     },
     "aiRating": {
@@ -802,7 +803,8 @@
         "inpaint": "AI",
         "masks": "マスク",
         "portrait": "ポートレート",
-        "presets": "プリセット"
+        "presets": "プリセット",
+        "settings": "設定"
       }
     },
     "toolbar": {
@@ -819,6 +821,9 @@
         "undo": "元に戻す (Ctrl+Z) または履歴 (右クリック)"
       },
       "vc": "仮想"
+    },
+    "layout": {
+      "split": "分割"
     }
   },
   "export": {
@@ -1048,7 +1053,8 @@
         "sortDescending": "降順で並べ替え",
         "thumbnailFit": "サムネイルのフィット",
         "thumbnailSize": "サムネイルサイズ",
-        "title": "表示オプション"
+        "title": "表示オプション",
+        "culling": "セレクト"
       }
     },
     "import": {
@@ -1151,6 +1157,31 @@
       "communityPresets": "コミュニティプリセット",
       "goHome": "ホームへ移動",
       "importImages": "画像をインポート"
+    },
+    "culling": {
+      "altThumbnailLoading": "サムネイルを読み込み中...",
+      "altCullingPreviewHighRes": "高解像度プレビュー",
+      "metadata": "メタデータ",
+      "dimensions": "サイズ",
+      "cameraSettings": "カメラ設定",
+      "shutterSpeed": "シャッタースピード",
+      "aperture": "絞り",
+      "iso": "ISO",
+      "focalLength": "焦点距離",
+      "noMetadataAvailable": "メタデータがありません",
+      "rateAndLabel": "評価とラベル",
+      "rating": "評価",
+      "colorLabel": "カラーラベル",
+      "none": "なし",
+      "tags": "タグ",
+      "noTagsAdded": "タグが追加されていません",
+      "addTagPlaceholder": "タグを追加...",
+      "vc": "VC",
+      "editImage": "画像を編集",
+      "syncZoomAndPan": "ズームとパンを同期",
+      "toggleFit": "フィット切替",
+      "selectImagesToCompare": "比較する画像を選択",
+      "clickThumbnailsHint": "サイドバーのサムネイルをクリックして比較用に選択します"
     }
   },
   "masks": {

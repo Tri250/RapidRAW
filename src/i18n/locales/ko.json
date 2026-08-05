@@ -407,6 +407,7 @@
       "skyReplace": "",
       "skyReplaceTooltip": "",
       "superResolution": "",
+      "superResolutionLabel": "슈퍼 해상도",
       "superResolutionTooltip": ""
     },
     "aiRating": {
@@ -802,7 +803,8 @@
         "inpaint": "AI",
         "masks": "마스크",
         "portrait": "인물",
-        "presets": "프리셋"
+        "presets": "프리셋",
+        "settings": "설정"
       }
     },
     "toolbar": {
@@ -819,6 +821,9 @@
         "undo": "실행 취소 (Ctrl+Z) 또는 기록 (우클릭)"
       },
       "vc": "VC"
+    },
+    "layout": {
+      "split": "분할"
     }
   },
   "export": {
@@ -1049,7 +1054,8 @@
         "sortDescending": "내림차순 정렬",
         "thumbnailFit": "썸네일 맞춤",
         "thumbnailSize": "썸네일 크기",
-        "title": "보기 옵션"
+        "title": "보기 옵션",
+        "culling": "선별"
       }
     },
     "import": {
@@ -1152,6 +1158,31 @@
       "communityPresets": "커뮤니티 프리셋",
       "goHome": "홈으로 이동",
       "importImages": "이미지 가져오기"
+    },
+    "culling": {
+      "altThumbnailLoading": "썸네일 로딩 중...",
+      "altCullingPreviewHighRes": "고해상도 미리보기",
+      "metadata": "메타데이터",
+      "dimensions": "크기",
+      "cameraSettings": "카메라 설정",
+      "shutterSpeed": "셔터 속도",
+      "aperture": "조리개",
+      "iso": "ISO",
+      "focalLength": "초점 거리",
+      "noMetadataAvailable": "사용 가능한 메타데이터가 없습니다",
+      "rateAndLabel": "평점 및 라벨",
+      "rating": "평점",
+      "colorLabel": "색상 라벨",
+      "none": "없음",
+      "tags": "태그",
+      "noTagsAdded": "추가된 태그가 없습니다",
+      "addTagPlaceholder": "태그 추가...",
+      "vc": "VC",
+      "editImage": "이미지 편집",
+      "syncZoomAndPan": "줌 및 이동 동기화",
+      "toggleFit": "맞춤 전환",
+      "selectImagesToCompare": "비교할 이미지 선택",
+      "clickThumbnailsHint": "비교를 위해 사이드바의 썸네일을 클릭하여 선택하세요"
     }
   },
   "masks": {

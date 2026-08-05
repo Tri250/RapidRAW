@@ -22,31 +22,27 @@ interface ProcessState {
   isPasted: boolean;
   initialFileToOpen: string | null;
   externalEditSession: ExternalEditSession | null;
+  previews: Record<string, { url: string; thumbKey: string; timestamp: number }>;
 
   setProcess: (state: Partial<ProcessState> | ((state: ProcessState) => Partial<ProcessState>)) => void;
   setExportState: (updater: Partial<ExportState> | ((state: ExportState) => Partial<ExportState>)) => void;
   setImportState: (updater: Partial<ImportState> | ((state: ImportState) => Partial<ImportState>)) => void;
+  setPreview: (path: string, url: string, thumbKey: string) => void;
+  clearPreviews: () => void;
 }
 
-let exportTimeout: ReturnType<typeof setTimeout> | undefined;
-let importTimeout: ReturnType<typeof setTimeout> | undefined;
-let copyTimeout: ReturnType<typeof setTimeout> | undefined;
-let pasteTimeout: ReturnType<typeof setTimeout> | undefined;
+let exportTimeout: ReturnType<typeof setTimeout>;
+let importTimeout: ReturnType<typeof setTimeout>;
+let copyTimeout: ReturnType<typeof setTimeout>;
+let pasteTimeout: ReturnType<typeof setTimeout>;
 
-let exportTimeoutValid = false;
-let importTimeoutValid = false;
-let copyTimeoutValid = false;
-let pasteTimeoutValid = false;
+const MAX_PREVIEW_CACHE_SIZE = 10;
 
 export function destroyTimeouts() {
   clearTimeout(exportTimeout);
   clearTimeout(importTimeout);
   clearTimeout(copyTimeout);
   clearTimeout(pasteTimeout);
-  exportTimeoutValid = false;
-  importTimeoutValid = false;
-  copyTimeoutValid = false;
-  pasteTimeoutValid = false;
 }
 
 export const useProcessStore = create<ProcessState>((set, get) => ({
@@ -62,6 +58,7 @@ export const useProcessStore = create<ProcessState>((set, get) => ({
   isPasted: false,
   initialFileToOpen: null,
   externalEditSession: null,
+  previews: {},
 
   setProcess: (updater) => {
     set((prev) => {
@@ -72,17 +69,11 @@ export const useProcessStore = create<ProcessState>((set, get) => ({
     const state = get();
     if (state.isCopied) {
       clearTimeout(copyTimeout);
-      copyTimeoutValid = true;
-      copyTimeout = setTimeout(() => {
-        if (copyTimeoutValid) set({ isCopied: false });
-      }, 1000);
+      copyTimeout = setTimeout(() => set({ isCopied: false }), 1000);
     }
     if (state.isPasted) {
       clearTimeout(pasteTimeout);
-      pasteTimeoutValid = true;
-      pasteTimeout = setTimeout(() => {
-        if (pasteTimeoutValid) set({ isPasted: false });
-      }, 1000);
+      pasteTimeout = setTimeout(() => set({ isPasted: false }), 1000);
     }
   },
 
@@ -94,12 +85,9 @@ export const useProcessStore = create<ProcessState>((set, get) => ({
     const status = get().exportState.status;
 
     clearTimeout(exportTimeout);
-    exportTimeoutValid = false;
 
     if ([Status.Success, Status.Error, Status.Cancelled].includes(status)) {
-      exportTimeoutValid = true;
       exportTimeout = setTimeout(() => {
-        if (!exportTimeoutValid) return;
         set((prev) => ({
           exportState: {
             ...prev.exportState,
@@ -120,12 +108,9 @@ export const useProcessStore = create<ProcessState>((set, get) => ({
     const status = get().importState.status;
 
     clearTimeout(importTimeout);
-    importTimeoutValid = false;
 
     if ([Status.Success, Status.Error, Status.Cancelled].includes(status)) {
-      importTimeoutValid = true;
       importTimeout = setTimeout(() => {
-        if (!importTimeoutValid) return;
         set((prev) => ({
           importState: {
             ...prev.importState,
@@ -136,5 +121,45 @@ export const useProcessStore = create<ProcessState>((set, get) => ({
         }));
       }, 5000);
     }
+  },
+
+  setPreview: (path, url, thumbKey) => {
+    set((state) => {
+      const newPreviews = { ...state.previews };
+
+      if (newPreviews[path] && newPreviews[path].url !== url) {
+        URL.revokeObjectURL(newPreviews[path].url);
+      }
+
+      newPreviews[path] = { url, thumbKey, timestamp: Date.now() };
+
+      const keys = Object.keys(newPreviews);
+      if (keys.length > MAX_PREVIEW_CACHE_SIZE) {
+        let oldestPath = keys[0];
+        let oldestTime = newPreviews[oldestPath].timestamp;
+
+        for (let i = 1; i < keys.length; i++) {
+          const key = keys[i];
+          if (newPreviews[key].timestamp < oldestTime) {
+            oldestTime = newPreviews[key].timestamp;
+            oldestPath = key;
+          }
+        }
+
+        if (oldestPath !== path) {
+          URL.revokeObjectURL(newPreviews[oldestPath].url);
+          delete newPreviews[oldestPath];
+        }
+      }
+
+      return { previews: newPreviews };
+    });
+  },
+
+  clearPreviews: () => {
+    set((state) => {
+      Object.values(state.previews).forEach((p) => URL.revokeObjectURL(p.url));
+      return { previews: {} };
+    });
   },
 }));

@@ -409,6 +409,7 @@
       "skyReplace": "",
       "skyReplaceTooltip": "",
       "superResolution": "",
+      "superResolutionLabel": "Super-Auflösung",
       "superResolutionTooltip": ""
     },
     "aiRating": {
@@ -806,7 +807,8 @@
         "inpaint": "AI",
         "masks": "Masken",
         "portrait": "Porträt",
-        "presets": "Vorgaben"
+        "presets": "Vorgaben",
+        "settings": "Einstellungen"
       }
     },
     "toolbar": {
@@ -823,6 +825,9 @@
         "undo": "Rückgängig (Strg+Z) oder Verlauf (Rechtsklick)"
       },
       "vc": "VK"
+    },
+    "layout": {
+      "split": "Teilen"
     }
   },
   "export": {
@@ -1054,7 +1059,8 @@
         "sortDescending": "Absteigend sortieren",
         "thumbnailFit": "Miniaturansicht Einpassen",
         "thumbnailSize": "Miniaturbildgröße",
-        "title": "Ansichtsoptionen"
+        "title": "Ansichtsoptionen",
+        "culling": "Auswahl"
       }
     },
     "import": {
@@ -1158,6 +1164,31 @@
       "communityPresets": "Community-Vorgaben",
       "goHome": "Zur Startseite",
       "importImages": "Bilder importieren"
+    },
+    "culling": {
+      "altThumbnailLoading": "Thumbnail wird geladen...",
+      "altCullingPreviewHighRes": "Hochauflösende Vorschau",
+      "metadata": "Metadaten",
+      "dimensions": "Abmessungen",
+      "cameraSettings": "Kameraeinstellungen",
+      "shutterSpeed": "Verschlusszeit",
+      "aperture": "Blende",
+      "iso": "ISO",
+      "focalLength": "Brennweite",
+      "noMetadataAvailable": "Keine Metadaten verfügbar",
+      "rateAndLabel": "Bewerten & Label",
+      "rating": "Bewertung",
+      "colorLabel": "Farblabel",
+      "none": "Keine",
+      "tags": "Tags",
+      "noTagsAdded": "Keine Tags hinzugefügt",
+      "addTagPlaceholder": "Tag hinzufügen...",
+      "vc": "VC",
+      "editImage": "Bild bearbeiten",
+      "syncZoomAndPan": "Zoom & Pan synchronisieren",
+      "toggleFit": "Anpassen umschalten",
+      "selectImagesToCompare": "Bilder zum Vergleichen auswählen",
+      "clickThumbnailsHint": "Klicken Sie auf Vorschaubilder in der Seitenleiste, um sie für den Vergleich auszuwählen"
     }
   },
   "masks": {

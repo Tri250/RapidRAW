@@ -671,6 +671,24 @@ export function ViewOptionsDropdown({
                   <Check size={16} className={TEXT_COLOR_KEYS[TextColors.primary]} />
                 )}
               </button>
+              <button
+                className={`w-full text-left px-3 py-2 rounded-md flex items-center justify-between transition-colors duration-150 ${
+                  libraryViewMode === LibraryViewMode.Culling ? 'bg-card-active' : 'hover:bg-bg-primary'
+                }`}
+                onClick={() => setLibraryViewMode(LibraryViewMode.Culling)}
+                role="menuitem"
+              >
+                <Text
+                  variant={TextVariants.label}
+                  color={TextColors.primary}
+                  weight={libraryViewMode === LibraryViewMode.Culling ? TextWeights.semibold : TextWeights.normal}
+                >
+                  {t('library.header.viewOptions.culling', { defaultValue: 'Culling' })}
+                </Text>
+                {libraryViewMode === LibraryViewMode.Culling && (
+                  <Check size={16} className={TEXT_COLOR_KEYS[TextColors.primary]} />
+                )}
+              </button>
             </>
           </div>
 

@@ -336,7 +336,10 @@
         "switchToSubtract": "切换到减去"
       },
       "addNewEdit": "添加新编辑",
-      "bgRemove": "背景移除",
+      "bgRemove": {
+        "completed": "AI背景移除完成",
+        "failed": "AI背景移除失败"
+      },
       "bgRemoveTooltip": "AI 自动移除背景",
       "brush": {
         "add": "添加",
@@ -415,9 +418,17 @@
       },
       "quickEraseFailed": "快速橡皮擦失败",
       "quickEraseTimeout": "快速橡皮擦处理超时，请检查网络或稍后重试。",
-      "skyReplace": "天空替换",
+      "skyReplace": {
+        "completed": "AI天空替换完成",
+        "failed": "AI天空替换失败"
+      },
       "skyReplaceTooltip": "AI 自动替换天空",
-      "superResolution": "超分辨率",
+      "superResolution": {
+        "noImage": "未选择图像",
+        "applied": "超分辨率 {{scale}}x 已应用（{{width}}×{{height}}）",
+        "failed": "超分辨率处理失败"
+      },
+      "superResolutionLabel": "超分辨率",
       "superResolutionTooltip": "使用 AI 超分辨率将图像放大（2x/3x/4x）",
       "timeout": {
         "autoStraighten": "自动拉直超时，请重试。",
@@ -456,24 +467,11 @@
         "noSubject": "未检测到主体",
         "failed": "AI主体识别失败"
       },
-      "skyReplace": {
-        "completed": "AI天空替换完成",
-        "failed": "AI天空替换失败"
-      },
-      "bgRemove": {
-        "completed": "AI背景移除完成",
-        "failed": "AI背景移除失败"
-      },
       "cleanup": {
         "failed": "清理操作失败"
       },
       "generativeReplace": {
         "failed": "AI生成式替换失败"
-      },
-      "superResolution": {
-        "noImage": "未选择图像",
-        "applied": "超分辨率 {{scale}}x 已应用（{{width}}×{{height}}）",
-        "failed": "超分辨率处理失败"
       },
       "colorRange": {
         "noMatch": "未找到匹配颜色",
@@ -1130,7 +1128,8 @@
         "inpaint": "AI",
         "masks": "蒙版",
         "portrait": "人像",
-        "presets": "预设"
+        "presets": "预设",
+        "settings": "设置"
       }
     },
     "toolbar": {
@@ -1147,6 +1146,9 @@
         "undo": "撤销（Ctrl+Z）或历史记录（右键单击）"
       },
       "vc": "VC"
+    },
+    "layout": {
+      "split": "拆分"
     }
   },
   "export": {
@@ -1383,7 +1385,8 @@
         "sortDescending": "降序排列",
         "thumbnailFit": "缩略图适应",
         "thumbnailSize": "缩略图大小",
-        "title": "视图选项"
+        "title": "视图选项",
+        "culling": "审片"
       }
     },
     "import": {
@@ -1500,6 +1503,31 @@
       "communityPresets": "社区预设",
       "goHome": "返回首页",
       "importImages": "导入图像"
+    },
+    "culling": {
+      "altThumbnailLoading": "正在加载缩略图...",
+      "altCullingPreviewHighRes": "高分辨率预览",
+      "metadata": "元数据",
+      "dimensions": "尺寸",
+      "cameraSettings": "相机设置",
+      "shutterSpeed": "快门速度",
+      "aperture": "光圈",
+      "iso": "ISO",
+      "focalLength": "焦距",
+      "noMetadataAvailable": "无可用元数据",
+      "rateAndLabel": "评分与标签",
+      "rating": "评分",
+      "colorLabel": "颜色标签",
+      "none": "无",
+      "tags": "标签",
+      "noTagsAdded": "未添加标签",
+      "addTagPlaceholder": "添加标签...",
+      "vc": "VC",
+      "editImage": "编辑图片",
+      "syncZoomAndPan": "同步缩放和平移",
+      "toggleFit": "切换适配",
+      "selectImagesToCompare": "选择图片进行比较",
+      "clickThumbnailsHint": "点击侧边栏中的缩略图以选择进行比较"
     }
   },
   "masks": {

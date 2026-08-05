@@ -60,6 +60,7 @@ export enum Invokes {
   PrecomputeAiSubjectMask = 'precompute_ai_subject_mask',
   GenerateAiRating = 'generate_ai_rating',
   GenerateAiRatingsBatch = 'generate_ai_ratings_batch',
+  GenerateFullscreenPreview = 'generate_fullscreen_preview',
   GeneratePreviewForPath = 'generate_preview_for_path',
   GenerateMaskOverlay = 'generate_mask_overlay',
   GeneratePresetPreview = 'generate_preset_preview',
@@ -76,6 +77,7 @@ export enum Invokes {
   HandleImportPresetsFromFile = 'handle_import_presets_from_file',
   HandleImportLegacyPresetsFromFile = 'handle_import_legacy_presets_from_file',
   ImportFiles = 'import_files',
+  InvokeGenerativeReplace = 'invoke_generative_replace',
   InvokeGenerativeReplaceWithMaskDef = 'invoke_generative_replace_with_mask_def',
   ListImagesInDir = 'list_images_in_dir',
   ListImagesRecursive = 'list_images_recursive',
@@ -216,12 +218,25 @@ export enum Panel {
   Color = 'color',
   Crop = 'crop',
   Export = 'export',
+  FolderTree = 'folderTree',
   Masks = 'masks',
   Metadata = 'metadata',
   Portrait = 'portrait',
   Presets = 'presets',
   Settings = 'settings',
 }
+
+export enum PanelRegion {
+  LeftTop = 'leftTop',
+  LeftBottom = 'leftBottom',
+  RightTop = 'rightTop',
+  RightBottom = 'rightBottom',
+}
+
+export type GroupPreference = 'raw' | 'jpeg' | 'first';
+export type GroupingMode = 'off' | GroupPreference;
+
+export type SwitcherPlacement = 'left' | 'right' | 'top' | 'bottom';
 
 export enum RawStatus {
   All = 'all',
@@ -256,6 +271,16 @@ export enum Theme {
 export enum ThumbnailAspectRatio {
   Cover = 'cover',
   Contain = 'contain',
+}
+
+export interface WorkspaceState {
+  leftPanelWidth: number;
+  rightPanelWidth: number;
+  leftTopHeight: number;
+  rightTopHeight: number;
+  panelLayout: Record<PanelRegion, Panel[]>;
+  activePanels: Record<PanelRegion, Panel | null>;
+  panelSwitcherPlacement: Record<PanelRegion, 'left' | 'right' | 'top' | 'bottom'>;
 }
 
 export interface AppSettings {
@@ -316,6 +341,13 @@ export interface AppSettings {
   fontFamily?: string;
   /** Persisted HuggingFace mirror URL for AI model downloads. */
   aiModelMirrorUrl?: string;
+  libraryDisplayMode?: LibraryDisplayMode;
+  grouping?: GroupingMode;
+  requireMatchingExif?: boolean;
+  groupEditedFiles?: boolean;
+  groupPreferredType?: GroupPreference; // legacy
+  alwaysDecodeRawThumbnails?: boolean;
+  workspace?: WorkspaceState;
 }
 
 export interface BrushSettings {
@@ -327,6 +359,13 @@ export interface BrushSettings {
 export enum LibraryViewMode {
   Flat = 'flat',
   Recursive = 'recursive',
+  Culling = 'culling',
+}
+
+export enum LibraryDisplayMode {
+  Grid = 'grid',
+  Cull = 'cull',
+  List = 'list',
 }
 
 export const EditedStatus = {
@@ -360,6 +399,8 @@ export interface ImageFile {
   exif: { [key: string]: string } | null;
   is_virtual_copy: boolean;
   is_cloud_placeholder: boolean;
+  is_raw?: boolean;
+  group_id?: string;
 }
 
 export interface Option {
@@ -398,6 +439,7 @@ export interface Progress {
 
 export interface SelectedImage {
   exif: any;
+  group_id?: string | null;
   height: number;
   isRaw: boolean;
   isReady: boolean;

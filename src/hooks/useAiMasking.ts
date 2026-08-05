@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useEditorStore } from '../store/useEditorStore';
 
 /**

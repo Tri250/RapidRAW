@@ -1,4 +1,4 @@
-import { type RefObject, type PointerEvent as ReactPointerEvent } from 'react';
+import { type RefObject, type PointerEvent as ReactPointerEvent, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import clsx from 'clsx';
@@ -6,6 +6,7 @@ import clsx from 'clsx';
 import Editor from '../panel/Editor';
 import BottomBar from '../panel/BottomBar';
 import RightPanelSwitcher from '../panel/right/RightPanelSwitcher';
+import SidePanelArea from '../panel/SidePanelArea';
 import Resizer from '../ui/Resizer';
 import Controls from '../panel/right/ControlsPanel';
 import MetadataPanel from '../panel/right/MetadataPanel';
@@ -24,7 +25,7 @@ import { useLibraryStore } from '../../store/useLibraryStore';
 import { useProcessStore } from '../../store/useProcessStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 
-import { ImageFile, Orientation, Panel, ThumbnailAspectRatio } from '../ui/AppProperties';
+import { ImageFile, Orientation, Panel, PanelRegion, ThumbnailAspectRatio } from '../ui/AppProperties';
 
 const panelVariants: any = {
   animate: (direction: number) => ({
@@ -64,6 +65,7 @@ interface EditorViewProps {
   handleZoomChange: (zoom: number) => void;
   handleRightPanelSelect: (panelId: Panel) => void;
   requestThumbnails: any;
+  renderAppPanel?: (panel: Panel) => React.ReactNode;
 }
 
 export default function EditorView({
@@ -87,6 +89,7 @@ export default function EditorView({
   handleZoomChange,
   handleRightPanelSelect,
   requestThumbnails,
+  renderAppPanel,
 }: EditorViewProps) {
   const { selectedImage } = useEditorStore(
     useShallow((state) => ({
@@ -204,6 +207,61 @@ export default function EditorView({
     </div>
   );
 
+  const renderPanel = useCallback(
+    (panel: Panel) => {
+      switch (panel) {
+        case Panel.Adjustments:
+          return <Controls />;
+        case Panel.Color:
+          return <ColorPanelSwitcher />;
+        case Panel.Portrait:
+          return <PortraitPanelSwitcher />;
+        case Panel.Metadata:
+          return <MetadataPanel />;
+        case Panel.Crop:
+          return <CropPanel />;
+        case Panel.Masks:
+          return <MasksPanel />;
+        case Panel.Presets:
+          return (
+            <PresetsPanel
+              onNavigateToCommunity={() => {
+                handleBackToLibrary();
+                setUI({ activeView: 'community' });
+              }}
+            />
+          );
+        case Panel.Export:
+          return (
+            <ExportPanel
+              exportState={exportState}
+              multiSelectedPaths={multiSelectedPaths}
+              selectedImage={selectedImage}
+              setExportState={setExportState}
+              appSettings={appSettings}
+              onSettingsChange={handleSettingsChange}
+              rootPaths={rootPaths}
+            />
+          );
+        case Panel.Ai:
+          return <AIPanel />;
+        default:
+          return null;
+      }
+    },
+    [
+      exportState,
+      multiSelectedPaths,
+      selectedImage,
+      setExportState,
+      appSettings,
+      handleSettingsChange,
+      rootPaths,
+      handleBackToLibrary,
+      setUI,
+    ],
+  );
+
   const editorRightPanelContent = (
     <AnimatePresence mode="wait" custom={slideDirection}>
       {activeRightPanel ? (
@@ -246,6 +304,8 @@ export default function EditorView({
       ) : null}
     </AnimatePresence>
   );
+
+  const handleRightResize = createResizeHandler('right', rightPanelWidth);
 
   return (
     <div className={clsx('flex grow h-full min-h-0', isCompactPortrait ? 'flex-col gap-2' : 'flex-row')}>
@@ -296,34 +356,15 @@ export default function EditorView({
             <div className="shrink-0 border-t border-surface">{editorBottomBarComponent}</div>
           </>
         ) : (
-          <>
-            <Resizer direction={Orientation.Vertical} onMouseDown={createResizeHandler('right', rightPanelWidth)} />
-            <div className="flex bg-bg-secondary rounded-lg h-full">
-              <div
-                className={clsx(
-                  'h-full overflow-hidden',
-                  !isResizing && !isInstantTransition && 'transition-all duration-300 ease-in-out',
-                )}
-                style={{ width: activeRightPanel ? `${rightPanelWidth}px` : '0px' }}
-              >
-                <div style={{ width: `${rightPanelWidth}px` }} className="h-full">
-                  {editorRightPanelContent}
-                </div>
-              </div>
-              <div
-                className={clsx(
-                  'h-full border-l transition-colors',
-                  activeRightPanel ? 'border-surface' : 'border-transparent',
-                )}
-              >
-                <RightPanelSwitcher
-                  activePanel={activeRightPanel}
-                  onPanelSelect={handleRightPanelSelect}
-                  isInstantTransition={isInstantTransition}
-                />
-              </div>
-            </div>
-          </>
+          <SidePanelArea
+            side="right"
+            width={rightPanelWidth}
+            topRegion={PanelRegion.RightTop}
+            bottomRegion={PanelRegion.RightBottom}
+            renderPanel={renderAppPanel ?? renderPanel}
+            onWidthChange={handleRightResize}
+            isResizing={isResizing}
+          />
         )}
       </div>
     </div>

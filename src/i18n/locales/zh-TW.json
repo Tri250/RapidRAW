@@ -407,6 +407,7 @@
       "skyReplace": "",
       "skyReplaceTooltip": "",
       "superResolution": "",
+      "superResolutionLabel": "超解析度",
       "superResolutionTooltip": ""
     },
     "aiRating": {
@@ -802,7 +803,8 @@
         "inpaint": "AI",
         "masks": "遮色片",
         "portrait": "人像",
-        "presets": "預設"
+        "presets": "預設",
+        "settings": "設定"
       }
     },
     "toolbar": {
@@ -819,6 +821,9 @@
         "undo": "復原（Ctrl+Z）或歷史記錄（右鍵單擊）"
       },
       "vc": "VC"
+    },
+    "layout": {
+      "split": "拆分"
     }
   },
   "export": {
@@ -1049,7 +1054,8 @@
         "sortDescending": "降序排列",
         "thumbnailFit": "縮圖適應",
         "thumbnailSize": "縮圖大小",
-        "title": "檢視選項"
+        "title": "檢視選項",
+        "culling": "審片"
       }
     },
     "import": {
@@ -1152,6 +1158,31 @@
       "communityPresets": "社群預設",
       "goHome": "返回首頁",
       "importImages": "匯入影像"
+    },
+    "culling": {
+      "altThumbnailLoading": "正在載入縮圖...",
+      "altCullingPreviewHighRes": "高解析度預覽",
+      "metadata": "元資料",
+      "dimensions": "尺寸",
+      "cameraSettings": "相機設定",
+      "shutterSpeed": "快門速度",
+      "aperture": "光圈",
+      "iso": "ISO",
+      "focalLength": "焦距",
+      "noMetadataAvailable": "無可用元資料",
+      "rateAndLabel": "評分與標籤",
+      "rating": "評分",
+      "colorLabel": "顏色標籤",
+      "none": "無",
+      "tags": "標籤",
+      "noTagsAdded": "未新增標籤",
+      "addTagPlaceholder": "新增標籤...",
+      "vc": "VC",
+      "editImage": "編輯圖片",
+      "syncZoomAndPan": "同步縮放和平移",
+      "toggleFit": "切換適配",
+      "selectImagesToCompare": "選擇圖片進行比較",
+      "clickThumbnailsHint": "點擊側邊欄中的縮圖以選擇進行比較"
     }
   },
   "masks": {

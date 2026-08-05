@@ -449,6 +449,7 @@
       "skyReplace": "",
       "skyReplaceTooltip": "",
       "superResolution": "",
+      "superResolutionLabel": "Суперразрешение",
       "superResolutionTooltip": ""
     },
     "aiRating": {
@@ -852,7 +853,8 @@
         "inpaint": "AI",
         "masks": "Маски",
         "portrait": "Портрет",
-        "presets": "Пресеты"
+        "presets": "Пресеты",
+        "settings": "Настройки"
       }
     },
     "toolbar": {
@@ -869,6 +871,9 @@
         "undo": "Отменить (Ctrl+Z) или история (правый клик)"
       },
       "vc": "ВК"
+    },
+    "layout": {
+      "split": "Разделить"
     }
   },
   "export": {
@@ -1105,7 +1110,8 @@
         "sortDescending": "По убыванию",
         "thumbnailFit": "Масштаб превью",
         "thumbnailSize": "Размер превью",
-        "title": "Вид"
+        "title": "Вид",
+        "culling": "Отбор"
       }
     },
     "import": {
@@ -1213,6 +1219,31 @@
       "communityPresets": "Пресеты сообщества",
       "goHome": "На главную",
       "importImages": "Импортировать изображения"
+    },
+    "culling": {
+      "altThumbnailLoading": "Загрузка миниатюры...",
+      "altCullingPreviewHighRes": "Предпросмотр в высоком разрешении",
+      "metadata": "Метаданные",
+      "dimensions": "Размеры",
+      "cameraSettings": "Настройки камеры",
+      "shutterSpeed": "Выдержка",
+      "aperture": "Диафрагма",
+      "iso": "ISO",
+      "focalLength": "Фокусное расстояние",
+      "noMetadataAvailable": "Метаданные недоступны",
+      "rateAndLabel": "Оценка и метка",
+      "rating": "Оценка",
+      "colorLabel": "Цветовая метка",
+      "none": "Нет",
+      "tags": "Теги",
+      "noTagsAdded": "Теги не добавлены",
+      "addTagPlaceholder": "Добавить тег...",
+      "vc": "VC",
+      "editImage": "Редактировать изображение",
+      "syncZoomAndPan": "Синхронизировать масштаб и панораму",
+      "toggleFit": "По размеру",
+      "selectImagesToCompare": "Выберите изображения для сравнения",
+      "clickThumbnailsHint": "Нажмите на миниатюры на боковой панели, чтобы выбрать их для сравнения"
     }
   },
   "masks": {

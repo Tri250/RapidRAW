@@ -449,6 +449,7 @@
       "skyReplace": "",
       "skyReplaceTooltip": "",
       "superResolution": "",
+      "superResolutionLabel": "Super Rozdzielczość",
       "superResolutionTooltip": ""
     },
     "aiRating": {
@@ -852,7 +853,8 @@
         "inpaint": "AI",
         "masks": "Maski",
         "portrait": "Portret",
-        "presets": "Presety"
+        "presets": "Presety",
+        "settings": "Ustawienia"
       }
     },
     "toolbar": {
@@ -869,6 +871,9 @@
         "undo": "Cofnij (Ctrl+Z) lub Historia (Prawy przycisk)"
       },
       "vc": "VC"
+    },
+    "layout": {
+      "split": "Podziel"
     }
   },
   "export": {
@@ -1106,7 +1111,8 @@
         "sortDescending": "Sortuj malejąco",
         "thumbnailFit": "Dopasowanie miniatury",
         "thumbnailSize": "Rozmiar miniatury",
-        "title": "Opcje widoku"
+        "title": "Opcje widoku",
+        "culling": "Selekcja"
       }
     },
     "import": {
@@ -1214,6 +1220,31 @@
       "communityPresets": "Presety społeczności",
       "goHome": "Przejdź do strony głównej",
       "importImages": "Importuj obrazy"
+    },
+    "culling": {
+      "altThumbnailLoading": "Ładowanie miniatury...",
+      "altCullingPreviewHighRes": "Podgląd wysokiej rozdzielczości",
+      "metadata": "Metadane",
+      "dimensions": "Wymiary",
+      "cameraSettings": "Ustawienia aparatu",
+      "shutterSpeed": "Czas naświetlania",
+      "aperture": "Przysłona",
+      "iso": "ISO",
+      "focalLength": "Ogniskowa",
+      "noMetadataAvailable": "Brak dostępnych metadanych",
+      "rateAndLabel": "Oceń i oznacz",
+      "rating": "Ocena",
+      "colorLabel": "Etykieta koloru",
+      "none": "Brak",
+      "tags": "Tagi",
+      "noTagsAdded": "Brak dodanych tagów",
+      "addTagPlaceholder": "Dodaj tag...",
+      "vc": "VC",
+      "editImage": "Edytuj obraz",
+      "syncZoomAndPan": "Synchronizuj zoom i przesunięcie",
+      "toggleFit": "Dopasuj",
+      "selectImagesToCompare": "Wybierz zdjęcia do porównania",
+      "clickThumbnailsHint": "Kliknij miniatury na pasku bocznym, aby wybrać je do porównania"
     }
   },
   "masks": {

@@ -429,6 +429,7 @@
       "skyReplace": "",
       "skyReplaceTooltip": "",
       "superResolution": "",
+      "superResolutionLabel": "Super Résolution",
       "superResolutionTooltip": ""
     },
     "aiRating": {
@@ -829,7 +830,8 @@
         "inpaint": "AI",
         "masks": "Masques",
         "portrait": "Portrait",
-        "presets": "Paramètres prédéfinis"
+        "presets": "Paramètres prédéfinis",
+        "settings": "Paramètres"
       }
     },
     "toolbar": {
@@ -846,6 +848,9 @@
         "undo": "Annuler (Ctrl+Z) ou Historique (Clic-droit)"
       },
       "vc": "CV"
+    },
+    "layout": {
+      "split": "Diviser"
     }
   },
   "export": {
@@ -1080,7 +1085,8 @@
         "sortDescending": "Trier par ordre décroissant",
         "thumbnailFit": "Ajustement de la miniature",
         "thumbnailSize": "Taille de la miniature",
-        "title": "Options d'affichage"
+        "title": "Options d'affichage",
+        "culling": "Sélection"
       }
     },
     "import": {
@@ -1186,6 +1192,31 @@
       "communityPresets": "Paramètres prédéfinis de la communauté",
       "goHome": "Aller à l'accueil",
       "importImages": "Importer des images"
+    },
+    "culling": {
+      "altThumbnailLoading": "Chargement de la miniature...",
+      "altCullingPreviewHighRes": "Aperçu haute résolution",
+      "metadata": "Métadonnées",
+      "dimensions": "Dimensions",
+      "cameraSettings": "Paramètres de l'appareil",
+      "shutterSpeed": "Vitesse d'obturation",
+      "aperture": "Ouverture",
+      "iso": "ISO",
+      "focalLength": "Focale",
+      "noMetadataAvailable": "Aucune métadonnée disponible",
+      "rateAndLabel": "Noter & Étiqueter",
+      "rating": "Note",
+      "colorLabel": "Étiquette de couleur",
+      "none": "Aucun",
+      "tags": "Étiquettes",
+      "noTagsAdded": "Aucune étiquette ajoutée",
+      "addTagPlaceholder": "Ajouter une étiquette...",
+      "vc": "VC",
+      "editImage": "Modifier l'image",
+      "syncZoomAndPan": "Synchroniser zoom et déplacement",
+      "toggleFit": "Ajuster",
+      "selectImagesToCompare": "Sélectionner des images à comparer",
+      "clickThumbnailsHint": "Cliquez sur les vignettes dans la barre latérale pour les sélectionner pour la comparaison"
     }
   },
   "masks": {

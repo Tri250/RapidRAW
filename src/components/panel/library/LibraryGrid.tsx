@@ -7,6 +7,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { Row } from './LibraryItems';
 import { useLibraryStore } from '../../../store/useLibraryStore';
 import { LibraryViewMode, SortDirection, ThumbnailSize } from '../../ui/AppProperties';
+import CullingView from './CullingView';
 import Text from '../../ui/Text';
 import { TextColors, TextVariants, TextWeights, TEXT_COLOR_KEYS } from '../../../types/typography';
 import { useProcessStore } from '../../../store/useProcessStore';
@@ -545,6 +546,31 @@ export default function LibraryGrid(props: any) {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       />
+    );
+  }
+
+  if (libraryViewMode === LibraryViewMode.Culling) {
+    return (
+      <div
+        ref={libraryContainerRef}
+        className="flex-1 w-full h-full"
+        onClick={props.onClearSelection}
+        onContextMenu={props.onEmptyAreaContextMenu}
+      >
+        <CullingView
+          imageList={imageList}
+          multiSelectedPaths={multiSelectedPaths}
+          activePath={activePath}
+          onImageClick={onImageClick}
+          imageRatings={imageRatings}
+          thumbnailAspectRatio={thumbnailAspectRatio}
+          onContextMenu={onContextMenu}
+          onImageDoubleClick={onImageDoubleClick}
+          onRequestThumbnails={onRequestThumbnails}
+          onClearSelection={props.onClearSelection}
+          onEmptyAreaContextMenu={props.onEmptyAreaContextMenu}
+        />
+      </div>
     );
   }
 

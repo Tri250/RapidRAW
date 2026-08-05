@@ -59,6 +59,7 @@ mod image_loader;
 mod image_processing;
 mod inpainting;
 mod lens_blur;
+mod launch_request;
 mod lens_correction;
 mod lut_processing;
 mod lut_processor;
@@ -81,7 +82,6 @@ use std::hash::{Hash, Hasher};
 use std::io::Cursor;
 use std::io::Write;
 use std::panic;
-use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
@@ -162,6 +162,7 @@ use crate::mask_generation::{
     resolve_warped_image_for_masks,
 };
 use crate::window_customizer::PinchZoomDisablePlugin;
+use launch_request::{HeadlessExportSession, LaunchPayload, LaunchRequest, emit_launch_request, parse_launch_args};
 pub use adjustment_utils::*;
 pub use android_integration::*;
 pub use app_settings::*;
@@ -2441,148 +2442,6 @@ fn frontend_log(level: String, message: String) -> Result<(), String> {
     Ok(())
 }
 
-fn handle_file_open(app_handle: &tauri::AppHandle, path: PathBuf) {
-    if let Some(path_str) = path.to_str()
-        && let Err(e) = app_handle.emit("open-with-file", path_str)
-    {
-        log::error!("Failed to emit open-with-file event: {}", e);
-    }
-}
-
-enum LaunchRequest {
-    None,
-    OpenFile(String),
-    EditSession(ExternalEditSession),
-    HeadlessExport(HeadlessExportSession),
-}
-
-#[derive(Clone, Debug)]
-struct HeadlessExportSession {
-    source: String,
-    output: String,
-    format: String,
-    quality: u8,
-    keep_metadata: bool,
-    adjustments_override: Option<String>,
-}
-
-fn parse_launch_args(args: &[String]) -> LaunchRequest {
-    // Headless export subcommand: `rapidraw export <source> --output <path> [options]`
-    if args.first().map(|s| s.as_str()) == Some("export") {
-        let mut iter = args.iter().skip(1);
-        let mut source = String::new();
-        let mut output = String::new();
-        let mut format = String::from("jpeg");
-        let mut quality: u8 = 90;
-        let mut keep_metadata = false;
-        let mut adjustments_override: Option<String> = None;
-
-        if let Some(src) = iter.next()
-            && !src.starts_with('-')
-        {
-            source = src.clone();
-        }
-
-        while let Some(arg) = iter.next() {
-            match arg.as_str() {
-                "--output" => {
-                    if let Some(out) = iter.next() {
-                        output = out.clone();
-                    }
-                }
-                "--format" => {
-                    if let Some(fmt) = iter.next() {
-                        format = fmt.clone();
-                    }
-                }
-                "--quality" => {
-                    if let Some(q) = iter.next() {
-                        quality = q.parse().unwrap_or(90);
-                    }
-                }
-                "--keep-metadata" => keep_metadata = true,
-                "--adjustments" => {
-                    if let Some(adj) = iter.next() {
-                        adjustments_override = Some(adj.clone());
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        return LaunchRequest::HeadlessExport(HeadlessExportSession {
-            source,
-            output,
-            format,
-            quality,
-            keep_metadata,
-            adjustments_override,
-        });
-    }
-
-    let mut edit: Option<String> = None;
-    let mut output: Option<String> = None;
-    let mut format: Option<String> = None;
-    let mut quality: Option<u8> = None;
-    let mut plain: Option<String> = None;
-
-    let mut iter = args.iter();
-    while let Some(arg) = iter.next() {
-        match arg.as_str() {
-            "--edit" => edit = iter.next().cloned(),
-            "--output" => output = iter.next().cloned(),
-            "--format" => format = iter.next().cloned(),
-            "--quality" => quality = iter.next().and_then(|q| q.parse().ok()),
-            s if !s.starts_with('-') && plain.is_none() => plain = Some(s.to_string()),
-            _ => {}
-        }
-    }
-
-    match (edit, output) {
-        (Some(source), Some(output)) => {
-            let format = format.unwrap_or_else(|| {
-                std::path::Path::new(&output)
-                    .extension()
-                    .and_then(|e| e.to_str())
-                    .map(|e| e.to_lowercase())
-                    .unwrap_or_else(|| "jpg".to_string())
-            });
-            let format = match format.as_str() {
-                "tif" => "tiff".to_string(),
-                _ => format,
-            };
-            LaunchRequest::EditSession(ExternalEditSession {
-                source,
-                output,
-                format,
-                jpeg_quality: quality.unwrap_or(90),
-            })
-        }
-        (Some(source), None) => LaunchRequest::OpenFile(source),
-        _ => match plain {
-            Some(path) => LaunchRequest::OpenFile(path),
-            None => LaunchRequest::None,
-        },
-    }
-}
-
-fn emit_launch_request(app_handle: &tauri::AppHandle, request: LaunchRequest) {
-    match request {
-        LaunchRequest::EditSession(session) => {
-            if let Err(e) = app_handle.emit("external-edit-session", &session) {
-                log::error!("Failed to emit external-edit-session event: {}", e);
-            }
-        }
-        LaunchRequest::OpenFile(path) => {
-            handle_file_open(app_handle, PathBuf::from(path));
-        }
-        LaunchRequest::HeadlessExport(_) => {
-            log::error!("Headless export cannot be attached to an already running GUI instance.");
-        }
-        LaunchRequest::None => {}
-    }
-}
-
 /// Execute a headless (no-GUI) export session.
 ///
 /// This loads the source image, applies adjustments (from sidecar or CLI override),
@@ -2603,13 +2462,6 @@ fn run_headless_export(
     };
 
     export_single_image_headless(opts, app_handle)
-}
-
-#[derive(serde::Serialize, Default)]
-#[serde(rename_all = "camelCase")]
-struct LaunchPayload {
-    open_with_file: Option<String>,
-    edit_session: Option<ExternalEditSession>,
 }
 
 #[derive(Clone, Copy, Debug)]
