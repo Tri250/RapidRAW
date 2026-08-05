@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Home,
   SlidersHorizontal,
@@ -47,8 +48,6 @@ const secondaryNavItems: NavItem[] = [
   { panel: Panel.Export, icon: FileInput, labelKey: 'editor.android.bottomNav.export' },
 ];
 
-const allNavItems = [...primaryNavItems, ...secondaryNavItems];
-
 export default function AndroidBottomNav({ isAndroid, onBackToLibrary }: AndroidBottomNavProps) {
   const { t } = useTranslation();
   const activeRightPanel = useUIStore((s) => s.activeRightPanel);
@@ -93,8 +92,8 @@ export default function AndroidBottomNav({ isAndroid, onBackToLibrary }: Android
   if (!isAndroid) return null;
 
   return (
-    <div className="relative shrink-0 h-14 bg-bg-secondary border-t border-border-color">
-      <div className="flex items-center justify-around h-full px-1">
+    <div className="relative shrink-0 bg-bg-secondary border-t border-border-color pb-safe">
+      <div className="flex items-center justify-around h-14 px-1">
         {primaryNavItems.map(({ panel, icon: Icon, labelKey }) => {
           const isActive = panel ? activeRightPanel === panel : activeRightPanel === null;
           return (
@@ -140,27 +139,45 @@ export default function AndroidBottomNav({ isAndroid, onBackToLibrary }: Android
             </span>
           </button>
 
-          {/* More menu popup */}
-          {isMoreOpen && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-bg-primary border border-border-color rounded-xl shadow-xl shadow-black/40 py-1 min-w-[140px] z-50">
-              {secondaryNavItems.map(({ panel, icon: Icon, labelKey }) => {
-                const isActive = activeRightPanel === panel;
-                return (
-                  <button
-                    key={labelKey}
-                    className={clsx(
-                      'flex items-center gap-3 w-full px-4 py-3 text-left transition-colors active:bg-card-active',
-                      isActive ? 'text-accent bg-accent/10' : 'text-text-primary',
-                    )}
-                    onClick={() => handlePanelSelect(panel)}
-                  >
-                    <Icon size={18} strokeWidth={1.8} />
-                    <span className="text-sm font-medium">{t(labelKey as any)}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          {/* Backdrop overlay when More menu is open */}
+          <AnimatePresence>
+            {isMoreOpen && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="fixed inset-0 z-40 bg-black/20"
+                  onClick={() => setIsMoreOpen(false)}
+                />
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-bg-primary border border-border-color rounded-xl shadow-xl shadow-black/40 py-1 min-w-[140px] z-50 max-h-[60vh] overflow-y-auto"
+                >
+                  {secondaryNavItems.map(({ panel, icon: Icon, labelKey }) => {
+                    const isActive = activeRightPanel === panel;
+                    return (
+                      <button
+                        key={labelKey}
+                        className={clsx(
+                          'flex items-center gap-3 w-full px-4 py-3 text-left transition-colors active:bg-card-active',
+                          isActive ? 'text-accent bg-accent/10' : 'text-text-primary',
+                        )}
+                        onClick={() => handlePanelSelect(panel)}
+                      >
+                        <Icon size={18} strokeWidth={1.8} />
+                        <span className="text-sm font-medium">{t(labelKey as any)}</span>
+                      </button>
+                    );
+                  })}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

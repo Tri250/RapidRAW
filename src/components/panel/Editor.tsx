@@ -2042,7 +2042,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
     >
       <div
         className={clsx(
-          'shrink-0 relative z-10',
+          'shrink-0 relative z-50',
           !isInstantTransition && 'transition-all duration-300 ease-in-out',
           isFullScreen ? 'max-h-0 opacity-0 m-0' : 'max-h-25 opacity-100',
           toolbarOverflowVisible ? 'overflow-visible' : 'overflow-hidden',

@@ -442,4 +442,12 @@
   .text-shadow-shiny {
     text-shadow: 0 0 18px rgba(255, 255, 255, 0.3);
   }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
 }

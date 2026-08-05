@@ -51,11 +51,12 @@ interface BottomBarProps {
 
 interface StarRatingProps {
   disabled: boolean;
+  isAndroid?: boolean;
   onRate(rate: number): void;
   rating: number;
 }
 
-const StarRating = ({ rating, onRate, disabled }: StarRatingProps) => {
+const StarRating = ({ rating, onRate, disabled, isAndroid = false }: StarRatingProps) => {
   const { t } = useTranslation();
   const starRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -121,6 +122,7 @@ const StarRating = ({ rating, onRate, disabled }: StarRatingProps) => {
             }}
             className={clsx(
               'disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-secondary rounded-sm',
+              isAndroid && 'active:opacity-70',
             )}
             disabled={disabled}
             key={starValue}
@@ -352,7 +354,7 @@ export default function BottomBar({
         )}
       >
         <div className="flex items-center gap-4">
-          <StarRating rating={rating} onRate={onRate} disabled={isRatingDisabled} />
+          <StarRating rating={rating} onRate={onRate} disabled={isRatingDisabled} isAndroid={isAndroid} />
           <div className="h-5 w-px bg-surface"></div>
           <div className="flex items-center gap-2">
             <button
