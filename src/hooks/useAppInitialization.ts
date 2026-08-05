@@ -31,8 +31,16 @@ interface UseAppInitializationProps {
 }
 
 const getDefaultLanguage = (_i18nInstance: any): string => {
-  // Default to Simplified Chinese for first-time installation
-  return 'zh-CN';
+  // Detect language from browser/system locale; fall back to English
+  if (typeof navigator !== 'undefined') {
+    const lang = navigator.language || (navigator as any).userLanguage;
+    if (lang) {
+      // Normalize: zh-CN, zh-TW, en, en-US, etc.
+      const normalized = lang.replace('_', '-');
+      return normalized;
+    }
+  }
+  return 'en';
 };
 
 export const useAppInitialization = ({

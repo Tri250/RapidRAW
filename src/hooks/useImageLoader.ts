@@ -114,15 +114,17 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
                 path: selectedImage.path,
                 previewResolution: appSettings?.editorPreviewResolution || 1920,
               });
-              if (previewResult && previewResult.byteLength > 0 && isEffectActive) {
+              if (previewResult && previewResult.byteLength > 0) {
                 const textDecoder = new TextDecoder();
                 const previewPrefix = textDecoder.decode(previewResult.slice(0, 11));
                 // Only use as fallback if it's actual image data (not WGPU_RENDER)
                 if (previewPrefix !== 'WGPU_RENDER') {
                   const blob = new Blob([previewResult], { type: 'image/jpeg' });
                   const url = URL.createObjectURL(blob);
-                  // Only set as fallback if wgpu hasn't rendered yet
-                  if (!useEditorStore.getState().hasRenderedFirstFrame) {
+                  if (!isEffectActive) {
+                    // Effect was cancelled during invoke — revoke the blob to avoid leak
+                    URL.revokeObjectURL(url);
+                  } else if (!useEditorStore.getState().hasRenderedFirstFrame) {
                     setEditor((state) => {
                       const prevUrl = state.finalPreviewUrl;
                       if (prevUrl && prevUrl.startsWith('blob:')) {

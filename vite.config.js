@@ -29,6 +29,20 @@ export default defineConfig(async () => ({
   build: {
     minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@clerk')) return 'clerk';
+            if (id.includes('konva') || id.includes('react-konva')) return 'konva';
+            if (id.includes('@dnd-kit')) return 'dnd';
+            if (id.includes('framer-motion')) return 'motion';
+            if (id.includes('i18next') || id.includes('react-i18next')) return 'i18n';
+            if (id.includes('react-dom') || id.includes('react/')) return 'vendor';
+          }
+        },
+      },
+    },
   },
 
   test: {

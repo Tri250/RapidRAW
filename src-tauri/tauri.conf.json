@@ -23,7 +23,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost blob: data: https:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net https://getrapidraw.com https://*.getrapidraw.com https://huggingface.co https://hf-mirror.com https://cdn.fky.ltd; script-src 'self'; frame-src https://www.openstreetmap.org",
+      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost blob: data: https:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net https://getrapidraw.com https://*.getrapidraw.com https://huggingface.co https://hf-mirror.com https://cdn.fky.ltd https://clerk.accounts.dev https://*.clerk.accounts.dev https://api.clerk.com; script-src 'self'; frame-src https://www.openstreetmap.org",
       "dangerousDisableAssetCspModification": false,
       "capabilities": ["default"],
       "assetProtocol": {
