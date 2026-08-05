@@ -181,6 +181,7 @@ export default function LibraryView({
         )}
         {rootPaths && rootPaths.length > 0 && (
           <BottomBar
+            isAndroid={isAndroid}
             isCopied={isCopied}
             isCopyDisabled={multiSelectedPaths.length !== 1}
             isExportDisabled={multiSelectedPaths.length === 0}

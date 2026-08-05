@@ -378,14 +378,18 @@ const EditorToolbar = memo(
         <div className="flex items-center gap-2 shrink-0 z-40">
           <button
             className={clsx(
-              'bg-surface text-text-primary p-2 rounded-full hover:bg-card-active transition-colors shrink-0',
-              isAndroid && 'min-w-[44px] min-h-[44px] flex items-center justify-center',
+              'bg-surface text-text-primary p-2 rounded-full hover:bg-card-active transition-colors shrink-0 relative',
+              isAndroid && 'min-w-[44px] min-h-[44px] flex items-center justify-center active:opacity-70',
             )}
             onClick={onBackToLibrary}
             onKeyDown={handleButtonKeyDown}
             data-tooltip={t('editor.toolbar.tooltips.backToLibrary')}
           >
             <ArrowLeft size={20} />
+            {/* Android: show edit indicator dot when there are unsaved adjustments */}
+            {isAndroid && adjustmentsHistoryIndex > 0 && (
+              <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full shadow-sm" />
+            )}
           </button>
 
           <div className="hidden 2xl:flex items-center gap-2" aria-hidden="true">
@@ -579,7 +583,7 @@ const EditorToolbar = memo(
             <button
               className={clsx(
                 'bg-surface text-text-primary p-2 rounded-full hover:bg-card-active transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-                isAndroid && 'min-w-[44px] min-h-[44px] flex items-center justify-center',
+                isAndroid && 'min-w-[44px] min-h-[44px] flex items-center justify-center active:opacity-70',
               )}
               disabled={!canUndo}
               onClick={onUndo}
@@ -595,7 +599,7 @@ const EditorToolbar = memo(
             <button
               className={clsx(
                 'bg-surface text-text-primary p-2 rounded-full hover:bg-card-active transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-                isAndroid && 'min-w-[44px] min-h-[44px] flex items-center justify-center',
+                isAndroid && 'min-w-[44px] min-h-[44px] flex items-center justify-center active:opacity-70',
               )}
               disabled={!canRedo}
               onClick={onRedo}
@@ -673,7 +677,7 @@ const EditorToolbar = memo(
               showOriginal
                 ? 'bg-accent text-button-text hover:bg-accent/90 hover:text-button-text'
                 : 'bg-surface hover:bg-card-active text-text-primary',
-              isAndroid && 'min-w-[44px] min-h-[44px] flex items-center justify-center',
+              isAndroid && 'min-w-[44px] min-h-[44px] flex items-center justify-center active:opacity-70',
             )}
             onClick={onToggleShowOriginal}
             onKeyDown={handleButtonKeyDown}
@@ -686,7 +690,7 @@ const EditorToolbar = memo(
           <button
             className={clsx(
               'bg-surface text-text-primary p-2 rounded-full hover:bg-card-active transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative',
-              isAndroid && 'min-w-[44px] min-h-[44px] flex items-center justify-center',
+              isAndroid && 'min-w-[44px] min-h-[44px] flex items-center justify-center active:opacity-70',
             )}
             onClick={onToggleFullScreen}
             onKeyDown={handleButtonKeyDown}

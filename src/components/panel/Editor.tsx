@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect, useImperativeHandle } from 'react';
 import { Crop, PercentCrop } from 'react-image-crop';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import clsx from 'clsx';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import debounce from 'lodash.debounce';
 
 import { ImageDimensions, useImageRenderSize } from '../../hooks/useImageRenderSize';
@@ -76,6 +77,7 @@ interface EditorProps {
 }
 
 export default function Editor({ onBackToLibrary, onContextMenu, transformWrapperRef }: EditorProps) {
+  const { t } = useTranslation();
   const appSettings = useSettingsStore((s) => s.appSettings);
   const osPlatform = useSettingsStore((s) => s.osPlatform);
   const isFullScreen = useUIStore((s) => s.isFullScreen);
@@ -172,6 +174,8 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
   const [showExifDateView, setShowExifDateView] = useState(false);
   const [maskOverlayUrl, setMaskOverlayUrl] = useState<string | null>(null);
   const [transformState, setTransformState] = useState<TransformState>({ scale: 1, positionX: 0, positionY: 0 });
+  // Android: show gesture hints on first editor entry
+  const [showAndroidHints, setShowAndroidHints] = useState(false);
 
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -1001,6 +1005,19 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
   // On Android, show a subtle loading overlay even when a thumbnail is available,
   // so the user knows the full-resolution preview is still loading.
   const showThumbnailLoadingOverlay = isAndroid && isLoading && hasDisplayableImage && !finalPreviewUrl;
+
+  // Show gesture hints when the image is fully loaded for the first time on Android
+  useEffect(() => {
+    if (!isAndroid || !hasDisplayableImage || isLoading) return;
+    setShowAndroidHints(true);
+    const timer = setTimeout(() => setShowAndroidHints(false), 5000);
+    return () => clearTimeout(timer);
+  }, [isAndroid, hasDisplayableImage, isLoading, selectedImage?.path]);
+
+  // Dismiss hints on first user interaction
+  const dismissAndroidHints = useCallback(() => {
+    setShowAndroidHints(false);
+  }, []);
 
   useLayoutEffect(() => {
     const container = imageContainerRef.current;
@@ -2083,6 +2100,39 @@ export default function Editor({ onBackToLibrary, onContextMenu, transformWrappe
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 bg-black/50 rounded-full px-4 py-2 pointer-events-none">
             <Loader2 size={16} className="animate-spin text-white/80" />
             <span className="text-white/80 text-xs font-medium">Loading preview...</span>
+          </div>
+        )}
+
+        {/* Android: gesture hints overlay on first editor entry */}
+        {showAndroidHints && (
+          <div className="absolute inset-x-0 bottom-0 z-40 pointer-events-none">
+            <div className="flex flex-col items-center gap-3 pb-20 animate-fade-in-up">
+              {/* Double-tap hint */}
+              <div className="bg-black/60 backdrop-blur-sm rounded-full px-5 py-2.5 flex items-center gap-2.5 shadow-lg">
+                <span className="text-white/90 text-sm font-medium">
+                  {t('editor.android.doubleTapCompare')}
+                </span>
+              </div>
+              {/* Swipe hint */}
+              <div className="bg-black/60 backdrop-blur-sm rounded-full px-5 py-2.5 flex items-center gap-2.5 shadow-lg">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-white/60">
+                  <path d="M3 8h10M7 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="text-white/90 text-sm font-medium">
+                  {t('editor.android.swipeHint')}
+                </span>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-white/60 rotate-180">
+                  <path d="M3 8h10M7 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              {/* Dismiss button */}
+              <button
+                className="pointer-events-auto bg-black/60 backdrop-blur-sm rounded-full px-4 py-2 text-white/60 text-xs hover:text-white/90 transition-colors"
+                onClick={dismissAndroidHints}
+              >
+                {t('editor.android.gotIt')}
+              </button>
+            </div>
           </div>
         )}
 
