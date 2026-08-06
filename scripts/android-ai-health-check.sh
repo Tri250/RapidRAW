@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 
 echo "========================================"
 echo "RapidRAW Android AI Engine Full Check"
-echo "Release v1.8.29"
+echo "Release v1.8.30"
 echo "========================================"
 
 fail=0
@@ -28,26 +28,26 @@ repair_msg() { echo -e "  ${BLUE}REPAIR${NC}: $1"; repair=$((repair + 1)); }
 # 1. Version sync check
 # ---------------------------------------------------------------------------
 echo ""
-echo "[1/10] Checking version sync for release v1.8.29..."
+echo "[1/10] Checking version sync for release v1.8.30..."
 
 pkg_version="$(node -e "console.log(require('./package.json').version)")"
 tauri_version="$(node -e "const fs=require('fs'); const c=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8')); console.log(c.version || '')")"
 cargo_version="$(grep -m1 '^version' src-tauri/Cargo.toml | sed -E 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/')"
 
-if [[ "$pkg_version" != "1.8.29" ]]; then
-  fail_msg "package.json version is $pkg_version, expected 1.8.29"
+if [[ "$pkg_version" != "1.8.30" ]]; then
+  fail_msg "package.json version is $pkg_version, expected 1.8.30"
 else
   ok "package.json version: $pkg_version"
 fi
 
-if [[ "$tauri_version" != "1.8.29" ]]; then
-  fail_msg "tauri.conf.json version is $tauri_version, expected 1.8.29"
+if [[ "$tauri_version" != "1.8.30" ]]; then
+  fail_msg "tauri.conf.json version is $tauri_version, expected 1.8.30"
 else
   ok "tauri.conf.json version: $tauri_version"
 fi
 
-if [[ "$cargo_version" != "1.8.29" ]]; then
-  fail_msg "Cargo.toml version is $cargo_version, expected 1.8.29"
+if [[ "$cargo_version" != "1.8.30" ]]; then
+  fail_msg "Cargo.toml version is $cargo_version, expected 1.8.30"
 else
   ok "Cargo.toml version: $cargo_version"
 fi
@@ -545,16 +545,16 @@ if [[ -f "$tauri_props" ]]; then
   version_code="$(grep 'tauri.android.versionCode' "$tauri_props" | cut -d'=' -f2 | tr -d ' ')"
   version_name="$(grep 'tauri.android.versionName' "$tauri_props" | cut -d'=' -f2 | tr -d ' ')"
 
-  if [[ "$version_code" == "1829" ]]; then
-    ok "versionCode=$version_code (matches v1.8.29)"
+  if [[ "$version_code" == "1830" ]]; then
+    ok "versionCode=$version_code (matches v1.8.30)"
   else
-    warn_msg "versionCode=$version_code (expected 1829 for v1.8.29)"
+    warn_msg "versionCode=$version_code (expected 1830 for v1.8.30)"
   fi
 
-  if [[ "$version_name" == "1.8.29" ]]; then
+  if [[ "$version_name" == "1.8.30" ]]; then
     ok "versionName=$version_name"
   else
-    warn_msg "versionName=$version_name (expected 1.8.29)"
+    warn_msg "versionName=$version_name (expected 1.8.30)"
   fi
 
   # Verify versionCode matches versionName pattern: major*1000 + minor*100 + patch
@@ -595,7 +595,7 @@ echo ""
 echo "========================================"
 if [[ "$fail" -eq 0 && "$warn" -eq 0 ]]; then
   echo -e "${GREEN}Android AI Engine Health Check PASSED${NC}"
-  echo "All systems operational for release v1.8.29"
+  echo "All systems operational for release v1.8.30"
   exit 0
 elif [[ "$fail" -eq 0 ]]; then
   echo -e "${YELLOW}Android AI Engine Health Check PASSED with warnings${NC}"

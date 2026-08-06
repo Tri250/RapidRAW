@@ -1204,6 +1204,7 @@
       "noImagesSelected": "No images selected.",
       "success": "Export successful!"
     },
+    "title": "Export",
     "watermark": {
       "addWatermark": "Add Watermark",
       "anchors": {
