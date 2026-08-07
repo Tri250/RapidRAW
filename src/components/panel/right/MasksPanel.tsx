@@ -1345,8 +1345,8 @@ export default function MasksPanel() {
       collisionDetection={pointerWithin}
     >
       <div className="flex flex-col h-full select-none overflow-hidden" onContextMenu={handlePanelContextMenu}>
-        <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface">
-          <Text variant={TextVariants.title}>{t('editor.masks.maskingTitle')}</Text>
+        <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface gap-2 flex-wrap">
+          <Text variant={TextVariants.title} className="truncate min-w-0">{t('editor.masks.maskingTitle')}</Text>
           <div className="flex items-center gap-1">
             <button
               className={clsx(
@@ -2489,8 +2489,8 @@ function SettingsPanel({
           />
 
           {!isComponentMode && (
-            <div className="flex justify-between items-center">
-              <Text variant={TextVariants.label} className="select-none">
+            <div className="flex justify-between items-center gap-2">
+              <Text variant={TextVariants.label} className="select-none truncate min-w-0">
                 {t('editor.masks.settings.applyPreset')}
               </Text>
               <button

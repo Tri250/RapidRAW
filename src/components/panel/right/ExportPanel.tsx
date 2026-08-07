@@ -597,8 +597,8 @@ export default function ExportPanel({
 
   return (
     <div className={onClose ? 'h-full bg-bg-secondary rounded-lg flex flex-col' : 'flex flex-col h-full'}>
-      <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface">
-        <Text variant={TextVariants.title}>{t('export.title' as any)}</Text>
+      <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface gap-2 flex-wrap">
+        <Text variant={TextVariants.title} className="truncate min-w-0">{t('export.title' as any)}</Text>
         {onClose && (
           <button
             onClick={onClose}

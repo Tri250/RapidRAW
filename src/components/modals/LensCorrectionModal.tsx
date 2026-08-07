@@ -618,8 +618,8 @@ export default function LensCorrectionModal({
 
   const renderControls = () => (
     <div className="modal-adjustments-pane w-80 shrink-0 bg-bg-secondary flex flex-col border-l border-surface h-full z-10">
-      <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface">
-        <Text variant={TextVariants.title}>{t('modals.lensCorrection.title')}</Text>
+      <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface gap-2 flex-wrap">
+        <Text variant={TextVariants.title} className="truncate min-w-0">{t('modals.lensCorrection.title')}</Text>
         <button
           onClick={handleReset}
           data-tooltip={t('modals.lensCorrection.resetTooltip')}

@@ -35,8 +35,8 @@ export default function ImagePicker({ imageName, onImageSelect, onClear, label }
 
   return (
     <div className="mb-2">
-      <div className="flex justify-between items-center mb-1">
-        <Text variant={TextVariants.label} className="select-none">
+      <div className="flex justify-between items-center mb-1 gap-2">
+        <Text variant={TextVariants.label} className="select-none truncate min-w-0">
           {label}
         </Text>
         <div className="group flex items-center">

@@ -190,8 +190,8 @@ const KeybindRow = ({
   const displayCombo = currentCombo !== undefined ? (currentCombo.length ? currentCombo : null) : def.defaultCombo;
 
   return (
-    <div className="flex justify-between items-center py-2">
-      <Text variant={TextVariants.label}>{t(def.description as any)}</Text>
+    <div className="flex justify-between items-center py-2 gap-2">
+      <Text variant={TextVariants.label} className="truncate min-w-0">{t(def.description as any)}</Text>
       <div className="flex items-center gap-1">
         {isConflicting && <span className="text-yellow-400 text-xs">⚠</span>}
         <button onClick={() => onStartRecording(def.action)} className="flex items-center gap-1 flex-wrap shrink-0">
@@ -512,8 +512,8 @@ const CloudDashboard = () => {
 
       {isPro ? (
         <div className="bg-surface p-4 rounded-md">
-          <div className="flex justify-between items-center mb-2">
-            <Text variant={TextVariants.label}>{t('settings.processing.ai.cloud.signedIn.usage')}</Text>
+          <div className="flex justify-between items-center mb-2 gap-2">
+            <Text variant={TextVariants.label} className="truncate min-w-0">{t('settings.processing.ai.cloud.signedIn.usage')}</Text>
             <Text variant={TextVariants.small}>
               {t('settings.processing.ai.cloud.signedIn.usageStats', {
                 requests: usage?.requests ?? 0,

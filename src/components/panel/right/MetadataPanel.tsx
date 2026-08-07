@@ -542,8 +542,8 @@ export default function MetadataPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface">
-        <Text variant={TextVariants.title}>{t('editor.metadata.title')}</Text>
+      <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface gap-2 flex-wrap">
+        <Text variant={TextVariants.title} className="truncate min-w-0">{t('editor.metadata.title')}</Text>
       </div>
       <div className="grow overflow-y-auto p-4 custom-scrollbar">
         {selectedImage ? (

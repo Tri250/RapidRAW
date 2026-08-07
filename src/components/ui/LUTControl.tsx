@@ -193,8 +193,8 @@ export default function LUTControl({
 
   return (
     <div className="mb-2">
-      <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-text-secondary select-none">{t('ui.lut.label')}</span>
+      <div className="flex justify-between items-center gap-2">
+        <span className="text-sm font-medium text-text-secondary select-none truncate min-w-0 flex-1">{t('ui.lut.label')}</span>
         <div className="flex items-center gap-1">
           {lutName && (
             <button
