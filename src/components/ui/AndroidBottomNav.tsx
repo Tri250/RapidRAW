@@ -106,7 +106,7 @@ export default function AndroidBottomNav({ isAndroid, onBackToLibrary }: Android
               onClick={() => handlePanelSelect(panel)}
             >
               <Icon size={20} strokeWidth={1.8} />
-              <span className="text-[10px] leading-tight font-medium tracking-wide whitespace-nowrap">
+              <span className="text-[10px] leading-tight font-medium tracking-wide truncate max-w-full text-center">
                 {t(labelKey as any)}
               </span>
             </button>
@@ -132,7 +132,7 @@ export default function AndroidBottomNav({ isAndroid, onBackToLibrary }: Android
             ) : (
               <MoreHorizontal size={20} strokeWidth={1.8} />
             )}
-            <span className="text-[10px] leading-tight font-medium tracking-wide whitespace-nowrap">
+            <span className="text-[10px] leading-tight font-medium tracking-wide truncate max-w-full text-center">
               {isSecondaryActive && !isMoreOpen
                 ? t(secondaryNavItems.find((item) => item.panel === activeRightPanel)?.labelKey as any)
                 : t('editor.android.bottomNav.more')}

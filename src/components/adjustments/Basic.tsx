@@ -87,7 +87,7 @@ const ToneMapperSwitch = ({
     <div className="group mb-3">
       <div className="flex justify-between items-center mb-2">
         <div
-          className="grid cursor-pointer"
+          className="grid cursor-pointer min-w-0 flex-1"
           onClick={handleReset}
           onDoubleClick={handleReset}
           onMouseEnter={() => setIsLabelHovered(true)}
@@ -95,7 +95,7 @@ const ToneMapperSwitch = ({
         >
           <span
             aria-hidden={isLabelHovered}
-            className={`col-start-1 row-start-1 text-sm font-medium text-text-secondary select-none transition-opacity duration-200 ease-in-out ${
+            className={`col-start-1 row-start-1 text-sm font-medium text-text-secondary select-none transition-opacity duration-200 ease-in-out truncate ${
               isLabelHovered ? 'opacity-0' : 'opacity-100'
             }`}
           >
@@ -103,7 +103,7 @@ const ToneMapperSwitch = ({
           </span>
           <span
             aria-hidden={!isLabelHovered}
-            className={`col-start-1 row-start-1 text-sm font-medium text-text-primary select-none transition-opacity duration-200 ease-in-out pointer-events-none ${
+            className={`col-start-1 row-start-1 text-sm font-medium text-text-primary select-none transition-opacity duration-200 ease-in-out pointer-events-none truncate ${
               isLabelHovered ? 'opacity-100' : 'opacity-0'
             }`}
           >

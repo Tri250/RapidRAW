@@ -219,9 +219,11 @@ export default function Controls() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface">
-        <Text variant={TextVariants.title}>{t('editor.switcher.tooltips.basic')}</Text>
-        <div className="flex items-center gap-1">
+      <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface gap-2 flex-wrap">
+        <Text variant={TextVariants.title} className="truncate min-w-0">
+          {t('editor.switcher.tooltips.basic')}
+        </Text>
+        <div className="flex items-center gap-1 shrink-0">
           <button
             className="p-2 rounded-full hover:bg-surface disabled:cursor-not-allowed transition-colors"
             disabled={!selectedImage?.isReady}

@@ -530,9 +530,9 @@ const Slider = ({
 
   return (
     <div className={`mb-2 group ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`} ref={containerRef}>
-      <div className="flex justify-between items-center mb-1">
+      <div className="flex justify-between items-center mb-1 gap-2">
         <div
-          className={`grid ${typeof label === 'string' ? 'cursor-pointer' : ''}`}
+          className={`grid min-w-0 flex-1 ${typeof label === 'string' ? 'cursor-pointer' : ''}`}
           onClick={typeof label === 'string' ? handleReset : undefined}
           onDoubleClick={typeof label === 'string' ? handleReset : undefined}
           onMouseEnter={typeof label === 'string' ? () => setIsLabelHovered(true) : undefined}
@@ -540,7 +540,7 @@ const Slider = ({
         >
           <span
             aria-hidden={isLabelHovered && typeof label === 'string'}
-            className={`col-start-1 row-start-1 text-sm font-medium text-text-secondary select-none transition-opacity duration-200 ease-in-out ${
+            className={`col-start-1 row-start-1 text-sm font-medium text-text-secondary select-none transition-opacity duration-200 ease-in-out truncate ${
               isLabelHovered && typeof label === 'string' ? 'opacity-0' : 'opacity-100'
             }`}
           >
@@ -549,7 +549,7 @@ const Slider = ({
           {typeof label === 'string' && (
             <span
               aria-hidden={!isLabelHovered}
-              className={`col-start-1 row-start-1 text-sm font-medium text-text-primary select-none transition-opacity duration-200 ease-in-out pointer-events-none ${
+              className={`col-start-1 row-start-1 text-sm font-medium text-text-primary select-none transition-opacity duration-200 ease-in-out pointer-events-none truncate ${
                 isLabelHovered ? 'opacity-100' : 'opacity-0'
               }`}
             >
@@ -557,7 +557,7 @@ const Slider = ({
             </span>
           )}
         </div>
-        <div className="w-12 text-right">
+        <div className="w-12 text-right shrink-0">
           {isEditing ? (
             <input
               className="w-full text-sm text-right bg-card-active border border-border-color rounded-sm px-1 py-0 outline-none focus:ring-1 focus:ring-accent text-text-primary"

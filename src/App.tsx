@@ -898,7 +898,7 @@ function App() {
                 />
               </div>
             )}
-            {selectedImage && (
+            {selectedImage && !isCompactPortrait && (
               <SidePanelArea
                 side="right"
                 width={rightPanelWidth}
