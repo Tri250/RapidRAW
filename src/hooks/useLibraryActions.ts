@@ -192,14 +192,28 @@ export function useLibraryActions(handleImageSelect?: (path: string) => void) {
   const handleLibraryImageSingleClick = useCallback(
     (path: string, event: any) => {
       const { selectionAnchorPath, libraryActivePath, setLibrary } = useLibraryStore.getState();
+      const isAndroid = useSettingsStore.getState().osPlatform === 'android';
       handleMultiSelectClick(path, event, {
         shiftAnchor: selectionAnchorPath ?? libraryActivePath,
         updateLibraryActivePath: true,
-        onSimpleClick: (p: any) =>
-          setLibrary({ multiSelectedPaths: [p], libraryActivePath: p, selectionAnchorPath: p }),
+        onSimpleClick: (p: any) => {
+          // On Android, double-tap is disabled in LibraryItems (no keyboard to
+          // disambiguate single vs. double tap quickly), so a plain single tap
+          // must open the editor — mirroring the desktop double-click path
+          // (onImageDoubleClick -> handleImageSelect). Modifier taps (ctrl/shift,
+          // e.g. from an attached keyboard) still fall through to multi-select
+          // because handleMultiSelectClick only invokes onSimpleClick when no
+          // modifier is pressed. On desktop, single click keeps select-only
+          // behavior and the editor is opened via double-click.
+          if (isAndroid && handleImageSelect) {
+            handleImageSelect(p);
+          } else {
+            setLibrary({ multiSelectedPaths: [p], libraryActivePath: p, selectionAnchorPath: p });
+          }
+        },
       });
     },
-    [handleMultiSelectClick],
+    [handleMultiSelectClick, handleImageSelect],
   );
 
   const handleImageClick = useCallback(
