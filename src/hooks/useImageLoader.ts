@@ -185,7 +185,12 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
             }
           }
         } finally {
-          setLibrary({ isViewLoading: false });
+          // Only reset loading state if the effect is still active,
+          // otherwise a new image load may have already started and
+          // set isViewLoading=true, which would be incorrectly overwritten.
+          if (isEffectActive) {
+            setLibrary({ isViewLoading: false });
+          }
         }
       };
 

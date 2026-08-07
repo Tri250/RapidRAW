@@ -290,13 +290,12 @@ export default function ExportPanel({
   const [isEstimating, setIsEstimating] = useState<boolean>(false);
   const [watermarkImageAspectRatio, setWatermarkImageAspectRatio] = useState(1);
   const [imageAspectRatio, setImageAspectRatio] = useState(16 / 9);
-  const [lastExportedFilePath, setLastExportedFilePath] = useState<string | null>(null);
   const [showAndroidShareSheet, setShowAndroidShareSheet] = useState(false);
   const filenameInputRef = useRef<HTMLInputElement>(null);
   const osPlatform = useOsPlatform();
   const isAndroid = osPlatform === 'android';
 
-  const { status, progress, errorMessage } = exportState;
+  const { status, progress, errorMessage, lastExportedFilePath } = exportState;
   const isExporting = status === Status.Exporting;
   const isLibraryContext = !!onClose;
 
@@ -533,7 +532,7 @@ export default function ExportPanel({
         }
 
         setExportState({ status: Status.Exporting, progress: { current: 0, total: numImages }, errorMessage: '' });
-        const exportResult: any = await invoke(Invokes.ExportImages, {
+        await invoke(Invokes.ExportImages, {
           paths: pathsToExport,
           outputFolderOrFile: outputFolderOrFile,
           isExplicitFilePath: shouldChooseOutputFile,
@@ -543,42 +542,6 @@ export default function ExportPanel({
           currentEditPath: selectedImage?.path || null,
           currentEditAdjustments: adjustments || null,
         });
-
-        // On Android, save the exported file to the system gallery
-        if (isAndroid && exportResult) {
-          const exportedPaths: string[] = Array.isArray(exportResult) ? exportResult : [exportResult];
-          const getMimeType = (fmt: string) => {
-            switch (fmt) {
-              case 'png':
-                return 'image/png';
-              case 'webp':
-                return 'image/webp';
-              case 'avif':
-                return 'image/avif';
-              case 'tiff':
-                return 'image/tiff';
-              case 'jxl':
-                return 'image/jxl';
-              default:
-                return 'image/jpeg';
-            }
-          };
-          const mimeType = getMimeType(selectedFormat.extensions[0]);
-          for (const exportedPath of exportedPaths) {
-            try {
-              await invoke(Invokes.SaveToAndroidGallery, {
-                filePath: exportedPath,
-                mimeType,
-              });
-            } catch (err) {
-              console.error('Failed to save to Android gallery:', err);
-              toast.error(`Failed to save to gallery: ${err}`);
-            }
-          }
-          if (exportedPaths.length > 0) {
-            setLastExportedFilePath(exportedPaths[exportedPaths.length - 1]);
-          }
-        }
       }
     } catch (error) {
       setExportState({
