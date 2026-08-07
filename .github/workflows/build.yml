@@ -419,6 +419,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "::group::Artifact verification"
+          checksums_file="checksums_${{ inputs.asset-prefix }}.txt"
           target_dir="src-tauri/target/${{ inputs.target || 'release' }}/bundle"
           found=0
           for pattern in nsis/*.exe nsis/*.nsis.zip *.deb *.rpm *.AppImage *.dmg; do
@@ -427,7 +428,7 @@ jobs:
                 size=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null || echo "0")
                 if [[ "$size" -gt 1024 ]]; then
                   echo "OK: $f ($size bytes)"
-                  sha256sum "$f" >> checksums.txt 2>/dev/null || shasum -a 256 "$f" >> checksums.txt 2>/dev/null || true
+                  sha256sum "$f" >> "$checksums_file" 2>/dev/null || shasum -a 256 "$f" >> "$checksums_file" 2>/dev/null || true
                   found=$((found + 1))
                 else
                   echo "::warning::Artifact too small: $f ($size bytes)"
@@ -441,7 +442,7 @@ jobs:
                 size=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null || echo "0")
                 if [[ "$size" -gt 1024 ]]; then
                   echo "OK: $f ($size bytes)"
-                  sha256sum "$f" >> checksums.txt 2>/dev/null || shasum -a 256 "$f" >> checksums.txt 2>/dev/null || true
+                  sha256sum "$f" >> "$checksums_file" 2>/dev/null || shasum -a 256 "$f" >> "$checksums_file" 2>/dev/null || true
                   found=$((found + 1))
                 else
                   echo "::warning::Artifact too small: $f ($size bytes)"
@@ -455,21 +456,22 @@ jobs:
             exit 1
           fi
           echo "Verified $found artifact(s)"
-          if [[ -f checksums.txt ]]; then
+          if [[ -f "$checksums_file" ]]; then
             echo "::group::SHA256 checksums"
-            cat checksums.txt
+            cat "$checksums_file"
             echo "::endgroup::"
           fi
 
       - name: Upload checksums to release
-        if: inputs.tag-name != '' && hashFiles('checksums.txt') != ''
+        if: inputs.tag-name != '' && hashFiles('checksums_*.txt') != ''
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [[ -f checksums.txt ]]; then
+          checksums_file="checksums_${{ inputs.asset-prefix }}.txt"
+          if [[ -f "$checksums_file" ]]; then
             for i in 1 2 3; do
-              if gh release upload "${{ inputs.tag-name }}" checksums.txt --clobber; then
+              if gh release upload "${{ inputs.tag-name }}" "$checksums_file" --clobber; then
                 exit 0
               fi
               sleep $((i * 5))

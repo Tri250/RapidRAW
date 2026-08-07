@@ -371,8 +371,8 @@ impl Lens {
                 extract_tca_params(exact)
             } else if focal_length < tcas[0].focal {
                 extract_tca_params(tcas[0])
-            } else if focal_length > tcas.last().unwrap().focal {
-                extract_tca_params(tcas.last().unwrap())
+            } else if let Some(last) = tcas.last().filter(|l| focal_length > l.focal) {
+                extract_tca_params(last)
             } else {
                 let mut res = (1.0, 1.0);
                 for pair in tcas.windows(2) {
@@ -447,8 +447,8 @@ impl Lens {
                     .copied()
                     .collect();
                 find_best_vig(&group)
-            } else if focal_length >= vignettings.last().unwrap().focal - 0.01 {
-                let last_focal = vignettings.last().unwrap().focal;
+            } else if let Some(last) = vignettings.last().filter(|v| focal_length >= v.focal - 0.01) {
+                let last_focal = last.focal;
                 let group: Vec<&Vignetting> = vignettings
                     .iter()
                     .filter(|x| (x.focal - last_focal).abs() < 0.01)

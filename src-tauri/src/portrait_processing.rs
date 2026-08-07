@@ -2217,11 +2217,13 @@ fn build_body_mask(
     let (face_cx, face_width) = if fallback_mode {
         let est_face_w = (w as f32 * 0.22).max(40.0);
         (fallback_cx, est_face_w)
-    } else {
-        let anchor_face = face_regions.iter().min_by_key(|f| f.face_rect.1).unwrap();
+    } else if let Some(anchor_face) = face_regions.iter().min_by_key(|f| f.face_rect.1) {
         let fc = anchor_face.face_rect.0 as f32 + anchor_face.face_rect.2 as f32 / 2.0;
         let fw = anchor_face.face_rect.2 as f32;
         (fc, fw)
+    } else {
+        let est_face_w = (w as f32 * 0.22).max(40.0);
+        (fallback_cx, est_face_w)
     };
 
     let body_h = (h - body_y_start) as f32;
@@ -2319,9 +2321,10 @@ fn build_body_mask(
 
     let transition_h: u32 = if fallback_mode {
         (h as f32 * 0.04).max(8.0) as u32
-    } else {
-        let anchor = face_regions.iter().min_by_key(|f| f.face_rect.1).unwrap();
+    } else if let Some(anchor) = face_regions.iter().min_by_key(|f| f.face_rect.1) {
         (anchor.face_rect.3 as f32 * 0.3).max(5.0) as u32
+    } else {
+        (h as f32 * 0.04).max(8.0) as u32
     };
     let t_end = (body_y_start + transition_h).min(h);
     for y in body_y_start..t_end {

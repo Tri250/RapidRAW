@@ -178,7 +178,7 @@ jobs:
     name: Verify Release Assets
     needs: [version-sync-check, release]
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && needs.version-sync-check.result == 'success'
     permissions:
       contents: read
     steps:

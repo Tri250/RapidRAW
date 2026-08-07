@@ -3251,8 +3251,6 @@ pub fn run() {
                     }
                 }
                 tauri::RunEvent::ExitRequested { api, .. } => {
-                    api.prevent_exit();
-
                     #[cfg(target_os = "macos")]
                     unsafe { libc::_exit(0); }
 
@@ -3260,11 +3258,6 @@ pub fn run() {
                     std::process::exit(0);
                 }
                 tauri::RunEvent::Exit => {
-                    #[cfg(target_os = "macos")]
-                    unsafe { libc::_exit(0); }
-
-                    #[cfg(not(target_os = "macos"))]
-                    std::process::exit(0);
                 }
                 _ => {}
             }
