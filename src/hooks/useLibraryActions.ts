@@ -192,14 +192,20 @@ export function useLibraryActions(handleImageSelect?: (path: string) => void) {
   const handleLibraryImageSingleClick = useCallback(
     (path: string, event: any) => {
       const { selectionAnchorPath, libraryActivePath, setLibrary } = useLibraryStore.getState();
+      const { osPlatform } = useSettingsStore.getState();
+      const isAndroid = osPlatform === 'android';
       handleMultiSelectClick(path, event, {
         shiftAnchor: selectionAnchorPath ?? libraryActivePath,
         updateLibraryActivePath: true,
-        onSimpleClick: (p: any) =>
-          setLibrary({ multiSelectedPaths: [p], libraryActivePath: p, selectionAnchorPath: p }),
+        onSimpleClick: (p: any) => {
+          setLibrary({ multiSelectedPaths: [p], libraryActivePath: p, selectionAnchorPath: p });
+          // On Android, double-click is disabled (see LibraryItems.tsx) to avoid
+          // duplicate navigation, so single click must enter the editor directly.
+          if (isAndroid && handleImageSelect) handleImageSelect(p);
+        },
       });
     },
-    [handleMultiSelectClick],
+    [handleMultiSelectClick, handleImageSelect],
   );
 
   const handleImageClick = useCallback(
