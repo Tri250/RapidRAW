@@ -4,7 +4,6 @@ import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ClerkProvider } from '@clerk/react';
 import { ToastContainer, toast, Slide } from 'react-toastify';
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import clsx from 'clsx';
 
 import TitleBar from './window/TitleBar';
@@ -16,18 +15,6 @@ import AppModals from './components/modals/AppModals';
 
 import EditorView from './components/views/EditorView';
 import LibraryView from './components/views/LibraryView';
-import SidePanelArea from './components/panel/SidePanelArea';
-import { PANEL_ICONS } from './components/panel/PanelSwitcher';
-
-import Controls from './components/panel/right/ControlsPanel';
-import MetadataPanel from './components/panel/right/MetadataPanel';
-import CropPanel from './components/panel/right/CropPanel';
-import MasksPanel from './components/panel/right/MasksPanel';
-import AIPanel from './components/panel/right/AIPanel';
-import PresetsPanel from './components/panel/right/PresetsPanel';
-import ColorPanelSwitcher from './components/panel/right/ColorPanelSwitcher';
-import PortraitPanelSwitcher from './components/panel/right/PortraitPanelSwitcher';
-import SettingsPanel from './components/panel/SettingsPanel';
 
 import { ContextMenuProvider } from './context/ContextMenuContext';
 import { useSettingsStore } from './store/useSettingsStore';
@@ -62,7 +49,6 @@ import {
   ImageFile,
   LibraryViewMode,
   Panel,
-  PanelRegion,
   Theme,
   Orientation,
   ThumbnailSize,
@@ -122,11 +108,8 @@ function App() {
     rightPanelWidth,
     compactEditorPanelHeightOverride,
     activeRightPanel,
-    activeLayoutDragItem,
     setUI,
     setRightPanel,
-    setActiveLayoutDragItem,
-    movePanelToIndex,
   } = useUIStore(
     useShallow((state) => ({
       isFullScreen: state.isFullScreen,
@@ -139,11 +122,8 @@ function App() {
       rightPanelWidth: state.rightPanelWidth,
       compactEditorPanelHeightOverride: state.compactEditorPanelHeightOverride,
       activeRightPanel: state.activeRightPanel,
-      activeLayoutDragItem: state.activeLayoutDragItem,
       setUI: state.setUI,
       setRightPanel: state.setRightPanel,
-      setActiveLayoutDragItem: state.setActiveLayoutDragItem,
-      movePanelToIndex: state.movePanelToIndex,
     })),
   );
 
@@ -316,7 +296,7 @@ function App() {
     handleRenameAlbumItem,
   } = useLibraryActions(handleImageSelect);
 
-  const { displayList: sortedImageList, badges: groupBadgeInfo } = useSortedLibrary();
+  const { displayList: sortedImageList } = useSortedLibrary();
 
   const handleLibraryRefresh = useCallback(async () => {
     if (currentFolderPath) {
@@ -601,118 +581,6 @@ function App() {
     [expandedFolders, appSettings?.enableFolderImageCounts, setLibrary],
   );
 
-  const renderAppPanel = useCallback(
-    (panel: Panel) => {
-      switch (panel) {
-        case Panel.Adjustments:
-          return <Controls />;
-        case Panel.Color:
-          return <ColorPanelSwitcher />;
-        case Panel.Portrait:
-          return <PortraitPanelSwitcher />;
-        case Panel.Metadata:
-          return <MetadataPanel />;
-        case Panel.Crop:
-          return <CropPanel />;
-        case Panel.Masks:
-          return <MasksPanel />;
-        case Panel.Ai:
-          return <AIPanel />;
-        case Panel.Presets:
-          return (
-            <PresetsPanel
-              onNavigateToCommunity={() => {
-                handleBackToLibrary();
-                setUI({ activeView: 'community' });
-              }}
-            />
-          );
-        case Panel.Export:
-          return (
-            <ExportPanel
-              exportState={exportState}
-              multiSelectedPaths={multiSelectedPaths}
-              selectedImage={selectedImage}
-              setExportState={setExportState}
-              appSettings={appSettings}
-              onSettingsChange={handleSettingsChange}
-              rootPaths={rootPaths}
-            />
-          );
-        case Panel.FolderTree:
-          return (
-            <FolderTree
-              isResizing={isResizing}
-              isVisible={uiVisibility.folderTree}
-              onContextMenu={handleFolderTreeContextMenu}
-              onAlbumContextMenu={handleAlbumTreeContextMenu}
-              onSelectAlbum={handleSelectAlbum}
-              onFolderSelect={(path) => handleSelectSubfolder(path, false)}
-              onToggleFolder={handleToggleFolder}
-              onOpenFolder={handleOpenFolder}
-              setIsVisible={(value: boolean) =>
-                setUI((state) => ({ uiVisibility: { ...state.uiVisibility, folderTree: value } }))
-              }
-              style={{ width: '100%' }}
-              isInstantTransition={isInstantTransition}
-            />
-          );
-        case Panel.Settings:
-          return <SettingsPanel appSettings={appSettings} onBack={() => setUI({ activeView: 'library' })} onSettingsChange={handleSettingsChange} rootPaths={rootPaths} />;
-        default:
-          return null;
-      }
-    },
-    [
-      exportState,
-      multiSelectedPaths,
-      selectedImage,
-      setExportState,
-      appSettings,
-      handleSettingsChange,
-      rootPaths,
-      handleBackToLibrary,
-      setUI,
-      isResizing,
-      uiVisibility.folderTree,
-      handleFolderTreeContextMenu,
-      handleAlbumTreeContextMenu,
-      handleSelectAlbum,
-      handleSelectSubfolder,
-      handleToggleFolder,
-      handleOpenFolder,
-      isInstantTransition,
-    ],
-  );
-
-  const layoutSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
-
-  const handleDragStart = useCallback(
-    (e: any) => {
-      if (e.active.data.current?.type === 'layout-tab') {
-        setActiveLayoutDragItem(e.active.data.current.panel as Panel);
-      }
-    },
-    [setActiveLayoutDragItem],
-  );
-
-  const handleDragEnd = useCallback(
-    (e: any) => {
-      if (activeLayoutDragItem && e.over?.data.current?.type === 'layout-switcher') {
-        const targetRegion = e.over.data.current.region as PanelRegion;
-        const { panelLayout } = useUIStore.getState();
-        const isAlreadyInRegion = panelLayout[targetRegion].includes(activeLayoutDragItem);
-        if (!isAlreadyInRegion) {
-          movePanelToIndex(activeLayoutDragItem, targetRegion, panelLayout[targetRegion].length);
-        }
-      }
-      setActiveLayoutDragItem(null);
-    },
-    [activeLayoutDragItem, movePanelToIndex, setActiveLayoutDragItem],
-  );
-
-  const ActiveOverlayIcon = activeLayoutDragItem ? PANEL_ICONS[activeLayoutDragItem] : null;
-
   const hasRoots = rootPaths && rootPaths.length > 0;
   const hasMainContent = hasRoots || !!selectedImage;
 
@@ -787,19 +655,8 @@ function App() {
             [hasMainContent && (isFullScreen ? 'p-0 gap-0' : 'p-2 gap-2')],
           )}
         >
-          <DndContext sensors={layoutSensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="flex flex-row grow h-full min-h-0">
-            {!shouldHideFolderTree && (
-              <SidePanelArea
-                side="left"
-                width={leftPanelWidth}
-                topRegion={PanelRegion.LeftTop}
-                bottomRegion={PanelRegion.LeftBottom}
-                renderPanel={renderAppPanel}
-                onWidthChange={createResizeHandler('left', leftPanelWidth)}
-                isResizing={isResizing}
-              />
-            )}
+            {!shouldHideFolderTree && renderFolderTree()}
             <div className="relative flex-1 flex flex-col min-w-0">
               {selectedImage && externalEditSession && (
                 <ExternalEditBar
@@ -831,7 +688,6 @@ function App() {
                   handleZoomChange={handleZoomChange}
                   handleRightPanelSelect={handleRightPanelSelect}
                   requestThumbnails={requestThumbnails}
-                  renderAppPanel={renderAppPanel}
                 />
               ) : (
                 <LibraryView
@@ -877,47 +733,26 @@ function App() {
             {!selectedImage && isLibraryExportPanelVisible && (
               <Resizer direction={Orientation.Vertical} onMouseDown={createResizeHandler('right', rightPanelWidth)} />
             )}
-            {!selectedImage && (
-              <div
-                className={clsx(
-                  'shrink-0 overflow-hidden',
-                  !isResizing && !isInstantTransition && 'transition-all duration-300 ease-in-out',
-                )}
-                style={{ width: isLibraryExportPanelVisible && !isFullScreen ? `${rightPanelWidth}px` : '0px' }}
-              >
-                <ExportPanel
-                  exportState={exportState}
-                  multiSelectedPaths={multiSelectedPaths}
-                  selectedImage={null}
-                  setExportState={setExportState}
-                  appSettings={appSettings}
-                  onSettingsChange={handleSettingsChange}
-                  rootPaths={rootPaths}
-                  isVisible={isLibraryExportPanelVisible}
-                  onClose={() => setUI({ isLibraryExportPanelVisible: false })}
-                />
-              </div>
-            )}
-            {selectedImage && !isCompactPortrait && (
-              <SidePanelArea
-                side="right"
-                width={rightPanelWidth}
-                topRegion={PanelRegion.RightTop}
-                bottomRegion={PanelRegion.RightBottom}
-                renderPanel={renderAppPanel}
-                onWidthChange={createResizeHandler('right', rightPanelWidth)}
-                isResizing={isResizing}
+            <div
+              className={clsx(
+                'shrink-0 overflow-hidden',
+                !isResizing && !isInstantTransition && 'transition-all duration-300 ease-in-out',
+              )}
+              style={{ width: isLibraryExportPanelVisible && !isFullScreen ? `${rightPanelWidth}px` : '0px' }}
+            >
+              <ExportPanel
+                exportState={exportState}
+                multiSelectedPaths={multiSelectedPaths}
+                selectedImage={null}
+                setExportState={setExportState}
+                appSettings={appSettings}
+                onSettingsChange={handleSettingsChange}
+                rootPaths={rootPaths}
+                isVisible={isLibraryExportPanelVisible}
+                onClose={() => setUI({ isLibraryExportPanelVisible: false })}
               />
-            )}
+            </div>
           </div>
-          <DragOverlay dropAnimation={{ duration: 150, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
-            {activeLayoutDragItem && ActiveOverlayIcon ? (
-              <div className="w-10 h-10 bg-surface shadow-2xl rounded-md flex items-center justify-center text-text-primary ring-1 ring-border-color">
-                <ActiveOverlayIcon size={20} />
-              </div>
-            ) : null}
-          </DragOverlay>
-          </DndContext>
         </div>
         <AppModals
           handleImageSelect={handleImageSelect}

@@ -57,10 +57,6 @@ const EditorToolbar = memo(
     const [isHistoryVisible, setIsHistoryVisible] = useState(false);
     const historyContainerRef = useRef<HTMLDivElement>(null);
     const historyButtonRef = useRef<HTMLDivElement>(null);
-    const infoPanelRef = useRef<HTMLDivElement>(null);
-    // Android: long-press timer for undo/redo to show history
-    const longPressTimerRef = useRef<number | null>(null);
-    const longPressTriggeredRef = useRef(false);
 
     const showResolution = !isAndroid && selectedImage.width > 0 && selectedImage.height > 0;
     const [displayedResolution, setDisplayedResolution] = useState('');
@@ -200,22 +196,6 @@ const EditorToolbar = memo(
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isHistoryVisible]);
-
-    // Android: auto-dismiss info panel when tapping outside
-    useEffect(() => {
-      if (!isAndroid || !isInfoHovered) return;
-      const handleClickOutside = (e: MouseEvent | TouchEvent) => {
-        if (infoPanelRef.current && !infoPanelRef.current.contains(e.target as Node)) {
-          setIsInfoHovered(false);
-        }
-      };
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchstart', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        document.removeEventListener('touchstart', handleClickOutside);
-      };
-    }, [isAndroid, isInfoHovered]);
 
     const prevNamesRef = useRef<string[]>(['Initial State']);
 
@@ -391,57 +371,18 @@ const EditorToolbar = memo(
       e.currentTarget.blur();
     }, []);
 
-    // Android: long-press support for undo/redo to toggle history panel
-    const handleHistoryLongPressStart = useCallback(() => {
-      longPressTriggeredRef.current = false;
-      longPressTimerRef.current = window.setTimeout(() => {
-        longPressTriggeredRef.current = true;
-        setIsHistoryVisible((prev) => !prev);
-      }, 500);
-    }, []);
-
-    const handleHistoryLongPressEnd = useCallback(
-      (action: () => void) => {
-        if (longPressTimerRef.current !== null) {
-          clearTimeout(longPressTimerRef.current);
-          longPressTimerRef.current = null;
-        }
-        // If long press didn't trigger, perform the normal action (undo/redo)
-        if (!longPressTriggeredRef.current) {
-          action();
-        }
-      },
-      [],
-    );
-
-    // Cleanup long-press timer on unmount
-    useEffect(() => {
-      return () => {
-        if (longPressTimerRef.current !== null) {
-          clearTimeout(longPressTimerRef.current);
-        }
-      };
-    }, []);
-
     const isExpanded = isInfoHovered && (hasExif || isLoading);
 
     return (
-      <div className="relative shrink-0 flex items-center justify-between px-4 h-14 gap-4 z-50">
+      <div className="relative shrink-0 flex items-center justify-between px-4 h-14 gap-4 z-40">
         <div className="flex items-center gap-2 shrink-0 z-40">
           <button
-            className={clsx(
-              'bg-surface text-text-primary p-2 rounded-full hover:bg-card-active transition-colors shrink-0 relative',
-              isAndroid && 'min-w-[44px] min-h-[44px] flex items-center justify-center active:opacity-70',
-            )}
+            className="bg-surface text-text-primary p-2 rounded-full hover:bg-card-active transition-colors shrink-0"
             onClick={onBackToLibrary}
             onKeyDown={handleButtonKeyDown}
             data-tooltip={t('editor.toolbar.tooltips.backToLibrary')}
           >
             <ArrowLeft size={20} />
-            {/* Android: show edit indicator dot when there are unsaved adjustments */}
-            {isAndroid && adjustmentsHistoryIndex > 0 && (
-              <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full shadow-sm" />
-            )}
           </button>
 
           <div className="hidden 2xl:flex items-center gap-2" aria-hidden="true">
@@ -462,7 +403,6 @@ const EditorToolbar = memo(
 
         <div className="flex-1 flex justify-center min-w-0 relative h-full">
           <div
-            ref={infoPanelRef}
             className={clsx(
               'bg-surface flex flex-col items-center overflow-hidden transition-all duration-200 ease-out pt-2',
               isExpanded
@@ -471,10 +411,6 @@ const EditorToolbar = memo(
             )}
             onMouseEnter={() => setIsInfoHovered(true)}
             onMouseLeave={() => setIsInfoHovered(false)}
-            onClick={() => {
-              // On Android/touch, toggle the info panel on tap since hover is not available
-              if (isAndroid) setIsInfoHovered((prev) => !prev);
-            }}
             style={{
               top: '10px',
               transform: 'translateX(-50%)',
@@ -634,10 +570,7 @@ const EditorToolbar = memo(
         <div className="flex items-center gap-2 shrink-0 z-40">
           <div className="relative flex items-center gap-2" ref={historyButtonRef}>
             <button
-              className={clsx(
-                'bg-surface text-text-primary p-2 rounded-full hover:bg-card-active transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-                isAndroid && 'min-w-[44px] min-h-[44px] flex items-center justify-center active:opacity-70',
-              )}
+              className="bg-surface text-text-primary p-2 rounded-full hover:bg-card-active transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!canUndo}
               onClick={onUndo}
               onKeyDown={handleButtonKeyDown}
@@ -645,18 +578,12 @@ const EditorToolbar = memo(
                 e.preventDefault();
                 setIsHistoryVisible((prev) => !prev);
               }}
-              onTouchStart={isAndroid ? handleHistoryLongPressStart : undefined}
-              onTouchEnd={isAndroid ? () => handleHistoryLongPressEnd(onUndo) : undefined}
-              onTouchCancel={isAndroid ? () => handleHistoryLongPressEnd(onUndo) : undefined}
               data-tooltip={t('editor.toolbar.tooltips.undo')}
             >
               <Undo size={20} />
             </button>
             <button
-              className={clsx(
-                'bg-surface text-text-primary p-2 rounded-full hover:bg-card-active transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-                isAndroid && 'min-w-[44px] min-h-[44px] flex items-center justify-center active:opacity-70',
-              )}
+              className="bg-surface text-text-primary p-2 rounded-full hover:bg-card-active transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!canRedo}
               onClick={onRedo}
               onKeyDown={handleButtonKeyDown}
@@ -664,9 +591,6 @@ const EditorToolbar = memo(
                 e.preventDefault();
                 setIsHistoryVisible((prev) => !prev);
               }}
-              onTouchStart={isAndroid ? handleHistoryLongPressStart : undefined}
-              onTouchEnd={isAndroid ? () => handleHistoryLongPressEnd(onRedo) : undefined}
-              onTouchCancel={isAndroid ? () => handleHistoryLongPressEnd(onRedo) : undefined}
               data-tooltip={t('editor.toolbar.tooltips.redo')}
             >
               <Redo size={20} />
@@ -736,7 +660,6 @@ const EditorToolbar = memo(
               showOriginal
                 ? 'bg-accent text-button-text hover:bg-accent/90 hover:text-button-text'
                 : 'bg-surface hover:bg-card-active text-text-primary',
-              isAndroid && 'min-w-[44px] min-h-[44px] flex items-center justify-center active:opacity-70',
             )}
             onClick={onToggleShowOriginal}
             onKeyDown={handleButtonKeyDown}
@@ -747,10 +670,7 @@ const EditorToolbar = memo(
             {showOriginal ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
           <button
-            className={clsx(
-              'bg-surface text-text-primary p-2 rounded-full hover:bg-card-active transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative',
-              isAndroid && 'min-w-[44px] min-h-[44px] flex items-center justify-center active:opacity-70',
-            )}
+            className="bg-surface text-text-primary p-2 rounded-full hover:bg-card-active transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
             onClick={onToggleFullScreen}
             onKeyDown={handleButtonKeyDown}
             data-tooltip={t('editor.toolbar.tooltips.fullscreen')}

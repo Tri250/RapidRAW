@@ -17,7 +17,7 @@ describe('AndroidBottomNav', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders 5 primary nav items and More button on Android', () => {
+  it('renders all 10 nav items on Android', () => {
     (useUIStore as any).mockReturnValue({ activeRightPanel: null });
     (useUIStore as any).mockImplementation((selector: any) => {
       const state = { activeRightPanel: null, setRightPanel };
@@ -27,13 +27,17 @@ describe('AndroidBottomNav', () => {
     render(<AndroidBottomNav isAndroid={true} />);
     expect(screen.getByText('editor.android.bottomNav.library')).toBeInTheDocument();
     expect(screen.getByText('editor.android.bottomNav.basic')).toBeInTheDocument();
+    expect(screen.getByText('editor.android.bottomNav.color')).toBeInTheDocument();
+    expect(screen.getByText('editor.android.bottomNav.portrait')).toBeInTheDocument();
     expect(screen.getByText('editor.android.bottomNav.crop')).toBeInTheDocument();
     expect(screen.getByText('editor.android.bottomNav.masks')).toBeInTheDocument();
     expect(screen.getByText('editor.android.bottomNav.ai')).toBeInTheDocument();
-    expect(screen.getByText('editor.android.bottomNav.more')).toBeInTheDocument();
+    expect(screen.getByText('editor.android.bottomNav.metadata')).toBeInTheDocument();
+    expect(screen.getByText('editor.android.bottomNav.presets')).toBeInTheDocument();
+    expect(screen.getByText('editor.android.bottomNav.export')).toBeInTheDocument();
   });
 
-  it('toggles panel on primary nav click', () => {
+  it('toggles panel on click', () => {
     (useUIStore as any).mockImplementation((selector: any) => {
       const state = { activeRightPanel: null, setRightPanel };
       return selector ? selector(state) : state;
@@ -42,38 +46,6 @@ describe('AndroidBottomNav', () => {
     render(<AndroidBottomNav isAndroid={true} />);
     const basicBtn = screen.getByText('editor.android.bottomNav.basic').closest('button')!;
     fireEvent.click(basicBtn);
-    expect(setRightPanel).toHaveBeenCalled();
-  });
-
-  it('shows secondary nav items when More button is clicked', () => {
-    (useUIStore as any).mockImplementation((selector: any) => {
-      const state = { activeRightPanel: null, setRightPanel };
-      return selector ? selector(state) : state;
-    });
-
-    render(<AndroidBottomNav isAndroid={true} />);
-    const moreBtn = screen.getByText('editor.android.bottomNav.more').closest('button')!;
-    fireEvent.click(moreBtn);
-
-    expect(screen.getByText('editor.android.bottomNav.color')).toBeInTheDocument();
-    expect(screen.getByText('editor.android.bottomNav.portrait')).toBeInTheDocument();
-    expect(screen.getByText('editor.android.bottomNav.metadata')).toBeInTheDocument();
-    expect(screen.getByText('editor.android.bottomNav.presets')).toBeInTheDocument();
-    expect(screen.getByText('editor.android.bottomNav.export')).toBeInTheDocument();
-  });
-
-  it('closes More menu when a secondary item is selected', () => {
-    (useUIStore as any).mockImplementation((selector: any) => {
-      const state = { activeRightPanel: null, setRightPanel };
-      return selector ? selector(state) : state;
-    });
-
-    render(<AndroidBottomNav isAndroid={true} />);
-    const moreBtn = screen.getByText('editor.android.bottomNav.more').closest('button')!;
-    fireEvent.click(moreBtn);
-
-    const colorBtn = screen.getByText('editor.android.bottomNav.color').closest('button')!;
-    fireEvent.click(colorBtn);
-    expect(setRightPanel).toHaveBeenCalled();
+    expect(setRightPanel).toHaveBeenCalledWith(expect.anything());
   });
 });

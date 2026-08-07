@@ -16,7 +16,6 @@ interface BottomBarProps {
   filmstripHeight?: number;
   imageList?: Array<ImageFile>;
   imageRatings?: Record<string, number> | null;
-  isAndroid?: boolean;
   isCopied: boolean;
   isCopyDisabled: boolean;
   isExportDisabled?: boolean;
@@ -51,12 +50,11 @@ interface BottomBarProps {
 
 interface StarRatingProps {
   disabled: boolean;
-  isAndroid?: boolean;
   onRate(rate: number): void;
   rating: number;
 }
 
-const StarRating = ({ rating, onRate, disabled, isAndroid = false }: StarRatingProps) => {
+const StarRating = ({ rating, onRate, disabled }: StarRatingProps) => {
   const { t } = useTranslation();
   const starRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -122,7 +120,6 @@ const StarRating = ({ rating, onRate, disabled, isAndroid = false }: StarRatingP
             }}
             className={clsx(
               'disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-secondary rounded-sm',
-              isAndroid && 'active:opacity-70',
             )}
             disabled={disabled}
             key={starValue}
@@ -159,7 +156,6 @@ export default function BottomBar({
   filmstripHeight,
   imageList = [],
   imageRatings,
-  isAndroid = false,
   isCopied,
   isCopyDisabled,
   isExportDisabled,
@@ -354,14 +350,11 @@ export default function BottomBar({
         )}
       >
         <div className="flex items-center gap-4">
-          <StarRating rating={rating} onRate={onRate} disabled={isRatingDisabled} isAndroid={isAndroid} />
+          <StarRating rating={rating} onRate={onRate} disabled={isRatingDisabled} />
           <div className="h-5 w-px bg-surface"></div>
           <div className="flex items-center gap-2">
             <button
-              className={clsx(
-                'relative w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:bg-surface hover:text-text-primary transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed',
-                isAndroid && 'active:opacity-70',
-              )}
+              className="relative w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:bg-surface hover:text-text-primary transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed"
               disabled={isCopyDisabled}
               onClick={onCopy}
               data-tooltip={t('ui.bottomBar.tooltips.copySettings')}
@@ -394,10 +387,7 @@ export default function BottomBar({
             </button>
 
             <button
-              className={clsx(
-                'relative w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:bg-surface hover:text-text-primary transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed',
-                isAndroid && 'active:opacity-70',
-              )}
+              className="relative w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:bg-surface hover:text-text-primary transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed"
               disabled={isPasteDisabled}
               onClick={onPaste}
               data-tooltip={t('ui.bottomBar.tooltips.pasteSettings')}
@@ -430,10 +420,7 @@ export default function BottomBar({
             </button>
 
             <button
-              className={clsx(
-                'w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:bg-surface hover:text-text-primary transition-colors',
-                isAndroid && 'active:opacity-70',
-              )}
+              className="w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:bg-surface hover:text-text-primary transition-colors"
               onClick={onOpenCopyPasteSettings}
               data-tooltip={t('ui.bottomBar.tooltips.copyPasteSettings')}
             >
@@ -453,7 +440,6 @@ export default function BottomBar({
               className={clsx(
                 'relative w-8 h-8 flex items-center justify-center rounded-md transition-colors shrink-0',
                 isFilterExpanded ? 'text-text-primary' : 'text-text-secondary hover:bg-surface hover:text-text-primary',
-                isAndroid && 'active:opacity-70',
               )}
               onClick={() => setIsFilterExpanded(!isFilterExpanded)}
               data-tooltip={t('ui.bottomBar.tooltips.quickFilter', 'Quick Filter')}
@@ -480,7 +466,7 @@ export default function BottomBar({
                             rating: prev.rating === starValue ? 0 : starValue,
                           }))
                         }
-                        className={clsx('p-0.5 focus:outline-none', isAndroid && 'active:opacity-70')}
+                        className="p-0.5 focus:outline-none"
                       >
                         <Star
                           size={16}
@@ -520,7 +506,6 @@ export default function BottomBar({
                         className={clsx(
                           'w-4 h-4 rounded-full transition-transform hover:scale-105 flex items-center justify-center focus:outline-none',
                           isSelected ? 'ring-2 ring-accent ring-offset-1 ring-offset-bg-primary' : '',
-                          isAndroid && 'active:opacity-70',
                         )}
                         style={{ backgroundColor: color.color }}
                         data-tooltip={tooltipTitle}
@@ -550,10 +535,7 @@ export default function BottomBar({
         {isLibraryView ? (
           <div className="flex items-center gap-2">
             <button
-              className={clsx(
-                'w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:bg-surface hover:text-text-primary transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed',
-                isAndroid && 'active:opacity-70',
-              )}
+              className="w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:bg-surface hover:text-text-primary transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed"
               disabled={isExportDisabled}
               onClick={onExportClick}
               data-tooltip={t('ui.bottomBar.tooltips.export')}
@@ -624,10 +606,7 @@ export default function BottomBar({
               <>
                 <div className="h-5 w-px bg-surface"></div>
                 <button
-                  className={clsx(
-                    'p-1.5 rounded-md text-text-secondary hover:bg-surface hover:text-text-primary transition-colors',
-                    isAndroid && 'active:opacity-70',
-                  )}
+                  className="p-1.5 rounded-md text-text-secondary hover:bg-surface hover:text-text-primary transition-colors"
                   onClick={() => setIsFilmstripVisible?.(!isFilmstripVisible)}
                   data-tooltip={
                     isFilmstripVisible

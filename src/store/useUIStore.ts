@@ -1,12 +1,5 @@
 import { create } from 'zustand';
-import {
-  ImageFile,
-  Panel,
-  PanelRegion,
-  SwitcherPlacement,
-  UiVisibility,
-  CullingSuggestions,
-} from '../components/ui/AppProperties';
+import { ImageFile, Panel, UiVisibility, CullingSuggestions } from '../components/ui/AppProperties';
 
 const RIGHT_PANEL_ORDER = [
   Panel.Metadata,
@@ -19,8 +12,6 @@ const RIGHT_PANEL_ORDER = [
   Panel.Presets,
   Panel.Export,
 ];
-
-export type { SwitcherPlacement };
 
 export interface CollapsibleSectionsState {
   basic: boolean;
@@ -86,10 +77,6 @@ export interface CullingModalState {
   pathsToCull: Array<string>;
 }
 
-export type PanelLayout = Record<PanelRegion, Panel[]>;
-export type ActivePanels = Record<PanelRegion, Panel | null>;
-export type PanelSwitcherPlacement = Record<PanelRegion, SwitcherPlacement>;
-
 interface UIState {
   // View & Layout
   activeView: string;
@@ -106,19 +93,11 @@ interface UIState {
   bottomPanelHeight: number;
   compactEditorPanelHeightOverride: number | null;
 
-  // Right Panel (legacy)
+  // Right Panel
   activeRightPanel: Panel | null;
   renderedRightPanel: Panel | null;
   slideDirection: number;
   collapsibleSectionsState: CollapsibleSectionsState;
-
-  // Panel Layout System
-  panelLayout: PanelLayout;
-  activePanels: ActivePanels;
-  panelSwitcherPlacement: PanelSwitcherPlacement;
-  activeLayoutDragItem: Panel | null;
-  leftTopHeight: number;
-  rightTopHeight: number;
 
   // Modals & Dialogs
   isCreateFolderModalOpen: boolean;
@@ -151,34 +130,9 @@ interface UIState {
   // Actions
   setUI: (updater: Partial<UIState> | ((state: UIState) => Partial<UIState>)) => void;
   setRightPanel: (panel: Panel | null) => void;
-  setActivePanel: (region: PanelRegion, panel: Panel) => void;
-  movePanelToIndex: (panel: Panel, region: PanelRegion, newIndex: number) => void;
-  setPanelSwitcherPlacement: (region: PanelRegion, placement: SwitcherPlacement) => void;
-  setActiveLayoutDragItem: (panel: Panel | null) => void;
   customEscapeHandler: (() => void) | null;
   setCustomEscapeHandler: (handler: (() => void) | null) => void;
 }
-
-const DEFAULT_PANEL_LAYOUT: PanelLayout = {
-  [PanelRegion.LeftTop]: [Panel.FolderTree],
-  [PanelRegion.LeftBottom]: [],
-  [PanelRegion.RightTop]: [Panel.Adjustments, Panel.Color, Panel.Portrait, Panel.Crop, Panel.Masks, Panel.Ai],
-  [PanelRegion.RightBottom]: [Panel.Metadata, Panel.Presets, Panel.Export],
-};
-
-const DEFAULT_ACTIVE_PANELS: ActivePanels = {
-  [PanelRegion.LeftTop]: Panel.FolderTree,
-  [PanelRegion.LeftBottom]: null,
-  [PanelRegion.RightTop]: Panel.Adjustments,
-  [PanelRegion.RightBottom]: Panel.Metadata,
-};
-
-const DEFAULT_SWITCHER_PLACEMENT: PanelSwitcherPlacement = {
-  [PanelRegion.LeftTop]: 'left',
-  [PanelRegion.LeftBottom]: 'left',
-  [PanelRegion.RightTop]: 'right',
-  [PanelRegion.RightBottom]: 'right',
-};
 
 export const useUIStore = create<UIState>((set, get) => ({
   activeView: 'library',
@@ -198,13 +152,6 @@ export const useUIStore = create<UIState>((set, get) => ({
   renderedRightPanel: Panel.Adjustments,
   slideDirection: 1,
   collapsibleSectionsState: { basic: true, color: false, curves: true, details: false, effects: false },
-
-  panelLayout: DEFAULT_PANEL_LAYOUT,
-  activePanels: DEFAULT_ACTIVE_PANELS,
-  panelSwitcherPlacement: DEFAULT_SWITCHER_PLACEMENT,
-  activeLayoutDragItem: null,
-  leftTopHeight: 400,
-  rightTopHeight: 400,
 
   isCreateFolderModalOpen: false,
   isRenameFolderModalOpen: false,
@@ -268,40 +215,6 @@ export const useUIStore = create<UIState>((set, get) => ({
         renderedRightPanel: panelId,
       });
     }
-  },
-
-  setActivePanel: (region, panel) => {
-    set((state) => ({
-      activePanels: { ...state.activePanels, [region]: panel },
-      // Sync legacy right panel for compatibility
-      ...(region === PanelRegion.RightTop || region === PanelRegion.RightBottom
-        ? { activeRightPanel: panel, renderedRightPanel: panel }
-        : {}),
-    }));
-  },
-
-  movePanelToIndex: (panel, region, newIndex) => {
-    set((state) => {
-      const currentPanels = [...state.panelLayout[region]];
-      const oldIndex = currentPanels.indexOf(panel);
-      if (oldIndex === -1) return state;
-      currentPanels.splice(oldIndex, 1);
-      const clampedIndex = Math.min(newIndex, currentPanels.length);
-      currentPanels.splice(clampedIndex, 0, panel);
-      return {
-        panelLayout: { ...state.panelLayout, [region]: currentPanels },
-      };
-    });
-  },
-
-  setPanelSwitcherPlacement: (region, placement) => {
-    set((state) => ({
-      panelSwitcherPlacement: { ...state.panelSwitcherPlacement, [region]: placement },
-    }));
-  },
-
-  setActiveLayoutDragItem: (panel) => {
-    set({ activeLayoutDragItem: panel });
   },
 
   customEscapeHandler: null,
