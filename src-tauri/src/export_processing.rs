@@ -459,6 +459,23 @@ fn save_image_with_metadata(
 
     #[cfg(target_os = "android")]
     {
+        // Ensure the parent directory exists before writing the file.
+        // The output path on Android is inside the app cache directory.
+        if let Some(parent) = output_path.parent() {
+            if !parent.exists() {
+                fs::create_dir_all(parent).map_err(|e| {
+                    format!("Failed to create export directory '{}': {}", parent.display(), e)
+                })?;
+            }
+        }
+
+        // Write the file to disk so the share_image function can find it
+        // via FileProvider.getUriForFile. Also save to MediaStore gallery
+        // so the image appears in the system Photos app.
+        fs::write(output_path, &image_bytes).map_err(|e| {
+            format!("Failed to write export file '{}': {}", output_path.display(), e)
+        })?;
+
         let file_name = output_path
             .file_name()
             .and_then(|name| name.to_str())
@@ -744,6 +761,18 @@ fn export_masks_for_image(
             let alpha_bytes = encode_grayscale_to_png(&alpha_resized)?;
             #[cfg(target_os = "android")]
             {
+                // Write the mask file to disk so it can be shared.
+                if let Some(parent) = mask_alpha_path.parent() {
+                    if !parent.exists() {
+                        fs::create_dir_all(parent).map_err(|e| {
+                            format!("Failed to create mask export directory '{}': {}", parent.display(), e)
+                        })?;
+                    }
+                }
+                fs::write(&mask_alpha_path, &alpha_bytes).map_err(|e| {
+                    format!("Failed to write mask export file '{}': {}", mask_alpha_path.display(), e)
+                })?;
+
                 let file_name = mask_alpha_path
                     .file_name()
                     .and_then(|name| name.to_str())
@@ -889,6 +918,36 @@ pub async fn export_images(
 
     // Validate output path up-front to reject path traversal and empty
     // values before any work is queued.
+    // On Android, the frontend may pass an empty string (batch export) or
+    // just a filename (single export) because native save dialogs are not
+    // available. Use the app cache directory as the output folder and
+    // construct the full path from it.
+    #[cfg(target_os = "android")]
+    let output_folder_or_file = {
+        if output_folder_or_file.trim().is_empty() {
+            // Batch export: use cache dir as the output folder
+            app_handle
+                .path()
+                .app_cache_dir()
+                .map_err(|e| format!("Failed to get app cache dir: {}", e))?
+                .join("exports")
+                .to_string_lossy()
+                .to_string()
+        } else if !output_folder_or_file.contains('/') && !output_folder_or_file.contains('\\') {
+            // Single export: just a filename, use cache dir as parent
+            app_handle
+                .path()
+                .app_cache_dir()
+                .map_err(|e| format!("Failed to get app cache dir: {}", e))?
+                .join("exports")
+                .join(&output_folder_or_file)
+                .to_string_lossy()
+                .to_string()
+        } else {
+            output_folder_or_file
+        }
+    };
+
     let output_folder_canon = validate_writable_folder(&output_folder_or_file)?;
     let output_folder_or_file = output_folder_canon.to_string_lossy().to_string();
 
@@ -1059,6 +1118,18 @@ pub async fn export_images(
                         )?;
                         #[cfg(target_os = "android")]
                         {
+                            // Write the LUT file to disk so it can be shared.
+                            if let Some(parent) = output_path.parent() {
+                                if !parent.exists() {
+                                    fs::create_dir_all(parent).map_err(|e| {
+                                        format!("Failed to create LUT export directory '{}': {}", parent.display(), e)
+                                    })?;
+                                }
+                            }
+                            fs::write(&output_path, &cube_bytes).map_err(|e| {
+                                format!("Failed to write LUT export file '{}': {}", output_path.display(), e)
+                            })?;
+
                             let file_name = output_path
                                 .file_name()
                                 .and_then(|name| name.to_str())
@@ -1163,7 +1234,7 @@ pub async fn export_images(
                         )?;
                     }
 
-                    Ok(())
+                    Ok(output_path.to_string_lossy().to_string())
                 })();
 
                 let current_progress = progress_counter_clone.fetch_add(1, Ordering::SeqCst) + 1;
@@ -1194,12 +1265,16 @@ pub async fn export_images(
         tokio::time::sleep(std::time::Duration::from_millis(150)).await;
 
         let mut error_count = 0;
-        for result in results {
-            if let Err(e) = result {
-                error_count += 1;
-                log::error!("Export error: {}", e);
-                if total_paths == 1 {
-                    let _ = app_handle.emit("export-error", e);
+        let mut exported_paths: Vec<String> = Vec::new();
+        for result in &results {
+            match result {
+                Ok(path) => exported_paths.push(path.clone()),
+                Err(e) => {
+                    error_count += 1;
+                    log::error!("Export error: {}", e);
+                    if total_paths == 1 {
+                        let _ = app_handle.emit("export-error", e.clone());
+                    }
                 }
             }
         }
@@ -1214,7 +1289,7 @@ pub async fn export_images(
                 "batch-export-progress",
                 serde_json::json!({ "current": total_paths, "total": total_paths, "path": "" }),
             );
-            let _ = app_handle.emit("export-complete", ());
+            let _ = app_handle.emit("export-complete", exported_paths);
         }
 
         *app_handle

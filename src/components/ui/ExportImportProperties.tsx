@@ -73,6 +73,7 @@ export interface ExportState {
   errorMessage: string;
   progress: Progress;
   status: Status;
+  lastExportedFilePath?: string | null;
 }
 
 export interface FileFormat {

@@ -217,8 +217,14 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('export-complete', () => {
-        if (isEffectActive) useProcessStore.getState().setExportState({ status: Status.Success });
+      listen('export-complete', (event: any) => {
+        if (isEffectActive) {
+          const exportedPaths: string[] = Array.isArray(event.payload) ? event.payload : [];
+          useProcessStore.getState().setExportState({
+            status: Status.Success,
+            lastExportedFilePath: exportedPaths.length > 0 ? exportedPaths[exportedPaths.length - 1] : null,
+          });
+        }
       }),
     );
     registerListener(

@@ -208,8 +208,9 @@ const ThumbnailComponent = ({
       }}
       onContextMenu={(e: any) => onContextMenu(e, path)}
       onDoubleClick={() => {
-        // On Android, single click already enters the editor via onImageClick,
-        // so skip double-click to prevent duplicate navigation
+        // On Android, single tap already opens the editor (handleLibraryImageSingleClick
+        // -> handleImageSelect on Android), so skip double-click to prevent duplicate
+        // navigation. Desktop keeps single-click = select, double-click = open editor.
         if (!isAndroid) onImageDoubleClick(path);
       }}
     >
@@ -668,8 +669,9 @@ const ListItemComponent = ({
       }}
       onContextMenu={(e: any) => onContextMenu(e, path)}
       onDoubleClick={() => {
-        // On Android, single click already enters the editor via onImageClick,
-        // so skip double-click to prevent duplicate navigation
+        // On Android, single tap already opens the editor (handleLibraryImageSingleClick
+        // -> handleImageSelect on Android), so skip double-click to prevent duplicate
+        // navigation. Desktop keeps single-click = select, double-click = open editor.
         if (!isAndroid) onImageDoubleClick(path);
       }}
     >

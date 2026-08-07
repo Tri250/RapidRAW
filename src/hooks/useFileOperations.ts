@@ -349,7 +349,12 @@ export function useFileOperations(
                   return await invoke<string>('resolve_android_content_uri_name', { uriStr: path });
                 } catch (e) {
                   console.error('Failed to resolve URI:', e);
-                  return path;
+                  // On Android, content:// URI resolution can fail for various reasons.
+                  // Warn the user and skip this file rather than silently proceeding.
+                  toast.warning(
+                    `Unable to resolve file: ${path}. The file may be inaccessible or have been deleted.`,
+                  );
+                  return null;
                 }
               }
               return path;
@@ -358,6 +363,9 @@ export function useFileOperations(
 
           const validFiles = selected.filter((originalPath, index) => {
             const resolvedName = resolvedFiles[index];
+            if (resolvedName === null) {
+              return false; // Skip files that failed URI resolution
+            }
             const ext = resolvedName.split('.').pop()?.toLowerCase() || 'unknown';
 
             if (!allowedExtensions.has(ext)) {
