@@ -1107,7 +1107,7 @@ pub async fn export_images(
 
                 let extension = output_format.to_lowercase();
 
-                let result: Result<(), String> = (|| {
+                let result: Result<String, String> = (|| {
                     if extension == "cube" {
                         let cube_bytes = export_adjustments_as_lut(
                             &js_adjustments,
@@ -1142,7 +1142,7 @@ pub async fn export_images(
                         }
                         #[cfg(not(target_os = "android"))]
                         fs::write(&output_path, cube_bytes).map_err(|e| e.to_string())?;
-                        return Ok(());
+                        return Ok(output_path.to_string_lossy().to_string());
                     }
 
                     let base_image = if is_current_edit {
