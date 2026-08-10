@@ -6,6 +6,7 @@ import { useEditorStore } from '../store/useEditorStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useProcessStore } from '../store/useProcessStore';
+import { createEditVersion } from './useProjectManager';
 import {
   Adjustments,
   INITIAL_ADJUSTMENTS,
@@ -22,11 +23,37 @@ export const debouncedSetHistory = debounce((newAdj: Adjustments) => {
   useEditorStore.getState().pushHistory(newAdj);
 }, 500);
 
+// Cheap, deterministic 64-bit FNV-1a hash derived from an image path so we
+// can use the project-manager edit-version index without requiring a
+// separate backend hashing round-trip on every auto-save.
+function pathHash(path: string): string {
+  let h = 0xcbf29ce484222325n;
+  for (let i = 0; i < path.length; i += 1) {
+    h ^= BigInt(path.charCodeAt(i));
+    h = (h * 0x100000001b3n) & 0xffffffffffffffffn;
+  }
+  return h.toString(16).padStart(16, '0');
+}
+
+const createProjectEditVersion = async (path: string, adjustmentsToSave: Adjustments) => {
+  const dbPath = useSettingsStore.getState().appSettings?.projectDbPath;
+  if (!dbPath || !path) return;
+  try {
+    await createEditVersion(dbPath, pathHash(path), JSON.stringify(adjustmentsToSave), 'auto-save');
+  } catch (err) {
+    console.warn('Project edit version persistence skipped:', err);
+  }
+};
+
 export const debouncedSave = debounce((path: string, adjustmentsToSave: Adjustments) => {
   invoke(Invokes.SaveMetadataAndUpdateThumbnail, { path, adjustments: adjustmentsToSave }).catch((err) => {
     console.error('Auto-save failed:', err);
     toast.error(`Failed to save changes: ${err}`);
   });
+  // Drive the project-manager WIP module on every auto-save so edit
+  // versions are persisted to the DuckDB project database, not just
+  // lost to the in-memory history stack.
+  createProjectEditVersion(path, adjustmentsToSave);
 }, 300);
 
 export function useEditorActions() {

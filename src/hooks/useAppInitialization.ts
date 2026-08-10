@@ -6,6 +6,7 @@ import { useUIStore } from '../store/useUIStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { useEditorStore } from '../store/useEditorStore';
 import { useProcessStore } from '../store/useProcessStore';
+import { openProject as openProjectDb } from './useProjectManager';
 import { THEMES, DEFAULT_THEME_ID, ThemeProps } from '../utils/themes';
 import { COPYABLE_ADJUSTMENT_KEYS } from '../utils/adjustments';
 import {
@@ -231,6 +232,21 @@ export const useAppInitialization = ({
           }
         } catch (e) {
           console.error('Failed to notify backend of readiness:', e);
+        }
+
+        // Activate project-manager WIP module: open (and if needed create)
+        // the DuckDB project database so edit versions, thumbnails and
+        // AI labels are persisted end-to-end rather than silently dropped.
+        const projectDbPath: string | null = settings.projectDbPath ?? null;
+        if (projectDbPath) {
+          try {
+            const opened = await openProjectDb(projectDbPath);
+            if (opened) {
+              console.info('[project-manager] opened:', projectDbPath);
+            }
+          } catch (e) {
+            console.warn('[project-manager] open failed:', e);
+          }
         }
 
         // On Android, eagerly prefetch small AI models in the background so

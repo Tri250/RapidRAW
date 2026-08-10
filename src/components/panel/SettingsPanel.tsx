@@ -39,6 +39,8 @@ import Switch from '../ui/Switch';
 import Input from '../ui/Input';
 import Slider from '../ui/Slider';
 import { ThemeProps, THEMES, DEFAULT_THEME_ID } from '../../utils/themes';
+import { open as openDialog } from '@tauri-apps/plugin-dialog';
+import { useProjectManager, type ProjectStatistics } from '../../hooks/useProjectManager';
 import { useTranslation } from 'react-i18next';
 import { Invokes } from '../ui/AppProperties';
 import {
@@ -54,7 +56,248 @@ import { useOsPlatform } from '../../hooks/useOsPlatform';
 import { open } from '@tauri-apps/plugin-shell';
 import { usePresetGalleryStore } from '../../store/usePresetGalleryStore';
 import { useEditorStore } from '../../store/useEditorStore';
+import { useSettingsStore } from '../../store/useSettingsStore';
 import { useShallow } from 'zustand/react/shallow';
+
+// Project management section: activates the project-manager WIP module
+// end-to-end — opening the DuckDB, showing live statistics, listing AI
+// labels and exporting the edit history to Parquet.
+function ProjectSection({
+  dbPath,
+  onSettingsChange,
+}: {
+  dbPath: string | null;
+  onSettingsChange: (settings: any) => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const { openProject, closeProject, getStatistics, searchLabels, exportParquet } = useProjectManager();
+  const [status, setStatus] = useState<string>('idle');
+  const [stats, setStats] = useState<ProjectStatistics | null>(null);
+  const [labelQuery, setLabelQuery] = useState('');
+  const [labelResults, setLabelResults] = useState<Array<{ label: string; image_hash: string; confidence: number }>>([]);
+  const [exporting, setExporting] = useState(false);
+
+  const refreshStats = useCallback(async () => {
+    if (!dbPath) return;
+    try {
+      const s = await getStatistics(dbPath);
+      setStats(s);
+    } catch (e) {
+      console.warn('Failed to fetch project statistics:', e);
+    }
+  }, [dbPath, getStatistics]);
+
+  useEffect(() => {
+    refreshStats();
+  }, [refreshStats]);
+
+  const handleOpen = async () => {
+    if (!dbPath) return;
+    setStatus('opening');
+    try {
+      const openedPath = await openProject(dbPath);
+      setStatus(`opened: ${openedPath}`);
+      await refreshStats();
+    } catch (e) {
+      setStatus(`error: ${e}`);
+    }
+  };
+
+  const handleClose = async () => {
+    setStatus('closing');
+    try {
+      await closeProject();
+      setStatus('closed');
+    } catch (e) {
+      setStatus(`error: ${e}`);
+    }
+  };
+
+  const handleSearchLabels = async () => {
+    if (!dbPath || !labelQuery.trim()) {
+      setLabelResults([]);
+      return;
+    }
+    try {
+      const labels = await searchLabels(dbPath, labelQuery.trim());
+      setLabelResults(labels as any);
+    } catch (e) {
+      console.warn('Label search failed:', e);
+      setLabelResults([]);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!dbPath) return;
+    setExporting(true);
+    try {
+      const outPath = `${dbPath.replace(/\.duckdb$/i, '')}_export.parquet`;
+      const rows = await exportParquet(dbPath, outPath);
+      setStatus(`exported ${rows} rows → ${outPath}`);
+    } catch (e) {
+      setStatus(`error: ${e}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleChooseDb = async () => {
+    try {
+      const selected: string | string[] | null = await openDialog({
+        multiple: false,
+        filters: [{ name: 'DuckDB', extensions: ['duckdb', 'db'] }],
+      });
+      const path = Array.isArray(selected) ? selected[0] : selected;
+      if (path) {
+        const current = useSettingsStore.getState().appSettings || ({} as any);
+        await onSettingsChange({ ...current, projectDbPath: path });
+        setStatus(`db path set → ${path}`);
+      }
+    } catch (e) {
+      setStatus(`error: ${e}`);
+    }
+  };
+
+  return (
+    <motion.div
+      key="project"
+      initial={{ opacity: 0, x: 10 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -10 }}
+      transition={{ duration: 0.2 }}
+      className="space-y-10"
+    >
+      <div className="p-6 bg-surface rounded-xl shadow-md scroll-mt-20">
+        <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
+          {t('settings.project.title', { defaultValue: 'Project Database' })}
+        </Text>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm">
+            <Text variant={TextVariants.label} color={TextColors.secondary}>
+              {t('settings.project.dbPathLabel', { defaultValue: 'DuckDB path:' })}
+            </Text>
+            <Text variant={TextVariants.small} color={TextColors.primary} className="truncate">
+              {dbPath ?? '—'}
+            </Text>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={handleOpen} disabled={!dbPath}>
+              {t('settings.project.open', { defaultValue: 'Open' })}
+            </Button>
+            <Button variant="secondary" onClick={handleClose}>
+              {t('settings.project.close', { defaultValue: 'Close' })}
+            </Button>
+            <Button variant="ghost" onClick={handleChooseDb}>
+              {t('settings.project.choose', { defaultValue: 'Choose…' })}
+            </Button>
+            <Button variant="ghost" onClick={refreshStats} disabled={!dbPath}>
+              {t('settings.project.refresh', { defaultValue: 'Refresh' })}
+            </Button>
+          </div>
+          {status && (
+            <Text variant={TextVariants.small} color={TextColors.secondary}>
+              {status}
+            </Text>
+          )}
+        </div>
+      </div>
+
+      <div className="p-6 bg-surface rounded-xl shadow-md">
+        <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
+          {t('settings.project.statsTitle', { defaultValue: 'Project Statistics' })}
+        </Text>
+        {stats ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <StatCard
+              label={t('settings.project.uniqueImages', { defaultValue: 'Unique images' })}
+              value={stats.unique_images ?? stats.total_images ?? 0}
+            />
+            <StatCard label={t('settings.project.totalVersions', { defaultValue: 'Edit versions' })} value={stats.total_versions} />
+            <StatCard label={t('settings.project.totalLabels', { defaultValue: 'AI labels' })} value={stats.total_labels} />
+            <StatCard
+              label={t('settings.project.avgPerImage', { defaultValue: 'Avg versions / image' })}
+              value={Number(stats.avg_versions_per_image.toFixed(2))}
+            />
+            {stats.total_thumbnails !== undefined && (
+              <StatCard label={t('settings.project.totalThumbnails', { defaultValue: 'Thumbnails' })} value={stats.total_thumbnails} />
+            )}
+            {stats.images_with_versions !== undefined && (
+              <StatCard label={t('settings.project.withVersions', { defaultValue: 'Images w/ versions' })} value={stats.images_with_versions} />
+            )}
+            {stats.images_with_labels !== undefined && (
+              <StatCard label={t('settings.project.withLabels', { defaultValue: 'Images w/ labels' })} value={stats.images_with_labels} />
+            )}
+          </div>
+        ) : (
+          <Text variant={TextVariants.small} color={TextColors.secondary}>
+            {t('settings.project.noData', { defaultValue: 'No project data yet. Open the project DB after selecting a path to populate these counters.' })}
+          </Text>
+        )}
+      </div>
+
+      <div className="p-6 bg-surface rounded-xl shadow-md">
+        <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
+          {t('settings.project.labelSearchTitle', { defaultValue: 'AI Label Search' })}
+        </Text>
+        <div className="flex gap-2 mb-4">
+          <Input
+            value={labelQuery}
+            onChange={(e: any) => setLabelQuery(e.target.value)}
+            placeholder={t('settings.project.labelSearchPlaceholder', { defaultValue: 'e.g. portrait, forest, macro' })}
+            className="flex-1"
+          />
+          <Button onClick={handleSearchLabels} disabled={!dbPath}>
+            {t('settings.project.search', { defaultValue: 'Search' })}
+          </Button>
+        </div>
+        {labelResults.length > 0 ? (
+          <ul className="divide-y divide-border-color">
+            {labelResults.slice(0, 20).map((r, i) => (
+              <li key={`${r.image_hash}-${i}`} className="py-2 text-sm flex justify-between">
+                <Text variant={TextVariants.small} color={TextColors.primary} className="truncate">
+                  {r.label}
+                </Text>
+                <Text variant={TextVariants.small} color={TextColors.secondary}>
+                  {r.confidence.toFixed(2)}
+                </Text>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Text variant={TextVariants.small} color={TextColors.secondary}>
+            {t('settings.project.noLabels', { defaultValue: 'No labels match the query.' })}
+          </Text>
+        )}
+      </div>
+
+      <div className="p-6 bg-surface rounded-xl shadow-md">
+        <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
+          {t('settings.project.exportTitle', { defaultValue: 'Export Edit History' })}
+        </Text>
+        <p className="text-sm text-text-secondary mb-4">
+          {t('settings.project.exportDesc', {
+            defaultValue:
+              'Export the full edit-version / thumbnail / label history to a Parquet file next to the DuckDB database.',
+          })}
+        </p>
+        <Button onClick={handleExport} disabled={!dbPath || exporting}>
+          {exporting
+            ? t('settings.project.exporting', { defaultValue: 'Exporting…' })
+            : t('settings.project.export', { defaultValue: 'Export to Parquet' })}
+        </Button>
+      </div>
+    </motion.div>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="p-3 rounded-lg bg-bg-primary/60 border border-border-color">
+      <div className="text-xs text-text-secondary">{label}</div>
+      <div className="text-xl font-semibold">{value}</div>
+    </div>
+  );
+}
 
 interface ConfirmModalState {
   confirmText: string;
@@ -945,6 +1188,7 @@ export default function SettingsPanel({
       { id: 'general', label: t('settings.categories.general'), icon: Settings },
       { id: 'processing', label: t('settings.categories.processing'), icon: Zap },
       { id: 'shortcuts', label: t('settings.categories.shortcuts'), icon: Command },
+      { id: 'project', label: t('settings.categories.project', { defaultValue: 'Project' }), icon: ImageIcon },
     ],
     [t],
   );
@@ -3059,6 +3303,12 @@ export default function SettingsPanel({
                   </div>
                 </div>
               </motion.div>
+            )}
+            {activeCategory === 'project' && (
+              <ProjectSection
+                dbPath={appSettings?.projectDbPath ?? null}
+                onSettingsChange={onSettingsChange}
+              />
             )}
           </AnimatePresence>
         </div>

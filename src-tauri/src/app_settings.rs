@@ -438,6 +438,10 @@ pub struct AppSettings {
     /// env var on app startup so the setting survives restarts.
     #[serde(default)]
     pub ai_model_mirror_url: Option<String>,
+    /// Path to the DuckDB project database used by the project-manager module
+    /// for edit-version history, thumbnails and AI labels.
+    #[serde(default)]
+    pub project_db_path: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -531,6 +535,9 @@ impl Default for AppSettings {
             ai_model_mirror_url: Some("https://hf-mirror.com".to_string()),
             #[cfg(not(target_os = "android"))]
             ai_model_mirror_url: None,
+            // Project DB path is determined at load-time from app data dir,
+            // defaulting here to None so the frontend always sees the resolved value.
+            project_db_path: None,
         }
     }
 }
@@ -586,8 +593,28 @@ pub fn load_settings(app_handle: AppHandle) -> Result<AppSettings, String> {
         settings_modified = true;
     }
 
-    let is_first_migration = settings.copy_paste_settings.known_adjustments.is_empty();
+    // Resolve project DB path lazily: user-configured or the default
+    // `<app_data_dir>/rapidraw_project.duckdb`. This guarantees the
+    // project-manager WIP module always has a usable database.
+    let default_project_db = app_handle
+        .path()
+        .app_data_dir()
+        .ok()
+        .map(|d| d.join("rapidraw_project.duckdb").to_string_lossy().into_owned());
+    match (&settings.project_db_path, &default_project_db) {
+        (Some(user_db), _) if !user_db.trim().is_empty() => {
+            // Keep the user-configured path as-is.
+        }
+        (_, Some(default_db)) => {
+            if settings.project_db_path.as_deref() != Some(default_db.as_str()) {
+                settings.project_db_path = Some(default_db);
+                settings_modified = true;
+            }
+        }
+        _ => {}
+    }
 
+    let is_first_migration = settings.copy_paste_settings.known_adjustments.is_empty();
     if is_first_migration {
         settings.copy_paste_settings.included_adjustments = default_included;
         settings.copy_paste_settings.known_adjustments = all_current_keys.clone();

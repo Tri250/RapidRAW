@@ -326,6 +326,8 @@ export interface AppSettings {
   groupEditedFiles?: boolean;
   groupPreferredType?: GroupPreference; // legacy
   alwaysDecodeRawThumbnails?: boolean;
+  /** Path to the DuckDB project database used for edit-version history, thumbnails and AI labels. */
+  projectDbPath?: string | null;
 }
 
 export interface BrushSettings {
