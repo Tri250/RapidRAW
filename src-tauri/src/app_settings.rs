@@ -607,7 +607,7 @@ pub fn load_settings(app_handle: AppHandle) -> Result<AppSettings, String> {
         }
         (_, Some(default_db)) => {
             if settings.project_db_path.as_deref() != Some(default_db.as_str()) {
-                settings.project_db_path = Some(default_db);
+                settings.project_db_path = Some(default_db.clone());
                 settings_modified = true;
             }
         }
