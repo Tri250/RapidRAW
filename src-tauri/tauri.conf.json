@@ -49,8 +49,7 @@
     "resources": [
       "resources",
       "lensfun_db",
-      "models/sam_vit_b_01ec64_decoder.onnx",
-      "models/sam_vit_b_01ec64_encoder.onnx"
+      "models/sam_vit_b_01ec64_decoder.onnx"
     ],
     "category": "Photography",
     "fileAssociations": [
