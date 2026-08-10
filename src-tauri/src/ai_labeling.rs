@@ -1,12 +1,5 @@
-// WIP: some AI labeling helper functions are implemented but not yet
-// wired into all call sites. Remove this allow once integration is complete.
-#![allow(dead_code)]
-
-/// AI Labeling Infrastructure
-///
-/// Provides vector embedding generation, storage, and similarity search
-/// for automatic image tagging. Designed to work with CLIP/SigLIP models
-/// via the ai_service module, storing results in the project_manager database.
+//! AI labeling engine — vector embedding management, cosine-similarity search,
+//! vocabulary-based tagging, and auto-labeling for image libraries.
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -449,44 +442,6 @@ pub fn dot_product(a: &[f32], b: &[f32]) -> f32 {
 }
 
 // ──────────── Embedding Utility Functions ────────────
-
-/// Create a random embedding (for testing/initialization)
-pub fn random_embedding(dim: usize, model: &str) -> Embedding {
-    use std::time::SystemTime;
-    let seed = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos() as u64;
-
-    // Simple LCG PRNG for initialization
-    let mut state = seed;
-    let mut vector = Vec::with_capacity(dim);
-    for _ in 0..dim {
-        state = state
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
-        let v = ((state >> 33) as f32) / ((1u64 << 31) as f32) * 2.0 - 1.0;
-        vector.push(v);
-    }
-
-    // Normalize
-    normalize_vector(&mut vector);
-
-    Embedding {
-        vector,
-        model: model.to_string(),
-        dim,
-    }
-}
-
-/// Create a zero embedding
-pub fn zero_embedding(dim: usize, model: &str) -> Embedding {
-    Embedding {
-        vector: vec![0.0; dim],
-        model: model.to_string(),
-        dim,
-    }
-}
 
 /// Average multiple embeddings into one
 pub fn average_embeddings(embeddings: &[&Embedding]) -> Option<Embedding> {

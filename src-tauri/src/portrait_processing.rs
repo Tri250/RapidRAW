@@ -1,6 +1,5 @@
-// WIP: some portrait processing functions are implemented but not yet
-// wired into all call sites. Remove this allow once integration is complete.
-#![allow(dead_code)]
+//! Portrait processing pipeline — skin smoothing, blemish removal, face reshape,
+//! eye enlarge, teeth whiten, hair adjust, body reshape, and one-click beauty.
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::needless_range_loop)]

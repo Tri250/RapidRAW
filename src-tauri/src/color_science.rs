@@ -1,12 +1,9 @@
-// WIP: some color science helper functions are implemented but not yet
-// wired into all call sites. Remove this allow once integration is complete.
-#![allow(dead_code)]
-
 //! Professional ACES color science implementation in pure Rust.
 //!
 //! Provides color space conversions, ACES RRT+ODT output transforms, and
 //! tone-mapping utilities following the Academy Color Encoding System
-//! specification.
+//! specification. Includes matrix transforms (RGB↔XYZ), sRGB linearization,
+//! ACEScg/ACEScc/ACEScct conversions, and the fitted ACES curve.
 
 use std::fmt;
 
