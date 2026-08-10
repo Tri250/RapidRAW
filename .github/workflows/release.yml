@@ -41,6 +41,10 @@ jobs:
           TAG="${{ inputs.tag-name || github.ref_name }}"
           # Strip leading refs/tags/ if present
           TAG="${TAG#refs/tags/}"
+          # Validate tag format (must start with 'v' followed by semver)
+          if [[ ! "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+.*$ ]]; then
+            echo "::warning::Tag '${TAG}' does not follow vSemVer format (e.g., v1.8.30). Proceeding anyway."
+          fi
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "Resolved tag: ${TAG}"
 
@@ -64,8 +68,9 @@ jobs:
           echo "Cargo.toml:        ${cargo_version}"
           echo "rust-edition:      ${rust_edition}"
           echo "rust-version:      ${rust_minver}"
-          echo "rust-toolchain:    ${toolchain_channel}"
+          echo "rust-toolchain:    ${toolchain_channel:-n/a}"
 
+          # Check Android versionName if available
           android_props_file="src-tauri/gen/android/app/tauri.properties"
           if [[ -f "$android_props_file" ]]; then
             android_version_name="$(grep 'tauri.android.versionName' "$android_props_file" | cut -d'=' -f2 | tr -d ' ')"
@@ -78,8 +83,7 @@ jobs:
             echo "::warning::Android tauri.properties not found; skipping Android version check."
           fi
 
-          # Rust toolchain cross-check: the repo's locked toolchain MUST match what
-          # CI installs and what Cargo.toml declares as the minimum MSRV.
+          # Rust toolchain cross-check
           if [[ -n "${rust_minver}" && -n "${toolchain_channel}" ]]; then
             if [[ "${rust_minver}" != "${toolchain_channel}" ]]; then
               echo "::error::Rust version mismatch: Cargo.toml rust-version=${rust_minver} != rust-toolchain.toml channel=${toolchain_channel}"
@@ -87,7 +91,7 @@ jobs:
             fi
           fi
 
-          # Edition 2024 requires Rust >= 1.85.0. Guard against downgrade drift.
+          # Edition 2024 requires Rust >= 1.85.0
           if [[ "${rust_edition}" == "2024" ]]; then
             req_major="${toolchain_channel%%.*}"; req_major="${req_major:-0}"
             req_minor="${toolchain_channel#*.}"; req_minor="${req_minor%%.*}"; req_minor="${req_minor:-0}"
@@ -103,8 +107,7 @@ jobs:
           fi
 
           # Cross-check: the resolved tag (without leading v) MUST equal the
-          # in-repo version. Without this, a workflow_dispatch with a wrong
-          # tag-name input would publish assets under a mismatched release.
+          # in-repo version
           TAG="${{ steps.resolve-tag.outputs.tag }}"
           TAG_VERSION="${TAG#v}"
           if [[ -n "$TAG_VERSION" && "$TAG_VERSION" != "$pkg_version" ]]; then
@@ -190,9 +193,11 @@ jobs:
           set -euo pipefail
           tag="${{ needs.version-sync-check.outputs.resolved-tag }}"
           echo "Waiting for release assets for tag: $tag"
+          release_found=false
           for i in $(seq 1 30); do
             if gh release view "$tag" --repo "${{ github.repository }}" >/dev/null 2>&1; then
               echo "Release found"
+              release_found=true
               break
             fi
             if [[ $i -eq 30 ]]; then
@@ -210,7 +215,22 @@ jobs:
           set -euo pipefail
           tag="${{ needs.version-sync-check.outputs.resolved-tag }}"
           echo "Checking release assets for $tag"
-          assets=$(gh release view "$tag" --repo "${{ github.repository }}" --json assets -q '.assets[].name')
+          
+          # Get assets list with error handling
+          assets=""
+          for retry in 1 2 3; do
+            if assets=$(gh release view "$tag" --repo "${{ github.repository }}" --json assets -q '.assets[].name' 2>&1); then
+              break
+            fi
+            echo "Retry $retry: Failed to fetch assets"
+            sleep $((retry * 5))
+          done
+          
+          if [[ -z "$assets" ]]; then
+            echo "::error::No assets could be retrieved from release"
+            exit 1
+          fi
+          
           echo "Found assets:"
           echo "$assets"
 
@@ -235,7 +255,7 @@ jobs:
           done
 
           if [[ "$missing" -gt 0 ]]; then
-            echo "::notice::Some expected asset prefixes were missing (${missing}). This may be normal if the build is still in progress or if some platforms were intentionally skipped."
+            echo "::notice::${missing} expected asset prefixes were missing. This may be normal if some platforms were intentionally skipped or failed."
           fi
 
           total=$(echo "$assets" | wc -l)

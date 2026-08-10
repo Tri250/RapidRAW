@@ -740,21 +740,13 @@ export default function FolderTree({
       const hasBaseResults = filteredTrees && filteredTrees.length > 0;
       const hasAlbumResults = filteredAlbumTree && filteredAlbumTree.length > 0;
 
-      const newSections = [...openSections];
-      let changed = false;
-
-      if (hasPinnedResults && !newSections.includes('pinned')) {
-        newSections.push('pinned');
-        changed = true;
-      }
-      if (hasBaseResults && !newSections.includes('current')) {
-        newSections.push('current');
-        changed = true;
-      }
-      if (hasAlbumResults && !newSections.includes('albums')) {
-        newSections.push('albums');
-        changed = true;
-      }
+      const newSections = [
+        ...openSections,
+        ...(hasPinnedResults && !openSections.includes('pinned') ? ['pinned'] : []),
+        ...(hasBaseResults && !openSections.includes('current') ? ['current'] : []),
+        ...(hasAlbumResults && !openSections.includes('albums') ? ['albums'] : []),
+      ];
+      const changed = newSections.length !== openSections.length;
 
       if (changed) {
         handleSettingsChange({ ...appSettings, openTreeSections: newSections });

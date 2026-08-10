@@ -200,6 +200,7 @@ jobs:
       - id: patch-release-name
         shell: bash
         run: |
+          set -euo pipefail
           platform="${{ inputs.platform }}"
           if [[ "${{ inputs.mobile }}" == "android" ]]; then
             replacement="android"
@@ -207,7 +208,12 @@ jobs:
             replacement="$(echo "${platform}" | sed -E 's/-latest//' | sed -E 's/windows-11-arm/windows-arm64/' | sed -E 's/windows$/windows-x64/')"
           fi
           if [[ -n "${{ inputs.asset-name-pattern }}" ]]; then
-            patched_platform=$(echo '${{ inputs.asset-name-pattern }}' | sed -E "s/\[platform\]/${replacement}/")
+            # Escape [ and ] for sed regex since they are special characters
+            pattern="${{ inputs.asset-name-pattern }}"
+            escaped_pattern="$(echo "${pattern}" | sed 's/\[/\\[/g; s/\]/\\]/g')"
+            patched_platform=$(echo "${pattern}" | sed -E "s/${escaped_pattern//\\[platform\\]/${replacement}/}/${replacement}/")
+            # Simpler approach: just do string replacement directly using bash parameter expansion
+            patched_platform="${pattern//\[platform\]/${replacement}}"
           else
             patched_platform="${replacement}"
           fi

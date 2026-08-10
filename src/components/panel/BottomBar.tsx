@@ -16,6 +16,7 @@ interface BottomBarProps {
   filmstripHeight?: number;
   imageList?: Array<ImageFile>;
   imageRatings?: Record<string, number> | null;
+  isAndroid?: boolean;
   isCopied: boolean;
   isCopyDisabled: boolean;
   isExportDisabled?: boolean;

@@ -23,12 +23,12 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost blob: data: https:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net https://getrapidraw.com https://*.getrapidraw.com https://huggingface.co https://hf-mirror.com https://cdn.fky.ltd https://clerk.accounts.dev https://*.clerk.accounts.dev https://api.clerk.com; script-src 'self'; frame-src https://www.openstreetmap.org",
+      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost blob: data: https:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://raw.githubusercontent.com https://cdn.jsdelivr.net https://getrapidraw.com https://*.getrapidraw.com https://huggingface.co https://hf-mirror.com https://cdn.fky.ltd https://clerk.accounts.dev https://*.clerk.accounts.dev https://api.clerk.com https://api.github.com; script-src 'self'; frame-src https://www.openstreetmap.org; worker-src 'self'; child-src 'self'; font-src 'self' data:;",
       "dangerousDisableAssetCspModification": false,
       "capabilities": ["default"],
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPCACHE/thumbnails/*"]
+        "scope": ["$APPCACHE/thumbnails/*", "$APPCACHE/models/*"]
       }
     },
     "macOSPrivateApi": false
@@ -46,7 +46,12 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": ["resources", "lensfun_db", "models/sam_vit_b_01ec64_decoder.onnx"],
+    "resources": [
+      "resources",
+      "lensfun_db",
+      "models/sam_vit_b_01ec64_decoder.onnx",
+      "models/sam_vit_b_01ec64_encoder.onnx"
+    ],
     "category": "Photography",
     "fileAssociations": [
       {
