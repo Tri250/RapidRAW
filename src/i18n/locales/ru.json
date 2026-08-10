@@ -171,7 +171,7 @@
       "yellow": "Желтый"
     },
     "editor": {
-      "aiBatchRating": "",
+      "aiBatchRating": "AI Batch Rating",
       "autoAdjust": "Автонастройка изображения",
       "cancel": "Отмена",
       "colorLabel": "Цветовая метка",
@@ -359,8 +359,11 @@
         "switchToSubtract": "Переключить на вычитание"
       },
       "addNewEdit": "Добавить изменения",
-      "bgRemove": "",
-      "bgRemoveTooltip": "",
+      "bgRemove": {
+        "completed": "AI Background Remove completed",
+        "failed": "AI Background Remove failed"
+      },
+      "bgRemoveTooltip": "AI Background Remove",
       "brush": {
         "add": "Добавить",
         "erase": "Стереть",
@@ -389,7 +392,7 @@
       "dropzoneText": "Перетащите сюда, чтобы создать новую правку",
       "editSettingsTitle": "Настройки редактирования",
       "editsTitle": "Правки",
-      "enhancementTitle": "",
+      "enhancementTitle": "AI Enhancement",
       "generativeEditTitle": "Генеративное редактирование",
       "inpaintingTitle": "Восстановление",
       "manualCleanupTitle": "Ручная очистка",
@@ -446,26 +449,109 @@
         "selectionPropertiesTitle": "Свойства выделения",
         "useBasicInpaint": "Использовать простое восстановление"
       },
-      "skyReplace": "",
-      "skyReplaceTooltip": "",
-      "superResolution": "",
+      "skyReplace": {
+        "completed": "AI Sky Replace completed",
+        "failed": "AI Sky Replace failed"
+      },
+      "skyReplaceTooltip": "AI Sky Replace",
+      "superResolution": {
+        "failed": "Super Resolution failed",
+        "applied": "Super resolution {{scale}}x applied ({{width}}×{{height}})",
+        "noImage": "No image selected for super resolution"
+      },
       "superResolutionLabel": "Суперразрешение",
-      "superResolutionTooltip": ""
+      "superResolutionTooltip": "Use AI super resolution to upscale image (2x/3x/4x)",
+      "quickEraseFailed": "Quick Erase failed",
+      "quickEraseTimeout": "Quick Erase timed out. Please check your network or try again.",
+      "timeout": {
+        "autoStraighten": "Auto Straighten timed out. Please try again.",
+        "bgRemove": "AI Background Remove timed out. Please check your network and try again.",
+        "cleanup": "Cleanup timed out. Please check your network and try again.",
+        "colorRange": "Color Range Mask timed out. Please try again.",
+        "depthMask": "AI Depth Mask timed out. Please check your network and try again.",
+        "feather": "Mask Feather timed out. Please try again.",
+        "foregroundMask": "AI Foreground Mask timed out. Please check your network and try again.",
+        "horizonDetect": "Horizon Detection timed out. Please try again.",
+        "luminanceRange": "Luminance Range Mask timed out. Please try again.",
+        "mask": "AI Mask timed out. Please check your network and try again.",
+        "replace": "AI Replace timed out. Please check your network and try again.",
+        "skyMask": "AI Sky Mask timed out. Please check your network and try again.",
+        "skyReplace": "AI Sky Replace timed out. Please check your network and try again.",
+        "subjectMask": "AI Subject Mask timed out. Please check your network and try again.",
+        "superResolution": "Super Resolution timed out. Please check your network and try again."
+      },
+      "mask": {
+        "noMaskData": "AI Mask: No mask data generated",
+        "failed": "AI Mask failed"
+      },
+      "depthMask": {
+        "noDepthData": "No depth data generated",
+        "failed": "AI Depth Mask failed"
+      },
+      "foregroundMask": {
+        "noForeground": "No foreground detected in image",
+        "failed": "AI Foreground Mask failed"
+      },
+      "skyMask": {
+        "noSky": "No sky detected in image",
+        "failed": "AI Sky Mask failed"
+      },
+      "subjectMask": {
+        "noSubject": "No subject detected in image",
+        "failed": "AI Subject Mask failed"
+      },
+      "cleanup": {
+        "failed": "Cleanup failed"
+      },
+      "generativeReplace": {
+        "failed": "Generative Replace failed"
+      },
+      "colorRange": {
+        "noMatch": "No matching colors found",
+        "failed": "Color Range Mask failed"
+      },
+      "luminanceRange": {
+        "noMatch": "No matching luminance range found",
+        "failed": "Luminance Range Mask failed"
+      },
+      "feather": {
+        "failed": "Mask Feather failed"
+      },
+      "autoStraighten": {
+        "failed": "Auto Straighten failed"
+      },
+      "horizonDetect": {
+        "failed": "Horizon Detection failed"
+      },
+      "modelStatus": {
+        "waitForDownload": "AI model is still downloading, please wait…",
+        "downloading": "Loading on-device models ({{done}}/{{total}})",
+        "partial": "On-device models {{done}}/{{total}} ready",
+        "fg": "FG",
+        "sky": "Sky",
+        "subject": "Subject",
+        "depth": "Depth"
+      },
+      "errorHint": {
+        "downloadFailed": "Model download failed. Please check your network or configure a mirror URL in Settings > AI Settings (hf-mirror.com recommended).",
+        "oom": "Device memory insufficient. Try lowering the max processing resolution in Settings > Performance."
+      }
     },
     "aiRating": {
-      "applied": "",
-      "applyError": "",
-      "applying": "",
-      "applyToExif": "",
+      "applied": "Written to EXIF",
+      "applyError": "Failed to apply rating to EXIF: {{error}}",
+      "applying": "Rating...",
+      "applyToExif": "Apply to EXIF",
       "batchComplete_one": "",
       "batchComplete_few": "",
       "batchComplete_many": "",
       "batchComplete_other": "",
-      "batchProgress": "",
-      "description": "",
-      "error": "",
-      "generate": "",
-      "title": ""
+      "batchProgress": "Rating {{current}}/{{total}}...",
+      "description": "AI Description",
+      "error": "Failed to generate rating: {{error}}",
+      "generate": "Generate Rating",
+      "title": "AI Smart Rating",
+      "batchComplete": "Completed rating for {{count}} images"
     },
     "colorPanel": {
       "title": "Цвет"
@@ -564,7 +650,7 @@
       "rotationHeading": "Вращение",
       "title": "Обрезка и трансформация",
       "tooltips": {
-        "autoStraightenHorizon": "",
+        "autoStraightenHorizon": "Auto Straighten Horizon",
         "compositionOverlay": "Сетка композиции",
         "flipHoriz": "Отразить горизонтально",
         "flipVert": "Отразить вертикально",
@@ -692,7 +778,177 @@
       "copy": "Копировать",
       "emptyClickToAdd": "Пусто (нажмите, чтобы добавить)",
       "extendedExif": {
-        "title": "Расширенный EXIF"
+        "title": "Расширенный EXIF",
+        "tags": {
+          "ActiveArea": "Active Area",
+          "AFAreaInfo": "AF Area Info",
+          "AFAreaMode": "AF Area Mode",
+          "AFAreasUsed": "AF Areas Used",
+          "AFMode": "AF Mode",
+          "AFPointsInFocus": "AF Points In Focus",
+          "AnalogBalance": "Analog Balance",
+          "ApertureValue": "Aperture Value",
+          "Artist": "Artist",
+          "AsShotNeutral": "As Shot Neutral",
+          "AsShotWhiteXY": "As Shot White XY",
+          "BaselineExposure": "Baseline Exposure",
+          "BaselineNoise": "Baseline Noise",
+          "BaselineSharpness": "Baseline Sharpness",
+          "BatteryLevel": "Battery Level",
+          "BestQualityScale": "Best Quality Scale",
+          "BitsPerSample": "Bits Per Sample",
+          "BlackLevel": "Black Level",
+          "BlueBalance": "Blue Balance",
+          "BodySerialNumber": "Body Serial Number",
+          "Brightness": "Brightness",
+          "ColorMode": "Color Mode",
+          "ColorSpace": "Color Space",
+          "ColorTemp": "Color Temperature",
+          "Compression": "Compression",
+          "Contrast": "Contrast",
+          "ContrastDetectAF": "Contrast Detect AF",
+          "Copyright": "Copyright",
+          "CropBottom": "Crop Bottom",
+          "CropLeft": "Crop Left",
+          "CropRight": "Crop Right",
+          "CropTop": "Crop Top",
+          "CustomRendered": "Custom Rendered",
+          "DateTime": "Date/Time",
+          "DateTimeDigitized": "Date/Time Digitized",
+          "DateTimeOriginal": "Date/Time Original",
+          "DefaultCropOrigin": "Default Crop Origin",
+          "DefaultCropSize": "Default Crop Size",
+          "DefaultScale": "Default Scale",
+          "DepthOfField": "Depth Of Field",
+          "DigitalZoomRatio": "Digital Zoom Ratio",
+          "DriveMode": "Drive Mode",
+          "ExifVersion": "EXIF Version",
+          "ExposureCompensation": "Exposure Compensation",
+          "ExposureMode": "Exposure Mode",
+          "ExposureProgram": "Exposure Program",
+          "ExposureTime": "Exposure Time",
+          "FileFormat": "File Format",
+          "FileName": "File Name",
+          "FileNumber": "File Number",
+          "FileSize": "File Size",
+          "FileSource": "File Source",
+          "Flash": "Flash",
+          "FlashEnergy": "Flash Energy",
+          "FlashpixVersion": "Flashpix Version",
+          "FNumber": "F-Number",
+          "FocalLength": "Focal Length",
+          "FocalLengthIn35mmFilm": "Focal Length (35mm)",
+          "FocusDistance": "Focus Distance",
+          "FocusDistanceLower": "Focus Distance Lower",
+          "FocusDistanceUpper": "Focus Distance Upper",
+          "FocusMode": "Focus Mode",
+          "GainControl": "Gain Control",
+          "GPSAltitude": "GPS Altitude",
+          "GPSAltitudeRef": "GPS Altitude Ref",
+          "GPSDateStamp": "GPS Date Stamp",
+          "GPSDestBearing": "GPS Dest Bearing",
+          "GPSDOP": "GPS DOP",
+          "GPSImgDirection": "GPS Image Direction",
+          "GPSLatitude": "GPS Latitude",
+          "GPSLatitudeRef": "GPS Latitude Ref",
+          "GPSLongitude": "GPS Longitude",
+          "GPSLongitudeRef": "GPS Longitude Ref",
+          "GPSMapDatum": "GPS Map Datum",
+          "GPSMeasureMode": "GPS Measure Mode",
+          "GPSProcessingMethod": "GPS Processing Method",
+          "GPSSatellites": "GPS Satellites",
+          "GPSSpeed": "GPS Speed",
+          "GPSSpeedRef": "GPS Speed Ref",
+          "GPSStatus": "GPS Status",
+          "GPSTimeStamp": "GPS Time Stamp",
+          "GPSTrack": "GPS Track",
+          "ImageDescription": "Image Description",
+          "ImageHeight": "Image Height",
+          "ImageNumber": "Image Number",
+          "ImageQuality": "Image Quality",
+          "ImageStabilization": "Image Stabilization",
+          "ImageStyle": "Image Style",
+          "ImageWidth": "Image Width",
+          "InternalSerialNumber": "Internal Serial Number",
+          "ISOSpeedRatings": "ISO Speed Ratings",
+          "JPEGInterchangeFormat": "JPEG Interchange Format",
+          "JPEGInterchangeFormatLength": "JPEG Interchange Format Length",
+          "LensInfo": "Lens Info",
+          "LensMake": "Lens Make",
+          "LensModel": "Lens Model",
+          "LensSerialNumber": "Lens Serial Number",
+          "LightSource": "Light Source",
+          "LinearResponseLimit": "Linear Response Limit",
+          "LiveViewShooting": "Live View Shooting",
+          "LocalizedCameraModel": "Localized Camera Model",
+          "Make": "Make",
+          "MakerNote": "Maker Note",
+          "MakerNoteSafety": "Maker Note Safety",
+          "MakerNoteVersion": "Maker Note Version",
+          "MaxApertureValue": "Max Aperture Value",
+          "MeteringMode": "Metering Mode",
+          "Model": "Model",
+          "Movie": "Movie",
+          "NoiseProfile": "Noise Profile",
+          "NoiseReductionApplied": "Noise Reduction Applied",
+          "Orientation": "Orientation",
+          "OriginalRawFileName": "Original Raw File Name",
+          "OwnerName": "Owner Name",
+          "PhaseDetectAF": "Phase Detect AF",
+          "PhotographicSensitivity": "ISO",
+          "PhotometricInterpretation": "Photometric Interpretation",
+          "PictureMode": "Picture Mode",
+          "PixelXDimension": "Pixel X Dimension",
+          "PixelYDimension": "Pixel Y Dimension",
+          "PlanarConfiguration": "Planar Configuration",
+          "PreviewImage": "Preview Image",
+          "PreviewImageLength": "Preview Image Length",
+          "PreviewImageStart": "Preview Image Start",
+          "PrimaryAFPoint": "Primary AF Point",
+          "ProfileCalibrationSignature": "Profile Calibration Signature",
+          "ProfileName": "Profile Name",
+          "Rating": "Rating",
+          "RecommendedExposureIndex": "Recommended Exposure Index",
+          "RedBalance": "Red Balance",
+          "ResolutionUnit": "Resolution Unit",
+          "RowsPerStrip": "Rows Per Strip",
+          "SamplesPerPixel": "Samples Per Pixel",
+          "Saturation": "Saturation",
+          "SceneCaptureType": "Scene Capture Type",
+          "SceneType": "Scene Type",
+          "SelfTimerMode": "Self Timer Mode",
+          "SensitivityType": "Sensitivity Type",
+          "SerialNumber": "Serial Number",
+          "ShadowScale": "Shadow Scale",
+          "Sharpness": "Sharpness",
+          "ShootingMode": "Shooting Mode",
+          "ShutterCount": "Shutter Count",
+          "ShutterSpeedValue": "Shutter Speed Value",
+          "Software": "Software",
+          "StripByteCounts": "Strip Byte Counts",
+          "StripOffsets": "Strip Offsets",
+          "SubjectArea": "Subject Area",
+          "SubjectDistance": "Subject Distance",
+          "SubjectDistanceRange": "Subject Distance Range",
+          "SubjectLocation": "Subject Location",
+          "SubSecTime": "Sub-Sec Time",
+          "SubSecTime,Original": "Sub-Sec Time Original",
+          "SubSecTimeDigitized": "Sub-Sec Time Digitized",
+          "ThumbnailLength": "Thumbnail Length",
+          "ThumbnailOffset": "Thumbnail Offset",
+          "ToneCurve": "Tone Curve",
+          "ToneMode": "Tone Mode",
+          "UniqueCameraModel": "Unique Camera Model",
+          "UserComment": "User Comment",
+          "WB_GRBLevels": "WB GRB Levels",
+          "WB_RGGBLevels": "WB RGGB Levels",
+          "WhiteBalance": "White Balance",
+          "WhiteLevel": "White Level",
+          "WhitePoint": "White Point",
+          "XResolution": "X Resolution",
+          "YCbCrPositioning": "YCbCr Positioning",
+          "YResolution": "Y Resolution"
+        }
       },
       "fields": {
         "author": "Автор",
@@ -712,7 +968,7 @@
         "clickToOpenTooltip": "Нажмите, чтобы открыть карту в новой вкладке",
         "latitude": "Широта",
         "longitude": "Долгота",
-        "offlineFallback": "",
+        "offlineFallback": "Map unavailable (offline). Coordinates:",
         "openExternal": "Открыть карту",
         "title": "Координаты GPS"
       },
@@ -730,51 +986,52 @@
     },
     "portraitPanel": {
       "attributes": {
-        "all": "",
-        "child": "",
-        "elderFemale": "",
-        "elderMale": "",
-        "female": "",
-        "male": "",
-        "single": ""
+        "all": "All",
+        "child": "Child",
+        "elderFemale": "Elder F",
+        "elderMale": "Elder M",
+        "female": "Female",
+        "male": "Male",
+        "single": "Single"
       },
-      "blemishActive": "",
+      "blemishActive": "Marking",
       "blemishCount_one": "",
       "blemishCount_few": "",
       "blemishCount_many": "",
       "blemishCount_other": "",
-      "blemishHint": "",
-      "blemishRemoval": "",
-      "blemishStart": "",
-      "blemishUndo": "",
-      "blush": "",
-      "bodyHeightAmount": "",
-      "bodyReshape": "",
-      "bodySlimAmount": "",
-      "bodySymmetry": "",
+      "blemishHint": "Tap image to mark blemish spots",
+      "blemishRemoval": "Blemish Removal",
+      "blemishStart": "Start Marking",
+      "blemishUndo": "Undo Last",
+      "blush": "Blush",
+      "bodyHeightAmount": "Height",
+      "bodyReshape": "Body Reshape",
+      "bodySlimAmount": "Body Slim",
+      "bodySymmetry": "Symmetric Adjust",
       "brushSize": "Размер кисти",
-      "eyeBrightenAmount": "",
-      "eyebrow": "",
-      "eyeEnhance": "",
-      "eyeEnlargeAmount": "",
-      "faceReshape": "",
-      "faceSlimAmount": "",
-      "foreheadAmount": "",
-      "hairAdjust": "",
-      "hairBrightness": "",
-      "hairHueShift": "",
-      "jawAmount": "",
-      "legLengthAmount": "",
-      "lipstick": "",
-      "makeup": "",
-      "oneClickBeauty": "",
-      "skinSmoothing": "",
-      "skinSmoothingDetailPreserve": "",
-      "skinSmoothingStrength": "",
-      "teethWhiten": "",
-      "teethWhitenBrightness": "",
-      "teethWhitenDesaturate": "",
-      "title": "Портрет"
+      "eyeBrightenAmount": "Eye Brighten",
+      "eyebrow": "Eyebrow",
+      "eyeEnhance": "Eye Enhance",
+      "eyeEnlargeAmount": "Eye Enlarge",
+      "faceReshape": "Face Reshape",
+      "faceSlimAmount": "Face Slim",
+      "foreheadAmount": "Forehead",
+      "hairAdjust": "Hair Adjust",
+      "hairBrightness": "Brightness",
+      "hairHueShift": "Hue Shift",
+      "jawAmount": "Jaw",
+      "legLengthAmount": "Leg Length",
+      "lipstick": "Lipstick",
+      "makeup": "Makeup",
+      "oneClickBeauty": "One-Click Beauty",
+      "skinSmoothing": "Skin Smoothing",
+      "skinSmoothingDetailPreserve": "Detail Preserve",
+      "skinSmoothingStrength": "Strength",
+      "teethWhiten": "Teeth Whiten",
+      "teethWhitenBrightness": "Brightness",
+      "teethWhitenDesaturate": "Desaturate",
+      "title": "Портрет",
+      "blemishCount": "{{count}} spots marked"
     },
     "presets": {
       "amount": "Интенсивность",
@@ -874,6 +1131,34 @@
     },
     "layout": {
       "split": "Разделить"
+    },
+    "android": {
+      "bottomNav": {
+        "ai": "AI",
+        "basic": "Basic",
+        "color": "Color",
+        "crop": "Crop",
+        "export": "Export",
+        "library": "Library",
+        "masks": "Masks",
+        "metadata": "Metadata",
+        "more": "More",
+        "portrait": "Portrait",
+        "presets": "Presets"
+      },
+      "doubleTapCompare": "Double-tap to compare original",
+      "gotIt": "Got it",
+      "swipeHint": "Swipe left/right to switch photos"
+    },
+    "androidShare": {
+      "cancel": "Cancel",
+      "more": "More",
+      "qq": "QQ",
+      "systemShare": "Share",
+      "systemShareTitle": "Share from RapidRAW",
+      "titleDefault": "Share Image",
+      "wechat": "WeChat",
+      "weibo": "Weibo"
     }
   },
   "export": {
@@ -933,8 +1218,8 @@
       "watermark": "Водяной знак"
     },
     "share": {
-      "button": "",
-      "title": ""
+      "button": "Share Image",
+      "title": "Share to {{target}}"
     },
     "status": {
       "cancelExport": "Отменить экспорт",
@@ -975,35 +1260,41 @@
       "scale": "Масштаб",
       "spacing": "Отступы",
       "watermarkImage": "Изображение водяного знака"
-    }
+    },
+    "gallery": {
+      "saved": "Saved to system gallery",
+      "saveFailed": "Failed to save to gallery"
+    },
+    "title": "Export"
   },
   "library": {
     "batch": {
-      "addToAlbum": "",
-      "delete": "",
-      "export": "",
-      "rate": "",
+      "addToAlbum": "Add to Album",
+      "delete": "Delete",
+      "export": "Export",
+      "rate": "Rate",
       "selected_one": "",
       "selected_few": "",
       "selected_many": "",
-      "selected_other": ""
+      "selected_other": "",
+      "selected": "{count} selected"
     },
     "community": {
       "actionSave": "Сохранить",
       "actionSaved": "Сохранено",
       "actionSaving": "Сохранение...",
-      "fetchError": "",
+      "fetchError": "Failed to load presets",
       "fetchingPresets": "Получение пресетов с GitHub...",
       "footerHeading": "Хотите добавить свой пресет в рекомендуемые?",
       "footerLinkText": "Создайте обращение на GitHub",
       "headerDesc": "Откройте для себя пресеты, созданные сообществом.",
       "headerTitle": "Пресеты сообщества",
-      "noPresets": "",
-      "noPreview": "",
+      "noPresets": "No community presets available",
+      "noPreview": "No preview",
       "presetBy": "от {{creator}}",
-      "presetCount": "",
-      "refresh": "",
-      "retry": "",
+      "presetCount": "presets",
+      "refresh": "Refresh",
+      "retry": "Retry",
       "searchPlaceholder": "Поиск пресетов...",
       "sortBy": "Сортировка:",
       "sortMethods": {
@@ -1011,8 +1302,9 @@
       }
     },
     "favorites": {
-      "added": "",
-      "removed": ""
+      "added": "Added to Favorites",
+      "removed": "Removed from Favorites",
+      "title": "Favorites"
     },
     "filters": {
       "edited": {
@@ -1135,36 +1427,50 @@
       "tooltipVirtualCopy": "Виртуальная копия"
     },
     "nav": {
-      "communityPresets": "",
-      "library": "",
-      "onlineSamples": ""
+      "communityPresets": "Community Presets",
+      "library": "Library",
+      "onlineSamples": "Online Samples"
     },
     "search": {
-      "advancedFilter": "",
-      "aiTagSuggestion": "",
-      "cameraModel": "",
-      "dateFrom": "",
-      "dateRange": "",
-      "dateTo": "",
-      "focalLength": "",
+      "advancedFilter": "Advanced Filter",
+      "aiTagSuggestion": "AI Tag Suggestions",
+      "cameraModel": "Camera Model",
+      "dateFrom": "From",
+      "dateRange": "Date Range",
+      "dateTo": "To",
+      "focalLength": "Focal Length",
       "noResults": "Результатов не найдено",
       "noResultsAiHint": " Для более точного поиска включите автотегирование в настройках.",
       "noResultsDesc": "Не удалось найти изображение по названию или тегам.",
-      "suggestions": ""
+      "suggestions": "Search Suggestions"
     },
     "smartAlbum": {
-      "addField": "",
-      "conditions": "",
-      "create": "",
-      "createButton": "",
-      "name": "",
+      "addField": "Add Condition",
+      "conditions": "Conditions",
+      "create": "Create Smart Album",
+      "createButton": "Create",
+      "name": "Album Name",
       "preview_one": "",
       "preview_few": "",
       "preview_many": "",
       "preview_other": "",
-      "valueFalse": "",
-      "valuePlaceholder": "",
-      "valueTrue": ""
+      "valueFalse": "No",
+      "valuePlaceholder": "Value",
+      "valueTrue": "Yes",
+      "fieldCameraModel": "Camera Model",
+      "fieldColorLabel": "Color Label",
+      "fieldDateModified": "Date Modified",
+      "fieldDateTaken": "Date Taken",
+      "fieldIsEdited": "Edited Status",
+      "fieldRating": "Rating",
+      "fieldTag": "Tag",
+      "opBetween": "Between",
+      "opContains": "Contains",
+      "opEquals": "Equals",
+      "opGreaterThan": "Greater Than",
+      "opLessThan": "Less Than",
+      "preview": "{count} photos match",
+      "title": "Smart Albums"
     },
     "sort": {
       "aperture": "Диафрагме",
@@ -1544,7 +1850,7 @@
       "cancel": "Отмена",
       "fileNamingTemplate": "Шаблон именования файлов",
       "newName": "Новое имя",
-      "overwriteWarning": "",
+      "overwriteWarning": "A file with this name already exists. Saving will overwrite the existing file.",
       "save": "Сохранить",
       "titleMultiple": "Переименовать {{count}} изобр.",
       "titleMultiple_one": "Переименовать {{count}} изображение",
@@ -1590,30 +1896,30 @@
     }
   },
   "presetGallery": {
-    "add": "",
-    "addSource": "",
-    "addSourcePlaceholder": "",
-    "addSourceRejected": "",
-    "backToLibrary": "",
-    "download": "",
-    "downloaded": "",
-    "downloadFailed": "",
-    "downloading": "",
-    "imageLoadFailed": "",
-    "images": "",
-    "noPresets": "",
-    "noSources": "",
-    "noSourcesDesc": "",
-    "presets": "",
-    "refresh": "",
-    "refreshAll": "",
-    "removeSource": "",
-    "retry": "",
-    "saved": "",
-    "saveToPreview": "",
-    "showDetails": "",
-    "title": "",
-    "viewGallery": ""
+    "add": "Add",
+    "addSource": "Add Source",
+    "addSourcePlaceholder": "Enter JSON URL...",
+    "addSourceRejected": "Only HTTPS sources from trusted domains (github.com, jsdelivr.net, getrapidraw.com, etc.) are supported",
+    "backToLibrary": "Back to Library",
+    "download": "Save to Local Presets",
+    "downloaded": "Saved to Community folder",
+    "downloadFailed": "Save failed",
+    "downloading": "Saving…",
+    "imageLoadFailed": "Image failed to load",
+    "images": "images",
+    "noPresets": "No preset data available",
+    "noSources": "No online preset sources",
+    "noSourcesDesc": "Click \"Add Source\" to add a JSON link",
+    "presets": "presets",
+    "refresh": "Refresh",
+    "refreshAll": "Refresh All Sources",
+    "removeSource": "Remove",
+    "retry": "Retry",
+    "saved": "Saved",
+    "saveToPreview": "Save to Preview",
+    "showDetails": "View Details",
+    "title": "Online Presets",
+    "viewGallery": "View Gallery"
   },
   "settings": {
     "adjustments": {
@@ -1633,9 +1939,9 @@
       "shortcuts": "Управление"
     },
     "contact": {
-      "description": "",
-      "heading": "",
-      "title": ""
+      "description": "Search '带娃的小陈工' on Douyin / Xiaohongshu",
+      "heading": "Have a question or suggestion?",
+      "title": "Contact Me"
     },
     "controls": {
       "keyboardTitle": "Управление клавиатурой",
@@ -1733,17 +2039,17 @@
       "xmpSyncDesc": "Записывать рейтинги, цветовые метки и теги в стандартные файлы сопутствующих данных XMP для совместимости с другими фоторедакторами."
     },
     "gpu": {
-      "acesNote": "",
-      "description": "",
-      "idle": "",
-      "pipelineStatus": "",
-      "pipelineStatusDesc": "",
-      "ready": "",
-      "retest": "",
-      "testing": "",
-      "title": "",
-      "unavailable": "",
-      "unavailableReason": ""
+      "acesNote": "Note: ACES color science commands (color_convert_space / color_apply_aces_output / color_apply_aces_fitted, etc.) are registered in the backend and can be invoked via the useGpuPipeline hook in custom workflows.",
+      "description": "Detect availability of the lightweight GPU adjustment pipeline and ACES color science tools. These tools supplement the main pipeline for one-off fast previews and color space conversions.",
+      "idle": "Not Detected",
+      "pipelineStatus": "GPU Pipeline Status",
+      "pipelineStatusDesc": "Detect whether the lightweight compute pipeline can be initialized on the current GPU.",
+      "ready": "Available",
+      "retest": "Re-detect (clear cache and retry)",
+      "testing": "Detecting…",
+      "title": "GPU Acceleration & Color Science",
+      "unavailable": "Unavailable",
+      "unavailableReason": "The current GPU adapter cannot initialize the lightweight compute pipeline; the main pipeline still works normally."
     },
     "keybinds": {
       "actions": {
@@ -1816,24 +2122,14 @@
       "title": "Мои объективы"
     },
     "presetGallery": {
-      "addSource": {
-        "addSource": "Добавить источник данных"
-      },
-      "addSourcePlaceholder": {
-        "addSourcePlaceholder": "Введите URL ссылки JSON..."
-      },
-      "description": "",
-      "disabled": {
-        "disabled": "Отключено"
-      },
-      "enabled": {
-        "enabled": "Включено"
-      },
-      "noSources": "",
-      "removeSource": {
-        "removeSource": "Удалить источник данных"
-      },
-      "title": "",
+      "addSource": "Add Data Source",
+      "addSourcePlaceholder": "Enter JSON link URL...",
+      "description": "Manage online preset JSON data sources. Once added, preset samples can be viewed in the gallery.",
+      "disabled": "Disabled",
+      "enabled": "Enabled",
+      "noSources": "No data sources yet. Please add a JSON link.",
+      "removeSource": "Remove Data Source",
+      "title": "Online Presets",
       "addSourceRejected": "Поддерживаются только HTTPS-источники из доверенных доменов (github.com, jsdelivr.net, getrapidraw.com и т.д.).",
       "duplicateSource": "Этот источник данных уже был добавлен."
     },
@@ -1975,15 +2271,19 @@
       "wgpuDescRecommended": "Обходит этап кодирования веб-браузера для моментального обновления интерактивного просмотра. Настоятельно рекомендуется для достижения максимальной отзывчивости интерфейса.",
       "wgpuLabel": "Включить прямой рендеринг WGPU",
       "workerThreads": "Потоки генерации миниатюр",
-      "workerThreadsDesc": "Количество параллельно работающих вычислительных потоков для создания миниатюр снимков. Высокие значения ускоряют первоначальный запуск галереи, но нагружают процессор и ОЗУ."
+      "workerThreadsDesc": "Количество параллельно работающих вычислительных потоков для создания миниатюр снимков. Высокие значения ускоряют первоначальный запуск галереи, но нагружают процессор и ОЗУ.",
+      "aiMirrorSet": "AI model mirror URL set.",
+      "aiMirrorCleared": "AI model mirror URL cleared.",
+      "aiMirrorFailed": "Failed to set mirror URL."
     },
     "selftest": {
-      "allPassed": "",
-      "description": "",
-      "run": "",
-      "running": "",
-      "someFailed": "",
-      "title": ""
+      "allPassed": "All checks passed",
+      "description": "Run a comprehensive deep self-test to verify the state of image processing pipeline components such as GPU pipeline, ROI computation, preview rendering, and cache.",
+      "run": "Run Deep Self-Test",
+      "running": "Testing…",
+      "someFailed": "Some checks failed",
+      "title": "Image Processing Deep Self-Test",
+      "requiresImage": "Please select an image in the editor before running the deep self-test — the test needs a currently edited image as its target."
     },
     "tagging": {
       "addCustomPlaceholder": "Добавить пользовательские AI-теги (через запятую)...",
@@ -2124,5 +2424,14 @@
         "vectorscope": "Вектороскоп"
       }
     }
+  },
+  "androidShare": {
+    "cancel": "Cancel",
+    "more": "More",
+    "qq": "QQ",
+    "systemShareTitle": "Share Image",
+    "titleDefault": "Share to",
+    "wechat": "WeChat",
+    "weibo": "Weibo"
   }
 }

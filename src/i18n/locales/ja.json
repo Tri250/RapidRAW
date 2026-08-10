@@ -171,7 +171,7 @@
       "yellow": "イエロー"
     },
     "editor": {
-      "aiBatchRating": "",
+      "aiBatchRating": "AI Batch Rating",
       "autoAdjust": "画像を自動補正",
       "cancel": "キャンセル",
       "colorLabel": "カラーラベル",
@@ -327,8 +327,11 @@
         "switchToSubtract": "減算に切り替え"
       },
       "addNewEdit": "新しい編集を追加",
-      "bgRemove": "",
-      "bgRemoveTooltip": "",
+      "bgRemove": {
+        "completed": "AI背景除去が完了しました",
+        "failed": "AI背景除去に失敗しました"
+      },
+      "bgRemoveTooltip": "AI Background Remove",
       "brush": {
         "add": "追加",
         "erase": "消去",
@@ -357,7 +360,7 @@
       "dropzoneText": "ここにドロップして新しい編集を作成",
       "editSettingsTitle": "編集設定",
       "editsTitle": "編集一覧",
-      "enhancementTitle": "",
+      "enhancementTitle": "AI Enhancement",
       "generativeEditTitle": "生成編集",
       "inpaintingTitle": "インペインティング",
       "manualCleanupTitle": "手動クリーンアップ",
@@ -382,7 +385,9 @@
         "invertedName": "{{name}} 反転",
         "quickErase": "クイック消去 {{count}}",
         "quickErase_one": "クイック消去 {{count}}",
-        "quickErase_other": "クイック消去 {{count}}"
+        "quickErase_other": "クイック消去 {{count}}",
+        "clone_one": "",
+        "heal_one": ""
       },
       "resetInpaintingTooltip": "インペインティングをリセット",
       "settings": {
@@ -404,23 +409,107 @@
         "selectionPropertiesTitle": "選択範囲のプロパティ",
         "useBasicInpaint": "簡易インペインティングを使用"
       },
-      "skyReplace": "",
-      "skyReplaceTooltip": "",
-      "superResolution": "",
+      "skyReplace": {
+        "completed": "AI空置換が完了しました",
+        "failed": "AI空置換に失敗しました"
+      },
+      "skyReplaceTooltip": "AI Sky Replace",
+      "superResolution": {
+        "failed": "超解像に失敗しました",
+        "applied": "超解像 {{scale}}x を適用 ({{width}}×{{height}})",
+        "noImage": "超解像のための画像が選択されていません"
+      },
       "superResolutionLabel": "超解像度",
-      "superResolutionTooltip": ""
+      "superResolutionTooltip": "Use AI super resolution to upscale image (2x/3x/4x)",
+      "quickEraseFailed": "クイック消去に失敗しました",
+      "quickEraseTimeout": "クイック消去がタイムアウトしました。ネットワークを確認するか、再試行してください。",
+      "timeout": {
+        "autoStraighten": "自動水平調整がタイムアウトしました。再試行してください。",
+        "bgRemove": "AI背景除去がタイムアウトしました。ネットワークを確認するか、再試行してください。",
+        "cleanup": "クリーンアップがタイムアウトしました。ネットワークを確認するか、再試行してください。",
+        "colorRange": "色域マスクがタイムアウトしました。再試行してください。",
+        "depthMask": "AIデプスマスクがタイムアウトしました。ネットワークを確認するか、再試行してください。",
+        "feather": "マスクのフェザーがタイムアウトしました。再試行してください。",
+        "foregroundMask": "AI前景マスクがタイムアウトしました。ネットワークを確認するか、再試行してください。",
+        "horizonDetect": "水平線検出がタイムアウトしました。再試行してください。",
+        "luminanceRange": "輝度範囲マスクがタイムアウトしました。再試行してください。",
+        "mask": "AIマスクがタイムアウトしました。ネットワークを確認するか、再試行してください。",
+        "replace": "AI置換がタイムアウトしました。ネットワークを確認するか、再試行してください。",
+        "skyMask": "AI空マスクがタイムアウトしました。ネットワークを確認するか、再試行してください。",
+        "skyReplace": "AI空置換がタイムアウトしました。ネットワークを確認するか、再試行してください。",
+        "subjectMask": "AI被写体マスクがタイムアウトしました。ネットワークを確認するか、再試行してください。",
+        "superResolution": "超解像がタイムアウトしました。ネットワークを確認するか、再試行してください。"
+      },
+      "mask": {
+        "noMaskData": "AIマスク: マスクデータが生成されませんでした",
+        "failed": "AIマスクに失敗しました"
+      },
+      "depthMask": {
+        "noDepthData": "デプスデータが生成されませんでした",
+        "failed": "AIデプスマスクに失敗しました"
+      },
+      "foregroundMask": {
+        "noForeground": "画像に前景が検出されませんでした",
+        "failed": "AI前景マスクに失敗しました"
+      },
+      "skyMask": {
+        "noSky": "画像に空が検出されませんでした",
+        "failed": "AI空マスクに失敗しました"
+      },
+      "subjectMask": {
+        "noSubject": "画像に被写体が検出されませんでした",
+        "failed": "AI被写体マスクに失敗しました"
+      },
+      "cleanup": {
+        "failed": "クリーンアップに失敗しました"
+      },
+      "generativeReplace": {
+        "failed": "生成的置換に失敗しました"
+      },
+      "colorRange": {
+        "noMatch": "一致する色が見つかりません",
+        "failed": "色域マスクに失敗しました"
+      },
+      "luminanceRange": {
+        "noMatch": "一致する輝度範囲が見つかりません",
+        "failed": "輝度範囲マスクに失敗しました"
+      },
+      "feather": {
+        "failed": "マスクのフェザーに失敗しました"
+      },
+      "autoStraighten": {
+        "failed": "自動水平調整に失敗しました"
+      },
+      "horizonDetect": {
+        "failed": "水平線検出に失敗しました"
+      },
+      "modelStatus": {
+        "waitForDownload": "AIモデルのダウンロード中です。お待ちください…",
+        "downloading": "オンデバイスモデルを読み込み中 ({{done}}/{{total}})",
+        "partial": "オンデバイスモデル {{done}}/{{total}} 準備完了",
+        "fg": "前景",
+        "sky": "空",
+        "subject": "被写体",
+        "depth": "デプス"
+      },
+      "errorHint": {
+        "downloadFailed": "モデルのダウンロードに失敗しました。ネットワークを確認するか、設定 > AI設定でミラーURLを設定してください（hf-mirror.com推奨）。",
+        "oom": "デバイスのメモリが不足しています。設定 > パフォーマンスで最大処理解像度を下げてお試しください。"
+      }
     },
     "aiRating": {
-      "applied": "",
-      "applyError": "",
-      "applying": "",
-      "applyToExif": "",
+      "applied": "EXIFに書き込みました",
+      "applyError": "EXIFへの評価の適用に失敗しました: {{error}}",
+      "applying": "評価中...",
+      "applyToExif": "EXIFに適用",
       "batchComplete_other": "",
-      "batchProgress": "",
-      "description": "",
-      "error": "",
-      "generate": "",
-      "title": ""
+      "batchProgress": "Rating {{current}}/{{total}}...",
+      "description": "AI説明",
+      "error": "評価の生成に失敗しました: {{error}}",
+      "generate": "評価を生成",
+      "title": "AIスマート評価",
+      "batchComplete": "{{count}}枚の画像の評価が完了しました",
+      "batchComplete_one": ""
     },
     "colorPanel": {
       "title": "カラー"
@@ -519,7 +608,7 @@
       "rotationHeading": "回転",
       "title": "切り抜きと変形",
       "tooltips": {
-        "autoStraightenHorizon": "",
+        "autoStraightenHorizon": "Auto Straighten Horizon",
         "compositionOverlay": "構図ガイド",
         "flipHoriz": "画像を水平方向に反転",
         "flipVert": "画像を垂直方向に反転",
@@ -645,7 +734,177 @@
       "copy": "コピー",
       "emptyClickToAdd": "未設定 (クリックして追加)",
       "extendedExif": {
-        "title": "拡張EXIF"
+        "title": "拡張EXIF",
+        "tags": {
+          "ActiveArea": "Active Area",
+          "AFAreaInfo": "AF Area Info",
+          "AFAreaMode": "AF Area Mode",
+          "AFAreasUsed": "AF Areas Used",
+          "AFMode": "AF Mode",
+          "AFPointsInFocus": "AF Points In Focus",
+          "AnalogBalance": "Analog Balance",
+          "ApertureValue": "Aperture Value",
+          "Artist": "Artist",
+          "AsShotNeutral": "As Shot Neutral",
+          "AsShotWhiteXY": "As Shot White XY",
+          "BaselineExposure": "Baseline Exposure",
+          "BaselineNoise": "Baseline Noise",
+          "BaselineSharpness": "Baseline Sharpness",
+          "BatteryLevel": "Battery Level",
+          "BestQualityScale": "Best Quality Scale",
+          "BitsPerSample": "Bits Per Sample",
+          "BlackLevel": "Black Level",
+          "BlueBalance": "Blue Balance",
+          "BodySerialNumber": "Body Serial Number",
+          "Brightness": "Brightness",
+          "ColorMode": "Color Mode",
+          "ColorSpace": "Color Space",
+          "ColorTemp": "Color Temperature",
+          "Compression": "Compression",
+          "Contrast": "Contrast",
+          "ContrastDetectAF": "Contrast Detect AF",
+          "Copyright": "Copyright",
+          "CropBottom": "Crop Bottom",
+          "CropLeft": "Crop Left",
+          "CropRight": "Crop Right",
+          "CropTop": "Crop Top",
+          "CustomRendered": "Custom Rendered",
+          "DateTime": "Date/Time",
+          "DateTimeDigitized": "Date/Time Digitized",
+          "DateTimeOriginal": "Date/Time Original",
+          "DefaultCropOrigin": "Default Crop Origin",
+          "DefaultCropSize": "Default Crop Size",
+          "DefaultScale": "Default Scale",
+          "DepthOfField": "Depth Of Field",
+          "DigitalZoomRatio": "Digital Zoom Ratio",
+          "DriveMode": "Drive Mode",
+          "ExifVersion": "EXIF Version",
+          "ExposureCompensation": "Exposure Compensation",
+          "ExposureMode": "Exposure Mode",
+          "ExposureProgram": "Exposure Program",
+          "ExposureTime": "Exposure Time",
+          "FileFormat": "File Format",
+          "FileName": "File Name",
+          "FileNumber": "File Number",
+          "FileSize": "File Size",
+          "FileSource": "File Source",
+          "Flash": "Flash",
+          "FlashEnergy": "Flash Energy",
+          "FlashpixVersion": "Flashpix Version",
+          "FNumber": "F-Number",
+          "FocalLength": "Focal Length",
+          "FocalLengthIn35mmFilm": "Focal Length (35mm)",
+          "FocusDistance": "Focus Distance",
+          "FocusDistanceLower": "Focus Distance Lower",
+          "FocusDistanceUpper": "Focus Distance Upper",
+          "FocusMode": "Focus Mode",
+          "GainControl": "Gain Control",
+          "GPSAltitude": "GPS Altitude",
+          "GPSAltitudeRef": "GPS Altitude Ref",
+          "GPSDateStamp": "GPS Date Stamp",
+          "GPSDestBearing": "GPS Dest Bearing",
+          "GPSDOP": "GPS DOP",
+          "GPSImgDirection": "GPS Image Direction",
+          "GPSLatitude": "GPS Latitude",
+          "GPSLatitudeRef": "GPS Latitude Ref",
+          "GPSLongitude": "GPS Longitude",
+          "GPSLongitudeRef": "GPS Longitude Ref",
+          "GPSMapDatum": "GPS Map Datum",
+          "GPSMeasureMode": "GPS Measure Mode",
+          "GPSProcessingMethod": "GPS Processing Method",
+          "GPSSatellites": "GPS Satellites",
+          "GPSSpeed": "GPS Speed",
+          "GPSSpeedRef": "GPS Speed Ref",
+          "GPSStatus": "GPS Status",
+          "GPSTimeStamp": "GPS Time Stamp",
+          "GPSTrack": "GPS Track",
+          "ImageDescription": "Image Description",
+          "ImageHeight": "Image Height",
+          "ImageNumber": "Image Number",
+          "ImageQuality": "Image Quality",
+          "ImageStabilization": "Image Stabilization",
+          "ImageStyle": "Image Style",
+          "ImageWidth": "Image Width",
+          "InternalSerialNumber": "Internal Serial Number",
+          "ISOSpeedRatings": "ISO Speed Ratings",
+          "JPEGInterchangeFormat": "JPEG Interchange Format",
+          "JPEGInterchangeFormatLength": "JPEG Interchange Format Length",
+          "LensInfo": "Lens Info",
+          "LensMake": "Lens Make",
+          "LensModel": "Lens Model",
+          "LensSerialNumber": "Lens Serial Number",
+          "LightSource": "Light Source",
+          "LinearResponseLimit": "Linear Response Limit",
+          "LiveViewShooting": "Live View Shooting",
+          "LocalizedCameraModel": "Localized Camera Model",
+          "Make": "Make",
+          "MakerNote": "Maker Note",
+          "MakerNoteSafety": "Maker Note Safety",
+          "MakerNoteVersion": "Maker Note Version",
+          "MaxApertureValue": "Max Aperture Value",
+          "MeteringMode": "Metering Mode",
+          "Model": "Model",
+          "Movie": "Movie",
+          "NoiseProfile": "Noise Profile",
+          "NoiseReductionApplied": "Noise Reduction Applied",
+          "Orientation": "Orientation",
+          "OriginalRawFileName": "Original Raw File Name",
+          "OwnerName": "Owner Name",
+          "PhaseDetectAF": "Phase Detect AF",
+          "PhotographicSensitivity": "ISO",
+          "PhotometricInterpretation": "Photometric Interpretation",
+          "PictureMode": "Picture Mode",
+          "PixelXDimension": "Pixel X Dimension",
+          "PixelYDimension": "Pixel Y Dimension",
+          "PlanarConfiguration": "Planar Configuration",
+          "PreviewImage": "Preview Image",
+          "PreviewImageLength": "Preview Image Length",
+          "PreviewImageStart": "Preview Image Start",
+          "PrimaryAFPoint": "Primary AF Point",
+          "ProfileCalibrationSignature": "Profile Calibration Signature",
+          "ProfileName": "Profile Name",
+          "Rating": "Rating",
+          "RecommendedExposureIndex": "Recommended Exposure Index",
+          "RedBalance": "Red Balance",
+          "ResolutionUnit": "Resolution Unit",
+          "RowsPerStrip": "Rows Per Strip",
+          "SamplesPerPixel": "Samples Per Pixel",
+          "Saturation": "Saturation",
+          "SceneCaptureType": "Scene Capture Type",
+          "SceneType": "Scene Type",
+          "SelfTimerMode": "Self Timer Mode",
+          "SensitivityType": "Sensitivity Type",
+          "SerialNumber": "Serial Number",
+          "ShadowScale": "Shadow Scale",
+          "Sharpness": "Sharpness",
+          "ShootingMode": "Shooting Mode",
+          "ShutterCount": "Shutter Count",
+          "ShutterSpeedValue": "Shutter Speed Value",
+          "Software": "Software",
+          "StripByteCounts": "Strip Byte Counts",
+          "StripOffsets": "Strip Offsets",
+          "SubjectArea": "Subject Area",
+          "SubjectDistance": "Subject Distance",
+          "SubjectDistanceRange": "Subject Distance Range",
+          "SubjectLocation": "Subject Location",
+          "SubSecTime": "Sub-Sec Time",
+          "SubSecTime,Original": "Sub-Sec Time Original",
+          "SubSecTimeDigitized": "Sub-Sec Time Digitized",
+          "ThumbnailLength": "Thumbnail Length",
+          "ThumbnailOffset": "Thumbnail Offset",
+          "ToneCurve": "Tone Curve",
+          "ToneMode": "Tone Mode",
+          "UniqueCameraModel": "Unique Camera Model",
+          "UserComment": "User Comment",
+          "WB_GRBLevels": "WB GRB Levels",
+          "WB_RGGBLevels": "WB RGGB Levels",
+          "WhiteBalance": "White Balance",
+          "WhiteLevel": "White Level",
+          "WhitePoint": "White Point",
+          "XResolution": "X Resolution",
+          "YCbCrPositioning": "YCbCr Positioning",
+          "YResolution": "Y Resolution"
+        }
       },
       "fields": {
         "author": "作成者",
@@ -665,7 +924,7 @@
         "clickToOpenTooltip": "クリックして新しいタブで地図を表示",
         "latitude": "緯度",
         "longitude": "経度",
-        "offlineFallback": "",
+        "offlineFallback": "Map unavailable (offline). Coordinates:",
         "openExternal": "地図を開く",
         "title": "GPS位置情報"
       },
@@ -683,48 +942,50 @@
     },
     "portraitPanel": {
       "attributes": {
-        "all": "",
-        "child": "",
-        "elderFemale": "",
-        "elderMale": "",
-        "female": "",
-        "male": "",
-        "single": ""
+        "all": "All",
+        "child": "Child",
+        "elderFemale": "Elder F",
+        "elderMale": "Elder M",
+        "female": "Female",
+        "male": "Male",
+        "single": "Single"
       },
-      "blemishActive": "",
+      "blemishActive": "Marking",
       "blemishCount_other": "",
-      "blemishHint": "",
-      "blemishRemoval": "",
-      "blemishStart": "",
-      "blemishUndo": "",
-      "blush": "",
-      "bodyHeightAmount": "",
-      "bodyReshape": "",
-      "bodySlimAmount": "",
-      "bodySymmetry": "",
+      "blemishHint": "Tap image to mark blemish spots",
+      "blemishRemoval": "Blemish Removal",
+      "blemishStart": "Start Marking",
+      "blemishUndo": "Undo Last",
+      "blush": "Blush",
+      "bodyHeightAmount": "Height",
+      "bodyReshape": "Body Reshape",
+      "bodySlimAmount": "Body Slim",
+      "bodySymmetry": "Symmetric Adjust",
       "brushSize": "ブラシサイズ",
-      "eyeBrightenAmount": "",
-      "eyebrow": "",
-      "eyeEnhance": "",
-      "eyeEnlargeAmount": "",
-      "faceReshape": "",
-      "faceSlimAmount": "",
-      "foreheadAmount": "",
-      "hairAdjust": "",
-      "hairBrightness": "",
-      "hairHueShift": "",
-      "jawAmount": "",
-      "legLengthAmount": "",
-      "lipstick": "",
-      "makeup": "",
-      "oneClickBeauty": "",
-      "skinSmoothing": "",
-      "skinSmoothingDetailPreserve": "",
-      "skinSmoothingStrength": "",
-      "teethWhiten": "",
-      "teethWhitenBrightness": "",
-      "teethWhitenDesaturate": "",
-      "title": "ポートレート"
+      "eyeBrightenAmount": "Eye Brighten",
+      "eyebrow": "Eyebrow",
+      "eyeEnhance": "Eye Enhance",
+      "eyeEnlargeAmount": "Eye Enlarge",
+      "faceReshape": "Face Reshape",
+      "faceSlimAmount": "Face Slim",
+      "foreheadAmount": "Forehead",
+      "hairAdjust": "Hair Adjust",
+      "hairBrightness": "Brightness",
+      "hairHueShift": "Hue Shift",
+      "jawAmount": "Jaw",
+      "legLengthAmount": "Leg Length",
+      "lipstick": "Lipstick",
+      "makeup": "Makeup",
+      "oneClickBeauty": "One-Click Beauty",
+      "skinSmoothing": "Skin Smoothing",
+      "skinSmoothingDetailPreserve": "Detail Preserve",
+      "skinSmoothingStrength": "Strength",
+      "teethWhiten": "Teeth Whiten",
+      "teethWhitenBrightness": "Brightness",
+      "teethWhitenDesaturate": "Desaturate",
+      "title": "ポートレート",
+      "blemishCount": "{{count}}個のスポットをマーク",
+      "blemishCount_one": ""
     },
     "presets": {
       "amount": "適用量",
@@ -824,6 +1085,34 @@
     },
     "layout": {
       "split": "分割"
+    },
+    "android": {
+      "bottomNav": {
+        "ai": "AI",
+        "basic": "基本",
+        "color": "カラー",
+        "crop": "切り抜き",
+        "export": "書き出し",
+        "library": "ライブラリ",
+        "masks": "マスク",
+        "metadata": "メタデータ",
+        "more": "その他",
+        "portrait": "ポートレート",
+        "presets": "プリセット"
+      },
+      "doubleTapCompare": "ダブルタップで元画像と比較",
+      "gotIt": "了解",
+      "swipeHint": "左右にスワイプして写真を切り替え"
+    },
+    "androidShare": {
+      "cancel": "キャンセル",
+      "more": "その他",
+      "qq": "QQ",
+      "systemShare": "共有",
+      "systemShareTitle": "RapidRAWから共有",
+      "titleDefault": "画像を共有",
+      "wechat": "WeChat",
+      "weibo": "Weibo"
     }
   },
   "export": {
@@ -881,8 +1170,8 @@
       "watermark": "ウォーターマーク"
     },
     "share": {
-      "button": "",
-      "title": ""
+      "button": "Share Image",
+      "title": "Share to {{target}}"
     },
     "status": {
       "cancelExport": "書き出しをキャンセル",
@@ -921,32 +1210,39 @@
       "scale": "倍率",
       "spacing": "間隔",
       "watermarkImage": "ウォーターマーク画像"
-    }
+    },
+    "gallery": {
+      "saved": "システムギャラリーに保存しました",
+      "saveFailed": "ギャラリーへの保存に失敗しました"
+    },
+    "title": "Export"
   },
   "library": {
     "batch": {
-      "addToAlbum": "",
-      "delete": "",
-      "export": "",
-      "rate": "",
-      "selected_other": ""
+      "addToAlbum": "Add to Album",
+      "delete": "Delete",
+      "export": "Export",
+      "rate": "Rate",
+      "selected_other": "",
+      "selected": "{count} selected",
+      "selected_one": ""
     },
     "community": {
       "actionSave": "保存",
       "actionSaved": "保存済み",
       "actionSaving": "保存中...",
-      "fetchError": "",
+      "fetchError": "Failed to load presets",
       "fetchingPresets": "GitHubからプリセットを取得中...",
       "footerHeading": "あなたのプリセットを掲載しませんか？",
       "footerLinkText": "GitHubでIssueを作成してください",
       "headerDesc": "コミュニティによって作成されたプリセットをご覧ください。",
       "headerTitle": "コミュニティプリセット",
-      "noPresets": "",
-      "noPreview": "",
+      "noPresets": "No community presets available",
+      "noPreview": "No preview",
       "presetBy": "作成者: {{creator}}",
-      "presetCount": "",
-      "refresh": "",
-      "retry": "",
+      "presetCount": "presets",
+      "refresh": "Refresh",
+      "retry": "Retry",
       "searchPlaceholder": "プリセットを検索...",
       "sortBy": "並べ替え基準:",
       "sortMethods": {
@@ -954,8 +1250,9 @@
       }
     },
     "favorites": {
-      "added": "",
-      "removed": ""
+      "added": "Added to Favorites",
+      "removed": "Removed from Favorites",
+      "title": "お気に入り"
     },
     "filters": {
       "edited": {
@@ -1076,33 +1373,48 @@
       "tooltipVirtualCopy": "仮想コピー"
     },
     "nav": {
-      "communityPresets": "",
-      "library": "",
-      "onlineSamples": ""
+      "communityPresets": "Community Presets",
+      "library": "Library",
+      "onlineSamples": "Online Samples"
     },
     "search": {
-      "advancedFilter": "",
-      "aiTagSuggestion": "",
-      "cameraModel": "",
-      "dateFrom": "",
-      "dateRange": "",
-      "dateTo": "",
-      "focalLength": "",
+      "advancedFilter": "Advanced Filter",
+      "aiTagSuggestion": "AI Tag Suggestions",
+      "cameraModel": "Camera Model",
+      "dateFrom": "From",
+      "dateRange": "Date Range",
+      "dateTo": "To",
+      "focalLength": "Focal Length",
       "noResults": "結果が見つかりません",
       "noResultsAiHint": " より包括的な検索を行うには、設定で自動タグ付けを有効にしてください。",
       "noResultsDesc": "ファイル名またはタグに基づく画像が見つかりませんでした。",
-      "suggestions": ""
+      "suggestions": "Search Suggestions"
     },
     "smartAlbum": {
-      "addField": "",
-      "conditions": "",
-      "create": "",
-      "createButton": "",
-      "name": "",
+      "addField": "Add Condition",
+      "conditions": "Conditions",
+      "create": "Create Smart Album",
+      "createButton": "Create",
+      "name": "Album Name",
       "preview_other": "",
-      "valueFalse": "",
-      "valuePlaceholder": "",
-      "valueTrue": ""
+      "valueFalse": "No",
+      "valuePlaceholder": "Value",
+      "valueTrue": "Yes",
+      "fieldCameraModel": "カメラモデル",
+      "fieldColorLabel": "カラーラベル",
+      "fieldDateModified": "変更日",
+      "fieldDateTaken": "撮影日",
+      "fieldIsEdited": "編集状態",
+      "fieldRating": "評価",
+      "fieldTag": "タグ",
+      "opBetween": "範囲",
+      "opContains": "含む",
+      "opEquals": "等しい",
+      "opGreaterThan": "より大きい",
+      "opLessThan": "より小さい",
+      "preview": "{{count}}枚の写真が一致",
+      "preview_one": "",
+      "title": "スマートアルバム"
     },
     "sort": {
       "aperture": "絞り値",
@@ -1472,7 +1784,7 @@
       "cancel": "キャンセル",
       "fileNamingTemplate": "ファイル命名テンプレート",
       "newName": "新しい名前",
-      "overwriteWarning": "",
+      "overwriteWarning": "A file with this name already exists. Saving will overwrite the existing file.",
       "save": "保存",
       "titleMultiple": "{{count}} 件の画像名を変更",
       "titleMultiple_one": "{{count}} 件の画像名を変更",
@@ -1516,30 +1828,30 @@
     }
   },
   "presetGallery": {
-    "add": "",
-    "addSource": "",
-    "addSourcePlaceholder": "",
-    "addSourceRejected": "",
-    "backToLibrary": "",
-    "download": "",
-    "downloaded": "",
-    "downloadFailed": "",
-    "downloading": "",
-    "imageLoadFailed": "",
-    "images": "",
-    "noPresets": "",
-    "noSources": "",
-    "noSourcesDesc": "",
-    "presets": "",
-    "refresh": "",
-    "refreshAll": "",
-    "removeSource": "",
-    "retry": "",
-    "saved": "",
-    "saveToPreview": "",
-    "showDetails": "",
-    "title": "",
-    "viewGallery": ""
+    "add": "Add",
+    "addSource": "Add Source",
+    "addSourcePlaceholder": "Enter JSON URL...",
+    "addSourceRejected": "Only HTTPS sources from trusted domains (github.com, jsdelivr.net, getrapidraw.com, etc.) are supported",
+    "backToLibrary": "Back to Library",
+    "download": "Save to Local Presets",
+    "downloaded": "Saved to Community folder",
+    "downloadFailed": "Save failed",
+    "downloading": "Saving…",
+    "imageLoadFailed": "Image failed to load",
+    "images": "images",
+    "noPresets": "No preset data available",
+    "noSources": "No online preset sources",
+    "noSourcesDesc": "Click \"Add Source\" to add a JSON link",
+    "presets": "presets",
+    "refresh": "Refresh",
+    "refreshAll": "Refresh All Sources",
+    "removeSource": "Remove",
+    "retry": "Retry",
+    "saved": "Saved",
+    "saveToPreview": "Save to Preview",
+    "showDetails": "View Details",
+    "title": "Online Presets",
+    "viewGallery": "View Gallery"
   },
   "settings": {
     "adjustments": {
@@ -1559,9 +1871,9 @@
       "shortcuts": "操作設定"
     },
     "contact": {
-      "description": "",
-      "heading": "",
-      "title": ""
+      "description": "Search '带娃的小陈工' on Douyin / Xiaohongshu",
+      "heading": "Have a question or suggestion?",
+      "title": "Contact Me"
     },
     "controls": {
       "keyboardTitle": "キーボードショートカット",
@@ -1653,17 +1965,17 @@
       "xmpSyncDesc": "他の写真編集ソフトとの互換性のために、評価、カラーラベル、タグを標準のXMPサイドカーファイルと同期します。"
     },
     "gpu": {
-      "acesNote": "",
-      "description": "",
-      "idle": "",
-      "pipelineStatus": "",
-      "pipelineStatusDesc": "",
-      "ready": "",
-      "retest": "",
-      "testing": "",
-      "title": "",
-      "unavailable": "",
-      "unavailableReason": ""
+      "acesNote": "Note: ACES color science commands (color_convert_space / color_apply_aces_output / color_apply_aces_fitted, etc.) are registered in the backend and can be invoked via the useGpuPipeline hook in custom workflows.",
+      "description": "Detect availability of the lightweight GPU adjustment pipeline and ACES color science tools. These tools supplement the main pipeline for one-off fast previews and color space conversions.",
+      "idle": "Not Detected",
+      "pipelineStatus": "GPU Pipeline Status",
+      "pipelineStatusDesc": "Detect whether the lightweight compute pipeline can be initialized on the current GPU.",
+      "ready": "Available",
+      "retest": "Re-detect (clear cache and retry)",
+      "testing": "Detecting…",
+      "title": "GPU Acceleration & Color Science",
+      "unavailable": "Unavailable",
+      "unavailableReason": "The current GPU adapter cannot initialize the lightweight compute pipeline; the main pipeline still works normally."
     },
     "keybinds": {
       "actions": {
@@ -1736,24 +2048,14 @@
       "title": "マイレンズ"
     },
     "presetGallery": {
-      "addSource": {
-        "addSource": "データソースを追加"
-      },
-      "addSourcePlaceholder": {
-        "addSourcePlaceholder": "JSONリンクURLを入力..."
-      },
-      "description": "",
-      "disabled": {
-        "disabled": "無効"
-      },
-      "enabled": {
-        "enabled": "有効"
-      },
-      "noSources": "",
-      "removeSource": {
-        "removeSource": "データソースを削除"
-      },
-      "title": "",
+      "addSource": "データソースを追加",
+      "addSourcePlaceholder": "JSONリンクURLを入力...",
+      "description": "Manage online preset JSON data sources. Once added, preset samples can be viewed in the gallery.",
+      "disabled": "無効",
+      "enabled": "有効",
+      "noSources": "No data sources yet. Please add a JSON link.",
+      "removeSource": "データソースを削除",
+      "title": "Online Presets",
       "addSourceRejected": "信頼できるドメイン（github.com、jsdelivr.net、getrapidraw.com など）の HTTPS ソースのみサポートされています。",
       "duplicateSource": "このデータソースは既に追加されています。"
     },
@@ -1895,15 +2197,19 @@
       "wgpuDescRecommended": "ブラウザエンコードをバイパスし、即座に反応するライブプレビューを実現します。パフォーマンス向上のため、強く推奨します。",
       "wgpuLabel": "WGPUダイレクトレンダリングを有効化",
       "workerThreads": "サムネイルワーカー数",
-      "workerThreadsDesc": "サムネイル作成に使用する並行スレッドの数。値を大きくするとライブラリのロードが速くなりますが、CPUとメモリを多く使用します。"
+      "workerThreadsDesc": "サムネイル作成に使用する並行スレッドの数。値を大きくするとライブラリのロードが速くなりますが、CPUとメモリを多く使用します。",
+      "aiMirrorSet": "AIモデルミラーURLを設定しました。",
+      "aiMirrorCleared": "AIモデルミラーURLをクリアしました。",
+      "aiMirrorFailed": "ミラーURLの設定に失敗しました。"
     },
     "selftest": {
-      "allPassed": "",
-      "description": "",
-      "run": "",
-      "running": "",
-      "someFailed": "",
-      "title": ""
+      "allPassed": "All checks passed",
+      "description": "Run a comprehensive deep self-test to verify the state of image processing pipeline components such as GPU pipeline, ROI computation, preview rendering, and cache.",
+      "run": "Run Deep Self-Test",
+      "running": "Testing…",
+      "someFailed": "Some checks failed",
+      "title": "Image Processing Deep Self-Test",
+      "requiresImage": "ディープセルフテストを実行する前に、エディタで画像を選択してください — テストには現在編集中の画像が必要です。"
     },
     "tagging": {
       "addCustomPlaceholder": "カスタムAIタグを入力（カンマ区切り）...",
@@ -2042,5 +2348,14 @@
         "vectorscope": "ベクトルスコープ"
       }
     }
+  },
+  "androidShare": {
+    "cancel": "Cancel",
+    "more": "More",
+    "qq": "QQ",
+    "systemShareTitle": "Share Image",
+    "titleDefault": "Share to",
+    "wechat": "WeChat",
+    "weibo": "Weibo"
   }
 }

@@ -394,7 +394,9 @@
         "invertedName": "{{name}} 反转",
         "quickErase": "快速擦除 {{count}}",
         "quickErase_one": "快速擦除 {{count}}",
-        "quickErase_other": "快速擦除 {{count}}"
+        "quickErase_other": "快速擦除 {{count}}",
+        "clone_one": "",
+        "heal_one": ""
       },
       "resetInpaintingTooltip": "重置图像修复",
       "settings": {
@@ -515,7 +517,8 @@
       "description": "AI 描述",
       "error": "生成评分失败：{{error}}",
       "generate": "生成评分",
-      "title": "AI 智能评分"
+      "title": "AI 智能评分",
+      "batchComplete_one": ""
     },
     "android": {
       "bottomNav": {
@@ -1051,7 +1054,8 @@
       "teethWhiten": "牙齿美白",
       "teethWhitenBrightness": "亮度",
       "teethWhitenDesaturate": "饱和度降低",
-      "title": "人像"
+      "title": "人像",
+      "blemishCount_one": ""
     },
     "presets": {
       "amount": "数量",
@@ -1262,7 +1266,8 @@
       "export": "导出",
       "rate": "评分",
       "selected": "已选 {count} 张",
-      "selected_other": ""
+      "selected_other": "",
+      "selected_one": ""
     },
     "community": {
       "actionSave": "保存",
@@ -1450,7 +1455,8 @@
       "title": "智能相册",
       "valueFalse": "否",
       "valuePlaceholder": "值",
-      "valueTrue": "是"
+      "valueTrue": "是",
+      "preview_one": ""
     },
     "sort": {
       "aperture": "光圈",

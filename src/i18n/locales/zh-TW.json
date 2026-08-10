@@ -171,7 +171,7 @@
       "yellow": "黃色"
     },
     "editor": {
-      "aiBatchRating": "",
+      "aiBatchRating": "AI Batch Rating",
       "autoAdjust": "自動調整影像",
       "cancel": "取消",
       "colorLabel": "顏色標籤",
@@ -327,8 +327,11 @@
         "switchToSubtract": "切換到減去"
       },
       "addNewEdit": "新增新編輯",
-      "bgRemove": "",
-      "bgRemoveTooltip": "",
+      "bgRemove": {
+        "completed": "AI 背景移除完成",
+        "failed": "AI 背景移除失敗"
+      },
+      "bgRemoveTooltip": "AI Background Remove",
       "brush": {
         "add": "新增",
         "erase": "擦除",
@@ -357,7 +360,7 @@
       "dropzoneText": "拖放到此處以建立新編輯",
       "editSettingsTitle": "編輯設定",
       "editsTitle": "編輯",
-      "enhancementTitle": "",
+      "enhancementTitle": "AI Enhancement",
       "generativeEditTitle": "生成式編輯",
       "inpaintingTitle": "影像修復",
       "manualCleanupTitle": "手動清理",
@@ -382,7 +385,9 @@
         "invertedName": "{{name}} 反轉",
         "quickErase": "快速擦除 {{count}}",
         "quickErase_one": "快速擦除 {{count}}",
-        "quickErase_other": "快速擦除 {{count}}"
+        "quickErase_other": "快速擦除 {{count}}",
+        "clone_one": "",
+        "heal_one": ""
       },
       "resetInpaintingTooltip": "重置影像修復",
       "settings": {
@@ -404,23 +409,107 @@
         "selectionPropertiesTitle": "選區屬性",
         "useBasicInpaint": "使用基礎影像修復"
       },
-      "skyReplace": "",
-      "skyReplaceTooltip": "",
-      "superResolution": "",
+      "skyReplace": {
+        "completed": "AI 天空替換完成",
+        "failed": "AI 天空替換失敗"
+      },
+      "skyReplaceTooltip": "AI Sky Replace",
+      "superResolution": {
+        "failed": "超高解析度失敗",
+        "applied": "超高解析度 {{scale}}x 已套用 ({{width}}×{{height}})",
+        "noImage": "未選擇影像以進行超高解析度"
+      },
       "superResolutionLabel": "超解析度",
-      "superResolutionTooltip": ""
+      "superResolutionTooltip": "Use AI super resolution to upscale image (2x/3x/4x)",
+      "quickEraseFailed": "快速橡皮擦失敗",
+      "quickEraseTimeout": "快速橡皮擦逾時，請檢查網路或重試。",
+      "timeout": {
+        "autoStraighten": "自動校正逾時，請重試。",
+        "bgRemove": "AI 背景移除逾時，請檢查網路後重試。",
+        "cleanup": "清理逾時，請檢查網路後重試。",
+        "colorRange": "色彩範圍遮罩逾時，請重試。",
+        "depthMask": "AI 深度遮罩逾時，請重試。",
+        "feather": "遮罩羽化逾時，請重試。",
+        "foregroundMask": "AI 前景遮罩逾時，請檢查網路後重試。",
+        "horizonDetect": "水平線偵測逾時，請重試。",
+        "luminanceRange": "亮度範圍遮罩逾時，請重試。",
+        "mask": "AI 遮罩逾時，請檢查網路後重試。",
+        "replace": "AI 替換逾時，請檢查網路後重試。",
+        "skyMask": "AI 天空遮罩逾時，請檢查網路後重試。",
+        "skyReplace": "AI 天空替換逾時，請檢查網路後重試。",
+        "subjectMask": "AI 主體遮罩逾時，請檢查網路後重試。",
+        "superResolution": "超高解析度逾時，請重試。"
+      },
+      "mask": {
+        "noMaskData": "AI 遮罩：未產生遮罩資料",
+        "failed": "AI 遮罩失敗"
+      },
+      "depthMask": {
+        "noDepthData": "未產生深度資料",
+        "failed": "AI 深度遮罩失敗"
+      },
+      "foregroundMask": {
+        "noForeground": "影像中未偵測到前景",
+        "failed": "AI 前景遮罩失敗"
+      },
+      "skyMask": {
+        "noSky": "影像中未偵測到天空",
+        "failed": "AI 天空遮罩失敗"
+      },
+      "subjectMask": {
+        "noSubject": "影像中未偵測到主體",
+        "failed": "AI 主體遮罩失敗"
+      },
+      "cleanup": {
+        "failed": "清理失敗"
+      },
+      "generativeReplace": {
+        "failed": "生成式替換失敗"
+      },
+      "colorRange": {
+        "noMatch": "找不到匹配的顏色",
+        "failed": "色彩範圍遮罩失敗"
+      },
+      "luminanceRange": {
+        "noMatch": "找不到匹配的亮度範圍",
+        "failed": "亮度範圍遮罩失敗"
+      },
+      "feather": {
+        "failed": "遮罩羽化失敗"
+      },
+      "autoStraighten": {
+        "failed": "自動校正失敗"
+      },
+      "horizonDetect": {
+        "failed": "水平線偵測失敗"
+      },
+      "modelStatus": {
+        "waitForDownload": "AI 模型仍在請下載，請稍候…",
+        "downloading": "正在載入裝置端模型 ({{done}}/{{total}})",
+        "partial": "裝置端模型 {{done}}/{{total}} 已就緒",
+        "fg": "前景",
+        "sky": "天空",
+        "subject": "主體",
+        "depth": "深度"
+      },
+      "errorHint": {
+        "downloadFailed": "模型下載失敗。請檢查網路或在設定 > AI 設定中設定鏡像網址（建議使用 hf-mirror.com）。",
+        "oom": "裝置記憶體不足。請嘗試在設定 > 效能中降低最大處理解析度。"
+      }
     },
     "aiRating": {
-      "applied": "",
-      "applyError": "",
-      "applying": "",
-      "applyToExif": "",
+      "applied": "已寫入 EXIF",
+      "applyError": "評價套用至 EXIF 失敗：{{error}}",
+      "applying": "評價中…",
+      "applyToExif": "套用至 EXIF",
       "batchComplete_other": "",
-      "batchProgress": "",
-      "description": "",
-      "error": "",
-      "generate": "",
-      "title": ""
+      "batchProgress": "Rating {{current}}/{{total}}...",
+      "description": "AI 描述",
+      "error": "產生評價失敗：{{error}}",
+      "generate": "產生評價",
+      "title": "AI 智慧評價",
+      "batchComplete": "已完成 {{count}} 張影像的評價",
+      "batchComplete_one": ""
     },
     "colorPanel": {
       "title": "色彩"
@@ -519,7 +608,7 @@
       "rotationHeading": "旋轉",
       "title": "裁剪與變換",
       "tooltips": {
-        "autoStraightenHorizon": "",
+        "autoStraightenHorizon": "Auto Straighten Horizon",
         "compositionOverlay": "構圖疊加",
         "flipHoriz": "水平翻轉影像",
         "flipVert": "垂直翻轉影像",
@@ -645,7 +734,177 @@
       "copy": "複製",
       "emptyClickToAdd": "空（點選新增）",
       "extendedExif": {
-        "title": "擴充 EXIF"
+        "title": "擴充 EXIF",
+        "tags": {
+          "ActiveArea": "Active Area",
+          "AFAreaInfo": "AF Area Info",
+          "AFAreaMode": "AF Area Mode",
+          "AFAreasUsed": "AF Areas Used",
+          "AFMode": "AF Mode",
+          "AFPointsInFocus": "AF Points In Focus",
+          "AnalogBalance": "Analog Balance",
+          "ApertureValue": "Aperture Value",
+          "Artist": "Artist",
+          "AsShotNeutral": "As Shot Neutral",
+          "AsShotWhiteXY": "As Shot White XY",
+          "BaselineExposure": "Baseline Exposure",
+          "BaselineNoise": "Baseline Noise",
+          "BaselineSharpness": "Baseline Sharpness",
+          "BatteryLevel": "Battery Level",
+          "BestQualityScale": "Best Quality Scale",
+          "BitsPerSample": "Bits Per Sample",
+          "BlackLevel": "Black Level",
+          "BlueBalance": "Blue Balance",
+          "BodySerialNumber": "Body Serial Number",
+          "Brightness": "Brightness",
+          "ColorMode": "Color Mode",
+          "ColorSpace": "Color Space",
+          "ColorTemp": "Color Temperature",
+          "Compression": "Compression",
+          "Contrast": "Contrast",
+          "ContrastDetectAF": "Contrast Detect AF",
+          "Copyright": "Copyright",
+          "CropBottom": "Crop Bottom",
+          "CropLeft": "Crop Left",
+          "CropRight": "Crop Right",
+          "CropTop": "Crop Top",
+          "CustomRendered": "Custom Rendered",
+          "DateTime": "Date/Time",
+          "DateTimeDigitized": "Date/Time Digitized",
+          "DateTimeOriginal": "Date/Time Original",
+          "DefaultCropOrigin": "Default Crop Origin",
+          "DefaultCropSize": "Default Crop Size",
+          "DefaultScale": "Default Scale",
+          "DepthOfField": "Depth Of Field",
+          "DigitalZoomRatio": "Digital Zoom Ratio",
+          "DriveMode": "Drive Mode",
+          "ExifVersion": "EXIF Version",
+          "ExposureCompensation": "Exposure Compensation",
+          "ExposureMode": "Exposure Mode",
+          "ExposureProgram": "Exposure Program",
+          "ExposureTime": "Exposure Time",
+          "FileFormat": "File Format",
+          "FileName": "File Name",
+          "FileNumber": "File Number",
+          "FileSize": "File Size",
+          "FileSource": "File Source",
+          "Flash": "Flash",
+          "FlashEnergy": "Flash Energy",
+          "FlashpixVersion": "Flashpix Version",
+          "FNumber": "F-Number",
+          "FocalLength": "Focal Length",
+          "FocalLengthIn35mmFilm": "Focal Length (35mm)",
+          "FocusDistance": "Focus Distance",
+          "FocusDistanceLower": "Focus Distance Lower",
+          "FocusDistanceUpper": "Focus Distance Upper",
+          "FocusMode": "Focus Mode",
+          "GainControl": "Gain Control",
+          "GPSAltitude": "GPS Altitude",
+          "GPSAltitudeRef": "GPS Altitude Ref",
+          "GPSDateStamp": "GPS Date Stamp",
+          "GPSDestBearing": "GPS Dest Bearing",
+          "GPSDOP": "GPS DOP",
+          "GPSImgDirection": "GPS Image Direction",
+          "GPSLatitude": "GPS Latitude",
+          "GPSLatitudeRef": "GPS Latitude Ref",
+          "GPSLongitude": "GPS Longitude",
+          "GPSLongitudeRef": "GPS Longitude Ref",
+          "GPSMapDatum": "GPS Map Datum",
+          "GPSMeasureMode": "GPS Measure Mode",
+          "GPSProcessingMethod": "GPS Processing Method",
+          "GPSSatellites": "GPS Satellites",
+          "GPSSpeed": "GPS Speed",
+          "GPSSpeedRef": "GPS Speed Ref",
+          "GPSStatus": "GPS Status",
+          "GPSTimeStamp": "GPS Time Stamp",
+          "GPSTrack": "GPS Track",
+          "ImageDescription": "Image Description",
+          "ImageHeight": "Image Height",
+          "ImageNumber": "Image Number",
+          "ImageQuality": "Image Quality",
+          "ImageStabilization": "Image Stabilization",
+          "ImageStyle": "Image Style",
+          "ImageWidth": "Image Width",
+          "InternalSerialNumber": "Internal Serial Number",
+          "ISOSpeedRatings": "ISO Speed Ratings",
+          "JPEGInterchangeFormat": "JPEG Interchange Format",
+          "JPEGInterchangeFormatLength": "JPEG Interchange Format Length",
+          "LensInfo": "Lens Info",
+          "LensMake": "Lens Make",
+          "LensModel": "Lens Model",
+          "LensSerialNumber": "Lens Serial Number",
+          "LightSource": "Light Source",
+          "LinearResponseLimit": "Linear Response Limit",
+          "LiveViewShooting": "Live View Shooting",
+          "LocalizedCameraModel": "Localized Camera Model",
+          "Make": "Make",
+          "MakerNote": "Maker Note",
+          "MakerNoteSafety": "Maker Note Safety",
+          "MakerNoteVersion": "Maker Note Version",
+          "MaxApertureValue": "Max Aperture Value",
+          "MeteringMode": "Metering Mode",
+          "Model": "Model",
+          "Movie": "Movie",
+          "NoiseProfile": "Noise Profile",
+          "NoiseReductionApplied": "Noise Reduction Applied",
+          "Orientation": "Orientation",
+          "OriginalRawFileName": "Original Raw File Name",
+          "OwnerName": "Owner Name",
+          "PhaseDetectAF": "Phase Detect AF",
+          "PhotographicSensitivity": "ISO",
+          "PhotometricInterpretation": "Photometric Interpretation",
+          "PictureMode": "Picture Mode",
+          "PixelXDimension": "Pixel X Dimension",
+          "PixelYDimension": "Pixel Y Dimension",
+          "PlanarConfiguration": "Planar Configuration",
+          "PreviewImage": "Preview Image",
+          "PreviewImageLength": "Preview Image Length",
+          "PreviewImageStart": "Preview Image Start",
+          "PrimaryAFPoint": "Primary AF Point",
+          "ProfileCalibrationSignature": "Profile Calibration Signature",
+          "ProfileName": "Profile Name",
+          "Rating": "Rating",
+          "RecommendedExposureIndex": "Recommended Exposure Index",
+          "RedBalance": "Red Balance",
+          "ResolutionUnit": "Resolution Unit",
+          "RowsPerStrip": "Rows Per Strip",
+          "SamplesPerPixel": "Samples Per Pixel",
+          "Saturation": "Saturation",
+          "SceneCaptureType": "Scene Capture Type",
+          "SceneType": "Scene Type",
+          "SelfTimerMode": "Self Timer Mode",
+          "SensitivityType": "Sensitivity Type",
+          "SerialNumber": "Serial Number",
+          "ShadowScale": "Shadow Scale",
+          "Sharpness": "Sharpness",
+          "ShootingMode": "Shooting Mode",
+          "ShutterCount": "Shutter Count",
+          "ShutterSpeedValue": "Shutter Speed Value",
+          "Software": "Software",
+          "StripByteCounts": "Strip Byte Counts",
+          "StripOffsets": "Strip Offsets",
+          "SubjectArea": "Subject Area",
+          "SubjectDistance": "Subject Distance",
+          "SubjectDistanceRange": "Subject Distance Range",
+          "SubjectLocation": "Subject Location",
+          "SubSecTime": "Sub-Sec Time",
+          "SubSecTime,Original": "Sub-Sec Time Original",
+          "SubSecTimeDigitized": "Sub-Sec Time Digitized",
+          "ThumbnailLength": "Thumbnail Length",
+          "ThumbnailOffset": "Thumbnail Offset",
+          "ToneCurve": "Tone Curve",
+          "ToneMode": "Tone Mode",
+          "UniqueCameraModel": "Unique Camera Model",
+          "UserComment": "User Comment",
+          "WB_GRBLevels": "WB GRB Levels",
+          "WB_RGGBLevels": "WB RGGB Levels",
+          "WhiteBalance": "White Balance",
+          "WhiteLevel": "White Level",
+          "WhitePoint": "White Point",
+          "XResolution": "X Resolution",
+          "YCbCrPositioning": "YCbCr Positioning",
+          "YResolution": "Y Resolution"
+        }
       },
       "fields": {
         "author": "作者",
@@ -665,7 +924,7 @@
         "clickToOpenTooltip": "點選在新標籤頁中開啟地圖",
         "latitude": "緯度",
         "longitude": "經度",
-        "offlineFallback": "",
+        "offlineFallback": "Map unavailable (offline). Coordinates:",
         "openExternal": "開啟地圖",
         "title": "GPS 位置"
       },
@@ -683,48 +942,50 @@
     },
     "portraitPanel": {
       "attributes": {
-        "all": "",
-        "child": "",
-        "elderFemale": "",
-        "elderMale": "",
-        "female": "",
-        "male": "",
-        "single": ""
+        "all": "All",
+        "child": "Child",
+        "elderFemale": "Elder F",
+        "elderMale": "Elder M",
+        "female": "Female",
+        "male": "Male",
+        "single": "Single"
       },
-      "blemishActive": "",
+      "blemishActive": "Marking",
       "blemishCount_other": "",
-      "blemishHint": "",
-      "blemishRemoval": "",
-      "blemishStart": "",
-      "blemishUndo": "",
-      "blush": "",
-      "bodyHeightAmount": "",
-      "bodyReshape": "",
-      "bodySlimAmount": "",
-      "bodySymmetry": "",
+      "blemishHint": "Tap image to mark blemish spots",
+      "blemishRemoval": "Blemish Removal",
+      "blemishStart": "Start Marking",
+      "blemishUndo": "Undo Last",
+      "blush": "Blush",
+      "bodyHeightAmount": "Height",
+      "bodyReshape": "Body Reshape",
+      "bodySlimAmount": "Body Slim",
+      "bodySymmetry": "Symmetric Adjust",
       "brushSize": "筆刷大小",
-      "eyeBrightenAmount": "",
-      "eyebrow": "",
-      "eyeEnhance": "",
-      "eyeEnlargeAmount": "",
-      "faceReshape": "",
-      "faceSlimAmount": "",
-      "foreheadAmount": "",
-      "hairAdjust": "",
-      "hairBrightness": "",
-      "hairHueShift": "",
-      "jawAmount": "",
-      "legLengthAmount": "",
-      "lipstick": "",
-      "makeup": "",
-      "oneClickBeauty": "",
-      "skinSmoothing": "",
-      "skinSmoothingDetailPreserve": "",
-      "skinSmoothingStrength": "",
-      "teethWhiten": "",
-      "teethWhitenBrightness": "",
-      "teethWhitenDesaturate": "",
-      "title": "人像"
+      "eyeBrightenAmount": "Eye Brighten",
+      "eyebrow": "Eyebrow",
+      "eyeEnhance": "Eye Enhance",
+      "eyeEnlargeAmount": "Eye Enlarge",
+      "faceReshape": "Face Reshape",
+      "faceSlimAmount": "Face Slim",
+      "foreheadAmount": "Forehead",
+      "hairAdjust": "Hair Adjust",
+      "hairBrightness": "Brightness",
+      "hairHueShift": "Hue Shift",
+      "jawAmount": "Jaw",
+      "legLengthAmount": "Leg Length",
+      "lipstick": "Lipstick",
+      "makeup": "Makeup",
+      "oneClickBeauty": "One-Click Beauty",
+      "skinSmoothing": "Skin Smoothing",
+      "skinSmoothingDetailPreserve": "Detail Preserve",
+      "skinSmoothingStrength": "Strength",
+      "teethWhiten": "Teeth Whiten",
+      "teethWhitenBrightness": "Brightness",
+      "teethWhitenDesaturate": "Desaturate",
+      "title": "人像",
+      "blemishCount": "{{count}} 個斑點已標記",
+      "blemishCount_one": ""
     },
     "presets": {
       "amount": "數量",
@@ -824,6 +1085,34 @@
     },
     "layout": {
       "split": "拆分"
+    },
+    "android": {
+      "bottomNav": {
+        "ai": "AI",
+        "basic": "基礎",
+        "color": "色彩",
+        "crop": "裁剪",
+        "export": "匯出",
+        "library": "圖庫",
+        "masks": "遮罩",
+        "metadata": "中繼資料",
+        "more": "更多",
+        "portrait": "人像",
+        "presets": "預設"
+      },
+      "doubleTapCompare": "雙擊以比較原圖",
+      "gotIt": "知道了",
+      "swipeHint": "左右滑動以切換照片"
+    },
+    "androidShare": {
+      "cancel": "取消",
+      "more": "更多",
+      "qq": "QQ",
+      "systemShare": "分享",
+      "systemShareTitle": "從 RapidRAW 分享",
+      "titleDefault": "分享影像",
+      "wechat": "微信",
+      "weibo": "微博"
     }
   },
   "export": {
@@ -881,8 +1170,8 @@
       "watermark": "水印"
     },
     "share": {
-      "button": "",
-      "title": ""
+      "button": "Share Image",
+      "title": "Share to {{target}}"
     },
     "status": {
       "cancelExport": "取消匯出",
@@ -922,32 +1211,38 @@
       "scale": "縮放",
       "spacing": "間距",
       "watermarkImage": "水印影像"
+    },
+    "gallery": {
+      "saved": "已儲存至系統圖庫",
+      "saveFailed": "儲存至圖庫失敗"
     }
   },
   "library": {
     "batch": {
-      "addToAlbum": "",
-      "delete": "",
-      "export": "",
-      "rate": "",
-      "selected_other": ""
+      "addToAlbum": "Add to Album",
+      "delete": "Delete",
+      "export": "Export",
+      "rate": "Rate",
+      "selected_other": "",
+      "selected": "{count} selected",
+      "selected_one": ""
     },
     "community": {
       "actionSave": "儲存",
       "actionSaved": "已儲存",
       "actionSaving": "儲存中...",
-      "fetchError": "",
+      "fetchError": "Failed to load presets",
       "fetchingPresets": "正在從 GitHub 取得預設...",
       "footerHeading": "想讓您的預設被推薦？",
       "footerLinkText": "在 GitHub 上建立 Issue",
       "headerDesc": "發現社群建立的預設。",
       "headerTitle": "社群預設",
-      "noPresets": "",
-      "noPreview": "",
+      "noPresets": "No community presets available",
+      "noPreview": "No preview",
       "presetBy": "作者 {{creator}}",
-      "presetCount": "",
-      "refresh": "",
-      "retry": "",
+      "presetCount": "presets",
+      "refresh": "Refresh",
+      "retry": "Retry",
       "searchPlaceholder": "搜尋預設...",
       "sortBy": "排序方式：",
       "sortMethods": {
@@ -955,8 +1250,9 @@
       }
     },
     "favorites": {
-      "added": "",
-      "removed": ""
+      "added": "Added to Favorites",
+      "removed": "Removed from Favorites",
+      "title": "收藏"
     },
     "filters": {
       "edited": {
@@ -1077,33 +1373,48 @@
       "tooltipVirtualCopy": "虛擬副本"
     },
     "nav": {
-      "communityPresets": "",
-      "library": "",
-      "onlineSamples": ""
+      "communityPresets": "Community Presets",
+      "library": "Library",
+      "onlineSamples": "Online Samples"
     },
     "search": {
-      "advancedFilter": "",
-      "aiTagSuggestion": "",
-      "cameraModel": "",
-      "dateFrom": "",
-      "dateRange": "",
-      "dateTo": "",
-      "focalLength": "",
+      "advancedFilter": "Advanced Filter",
+      "aiTagSuggestion": "AI Tag Suggestions",
+      "cameraModel": "Camera Model",
+      "dateFrom": "From",
+      "dateRange": "Date Range",
+      "dateTo": "To",
+      "focalLength": "Focal Length",
       "noResults": "未找到結果",
       "noResultsAiHint": " 如需更全面的搜尋，請在設定中啟用自動標籤。",
       "noResultsDesc": "無法根據檔名或標籤找到影像。",
-      "suggestions": ""
+      "suggestions": "Search Suggestions"
     },
     "smartAlbum": {
-      "addField": "",
-      "conditions": "",
-      "create": "",
-      "createButton": "",
-      "name": "",
+      "addField": "Add Condition",
+      "conditions": "Conditions",
+      "create": "Create Smart Album",
+      "createButton": "Create",
+      "name": "Album Name",
       "preview_other": "",
-      "valueFalse": "",
-      "valuePlaceholder": "",
-      "valueTrue": ""
+      "valueFalse": "No",
+      "valuePlaceholder": "Value",
+      "valueTrue": "Yes",
+      "fieldCameraModel": "相機型號",
+      "fieldColorLabel": "彩色標籤",
+      "fieldDateModified": "修改日期",
+      "fieldDateTaken": "拍攝日期",
+      "fieldIsEdited": "編輯狀態",
+      "fieldRating": "評價",
+      "fieldTag": "標籤",
+      "opBetween": "介於",
+      "opContains": "包含",
+      "opEquals": "等於",
+      "opGreaterThan": "大於",
+      "opLessThan": "小於",
+      "preview": "{count} 張照片符合",
+      "preview_one": "",
+      "title": "智慧相簿"
     },
     "sort": {
       "aperture": "光圈",
@@ -1473,7 +1784,7 @@
       "cancel": "取消",
       "fileNamingTemplate": "檔案命名模板",
       "newName": "新名稱",
-      "overwriteWarning": "",
+      "overwriteWarning": "A file with this name already exists. Saving will overwrite the existing file.",
       "save": "儲存",
       "titleMultiple": "重新命名 {{count}} 張影像",
       "titleMultiple_one": "重新命名 {{count}} 張影像",
@@ -1517,30 +1828,30 @@
     }
   },
   "presetGallery": {
-    "add": "",
-    "addSource": "",
-    "addSourcePlaceholder": "",
-    "addSourceRejected": "",
-    "backToLibrary": "",
-    "download": "",
-    "downloaded": "",
-    "downloadFailed": "",
-    "downloading": "",
-    "imageLoadFailed": "",
-    "images": "",
-    "noPresets": "",
-    "noSources": "",
-    "noSourcesDesc": "",
-    "presets": "",
-    "refresh": "",
-    "refreshAll": "",
-    "removeSource": "",
-    "retry": "",
-    "saved": "",
-    "saveToPreview": "",
-    "showDetails": "",
-    "title": "",
-    "viewGallery": ""
+    "add": "Add",
+    "addSource": "Add Source",
+    "addSourcePlaceholder": "Enter JSON URL...",
+    "addSourceRejected": "Only HTTPS sources from trusted domains (github.com, jsdelivr.net, getrapidraw.com, etc.) are supported",
+    "backToLibrary": "Back to Library",
+    "download": "Save to Local Presets",
+    "downloaded": "Saved to Community folder",
+    "downloadFailed": "Save failed",
+    "downloading": "Saving…",
+    "imageLoadFailed": "Image failed to load",
+    "images": "images",
+    "noPresets": "No preset data available",
+    "noSources": "No online preset sources",
+    "noSourcesDesc": "Click \"Add Source\" to add a JSON link",
+    "presets": "presets",
+    "refresh": "Refresh",
+    "refreshAll": "Refresh All Sources",
+    "removeSource": "Remove",
+    "retry": "Retry",
+    "saved": "Saved",
+    "saveToPreview": "Save to Preview",
+    "showDetails": "View Details",
+    "title": "Online Presets",
+    "viewGallery": "View Gallery"
   },
   "settings": {
     "adjustments": {
@@ -1560,9 +1871,9 @@
       "shortcuts": "控制"
     },
     "contact": {
-      "description": "",
-      "heading": "",
-      "title": ""
+      "description": "Search '带娃的小陈工' on Douyin / Xiaohongshu",
+      "heading": "Have a question or suggestion?",
+      "title": "Contact Me"
     },
     "controls": {
       "keyboardTitle": "鍵盤控制",
@@ -1654,17 +1965,17 @@
       "xmpSyncDesc": "將評分、顏色標籤和標籤同步到標準 XMP 附屬檔案，以便與其他照片編輯器相容。"
     },
     "gpu": {
-      "acesNote": "",
-      "description": "",
-      "idle": "",
-      "pipelineStatus": "",
-      "pipelineStatusDesc": "",
-      "ready": "",
-      "retest": "",
-      "testing": "",
-      "title": "",
-      "unavailable": "",
-      "unavailableReason": ""
+      "acesNote": "Note: ACES color science commands (color_convert_space / color_apply_aces_output / color_apply_aces_fitted, etc.) are registered in the backend and can be invoked via the useGpuPipeline hook in custom workflows.",
+      "description": "Detect availability of the lightweight GPU adjustment pipeline and ACES color science tools. These tools supplement the main pipeline for one-off fast previews and color space conversions.",
+      "idle": "Not Detected",
+      "pipelineStatus": "GPU Pipeline Status",
+      "pipelineStatusDesc": "Detect whether the lightweight compute pipeline can be initialized on the current GPU.",
+      "ready": "Available",
+      "retest": "Re-detect (clear cache and retry)",
+      "testing": "Detecting…",
+      "title": "GPU Acceleration & Color Science",
+      "unavailable": "Unavailable",
+      "unavailableReason": "The current GPU adapter cannot initialize the lightweight compute pipeline; the main pipeline still works normally."
     },
     "keybinds": {
       "actions": {
@@ -1737,24 +2048,14 @@
       "title": "我的鏡頭"
     },
     "presetGallery": {
-      "addSource": {
-        "addSource": "新增資料源"
-      },
-      "addSourcePlaceholder": {
-        "addSourcePlaceholder": "輸入 JSON 連結網址..."
-      },
-      "description": "",
-      "disabled": {
-        "disabled": "已停用"
-      },
-      "enabled": {
-        "enabled": "已啟用"
-      },
-      "noSources": "",
-      "removeSource": {
-        "removeSource": "移除資料源"
-      },
-      "title": "",
+      "addSource": "新增資料來源",
+      "addSourcePlaceholder": "輸入 JSON 連結網址…",
+      "description": "Manage online preset JSON data sources. Once added, preset samples can be viewed in the gallery.",
+      "disabled": "已停用",
+      "enabled": "已啟用",
+      "noSources": "No data sources yet. Please add a JSON link.",
+      "removeSource": "移除資料來源",
+      "title": "Online Presets",
       "addSourceRejected": "僅支援來自受信任網域（github.com、jsdelivr.net、getrapidraw.com 等）的 HTTPS 資料源。",
       "duplicateSource": "該資料源已新增。"
     },
@@ -1896,15 +2197,19 @@
       "wgpuDescRecommended": "繞過瀏覽器編碼，實現即時回應的即時預覽。強烈推薦以獲得最佳效能。",
       "wgpuLabel": "啟用直接 WGPU 渲染",
       "workerThreads": "縮圖工作執行緒數",
-      "workerThreadsDesc": "用於生成縮圖的並行執行緒數。較高的值可加快相簿載入速度，但會佔用更多 CPU 和記憶體。"
+      "workerThreadsDesc": "用於生成縮圖的並行執行緒數。較高的值可加快相簿載入速度，但會佔用更多 CPU 和記憶體。",
+      "aiMirrorSet": "AI 模型鏡像網址已設定。",
+      "aiMirrorCleared": "AI 模型鏡像網址已清除。",
+      "aiMirrorFailed": "設定鏡像網址失敗。"
     },
     "selftest": {
-      "allPassed": "",
-      "description": "",
-      "run": "",
-      "running": "",
-      "someFailed": "",
-      "title": ""
+      "allPassed": "All checks passed",
+      "description": "Run a comprehensive deep self-test to verify the state of image processing pipeline components such as GPU pipeline, ROI computation, preview rendering, and cache.",
+      "run": "Run Deep Self-Test",
+      "running": "Testing…",
+      "someFailed": "Some checks failed",
+      "title": "Image Processing Deep Self-Test",
+      "requiresImage": "請先在編輯器中選擇一張影像再執行深度自我測試 — 測試需要目前編輯中的影像作為目標。"
     },
     "tagging": {
       "addCustomPlaceholder": "新增自定義 AI 標籤（逗號分隔）...",
@@ -2043,5 +2348,14 @@
         "vectorscope": "向量示波器"
       }
     }
+  },
+  "androidShare": {
+    "cancel": "Cancel",
+    "more": "More",
+    "qq": "QQ",
+    "systemShareTitle": "Share Image",
+    "titleDefault": "Share to",
+    "wechat": "WeChat",
+    "weibo": "Weibo"
   }
 }
