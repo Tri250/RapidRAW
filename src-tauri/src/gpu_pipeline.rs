@@ -1,7 +1,7 @@
-//! GPU-accelerated image adjustment pipeline using wgpu + WGSL compute shaders.
-//! Provides hardware-accelerated RAW photo adjustments (exposure, contrast,
-//! highlights, shadows, whites, blacks, saturation, vibrance, temperature,
-//! tint, sharpness, vignette, grain, haze, clarity, dehaze).
+// WIP: some GPU pipeline helper functions are implemented but not yet
+// wired into all call sites. Remove this allow once integration is complete.
+#![allow(dead_code)]
+
 use std::sync::Arc;
 
 use anyhow::{Context, Result};

@@ -2,6 +2,10 @@
 // produce noise across the entire codebase and are not indicative of bugs.
 // They are intentionally allowed at the crate root so new code does not need
 // per-item annotations for common patterns.
+//
+// Dead-code / unused-variables lints are NOT allowed at the crate level;
+// individual modules that still have WIP integration use targeted
+// #[allow(dead_code)] at their module root.
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::explicit_auto_deref)]
 #![allow(clippy::if_same_then_else)]
