@@ -2,5 +2,17 @@
     <string name="app_name">RapidRAW</string>
     <string name="main_activity_title">RapidRAW</string>
     <string name="permission_denied">Permission denied. Some features may not work properly.</string>
+    <string name="permission_denied_storage">Storage permission denied. Cannot access photos or gallery.</string>
+    <string name="permission_denied_notification">Notification permission denied. Alerts may not be visible.</string>
+    <string name="permission_granted">Permissions granted.</string>
+    <string name="permission_requesting">Requesting required permissions…</string>
     <string name="share_subject">Shared from RapidRAW</string>
+    <string name="share_failed">Share failed, please try again.</string>
+    <string name="saving_to_gallery">Saving to gallery…</string>
+    <string name="saved_to_gallery">Saved to gallery.</string>
+    <string name="save_failed">Save failed.</string>
+    <string name="memory_low">Low memory. Reloading preview…</string>
+    <string name="app_background_saving">App moved to background, saving work…</string>
+    <string name="keyboard_visible">Keyboard visible</string>
+    <string name="keyboard_hidden">Keyboard hidden</string>
 </resources>

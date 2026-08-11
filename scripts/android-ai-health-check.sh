@@ -576,7 +576,7 @@ echo "[14/14] Checking ProGuard rules completeness..."
 
 proguard_file="src-tauri/gen/android/app/proguard-rules.pro"
 if [[ -f "$proguard_file" ]]; then
-  required_rules=("rustls.platformverifier" "org.tauri" "androidx.core.content.FileProvider" "ai.onnxruntime")
+  required_rules=("rustls.platformverifier" "com.tauri" "androidx.core.content.FileProvider" "ai.onnxruntime")
   for rule in "${required_rules[@]}"; do
     if grep -q "$rule" "$proguard_file" 2>/dev/null; then
       ok "ProGuard rule for '$rule' present"

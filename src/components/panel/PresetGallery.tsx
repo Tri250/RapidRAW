@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import Button from '../ui/Button';
 import Text from '../ui/Text';
 import { TextColors, TextVariants, TextWeights } from '../../types/typography';
@@ -58,15 +59,15 @@ const skeletonVariants = {
 
 /* ────────── Constants ────────── */
 
-const translateLabel = (label: string, t: (k: string, def?: string) => string): string => {
+const translateLabel = (label: string, t: TFunction): string => {
   if (!label) return '';
   // Check presetGallery.paramLabels first
   const paramKey = `presetGallery.paramLabels.${label}`;
-  const paramVal = t(paramKey, label);
+  const paramVal = t(paramKey, { defaultValue: label });
   if (paramVal && paramVal !== paramKey) return paramVal;
   // Then sectionTitles
   const sectionKey = `presetGallery.sectionTitles.${label}`;
-  const sectionVal = t(sectionKey, label);
+  const sectionVal = t(sectionKey, { defaultValue: label });
   if (sectionVal && sectionVal !== sectionKey) return sectionVal;
   // Fallback for @string/ type labels
   if (label.startsWith('@string/')) return label.replace('@string/', '').replace(/_/g, ' ');

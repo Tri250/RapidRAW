@@ -362,6 +362,7 @@ const FilmstripList = ({
   width: number;
   data: Omit<ItemData, 'itemHeight' | 'setRatio'> & { clickTriggeredScroll: React.RefObject<boolean> };
 }) => {
+  const { t } = useTranslation();
   const [gridHandle, setGridHandle] = useGridCallbackRef();
   const ratioMapRef = useRef<Record<number, number>>({});
   const [ratioMapVersion, setRatioMapVersion] = useState(0);

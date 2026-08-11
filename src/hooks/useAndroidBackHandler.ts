@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useUIStore } from '../store/useUIStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useEditorStore } from '../store/useEditorStore';
@@ -8,6 +9,7 @@ import { Invokes } from '../components/ui/AppProperties';
 
 export function useAndroidBackHandler() {
   const osPlatform = useSettingsStore((s) => s.osPlatform);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (osPlatform !== 'android') return;
@@ -142,7 +144,7 @@ export function useAndroidBackHandler() {
       }
       // Show a brief toast so the user knows the preview will reload
       if (didReleasePreviews && editor.selectedImage) {
-        toast.info('Reloading preview...', { autoClose: 2000, hideProgressBar: true });
+        toast.info(t('editor.android.lowMemoryReload' as any, { defaultValue: 'Reloading preview...' }), { autoClose: 2000, hideProgressBar: true });
       }
     };
 
@@ -177,5 +179,5 @@ export function useAndroidBackHandler() {
       delete (window as any).__handleAppBackground;
       delete (window as any).__handleKeyboardChange;
     };
-  }, [osPlatform]);
+  }, [osPlatform, t]);
 }

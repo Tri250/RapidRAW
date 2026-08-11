@@ -3,5 +3,17 @@
     <string name="app_name">RapidRAW</string>
     <string name="main_activity_title">RapidRAW</string>
     <string name="permission_denied">权限被拒绝，部分功能可能无法正常工作。</string>
+    <string name="permission_denied_storage">存储权限被拒绝，无法访问照片或图库。</string>
+    <string name="permission_denied_notification">通知权限被拒绝，提示可能无法显示。</string>
+    <string name="permission_granted">权限已授予。</string>
+    <string name="permission_requesting">正在申请所需权限…</string>
     <string name="share_subject">来自 RapidRAW 的分享</string>
+    <string name="share_failed">分享失败，请重试。</string>
+    <string name="saving_to_gallery">正在保存到图库…</string>
+    <string name="saved_to_gallery">已保存到图库。</string>
+    <string name="save_failed">保存失败。</string>
+    <string name="memory_low">内存不足，正在重新加载预览…</string>
+    <string name="app_background_saving">应用转入后台，正在保存当前工作…</string>
+    <string name="keyboard_visible">键盘已显示</string>
+    <string name="keyboard_hidden">键盘已收起</string>
 </resources>

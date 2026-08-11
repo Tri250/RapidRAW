@@ -65,7 +65,7 @@ export default function AndroidShareSheet({ filePath, mimeType, visible, onClose
         });
       } catch (err) {
         console.error('Share failed:', err);
-        toast.error(`Share failed: ${err}`);
+        toast.error(t('editor.android.shareFailed' as any, { err: String(err) }));
       } finally {
         setSharing(false);
         onClose();
@@ -95,7 +95,11 @@ export default function AndroidShareSheet({ filePath, mimeType, visible, onClose
           >
             <div className="flex items-center justify-between p-4 border-b border-surface">
               <Text variant={TextVariants.title}>{t('androidShare.titleDefault' as any)}</Text>
-              <button onClick={onClose} className="p-1 rounded-full hover:bg-surface transition-colors">
+              <button
+                onClick={onClose}
+                aria-label={t('editor.android.closeShareSheet' as any)}
+                className="p-1 rounded-full hover:bg-surface transition-colors"
+              >
                 <X size={20} className="text-text-secondary" />
               </button>
             </div>
@@ -106,6 +110,7 @@ export default function AndroidShareSheet({ filePath, mimeType, visible, onClose
                     key={target.key}
                     onClick={() => handleShare(target)}
                     disabled={sharing}
+                    aria-label={t(target.labelKey as any)}
                     className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-surface transition-colors disabled:opacity-50"
                   >
                     <div className="w-12 h-12 rounded-full bg-surface flex items-center justify-center text-text-primary">

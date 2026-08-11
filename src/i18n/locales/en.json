@@ -536,7 +536,20 @@
       },
       "doubleTapCompare": "Double-tap to compare original",
       "gotIt": "Got it",
-      "swipeHint": "Swipe left/right to switch photos"
+      "swipeHint": "Swipe left/right to switch photos",
+      "lowMemoryReload": "Reloading preview...",
+      "shareFailed": "Share failed: {{err}}",
+      "closeShareSheet": "Close share sheet",
+      "openLibrary": "Open library",
+      "openBasicPanel": "Open basic adjustments",
+      "openColorPanel": "Open color adjustments",
+      "openPortraitPanel": "Open portrait adjustments",
+      "openCropPanel": "Open crop",
+      "openMasksPanel": "Open masks",
+      "openAiPanel": "Open AI tools",
+      "openMetadataPanel": "Open metadata",
+      "openPresetsPanel": "Open presets",
+      "openExportPanel": "Open export"
     },
     "androidShare": {
       "cancel": "Cancel",
