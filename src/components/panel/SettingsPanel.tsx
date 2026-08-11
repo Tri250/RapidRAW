@@ -1784,18 +1784,18 @@ export default function SettingsPanel({
                       <Dropdown
                         onChange={(value: any) => onSettingsChange({ ...appSettings, language: value })}
                         options={[
-                          { value: 'en', label: 'English' },
-                          { value: 'de', label: 'Deutsch' },
-                          { value: 'es', label: 'Español' },
-                          { value: 'fr', label: 'Français' },
-                          { value: 'it', label: 'Italiano' },
-                          { value: 'ja', label: '日本語' },
-                          { value: 'ko', label: '한국어' },
-                          { value: 'pl', label: 'Polski' },
-                          { value: 'pt', label: 'Português' },
-                          { value: 'ru', label: 'Русский' },
-                          { value: 'zh-CN', label: '简体中文' },
-                          { value: 'zh-TW', label: '繁體中文' },
+                          { value: 'en', label: t('settings.languageNames.en', 'English') },
+                          { value: 'de', label: t('settings.languageNames.de', 'Deutsch') },
+                          { value: 'es', label: t('settings.languageNames.es', 'Español') },
+                          { value: 'fr', label: t('settings.languageNames.fr', 'Français') },
+                          { value: 'it', label: t('settings.languageNames.it', 'Italiano') },
+                          { value: 'ja', label: t('settings.languageNames.ja', '日本語') },
+                          { value: 'ko', label: t('settings.languageNames.ko', '한국어') },
+                          { value: 'pl', label: t('settings.languageNames.pl', 'Polski') },
+                          { value: 'pt', label: t('settings.languageNames.pt', 'Português') },
+                          { value: 'ru', label: t('settings.languageNames.ru', 'Русский') },
+                          { value: 'zh-CN', label: t('settings.languageNames.zh-CN', '简体中文') },
+                          { value: 'zh-TW', label: t('settings.languageNames.zh-TW', '繁體中文') },
                         ]}
                         value={appSettings?.language || 'en'}
                         triggerClassName="bg-bg-primary"

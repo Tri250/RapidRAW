@@ -247,7 +247,7 @@ export default function MainLibrary(props: MainLibraryProps) {
           <div className="w-1/2 hidden md:block relative overflow-hidden bg-black">
             <AnimatePresence>
               <motion.img
-                alt="Splash screen background"
+                alt={t('a11y.splashBackground', '启动页背景')}
                 className="absolute inset-0 w-full h-full object-cover"
                 key={splashImage}
                 src={splashImage}

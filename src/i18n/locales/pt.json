@@ -1885,7 +1885,51 @@
     "saveToPreview": "Save to Preview",
     "showDetails": "View Details",
     "title": "Online Presets",
-    "viewGallery": "View Gallery"
+    "viewGallery": "View Gallery",
+    "sectionTitles": {
+      "@string/section_color_grading": "Color Grading",
+      "@string/param_pro_adjust": "Pro Adjustments",
+      "专业参数": "Pro Adjustments",
+      "基本调节": "Basic Adjustments",
+      "色彩调节": "Color Adjustments"
+    },
+    "paramLabels": {
+      "@string/param_filter": "Filter",
+      "@string/param_soft_light": "Soft Light",
+      "@string/param_tone_curve": "Tone Curve",
+      "@string/param_saturation": "Saturation",
+      "@string/param_warm_cool": "Warm/Cool",
+      "@string/param_cyan_magenta": "Cyan/Magenta",
+      "@string/param_sharpness": "Sharpness",
+      "@string/param_vignette": "Vignette",
+      "@string/param_iso": "ISO",
+      "@string/param_shutter": "Shutter",
+      "@string/param_exposure": "Exposure",
+      "@string/param_color_temp": "Color Temp",
+      "@string/param_tone": "Tone",
+      "曝光": "Exposure",
+      "亮度": "Brightness",
+      "对比度": "Contrast",
+      "高光": "Highlights",
+      "阴影": "Shadows",
+      "光感": "Light Sense",
+      "饱和度": "Saturation",
+      "色温": "Color Temp",
+      "锐度": "Sharpness",
+      "冷暖": "Warm/Cool",
+      "青品": "Cyan/Magenta",
+      "暗角": "Vignette",
+      "色调": "Tone",
+      "柔光": "Soft Light",
+      "ISO感光度": "ISO",
+      "快门速度": "Shutter Speed",
+      "AF对焦模式": "AF Mode",
+      "WB白平衡": "WB White Balance",
+      "M测光模式": "Metering Mode",
+      "白平衡": "White Balance",
+      "曝光补偿": "Exposure Comp",
+      "EV": "EV"
+    }
   },
   "settings": {
     "adjustments": {
@@ -2301,6 +2345,20 @@
     "title": "Configurações",
     "tooltips": {
       "goHome": "Ir para Início"
+    },
+    "languageNames": {
+      "en": "English",
+      "de": "Deutsch",
+      "es": "Español",
+      "fr": "Français",
+      "it": "Italiano",
+      "ja": "日本語",
+      "ko": "한국어",
+      "pl": "Polski",
+      "pt": "Português",
+      "ru": "Русский",
+      "zh-CN": "简体中文",
+      "zh-TW": "繁體中文"
     }
   },
   "ui": {
@@ -2395,5 +2453,27 @@
     "titleDefault": "Share to",
     "wechat": "WeChat",
     "weibo": "Weibo"
+  },
+  "a11y": {
+    "original": "Original",
+    "lensCorrectionPreview": "Lens Correction Preview",
+    "preview": "Preview",
+    "transformPreview": "Transform Preview",
+    "imageFilmstrip": "Image filmstrip",
+    "previousImage": "Previous image",
+    "nextImage": "Next image",
+    "cropPreview": "Crop preview",
+    "closeWindow": "Close window",
+    "denoised": "Denoised",
+    "mergedHdr": "Merged HDR",
+    "stitchedPanorama": "Stitched Panorama",
+    "sourcePreview": "Source preview",
+    "selectedPreview": "Selected preview",
+    "maskOverlay": "Mask Overlay",
+    "tabs": "Tabs",
+    "representative": "Representative",
+    "splashBackground": "Splash screen background",
+    "minimizeWindow": "Minimize window",
+    "maximizeWindow": "Maximize window"
   }
 }

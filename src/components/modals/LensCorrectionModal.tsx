@@ -924,7 +924,7 @@ export default function LensCorrectionModal({
                     src={previewUrl}
                     className="block object-contain"
                     style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto' }}
-                    alt="Lens Correction Preview"
+                    alt={t('a11y.lensCorrectionPreview', '镜头校正预览')}
                     draggable={false}
                   />
                   {isCompareActive && (

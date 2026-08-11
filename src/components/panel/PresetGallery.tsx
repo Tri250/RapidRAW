@@ -58,58 +58,17 @@ const skeletonVariants = {
 
 /* ────────── Constants ────────── */
 
-const SECTION_TITLES: Record<string, string> = {
-  '@string/section_color_grading': '色彩调整',
-  '@string/param_pro_adjust': '专业参数',
-  专业参数: '专业参数',
-  基本调节: '基本调节',
-  色彩调节: '色彩调节',
-};
-
-const PARAM_LABELS: Record<string, string> = {
-  '@string/param_filter': '滤镜',
-  '@string/param_soft_light': '柔光',
-  '@string/param_tone_curve': '色调曲线',
-  '@string/param_saturation': '饱和度',
-  '@string/param_warm_cool': '冷暖',
-  '@string/param_cyan_magenta': '青品',
-  '@string/param_sharpness': '锐度',
-  '@string/param_vignette': '暗角',
-  '@string/param_iso': 'ISO',
-  '@string/param_shutter': '快门',
-  '@string/param_exposure': '曝光',
-  '@string/param_color_temp': '色温',
-  '@string/param_tone': '色调',
-  // vivo / honor Chinese labels
-  曝光: '曝光',
-  亮度: '亮度',
-  对比度: '对比度',
-  高光: '高光',
-  阴影: '阴影',
-  光感: '光感',
-  饱和度: '饱和度',
-  色温: '色温',
-  锐度: '锐度',
-  冷暖: '冷暖',
-  青品: '青品',
-  暗角: '暗角',
-  色调: '色调',
-  柔光: '柔光',
-  // honor professional labels
-  ISO感光度: 'ISO',
-  快门速度: '快门',
-  AF对焦模式: '对焦模式',
-  WB白平衡: '白平衡',
-  M测光模式: '测光模式',
-  白平衡: '白平衡',
-  曝光补偿: '曝光补偿',
-  EV: 'EV',
-};
-
-const translateLabel = (label: string): string => {
+const translateLabel = (label: string, t: (k: string, def?: string) => string): string => {
   if (!label) return '';
-  if (PARAM_LABELS[label]) return PARAM_LABELS[label];
-  if (SECTION_TITLES[label]) return SECTION_TITLES[label];
+  // Check presetGallery.paramLabels first
+  const paramKey = `presetGallery.paramLabels.${label}`;
+  const paramVal = t(paramKey, label);
+  if (paramVal && paramVal !== paramKey) return paramVal;
+  // Then sectionTitles
+  const sectionKey = `presetGallery.sectionTitles.${label}`;
+  const sectionVal = t(sectionKey, label);
+  if (sectionVal && sectionVal !== sectionKey) return sectionVal;
+  // Fallback for @string/ type labels
   if (label.startsWith('@string/')) return label.replace('@string/', '').replace(/_/g, ' ');
   return label;
 };
@@ -523,14 +482,14 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
                           weight={TextWeights.semibold}
                           className="text-accent shrink-0"
                         >
-                          {translateLabel(section.title)}
+                          {translateLabel(section.title, t)}
                         </Text>
                         <div className="h-0.5 flex-1 bg-border-color/50" />
                       </div>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-2 px-1">
                         {section.items?.map((item: any, ii: number) => (
                           <div key={ii} className={item.span === 2 ? 'col-span-2' : ''}>
-                            <span className="text-text-secondary text-xs">{translateLabel(item.label)}</span>
+                            <span className="text-text-secondary text-xs">{translateLabel(item.label, t)}</span>
                             <span className="text-text-primary text-xs ml-1.5 font-semibold">{item.value}</span>
                           </div>
                         ))}
@@ -655,7 +614,7 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
                                  bg-white/5 hover:bg-white/15 text-white/80 hover:text-white
                                  transition-all backdrop-blur-md border border-white/10
                                  active:scale-95"
-                      aria-label="Previous image"
+                      aria-label={t('a11y.previousImage', '上一张图片')}
                     >
                       <ChevronLeft size={22} />
                     </button>
@@ -668,7 +627,7 @@ const PresetCard = React.memo(({ preset, index, sourceUrl }: PresetCardProps) =>
                                  bg-white/5 hover:bg-white/15 text-white/80 hover:text-white
                                  transition-all backdrop-blur-md border border-white/10
                                  active:scale-95"
-                      aria-label="Next image"
+                      aria-label={t('a11y.nextImage', '下一张图片')}
                     >
                       <ChevronRight size={22} />
                     </button>

@@ -352,7 +352,7 @@ export default function NegativeConversionModal({
                     src={isCompareActive && originalUrl ? originalUrl : previewUrl || ''}
                     className="block object-contain"
                     style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto' }}
-                    alt="Preview"
+                    alt={t('a11y.preview', '预览')}
                     draggable={false}
                   />
                   {isCompareActive && (

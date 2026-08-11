@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect } from 'react';
 import { platform } from '@tauri-apps/plugin-os';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { Minus, Square, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const RestoreDownIcon = ({ size = 14, className = '' }) => (
   <svg
@@ -21,6 +22,7 @@ const RestoreDownIcon = ({ size = 14, className = '' }) => (
 );
 
 export default function TitleBar() {
+  const { t } = useTranslation();
   const [osPlatform, setOsPlatform] = useState('');
   const [isMaximized, setIsMaximized] = useState(false);
 
@@ -110,17 +112,17 @@ export default function TitleBar() {
           {isMac && (
             <div className="flex items-center h-full px-4 space-x-2 z-10">
               <button
-                aria-label="Close window"
+                aria-label={t('a11y.closeWindow', '关闭窗口')}
                 className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 transition-colors duration-150"
                 onClick={handleClose}
               />
               <button
-                aria-label="Minimize window"
+                aria-label={t('a11y.minimizeWindow', '最小化窗口')}
                 className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-600 transition-colors duration-150"
                 onClick={handleMinimize}
               />
               <button
-                aria-label="Maximize window"
+                aria-label={t('a11y.maximizeWindow', '最大化窗口')}
                 className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-600 transition-colors duration-150"
                 onClick={handleMaximize}
               />
@@ -135,14 +137,14 @@ export default function TitleBar() {
           {isLinux && (
             <div className="flex items-center gap-2 pr-2 h-full">
               <button
-                aria-label="Minimize window"
+                aria-label={t('a11y.minimizeWindow', '最小化窗口')}
                 className="w-7 h-7 rounded-full inline-flex justify-center items-center hover:bg-white/10 transition-colors duration-150"
                 onClick={handleMinimize}
               >
                 <Minus size={16} className="text-text-secondary" />
               </button>
               <button
-                aria-label="Maximize window"
+                aria-label={t('a11y.maximizeWindow', '最大化窗口')}
                 className="w-7 h-7 rounded-full inline-flex justify-center items-center hover:bg-white/10 transition-colors duration-150"
                 onClick={handleMaximize}
               >
@@ -153,7 +155,7 @@ export default function TitleBar() {
                 )}
               </button>
               <button
-                aria-label="Close window"
+                aria-label={t('a11y.closeWindow', '关闭窗口')}
                 className="w-7 h-7 rounded-full inline-flex justify-center items-center hover:bg-red-500 hover:text-white transition-colors duration-150"
                 onClick={handleClose}
               >
@@ -168,13 +170,13 @@ export default function TitleBar() {
 
       {isWindows && (
         <div className="absolute top-0 right-0 flex h-12 z-20">
-          <button aria-label="Minimize window" className="relative w-12 group outline-none" onClick={handleMinimize}>
+          <button aria-label={t('a11y.minimizeWindow', '最小化窗口')} className="relative w-12 group outline-none" onClick={handleMinimize}>
             <div className="absolute bottom-0 left-0 w-12 h-10 flex justify-center items-center group-hover:bg-white/10 group-active:bg-white/20 transition-colors duration-150">
               <Minus size={16} className="text-text-secondary" />
             </div>
           </button>
 
-          <button aria-label="Maximize window" className="relative w-12 group outline-none" onClick={handleMaximize}>
+          <button aria-label={t('a11y.maximizeWindow', '最大化窗口')} className="relative w-12 group outline-none" onClick={handleMaximize}>
             <div className="absolute bottom-0 left-0 w-12 h-10 flex justify-center items-center group-hover:bg-white/10 group-active:bg-white/20 transition-colors duration-150">
               {isMaximized ? (
                 <RestoreDownIcon size={12} className="text-text-secondary" />
@@ -184,7 +186,7 @@ export default function TitleBar() {
             </div>
           </button>
 
-          <button aria-label="Close window" className="relative w-14 group outline-none" onClick={handleClose}>
+          <button aria-label={t('a11y.closeWindow', '关闭窗口')} className="relative w-14 group outline-none" onClick={handleClose}>
             <div className="absolute bottom-0 left-0 w-12 h-10 flex justify-center items-center group-hover:bg-red-500 group-active:bg-red-600 transition-colors duration-150 rounded-r-lg">
               <X size={16} className="text-text-secondary group-hover:text-white transition-colors duration-150" />
             </div>

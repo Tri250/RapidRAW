@@ -2995,7 +2995,7 @@ const ImageCanvas = memo(
 
               {originalSrc && (
                 <img
-                  alt="Original"
+                  alt={t('a11y.original', '原图')}
                   className={
                     imageRenderSize.width > 0 && imageRenderSize.height > 0
                       ? 'pointer-events-none'
@@ -3026,7 +3026,7 @@ const ImageCanvas = memo(
               )}
               {displayedMaskUrl && (
                 <img
-                  alt="Mask Overlay"
+                  alt={t('a11y.maskOverlay', '蒙版叠加')}
                   className="absolute object-contain pointer-events-none"
                   src={displayedMaskUrl}
                   style={{
@@ -3312,7 +3312,7 @@ const ImageCanvas = memo(
                 }}
               >
                 <img
-                  alt="Crop preview"
+                  alt={t('a11y.cropPreview', '裁剪预览')}
                   ref={cropImageRef}
                   src={cropPreviewUrl}
                   style={{

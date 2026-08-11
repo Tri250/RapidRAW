@@ -600,7 +600,7 @@ const FilmstripList = ({
   return (
     <div
       role="listbox"
-      aria-label="Image filmstrip"
+      aria-label={t('a11y.imageFilmstrip', '图片胶片条')}
       aria-orientation="horizontal"
       style={{ height, width }}
       onKeyDown={(e: React.KeyboardEvent) => {
@@ -674,6 +674,7 @@ export default function Filmstrip({
   selectedImage,
   thumbnailAspectRatio,
 }: FilmStripProps) {
+  const { t } = useTranslation();
   const clickTriggeredScroll = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ height: 0, width: 0 });

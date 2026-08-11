@@ -1851,7 +1851,51 @@
     "saveToPreview": "Save to Preview",
     "showDetails": "View Details",
     "title": "Online Presets",
-    "viewGallery": "View Gallery"
+    "viewGallery": "View Gallery",
+    "sectionTitles": {
+      "@string/section_color_grading": "色彩调整",
+      "@string/param_pro_adjust": "专业参数",
+      "专业参数": "专业参数",
+      "基本调节": "基本调节",
+      "色彩调节": "色彩调节"
+    },
+    "paramLabels": {
+      "@string/param_filter": "滤镜",
+      "@string/param_soft_light": "柔光",
+      "@string/param_tone_curve": "色调曲线",
+      "@string/param_saturation": "饱和度",
+      "@string/param_warm_cool": "冷暖",
+      "@string/param_cyan_magenta": "青品",
+      "@string/param_sharpness": "锐度",
+      "@string/param_vignette": "暗角",
+      "@string/param_iso": "ISO",
+      "@string/param_shutter": "快门",
+      "@string/param_exposure": "曝光",
+      "@string/param_color_temp": "色温",
+      "@string/param_tone": "色调",
+      "曝光": "曝光",
+      "亮度": "亮度",
+      "对比度": "对比度",
+      "高光": "高光",
+      "阴影": "阴影",
+      "光感": "光感",
+      "饱和度": "饱和度",
+      "色温": "色温",
+      "锐度": "锐度",
+      "冷暖": "冷暖",
+      "青品": "青品",
+      "暗角": "暗角",
+      "色调": "色调",
+      "柔光": "柔光",
+      "ISO感光度": "ISO",
+      "快门速度": "快门",
+      "AF对焦模式": "对焦模式",
+      "WB白平衡": "白平衡",
+      "M测光模式": "测光模式",
+      "白平衡": "白平衡",
+      "曝光补偿": "曝光补偿",
+      "EV": "EV"
+    }
   },
   "settings": {
     "adjustments": {
@@ -2264,6 +2308,20 @@
     "title": "設定",
     "tooltips": {
       "goHome": "ホームへ移動"
+    },
+    "languageNames": {
+      "en": "English",
+      "de": "Deutsch",
+      "es": "Español",
+      "fr": "Français",
+      "it": "Italiano",
+      "ja": "日本語",
+      "ko": "한국어",
+      "pl": "Polski",
+      "pt": "Português",
+      "ru": "Русский",
+      "zh-CN": "简体中文",
+      "zh-TW": "繁體中文"
     }
   },
   "ui": {
@@ -2357,5 +2415,27 @@
     "titleDefault": "Share to",
     "wechat": "WeChat",
     "weibo": "Weibo"
+  },
+  "a11y": {
+    "original": "元の画像",
+    "lensCorrectionPreview": "レンズ補正プレビュー",
+    "preview": "プレビュー",
+    "transformPreview": "変形プレビュー",
+    "imageFilmstrip": "画像フィルムストリップ",
+    "previousImage": "前の画像",
+    "nextImage": "次の画像",
+    "cropPreview": "トリミングプレビュー",
+    "closeWindow": "ウィンドウを閉じる",
+    "denoised": "Denoised",
+    "mergedHdr": "Merged HDR",
+    "stitchedPanorama": "Stitched Panorama",
+    "sourcePreview": "Source preview",
+    "selectedPreview": "Selected preview",
+    "maskOverlay": "Mask Overlay",
+    "tabs": "Tabs",
+    "representative": "Representative",
+    "splashBackground": "Splash screen background",
+    "minimizeWindow": "Minimize window",
+    "maximizeWindow": "Maximize window"
   }
 }

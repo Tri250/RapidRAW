@@ -498,7 +498,7 @@ export default function TransformModal({ isOpen, onClose, onApply, currentAdjust
                       width: 'auto',
                       height: 'auto',
                     }}
-                    alt="Transform Preview"
+                    alt={t('a11y.transformPreview', '变换预览')}
                     draggable={false}
                   />
 
