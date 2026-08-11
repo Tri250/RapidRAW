@@ -1346,7 +1346,7 @@ pub fn cancel_export(state: tauri::State<AppState>) -> Result<(), String> {
     {
         Some(handle) => {
             handle.abort();
-            println!("Export task cancellation requested.");
+            log::info!("Export task cancellation requested.");
         }
         _ => {
             return Err("No export task is currently running.".to_string());

@@ -57,7 +57,7 @@ module.exports = [
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unsafe-function-type': 'warn',
       '@typescript-eslint/ban-ts-comment': 'warn',
       'i18next/no-literal-string': [

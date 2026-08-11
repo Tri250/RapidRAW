@@ -18,7 +18,7 @@ interface ColorProps {
 
 interface ColorPanelProps {
   adjustments: Adjustments;
-  setAdjustments(adjustments: Partial<Adjustments>): any;
+  setAdjustments(adjustments: Partial<Adjustments> | ((prev: Adjustments) => Partial<Adjustments>)): void;
   appSettings: AppSettings | null;
   isForMask?: boolean;
   isWbPickerActive?: boolean;
@@ -127,13 +127,16 @@ const ColorGradingPanel = ({ adjustments, setAdjustments, onDragStateChange }: C
       );
       return;
     }
-    setAdjustments((prev: Partial<Adjustments>) => ({
-      ...prev,
-      colorGrading: {
-        ...(prev.colorGrading || INITIAL_ADJUSTMENTS.colorGrading),
-        [grading]: newValue,
-      },
-    }));
+    setAdjustments(
+      (prev: Partial<Adjustments>) =>
+        ({
+          ...prev,
+          colorGrading: {
+            ...(prev.colorGrading || INITIAL_ADJUSTMENTS.colorGrading),
+            [grading]: newValue,
+          },
+        }) as Partial<Adjustments>,
+    );
   };
 
   const handleColorGradingSliderChange = (grading: ColorGrading, value: string) => {
@@ -143,13 +146,16 @@ const ColorGradingPanel = ({ adjustments, setAdjustments, onDragStateChange }: C
       );
       return;
     }
-    setAdjustments((prev: Partial<Adjustments>) => ({
-      ...prev,
-      colorGrading: {
-        ...(prev.colorGrading || INITIAL_ADJUSTMENTS.colorGrading),
-        [grading]: parseFloat(value),
-      },
-    }));
+    setAdjustments(
+      (prev: Partial<Adjustments>) =>
+        ({
+          ...prev,
+          colorGrading: {
+            ...(prev.colorGrading || INITIAL_ADJUSTMENTS.colorGrading),
+            [grading]: parseFloat(value),
+          },
+        }) as Partial<Adjustments>,
+    );
   };
 
   const tabs = useMemo(
@@ -290,7 +296,9 @@ const ColorGradingPanel = ({ adjustments, setAdjustments, onDragStateChange }: C
           label={t('adjustments.color.grading.blending')}
           max={100}
           min={0}
-          onChange={(e: any) => handleColorGradingSliderChange(ColorGrading.Blending, e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            handleColorGradingSliderChange(ColorGrading.Blending, e.target.value)
+          }
           step={1}
           value={colorGrading.blending}
           onDragStateChange={onDragStateChange}
@@ -300,7 +308,9 @@ const ColorGradingPanel = ({ adjustments, setAdjustments, onDragStateChange }: C
           label={t('adjustments.color.grading.balance')}
           max={100}
           min={-100}
-          onChange={(e: any) => handleColorGradingSliderChange(ColorGrading.Balance, e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            handleColorGradingSliderChange(ColorGrading.Balance, e.target.value)
+          }
           step={1}
           value={colorGrading.balance}
           onDragStateChange={onDragStateChange}
@@ -325,24 +335,30 @@ const ColorCalibrationPanel = ({ adjustments, setAdjustments, onDragStateChange 
   );
 
   const handleShadowsChange = (value: string) => {
-    setAdjustments((prev: Partial<Adjustments>) => ({
-      ...prev,
-      colorCalibration: {
-        ...(prev.colorCalibration || INITIAL_ADJUSTMENTS.colorCalibration),
-        shadowsTint: parseFloat(value),
-      },
-    }));
+    setAdjustments(
+      (prev: Partial<Adjustments>) =>
+        ({
+          ...prev,
+          colorCalibration: {
+            ...(prev.colorCalibration || INITIAL_ADJUSTMENTS.colorCalibration),
+            shadowsTint: parseFloat(value),
+          },
+        }) as Partial<Adjustments>,
+    );
   };
 
   const handlePrimaryChange = (key: 'Hue' | 'Saturation', value: string) => {
     const fullKey = `${activePrimary}${key}` as keyof ColorCalibration;
-    setAdjustments((prev: Partial<Adjustments>) => ({
-      ...prev,
-      colorCalibration: {
-        ...(prev.colorCalibration || INITIAL_ADJUSTMENTS.colorCalibration),
-        [fullKey]: parseFloat(value),
-      },
-    }));
+    setAdjustments(
+      (prev: Partial<Adjustments>) =>
+        ({
+          ...prev,
+          colorCalibration: {
+            ...(prev.colorCalibration || INITIAL_ADJUSTMENTS.colorCalibration),
+            [fullKey]: parseFloat(value),
+          },
+        }) as Partial<Adjustments>,
+    );
   };
 
   const currentValues = {
@@ -368,7 +384,7 @@ const ColorCalibrationPanel = ({ adjustments, setAdjustments, onDragStateChange 
           step={1}
           defaultValue={0}
           value={colorCalibration.shadowsTint}
-          onChange={(e: any) => handleShadowsChange(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleShadowsChange(e.target.value)}
           onDragStateChange={onDragStateChange}
           trackClassName="tint-gradient-track"
         />
@@ -396,7 +412,7 @@ const ColorCalibrationPanel = ({ adjustments, setAdjustments, onDragStateChange 
           step={1}
           defaultValue={0}
           value={currentValues.hue}
-          onChange={(e: any) => handlePrimaryChange('Hue', e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handlePrimaryChange('Hue', e.target.value)}
           onDragStateChange={onDragStateChange}
           trackClassName={`hue-slider-${trackSuffix}`}
         />
@@ -407,7 +423,7 @@ const ColorCalibrationPanel = ({ adjustments, setAdjustments, onDragStateChange 
           step={1}
           defaultValue={0}
           value={currentValues.saturation}
-          onChange={(e: any) => handlePrimaryChange('Saturation', e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handlePrimaryChange('Saturation', e.target.value)}
           onDragStateChange={onDragStateChange}
           trackClassName={`sat-slider-${trackSuffix}`}
         />
@@ -469,20 +485,23 @@ export default function ColorPanel({
   }, [effectiveHue, currentHsl.saturation, activeColor]);
 
   const handleAdjustmentChange = (key: ColorAdjustment, value: string) => {
-    setAdjustments((prev: Partial<Adjustments>) => ({ ...prev, [key]: parseFloat(value) }));
+    setAdjustments((prev: Partial<Adjustments>) => ({ ...prev, [key]: parseFloat(value) }) as Partial<Adjustments>);
   };
 
   const handleHslChange = (key: 'hue' | 'saturation' | 'luminance', value: string) => {
-    setAdjustments((prev: Partial<Adjustments>) => ({
-      ...prev,
-      hsl: {
-        ...(prev.hsl || {}),
-        [activeColor]: {
-          ...(prev.hsl?.[activeColor] || {}),
-          [key]: parseFloat(value),
-        },
-      },
-    }));
+    setAdjustments(
+      (prev: Partial<Adjustments>) =>
+        ({
+          ...prev,
+          hsl: {
+            ...(prev.hsl || {}),
+            [activeColor]: {
+              ...(prev.hsl?.[activeColor] || {}),
+              [key]: parseFloat(value),
+            },
+          },
+        }) as Partial<Adjustments>,
+    );
   };
 
   const hue_slider = `hue-slider-${activeColor}`;
@@ -512,7 +531,9 @@ export default function ColorPanel({
           label={t('adjustments.color.temperature')}
           max={100}
           min={-100}
-          onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Temperature, e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            handleAdjustmentChange(ColorAdjustment.Temperature, e.target.value)
+          }
           step={1}
           value={adjustments.temperature || 0}
           trackClassName="temperature-gradient-track"
@@ -522,7 +543,9 @@ export default function ColorPanel({
           label={t('adjustments.color.tint')}
           max={100}
           min={-100}
-          onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Tint, e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            handleAdjustmentChange(ColorAdjustment.Tint, e.target.value)
+          }
           step={1}
           value={adjustments.tint || 0}
           trackClassName="tint-gradient-track"
@@ -538,7 +561,9 @@ export default function ColorPanel({
           label={t('adjustments.color.vibrance')}
           max={100}
           min={-100}
-          onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Vibrance, e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            handleAdjustmentChange(ColorAdjustment.Vibrance, e.target.value)
+          }
           step={1}
           value={adjustments.vibrance || 0}
           onDragStateChange={onDragStateChange}
@@ -547,7 +572,9 @@ export default function ColorPanel({
           label={t('adjustments.color.saturation')}
           max={100}
           min={-100}
-          onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Saturation, e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            handleAdjustmentChange(ColorAdjustment.Saturation, e.target.value)
+          }
           step={1}
           value={adjustments.saturation || 0}
           onDragStateChange={onDragStateChange}
@@ -562,7 +589,9 @@ export default function ColorPanel({
           label={t('adjustments.color.hue')}
           max={180}
           min={-180}
-          onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Hue, e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            handleAdjustmentChange(ColorAdjustment.Hue, e.target.value)
+          }
           step={1}
           value={adjustments.hue || 0}
           trackClassName="hue-range-track"
@@ -602,7 +631,7 @@ export default function ColorPanel({
           label={t('adjustments.color.hue')}
           max={100}
           min={-100}
-          onChange={(e: any) => handleHslChange('hue', e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleHslChange('hue', e.target.value)}
           step={1}
           value={currentHsl.hue}
           trackClassName={hue_slider}
@@ -612,7 +641,7 @@ export default function ColorPanel({
           label={t('adjustments.color.saturation')}
           max={100}
           min={-100}
-          onChange={(e: any) => handleHslChange('saturation', e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleHslChange('saturation', e.target.value)}
           step={1}
           value={currentHsl.saturation}
           trackClassName={saturation_slider}
@@ -622,7 +651,7 @@ export default function ColorPanel({
           label={t('adjustments.color.luminance')}
           max={100}
           min={-100}
-          onChange={(e: any) => handleHslChange('luminance', e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleHslChange('luminance', e.target.value)}
           step={1}
           value={currentHsl.luminance}
           trackClassName={luminance_slider}

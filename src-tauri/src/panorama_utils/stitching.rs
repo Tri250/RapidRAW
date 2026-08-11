@@ -69,7 +69,7 @@ pub fn progressive_seam_stitcher(
     let offset_y = -min_y;
     let out_width = (max_x - min_x).ceil() as u32;
     let out_height = (max_y - min_y).ceil() as u32;
-    println!("  - Output canvas size: {}x{}", out_width, out_height);
+    log::info!("  - Output canvas size: {}x{}", out_width, out_height);
 
     let mut panorama = Rgb32FImage::new(out_width, out_height);
     let mut panorama_mask = GrayImage::new(out_width, out_height);
@@ -80,7 +80,7 @@ pub fn progressive_seam_stitcher(
         log::warn!("Base homography is singular, using identity as fallback");
         Matrix3::identity()
     });
-    println!("  - Placing base image: '{}'", base_img_info.filename);
+    log::info!("  - Placing base image: '{}'", base_img_info.filename);
 
     let num_pixels_per_row = out_width as usize * 3;
     panorama
@@ -118,7 +118,7 @@ pub fn progressive_seam_stitcher(
                 .to_string_lossy()
         );
         let _ = app_handle.emit("panorama-progress", &progress_msg);
-        println!("  - Progressively stitching '{}'", img_to_add_info.filename);
+        log::info!("  - Progressively stitching '{}'", img_to_add_info.filename);
 
         let h_add = &global_homographies[&img_to_add_info.id];
         let h_add_inv = h_add.try_inverse().unwrap_or_else(|| {
@@ -146,7 +146,7 @@ pub fn progressive_seam_stitcher(
         };
 
         if !use_seam {
-            println!("    - Warning: Could not find seam. Using simple overwrite.");
+            log::warn!("    - Warning: Could not find seam. Using simple overwrite.");
         }
 
         let (orientation, seam_coords, new_image_is_dominant_side) = if let Some(info) = seam_info {
@@ -176,7 +176,7 @@ pub fn progressive_seam_stitcher(
                     }
                 }
             };
-            println!("    - New image is on the {} side of the seam.", side);
+            log::info!("    - New image is on the {} side of the seam.", side);
         }
 
         match orientation {
@@ -417,7 +417,7 @@ fn find_adaptive_seam(ctx: &SeamContext) -> Option<SeamInfo> {
     let dy = center_add_y - center_overlap_y;
 
     if dx.abs() > dy.abs() {
-        println!("    - Overlap is vertical. Finding vertical seam...");
+        log::info!("    - Overlap is vertical. Finding vertical seam...");
         let seam = find_pairwise_seam_dp_vertical(ctx);
         Some(SeamInfo {
             orientation: SeamOrientation::Vertical,
@@ -426,7 +426,7 @@ fn find_adaptive_seam(ctx: &SeamContext) -> Option<SeamInfo> {
             dy,
         })
     } else {
-        println!("    - Overlap is horizontal. Finding horizontal seam...");
+        log::info!("    - Overlap is horizontal. Finding horizontal seam...");
         let seam = find_pairwise_seam_dp_horizontal(ctx);
         Some(SeamInfo {
             orientation: SeamOrientation::Horizontal,

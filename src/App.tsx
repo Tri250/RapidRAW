@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 
 import TitleBar from './window/TitleBar';
-import FolderTree from './components/panel/FolderTree';
+import FolderTree, { FolderTree as FolderTreeType } from './components/panel/FolderTree';
 import ExportPanel from './components/panel/right/ExportPanel';
 import Resizer from './components/ui/Resizer';
 import GlobalTooltip from './components/ui/GlobalTooltip';
@@ -48,6 +48,9 @@ import './i18n';
 import {
   Invokes,
   ImageFile,
+  AlbumItem,
+  Album,
+  AlbumGroup,
   LibraryViewMode,
   Panel,
   Theme,
@@ -55,6 +58,7 @@ import {
   ThumbnailSize,
   ThumbnailAspectRatio,
 } from './components/ui/AppProperties';
+import { Adjustments } from './utils/adjustments';
 
 import ImageProcessingManager from './components/managers/ImageProcessingManager';
 import ImageLoaderManager from './components/managers/ImageLoaderManager';
@@ -62,12 +66,16 @@ import ImageLoaderManager from './components/managers/ImageLoaderManager';
 const CLERK_PUBLISHABLE_KEY =
   import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || 'pk_test_YnJpZWYtc2Vhc25haWwtMTIuY2xlcmsuYWNjb3VudHMuZGV2JA';
 
-const insertChildrenIntoTree = (node: any, targetPath: string, newChildren: any[]): any => {
+const insertChildrenIntoTree = (
+  node: FolderTreeType | null,
+  targetPath: string,
+  newChildren: FolderTreeType[],
+): FolderTreeType | null => {
   if (!node) return null;
 
   if (node.path === targetPath) {
-    const mergedChildren = newChildren.map((newChild: any) => {
-      const existingChild = node.children?.find((c: any) => c.path === newChild.path);
+    const mergedChildren = newChildren.map((newChild: FolderTreeType) => {
+      const existingChild = node.children?.find((c: FolderTreeType) => c.path === newChild.path);
       if (existingChild && existingChild.children && existingChild.children.length > 0) {
         return { ...newChild, children: existingChild.children };
       }
@@ -79,7 +87,9 @@ const insertChildrenIntoTree = (node: any, targetPath: string, newChildren: any[
   if (node.children && node.children.length > 0) {
     return {
       ...node,
-      children: node.children.map((child: any) => insertChildrenIntoTree(child, targetPath, newChildren)),
+      children: node.children
+        .map((child: FolderTreeType) => insertChildrenIntoTree(child, targetPath, newChildren))
+        .filter((child): child is FolderTreeType => child !== null),
     };
   }
 
@@ -165,7 +175,7 @@ function App() {
     selectedImagePathRef.current = selectedImage?.path ?? null;
   }, [selectedImage?.path]);
 
-  const prevAdjustmentsRef = useRef<any>(null);
+  const prevAdjustmentsRef = useRef<Adjustments | null>(null);
 
   const [viewportSize, setViewportSize] = useState<ImageDimensions>(() => {
     if (typeof window === 'undefined') {
@@ -182,7 +192,7 @@ function App() {
   const previewJobIdRef = useRef<number>(0);
   const latestRenderedJobIdRef = useRef<number>(0);
   const currentResRef = useRef<number>(1280);
-  const cachedEditStateRef = useRef<any | null>(null);
+  const cachedEditStateRef = useRef<unknown>(null);
 
   const [libraryViewMode, setLibraryViewMode] = useState<LibraryViewMode>(defaultLibraryViewMode);
   const [isResizing, setIsResizing] = useState(false);
@@ -191,9 +201,9 @@ function App() {
 
   const { requestThumbnails, clearThumbnailQueue, markGenerated } = useThumbnails();
 
-  const transformWrapperRef = useRef<any>(null);
+  const transformWrapperRef = useRef<HTMLDivElement | null>(null);
   const preloadedDataRef = useRef<{
-    trees?: Promise<any>;
+    trees?: Promise<unknown>;
     images?: Promise<ImageFile[]>;
     rootPaths?: string[];
     currentPath?: string;
@@ -305,17 +315,17 @@ function App() {
       if (currentFolderPath.startsWith('Album: ')) {
         const { activeAlbumId, albumTree } = useLibraryStore.getState();
         if (activeAlbumId) {
-          const findObj = (nodes: any[]): any => {
+          const findObj = (nodes: AlbumItem[]): AlbumItem | null => {
             for (const n of nodes) {
               if (n.id === activeAlbumId) return n;
               if (n.type === 'group') {
-                const f = findObj(n.children);
+                const f = findObj((n as AlbumGroup).children);
                 if (f) return f;
               }
             }
             return null;
           };
-          const album = findObj(albumTree);
+          const album = findObj(albumTree) as Album | null;
           if (album) await handleSelectAlbum(album.id, album.name, album.images, true);
         }
       } else {
@@ -454,7 +464,7 @@ function App() {
   }, [activeRightPanel, activeMaskContainerId, activeAiPatchContainerId, setEditor]);
 
   useEffect(() => {
-    const unlisten = listen('ai-connector-status-update', (event: any) => {
+    const unlisten = listen('ai-connector-status-update', (event: { payload: { connected: boolean } }) => {
       setEditor({ isAIConnectorConnected: event.payload.connected });
     });
     invoke(Invokes.CheckAIConnectorStatus).catch((err) => console.error('CheckAIConnectorStatus failed:', err));
@@ -539,7 +549,7 @@ function App() {
     checkFullscreen();
     const unlistenPromise = appWindow.onResized(checkFullscreen);
     return () => {
-      unlistenPromise.then((unlisten: any) => unlisten());
+      unlistenPromise.then((unlisten: () => void) => unlisten());
     };
   }, [setUI]);
 
@@ -566,18 +576,20 @@ function App() {
       if (!isExpanding) return;
       try {
         const showCounts = appSettings?.enableFolderImageCounts ?? false;
-        const newChildren: any[] = await invoke(Invokes.GetFolderChildren, {
+        const newChildren: FolderTreeType[] = await invoke(Invokes.GetFolderChildren, {
           path,
           showImageCounts: showCounts,
         });
         setLibrary((state) => ({
-          folderTrees: state.folderTrees.map((t: any) => insertChildrenIntoTree(t, path, newChildren)),
+          folderTrees: state.folderTrees.map((t: FolderTreeType) => insertChildrenIntoTree(t, path, newChildren)),
         }));
         setLibrary((state) => ({
-          pinnedFolderTrees: state.pinnedFolderTrees.map((tree) => insertChildrenIntoTree(tree, path, newChildren)),
+          pinnedFolderTrees: state.pinnedFolderTrees.map((tree: FolderTreeType) =>
+            insertChildrenIntoTree(tree, path, newChildren),
+          ),
         }));
       } catch (err) {
-        toast.error(t('editor.android.loadFolderTreeFailed' as any));
+        toast.error(t('editor.android.loadFolderTreeFailed' as unknown as 'editor.android.loadFolderTreeFailed'));
       }
     },
     [expandedFolders, appSettings?.enableFolderImageCounts, setLibrary, t],
@@ -856,7 +868,12 @@ const AppWrapper = () => {
   }, []);
 
   const safeClerkProps = useMemo(() => {
-    const props: any = {
+    const props: {
+      publishableKey: string;
+      routerPush: (to: string) => void;
+      routerReplace: (to: string) => void;
+      initialPath?: string;
+    } = {
       publishableKey: CLERK_PUBLISHABLE_KEY,
       routerPush: pushHash,
       routerReplace: replaceHash,

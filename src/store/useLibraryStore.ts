@@ -13,7 +13,7 @@ import { ColumnWidths } from '../components/panel/MainLibrary';
 export interface SmartAlbumCondition {
   field: 'rating' | 'colorLabel' | 'tag' | 'dateModified' | 'dateTaken' | 'cameraModel' | 'isEdited';
   operator: 'equals' | 'greaterThan' | 'lessThan' | 'contains' | 'between';
-  value: any;
+  value: unknown;
 }
 
 export interface SmartAlbum {
@@ -210,17 +210,17 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
           case 'equals':
             return fieldValue === condition.value;
           case 'greaterThan':
-            return typeof fieldValue === 'number' && fieldValue > condition.value;
+            return typeof fieldValue === 'number' && fieldValue > (condition.value as number);
           case 'lessThan':
-            return typeof fieldValue === 'number' && fieldValue < condition.value;
+            return typeof fieldValue === 'number' && fieldValue < (condition.value as number);
           case 'contains':
-            if (Array.isArray(fieldValue)) return fieldValue.includes(condition.value);
+            if (Array.isArray(fieldValue)) return fieldValue.includes(condition.value as string);
             if (typeof fieldValue === 'string')
               return fieldValue.toLowerCase().includes(String(condition.value).toLowerCase());
             return false;
           case 'between':
             if (typeof fieldValue === 'number') {
-              const [min, max] = condition.value;
+              const [min, max] = condition.value as [number, number];
               return fieldValue >= min && fieldValue <= max;
             }
             return false;

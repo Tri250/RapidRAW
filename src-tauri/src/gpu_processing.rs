@@ -86,7 +86,7 @@ impl WgpuDisplay {
                         wgpu::CurrentSurfaceTexture::Success(tex)
                         | wgpu::CurrentSurfaceTexture::Suboptimal(tex) => tex,
                         _ => {
-                            eprintln!("Warning: Failed to acquire surface texture, skipping frame");
+                            log::warn!("Warning: Failed to acquire surface texture, skipping frame");
                             return;
                         }
                     }

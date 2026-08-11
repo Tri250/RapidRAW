@@ -270,7 +270,7 @@ fn grayscale_dilate(image: &GrayImage, k: u8) -> GrayImage {
     }
 
     GrayImage::from_raw(width, height, out).unwrap_or_else(|| {
-        eprintln!(
+        log::warn!(
             "Warning: Failed to create GrayImage of size {}x{}, creating empty mask",
             width, height
         );
@@ -317,7 +317,7 @@ fn grayscale_erode(image: &GrayImage, k: u8) -> GrayImage {
     }
 
     GrayImage::from_raw(width, height, out).unwrap_or_else(|| {
-        eprintln!(
+        log::warn!(
             "Warning: Failed to create GrayImage of size {}x{}, creating empty mask",
             width, height
         );
@@ -411,7 +411,7 @@ fn render_stroke_layer_parallel(
     let mut out_pixels = vec![0u8; (bb_w * bb_h) as usize];
     if points.is_empty() || radius <= 0.0 {
         return GrayImage::from_raw(bb_w, bb_h, out_pixels).unwrap_or_else(|| {
-            eprintln!(
+            log::warn!(
                 "Warning: Failed to create GrayImage of size {}x{}, creating empty mask",
                 bb_w, bb_h
             );
@@ -555,7 +555,7 @@ fn render_stroke_layer_parallel(
         });
 
     GrayImage::from_raw(bb_w, bb_h, out_pixels).unwrap_or_else(|| {
-        eprintln!(
+        log::warn!(
             "Warning: Failed to create GrayImage of size {}x{}, creating empty mask",
             bb_w, bb_h
         );

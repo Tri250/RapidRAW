@@ -9,7 +9,7 @@ import {
   GroupPreference,
   GroupingMode,
 } from '../components/ui/AppProperties';
-import { buildImageGroups, GroupBadgeInfo, GroupingResult, GroupId } from '../utils/imageGrouping';
+import { buildImageGroups, GroupBadgeInfo, GroupId } from '../utils/imageGrouping';
 
 export const ADVANCED_QUERY_REGEX =
   /^(iso|aperture|f|shutter|s|focal|mm|rating|color|camera|make|model|lens)\s*(?::)?\s*(>=|<=|>|<|=)?\s*(.+)$/i;
@@ -154,7 +154,7 @@ export function computeGroupedLibrary(libraryState: any, settingsState: any): Gr
     return { type: 'normal', value: tag.toLowerCase(), raw: tag };
   });
 
-  const evaluateQuery = (q: any, image: ImageFile) => {
+  const evaluateQuery = (q: { type: string; field: string; operator: string; value: string }, image: ImageFile) => {
     const { field, operator, value } = q;
 
     if (['iso', 'aperture', 'f', 'shutter', 's', 'focal', 'mm', 'rating'].includes(field)) {
@@ -212,7 +212,13 @@ export function computeGroupedLibrary(libraryState: any, settingsState: any): Gr
 
     let tagsMatch = true;
     if (parsedTags.length > 0) {
-      const evaluateTag = (parsedTag: any) => {
+      const evaluateTag = (parsedTag: {
+        type: string;
+        field: string;
+        operator: string;
+        value: string;
+        raw: string;
+      }) => {
         if (parsedTag.type === 'normal') {
           return lowerCaseImageTags.some((imgTag) => imgTag.includes(parsedTag.value));
         }
@@ -220,9 +226,15 @@ export function computeGroupedLibrary(libraryState: any, settingsState: any): Gr
       };
 
       if (searchMode === 'OR') {
-        tagsMatch = parsedTags.some((pt: any) => evaluateTag(pt));
+        tagsMatch = parsedTags.some(
+          (pt: { type: string; field?: string; operator?: string; value?: string; raw: string }) =>
+            evaluateTag(pt as { type: string; field: string; operator: string; value: string; raw: string }),
+        );
       } else {
-        tagsMatch = parsedTags.every((pt: any) => evaluateTag(pt));
+        tagsMatch = parsedTags.every(
+          (pt: { type: string; field?: string; operator?: string; value?: string; raw: string }) =>
+            evaluateTag(pt as { type: string; field: string; operator: string; value: string; raw: string }),
+        );
       }
     }
 

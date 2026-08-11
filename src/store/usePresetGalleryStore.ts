@@ -316,9 +316,9 @@ const loadSources = (): GallerySource[] => {
     if (stored) {
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const storedSources = parsed.map((s: any) => ({
-          url: s.url || '',
-          name: s.name || s.url || '',
+        const storedSources = parsed.map((s: Record<string, unknown>) => ({
+          url: (s.url as string) || '',
+          name: (s.name as string) || (s.url as string) || '',
           enabled: s.enabled !== false,
           presets: [],
           isLoading: false,
@@ -436,8 +436,8 @@ const isAllowedSourceUrl = (url: string): boolean => {
   return false;
 };
 
-const isNonEmptyString = (v: any): v is string => typeof v === 'string' && v.trim().length > 0;
-const isStringArray = (v: any): v is any[] => Array.isArray(v);
+const isNonEmptyString = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0;
+const isStringArray = (v: unknown): v is unknown[] => Array.isArray(v);
 
 /**
  * Normalize a raw `sections` value into the typed `GalleryPresetSection[]`
@@ -445,37 +445,48 @@ const isStringArray = (v: any): v is any[] => Array.isArray(v);
  * schema, so downstream consumers (download, detail panel) can trust the
  * structure without re-validating.
  */
-const normalizeSections = (raw: any): GalleryPresetSection[] | undefined => {
+const normalizeSections = (raw: unknown): GalleryPresetSection[] | undefined => {
   if (!isStringArray(raw)) return undefined;
   const out: GalleryPresetSection[] = [];
   for (const sec of raw) {
     if (!sec || typeof sec !== 'object') continue;
-    const items = Array.isArray(sec.items) ? sec.items : [];
+    const secObj = sec as Record<string, unknown>;
+    const items = Array.isArray(secObj.items) ? secObj.items : [];
     const normItems: GalleryPresetSectionItem[] = [];
     for (const it of items) {
       if (!it || typeof it !== 'object') continue;
-      const label = isNonEmptyString(it.label) ? it.label : isNonEmptyString(it.name) ? it.name : null;
-      const value = isNonEmptyString(it.value) ? it.value : it.value == null ? '' : String(it.value);
+      const itObj = it as Record<string, unknown>;
+      const label = isNonEmptyString(itObj.label)
+        ? (itObj.label as string)
+        : isNonEmptyString(itObj.name)
+          ? (itObj.name as string)
+          : null;
+      const value = isNonEmptyString(itObj.value)
+        ? (itObj.value as string)
+        : itObj.value == null
+          ? ''
+          : String(itObj.value);
       if (!label) continue;
-      normItems.push({ label, value, span: typeof it.span === 'number' ? it.span : undefined });
+      normItems.push({ label, value, span: typeof itObj.span === 'number' ? (itObj.span as number) : undefined });
     }
     if (normItems.length === 0) continue;
     out.push({
-      title: isNonEmptyString(sec.title) ? sec.title! : '',
+      title: isNonEmptyString(secObj.title) ? (secObj.title as string) : '',
       items: normItems,
     });
   }
   return out.length > 0 ? out : undefined;
 };
 
-const buildPreset = (p: any, baseDir: string): GalleryPreset | null => {
+const buildPreset = (p: Record<string, unknown>, baseDir: string): GalleryPreset | null => {
   if (!p || typeof p !== 'object') return null;
 
-  const name = isNonEmptyString(p.name) ? p.name! : null;
+  const name = isNonEmptyString(p.name) ? (p.name as string) : null;
   if (!name) return null; // name is mandatory
 
-  const rawCover = p.coverPath || p.cover_path || p.cover_image || '';
-  const rawGallery: any[] = p.galleryImages || p.gallery_images || p.samples || [];
+  const rawCover = (p.coverPath as string) || (p.cover_path as string) || (p.cover_image as string) || '';
+  const rawGallery: unknown[] =
+    (p.galleryImages as unknown[]) || (p.gallery_images as unknown[]) || (p.samples as unknown[]) || [];
   const sections = normalizeSections(p.sections);
 
   // Must have at least a cover or sections to be useful
@@ -485,10 +496,14 @@ const buildPreset = (p: any, baseDir: string): GalleryPreset | null => {
   const isPlaceholder = (p: string) => typeof p === 'string' && /placeholder\.(webp|png|jpg|jpeg|gif)/i.test(p.trim());
 
   const galleryImages = rawGallery
-    .map((img: any) => resolvePath(typeof img === 'string' ? img : img?.url || '', baseDir))
+    .map((img: unknown) =>
+      resolvePath(typeof img === 'string' ? img : ((img as Record<string, unknown>)?.url as string) || '', baseDir),
+    )
     .filter(Boolean);
   const galleryFallback = rawGallery
-    .map((img: any) => resolveFallbackPath(typeof img === 'string' ? img : img?.url || ''))
+    .map((img: unknown) =>
+      resolveFallbackPath(typeof img === 'string' ? img : ((img as Record<string, unknown>)?.url as string) || ''),
+    )
     .filter(Boolean);
 
   const resolvedCover = resolvePath(rawCover, baseDir);
@@ -504,7 +519,9 @@ const buildPreset = (p: any, baseDir: string): GalleryPreset | null => {
   // Filter out placeholder gallery images too
   const effectiveGalleryImages =
     galleryImages.length > 0 &&
-    !rawGallery.every((img: any) => isPlaceholder(typeof img === 'string' ? img : img?.url || ''))
+    !rawGallery.every((img: unknown) =>
+      isPlaceholder(typeof img === 'string' ? img : ((img as Record<string, unknown>)?.url as string) || ''),
+    )
       ? galleryImages
       : [];
   const effectiveGalleryFallback = effectiveGalleryImages.length > 0 ? galleryFallback : [];
@@ -515,29 +532,39 @@ const buildPreset = (p: any, baseDir: string): GalleryPreset | null => {
     coverFallback: effectiveCoverFallback,
     galleryImages: effectiveGalleryImages,
     galleryFallback: effectiveGalleryFallback,
-    author: isNonEmptyString(p.author) ? p.author! : isNonEmptyString(p.creator) ? p.creator! : undefined,
+    author: isNonEmptyString(p.author)
+      ? (p.author as string)
+      : isNonEmptyString(p.creator)
+        ? (p.creator as string)
+        : undefined,
     isNew: p.isNew === true || p.is_new === true || undefined,
     sections,
-    tags: Array.isArray(p.tags) ? p.tags.filter(isNonEmptyString) : undefined,
+    tags: Array.isArray(p.tags) ? (p.tags as string[]).filter(isNonEmptyString) : undefined,
     description:
-      p.description && typeof p.description === 'object' && isNonEmptyString(p.description.title)
-        ? { title: p.description.title, content: String(p.description.content || '') }
+      p.description &&
+      typeof p.description === 'object' &&
+      isNonEmptyString((p.description as Record<string, unknown>).title)
+        ? {
+            title: (p.description as Record<string, unknown>).title as string,
+            content: String((p.description as Record<string, unknown>).content || ''),
+          }
         : undefined,
   };
 };
 
-const parsePresetsFromJson = (data: any, baseDir: string): PresetParseResult => {
+const parsePresetsFromJson = (data: unknown, baseDir: string): PresetParseResult => {
   if (!data) return { presets: [], sourceName: '', skipped: 0, warnings: [] };
 
-  let rawPresets: any[] = [];
+  let rawPresets: unknown[] = [];
   let sourceName = '';
 
   if (Array.isArray(data)) {
     rawPresets = data;
   } else if (typeof data === 'object') {
-    rawPresets = data.presets || data.data || [];
+    const obj = data as Record<string, unknown>;
+    rawPresets = (obj.presets as unknown[]) || (obj.data as unknown[]) || [];
     if (!Array.isArray(rawPresets)) rawPresets = [];
-    sourceName = isNonEmptyString(data.name) ? data.name! : isNonEmptyString(data.title) ? data.title! : '';
+    sourceName = isNonEmptyString(obj.name) ? obj.name! : isNonEmptyString(obj.title) ? obj.title! : '';
   } else {
     return { presets: [], sourceName: '', skipped: 0, warnings: [] };
   }
@@ -547,13 +574,14 @@ const parsePresetsFromJson = (data: any, baseDir: string): PresetParseResult => 
   const warnings: string[] = [];
 
   rawPresets.forEach((p, idx) => {
-    const built = buildPreset(p, baseDir);
+    const built = buildPreset(p as Record<string, unknown>, baseDir);
     if (built) {
       presets.push(built);
     } else {
       skipped++;
       if (warnings.length < 5) {
-        const hint = p && typeof p === 'object' && isNonEmptyString(p.name) ? p.name : `#${idx}`;
+        const obj = p as Record<string, unknown>;
+        const hint = obj && typeof obj === 'object' && isNonEmptyString(obj.name) ? obj.name : `#${idx}`;
         warnings.push(`跳过无效预设：${hint}`);
       }
     }
@@ -725,10 +753,10 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
         saveSources(newSources);
         return { sources: newSources };
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       clearTimeout(timeoutId);
-      const isAbort = err?.name === 'AbortError';
-      let message = isAbort ? `请求超时（20 秒），请检查网络或更换数据源` : err?.message || String(err);
+      const isAbort = (err as Error)?.name === 'AbortError';
+      let message = isAbort ? `请求超时（20 秒），请检查网络或更换数据源` : (err as Error)?.message || String(err);
 
       // Graceful degradation: if we have cached presets, surface them so
       // instead of a blank list and annotate the error as "offline cached".
@@ -811,10 +839,10 @@ export const usePresetGalleryStore = create<PresetGalleryState>((set, get) => ({
         downloadStatus: { ...state.downloadStatus, [key]: 'success' },
       }));
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       set((state) => ({
         downloadStatus: { ...state.downloadStatus, [key]: 'error' },
-        downloadError: { ...state.downloadError, [key]: err?.message || String(err) },
+        downloadError: { ...state.downloadError, [key]: (err as Error)?.message || String(err) },
       }));
       return false;
     }

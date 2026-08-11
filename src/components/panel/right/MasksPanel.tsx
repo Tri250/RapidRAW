@@ -721,7 +721,7 @@ export default function MasksPanel() {
     if (!hasPerformedInitialSelection.current && !activeMaskContainerId && adjustments.masks?.length > 0) {
       const lastMask = adjustments.masks[adjustments.masks.length - 1];
       if (lastMask) {
-        onSelectContainer(lastMask.id);
+        onSelectContainer(lastMask.id!);
         onSelectMask(null);
       }
     }
@@ -1088,9 +1088,9 @@ export default function MasksPanel() {
       return { ...prev, masks: newMasks };
     });
 
-    onSelectContainer(container.id);
+    onSelectContainer(container.id!);
     onSelectMask(null);
-    setExpandedContainers((prev) => new Set(prev).add(container.id));
+    setExpandedContainers((prev) => new Set(prev).add(container.id!));
   };
 
   const insertSubMaskIntoContainer = (containerId: string, subMask: SubMask, insertIndex?: number) => {
@@ -1193,7 +1193,7 @@ export default function MasksPanel() {
     if (dragData.type === 'Creation' && dragData.maskType) {
       const creationFn = () => {
         if (overData?.type === 'Container') {
-          handleAddSubMask(overData.item!.id, dragData.maskType!);
+          handleAddSubMask(overData.item!.id!, dragData.maskType!);
         } else if (overData?.type === 'SubMask' && over) {
           const container = adjustments.masks.find((m) => m.id === overData.parentId);
           if (container) {
@@ -1279,7 +1279,7 @@ export default function MasksPanel() {
       if (!over) return;
 
       let targetContainerId: string | null = null;
-      if (overData?.type === 'Container') targetContainerId = overData.item!.id;
+      if (overData?.type === 'Container') targetContainerId = overData.item!.id!;
       else if (overData?.type === 'SubMask' && overData.parentId) targetContainerId = overData.parentId;
 
       if (targetContainerId) {
@@ -1456,14 +1456,14 @@ export default function MasksPanel() {
                 >
                   {adjustments.masks.map((container) => (
                     <ContainerRow
-                      key={container.id}
+                      key={container.id!}
                       container={container}
-                      isSelected={activeMaskContainerId === container.id && activeMaskId === null}
-                      hasActiveChild={activeMaskContainerId === container.id && activeMaskId !== null}
-                      isExpanded={expandedContainers.has(container.id)}
-                      onToggle={() => handleToggleExpand(container.id)}
+                      isSelected={activeMaskContainerId === container.id! && activeMaskId === null}
+                      hasActiveChild={activeMaskContainerId === container.id! && activeMaskId !== null}
+                      isExpanded={expandedContainers.has(container.id!)}
+                      onToggle={() => handleToggleExpand(container.id!)}
                       onSelect={() => {
-                        onSelectContainer(container.id);
+                        onSelectContainer(container.id!);
                         onSelectMask(null);
                       }}
                       renamingId={renamingId}

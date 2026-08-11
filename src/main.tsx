@@ -71,9 +71,7 @@ class AppErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundary
           }}
         >
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>{t('a11y.errorBoundary.icon')}</div>
-          <h1 style={{ fontSize: '1.5rem', margin: '0 0 0.5rem', fontWeight: 600 }}>
-            {t('a11y.errorBoundary.title')}
-          </h1>
+          <h1 style={{ fontSize: '1.5rem', margin: '0 0 0.5rem', fontWeight: 600 }}>{t('a11y.errorBoundary.title')}</h1>
           <p style={{ fontSize: '0.875rem', color: '#a0a0b0', maxWidth: '400px', marginBottom: '1.5rem' }}>
             {t('a11y.errorBoundary.message')}
           </p>
@@ -133,11 +131,7 @@ class AppErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundary
 
 function ErrorBoundaryWithT({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
-  return (
-    <AppErrorBoundary t={t}>
-      {children}
-    </AppErrorBoundary>
-  );
+  return <AppErrorBoundary t={t}>{children}</AppErrorBoundary>;
 }
 
 const root = createRoot(document.getElementById('root')!);

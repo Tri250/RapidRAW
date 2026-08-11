@@ -1,8 +1,23 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+
+// Initialize i18next for testing to suppress "You will need to pass in an i18next instance" warnings
+i18n.use(initReactI18next).init({
+  lng: 'en',
+  fallbackLng: 'en',
+  resources: {
+    en: { translation: {} },
+  },
+  returnEmptyString: false,
+  interpolation: {
+    escapeValue: false,
+  },
+});
 
 // Mock Tauri APIs
-(globalThis as any).__TAURI_INTERNALS__ = {};
+(globalThis as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
@@ -44,7 +59,7 @@ class ResizeObserverMock {
   unobserve = vi.fn();
   disconnect = vi.fn();
 }
-(globalThis as any).ResizeObserver = ResizeObserverMock;
+(globalThis as unknown as Record<string, unknown>).ResizeObserver = ResizeObserverMock;
 
 // Mock IntersectionObserver
 class IntersectionObserverMock {
@@ -52,4 +67,4 @@ class IntersectionObserverMock {
   unobserve = vi.fn();
   disconnect = vi.fn();
 }
-(globalThis as any).IntersectionObserver = IntersectionObserverMock;
+(globalThis as unknown as Record<string, unknown>).IntersectionObserver = IntersectionObserverMock;

@@ -395,7 +395,7 @@ fn build_integral_images(gray: &GrayImage) -> (Vec<u64>, Vec<u128>) {
 }
 
 pub fn generate_low_detail_mask(gray_full: &GrayImage) -> GrayImage {
-    println!("    - Generating low-detail mask...");
+    log::info!("    - Generating low-detail mask...");
     let (width, height) = gray_full.dimensions();
     let mut mask = GrayImage::new(width, height);
     let (sat, sat_sq) = build_integral_images(gray_full);

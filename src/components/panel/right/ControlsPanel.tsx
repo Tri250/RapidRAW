@@ -164,12 +164,17 @@ export default function Controls() {
     };
 
     const handlePaste = () => {
-      if (!copiedSectionAdjustments || copiedSectionAdjustments.section !== sectionName) {
+      if (
+        !copiedSectionAdjustments ||
+        (copiedSectionAdjustments as { section: string; values: Record<string, unknown> } | null)?.section !==
+          sectionName
+      ) {
         return;
       }
+      const cs = copiedSectionAdjustments as { section: string; values: Record<string, unknown> };
       setAdjustments((prev: Adjustments) => ({
         ...prev,
-        ...copiedSectionAdjustments.values,
+        ...cs.values,
         sectionVisibility: {
           ...(prev.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility),
           [sectionName]: true,
@@ -192,7 +197,10 @@ export default function Controls() {
       }));
     };
 
-    const isPasteAllowed = copiedSectionAdjustments && copiedSectionAdjustments.section === sectionName;
+    const isPasteAllowed =
+      copiedSectionAdjustments &&
+      (copiedSectionAdjustments as { section: string; values: Record<string, unknown> } | null)?.section ===
+        sectionName;
     const translatedSection = t(`editor.adjustments.sections.${sectionName}` as any);
 
     const pasteLabel = copiedSectionAdjustments

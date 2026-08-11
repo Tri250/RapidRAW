@@ -638,7 +638,7 @@ async fn download_and_verify_model(
 
     if !is_valid {
         if dest_path.exists() {
-            println!("Model {} has incorrect hash. Re-downloading.", model_name);
+            log::info!("Model {} has incorrect hash. Re-downloading.", model_name);
             fs::remove_file(&dest_path)?;
         }
         let _ = app_handle.emit("ai-model-download-start", model_name);

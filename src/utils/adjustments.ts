@@ -198,7 +198,7 @@ export const INITIAL_PORTRAIT_ADJUSTMENTS: PortraitAdjustments = {
 };
 
 export interface Adjustments {
-  [index: string]: any;
+  [index: string]: unknown;
   aiPatches: Array<AiPatch>;
   aspectRatio: number | null;
   blacks: number;
@@ -291,7 +291,7 @@ export interface AiPatch {
   invert: boolean;
   name: string;
   opacity?: number;
-  patchData: any | null;
+  patchData: unknown | null;
   prompt: string;
   subMasks: Array<SubMask>;
   visible: boolean;
@@ -344,7 +344,7 @@ interface Hsl {
 }
 
 export interface MaskAdjustments {
-  [index: string]: any;
+  [index: string]: unknown;
   blacks: number;
   brightness: number;
   clarity: number;
@@ -379,7 +379,7 @@ export interface MaskAdjustments {
 
 export interface MaskContainer {
   adjustments: MaskAdjustments;
-  id?: any;
+  id?: string;
   invert: boolean;
   name: string;
   opacity: number;
@@ -620,7 +620,7 @@ export const INITIAL_ADJUSTMENTS: Adjustments = {
   whites: 0,
 };
 
-const deepCloneCurves = (curves: any): Curves => ({
+const deepCloneCurves = (curves: Curves | undefined): Curves => ({
   blue: curves?.blue?.map((p: Coord) => ({ ...p })) || [
     { x: 0, y: 0 },
     { x: 255, y: 255 },
@@ -639,7 +639,7 @@ const deepCloneCurves = (curves: any): Curves => ({
   ],
 });
 
-const deepCloneParametric = (pCurve: any): ParametricCurve => ({
+const deepCloneParametric = (pCurve: ParametricCurve | undefined): ParametricCurve => ({
   luma: { ...DEFAULT_PARAMETRIC_CURVE_SETTINGS, ...(pCurve?.luma || {}) },
   red: { ...DEFAULT_PARAMETRIC_CURVE_SETTINGS, ...(pCurve?.red || {}) },
   green: { ...DEFAULT_PARAMETRIC_CURVE_SETTINGS, ...(pCurve?.green || {}) },
@@ -651,7 +651,7 @@ export const normalizeLoadedAdjustments = (loadedAdjustments: Adjustments): Adju
     return INITIAL_ADJUSTMENTS;
   }
 
-  const normalizeSubMasks = (subMasks: any[]) => {
+  const normalizeSubMasks = (subMasks: Partial<SubMask>[]) => {
     return (subMasks || []).map((subMask: Partial<SubMask>) => ({
       visible: true,
       mode: SubMaskMode.Additive,
@@ -699,7 +699,7 @@ export const normalizeLoadedAdjustments = (loadedAdjustments: Adjustments): Adju
   const normalizedAiPatches = (loadedAdjustments.aiPatches || []).map((patch: any) => ({
     visible: true,
     ...patch,
-    subMasks: normalizeSubMasks(patch.subMasks),
+    subMasks: normalizeSubMasks(patch.subMasks ?? []),
   }));
 
   return {

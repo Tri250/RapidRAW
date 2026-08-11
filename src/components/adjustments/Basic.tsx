@@ -2,15 +2,16 @@ import { motion } from 'framer-motion';
 import clsx from 'clsx';
 import Slider from '../ui/Slider';
 import { Adjustments, BasicAdjustment } from '../../utils/adjustments';
+import { AppSettings } from '../ui/AppProperties';
 import { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface BasicAdjustmentsProps {
   adjustments: Adjustments;
-  setAdjustments(adjustments: Partial<Adjustments>): any;
+  setAdjustments(adjustments: Partial<Adjustments> | ((prev: Adjustments) => Partial<Adjustments>)): void;
   isForMask?: boolean;
   onDragStateChange?: (isDragging: boolean) => void;
-  appSettings?: any;
+  appSettings?: AppSettings | null;
 }
 
 interface ToneMapperSwitchProps {
@@ -142,7 +143,7 @@ const ToneMapperSwitch = ({
             label={t('adjustments.basic.evShift')}
             max={5}
             min={-5}
-            onChange={(e: any) => onEvShiftChange(parseFloat(e.target.value))}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onEvShiftChange(parseFloat(e.target.value))}
             step={0.01}
             value={evShiftValue}
             trackClassName="bg-surface"
@@ -164,19 +165,22 @@ export default memo(function BasicAdjustments({
   const { t } = useTranslation();
 
   const handleAdjustmentChange = useCallback(
-    (key: BasicAdjustment, value: any) => {
-      const numericValue = parseFloat(value);
-      setAdjustments((prev: Partial<Adjustments>) => ({ ...prev, [key]: numericValue }));
+    (key: BasicAdjustment, value: string | number) => {
+      const numericValue = typeof value === 'number' ? value : parseFloat(value);
+      setAdjustments((prev: Partial<Adjustments>) => ({ ...prev, [key]: numericValue }) as Partial<Adjustments>);
     },
     [setAdjustments],
   );
 
   const handleToneMapperChange = useCallback(
     (mapper: string) => {
-      setAdjustments((prev: Partial<Adjustments>) => ({
-        ...prev,
-        toneMapper: mapper as 'basic' | 'agx',
-      }));
+      setAdjustments(
+        (prev: Partial<Adjustments>) =>
+          ({
+            ...prev,
+            toneMapper: mapper as 'basic' | 'agx',
+          }) as Partial<Adjustments>,
+      );
     },
     [setAdjustments],
   );
@@ -190,7 +194,9 @@ export default memo(function BasicAdjustments({
           label={t('adjustments.basic.evShift')}
           max={5}
           min={-5}
-          onChange={(e: any) => handleAdjustmentChange(BasicAdjustment.Exposure, e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            handleAdjustmentChange(BasicAdjustment.Exposure, e.target.value)
+          }
           step={0.01}
           value={adjustments.exposure}
           onDragStateChange={onDragStateChange}
@@ -208,7 +214,9 @@ export default memo(function BasicAdjustments({
         label={t('adjustments.basic.brightness')}
         max={5}
         min={-5}
-        onChange={(e: any) => handleAdjustmentChange(BasicAdjustment.Brightness, e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          handleAdjustmentChange(BasicAdjustment.Brightness, e.target.value)
+        }
         step={0.01}
         value={adjustments.brightness}
         onDragStateChange={onDragStateChange}
@@ -217,7 +225,9 @@ export default memo(function BasicAdjustments({
         label={t('adjustments.basic.contrast')}
         max={100}
         min={-100}
-        onChange={(e: any) => handleAdjustmentChange(BasicAdjustment.Contrast, e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          handleAdjustmentChange(BasicAdjustment.Contrast, e.target.value)
+        }
         step={1}
         value={adjustments.contrast}
         onDragStateChange={onDragStateChange}
@@ -226,7 +236,9 @@ export default memo(function BasicAdjustments({
         label={t('adjustments.basic.highlights')}
         max={100}
         min={-100}
-        onChange={(e: any) => handleAdjustmentChange(BasicAdjustment.Highlights, e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          handleAdjustmentChange(BasicAdjustment.Highlights, e.target.value)
+        }
         step={1}
         value={adjustments.highlights}
         onDragStateChange={onDragStateChange}
@@ -235,7 +247,9 @@ export default memo(function BasicAdjustments({
         label={t('adjustments.basic.shadows')}
         max={100}
         min={-100}
-        onChange={(e: any) => handleAdjustmentChange(BasicAdjustment.Shadows, e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          handleAdjustmentChange(BasicAdjustment.Shadows, e.target.value)
+        }
         step={1}
         value={adjustments.shadows}
         onDragStateChange={onDragStateChange}
@@ -244,7 +258,9 @@ export default memo(function BasicAdjustments({
         label={t('adjustments.basic.whites')}
         max={100}
         min={-100}
-        onChange={(e: any) => handleAdjustmentChange(BasicAdjustment.Whites, e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          handleAdjustmentChange(BasicAdjustment.Whites, e.target.value)
+        }
         step={1}
         value={adjustments.whites}
         onDragStateChange={onDragStateChange}
@@ -253,7 +269,9 @@ export default memo(function BasicAdjustments({
         label={t('adjustments.basic.blacks')}
         max={100}
         min={-100}
-        onChange={(e: any) => handleAdjustmentChange(BasicAdjustment.Blacks, e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          handleAdjustmentChange(BasicAdjustment.Blacks, e.target.value)
+        }
         step={1}
         value={adjustments.blacks}
         onDragStateChange={onDragStateChange}

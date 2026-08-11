@@ -3,14 +3,22 @@ import { listen } from '@tauri-apps/api/event';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { toast } from 'react-toastify';
 import { Status } from '../components/ui/ExportImportProperties';
-import { useProcessStore } from '../store/useProcessStore';
+import { ImageFile, Progress, CullingSuggestions } from '../components/ui/AppProperties';
+import { ChannelConfig } from '../components/adjustments/Curves';
+import { WaveformData } from '../components/ui/AppProperties';
+import { useProcessStore, ExternalEditSession } from '../store/useProcessStore';
 import { useEditorStore } from '../store/useEditorStore';
 import { useUIStore } from '../store/useUIStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 
 interface TauriListenerProps {
   refreshAllFolderTrees: () => void;
-  handleSelectSubfolder: (path: string, isNewRoot?: boolean, preloadedImages?: any[], expandParents?: boolean) => void;
+  handleSelectSubfolder: (
+    path: string | null,
+    isNewRoot?: boolean,
+    preloadedImages?: ImageFile[],
+    expandParents?: boolean,
+  ) => void;
   refreshImageList: () => void;
   markGenerated: (path: string) => void;
 }
@@ -82,36 +90,38 @@ export function useTauriListeners({
     };
 
     registerListener(
-      listen('preview-update-uncropped', (event: any) => {
-        if (isEffectActive) useEditorStore.getState().setEditor({ uncroppedAdjustedPreviewUrl: event.payload });
+      listen('preview-update-uncropped', (event: { payload: unknown }) => {
+        if (isEffectActive)
+          useEditorStore.getState().setEditor({ uncroppedAdjustedPreviewUrl: event.payload as string | null });
       }),
     );
     registerListener(
-      listen('histogram-update', (event: any) => {
+      listen('histogram-update', (event: { payload: { path: string; data: unknown } }) => {
         if (isEffectActive && event.payload.path === useEditorStore.getState().selectedImage?.path) {
-          useEditorStore.getState().setEditor({ histogram: event.payload.data });
+          useEditorStore.getState().setEditor({ histogram: event.payload.data as ChannelConfig | null });
         }
       }),
     );
     registerListener(
-      listen('open-with-file', (event: any) => {
+      listen('open-with-file', (event: { payload: unknown }) => {
         if (isEffectActive) useProcessStore.getState().setProcess({ initialFileToOpen: event.payload as string });
       }),
     );
     registerListener(
-      listen('external-edit-session', (event: any) => {
-        if (isEffectActive) useProcessStore.getState().setProcess({ externalEditSession: event.payload });
+      listen('external-edit-session', (event: { payload: unknown }) => {
+        if (isEffectActive)
+          useProcessStore.getState().setProcess({ externalEditSession: event.payload as ExternalEditSession | null });
       }),
     );
     registerListener(
-      listen('waveform-update', (event: any) => {
+      listen('waveform-update', (event: { payload: { path: string; data: unknown } }) => {
         if (isEffectActive && event.payload.path === useEditorStore.getState().selectedImage?.path) {
-          useEditorStore.getState().setEditor({ waveform: event.payload.data });
+          useEditorStore.getState().setEditor({ waveform: event.payload.data as WaveformData | null });
         }
       }),
     );
     registerListener(
-      listen('thumbnail-progress', (event: any) => {
+      listen('thumbnail-progress', (event: { payload: { current: number; total: number } }) => {
         if (isEffectActive)
           useProcessStore
             .getState()
@@ -124,64 +134,73 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('thumbnail-generated', (event: any) => {
-        if (!isEffectActive) return;
-        const { path, thumbnailPath, rating, is_edited, data } = event.payload;
+      listen(
+        'thumbnail-generated',
+        (event: {
+          payload: { path: string; thumbnailPath?: string; rating?: number; is_edited?: boolean; data?: string };
+        }) => {
+          if (!isEffectActive) return;
+          const { path, thumbnailPath, rating, is_edited, data } = event.payload;
 
-        if (data && typeof data === 'string' && (data.startsWith('data:image') || data.startsWith('blob:'))) {
-          thumbnailBuffer.current[path] = data;
-          refs.current.markGenerated(path);
-        } else if (thumbnailPath) {
-          let resolvedUrl: string | null = null;
-          try {
-            resolvedUrl = convertFileSrc(thumbnailPath, 'asset');
-          } catch {
-            resolvedUrl = null;
-          }
-          if (!resolvedUrl) {
+          if (data && typeof data === 'string' && (data.startsWith('data:image') || data.startsWith('blob:'))) {
+            thumbnailBuffer.current[path] = data;
+            refs.current.markGenerated(path);
+          } else if (thumbnailPath) {
+            let resolvedUrl: string | null = null;
             try {
-              resolvedUrl = convertFileSrc(thumbnailPath);
+              resolvedUrl = convertFileSrc(thumbnailPath, 'asset');
             } catch {
               resolvedUrl = null;
             }
+            if (!resolvedUrl) {
+              try {
+                resolvedUrl = convertFileSrc(thumbnailPath);
+              } catch {
+                resolvedUrl = null;
+              }
+            }
+            if (!resolvedUrl) {
+              // Tauri 2.x asset:// protocol fallback – normalize absolute paths
+              const normalizedPath = thumbnailPath.startsWith('/')
+                ? `asset://localhost${thumbnailPath}`
+                : `asset://localhost/${thumbnailPath}`;
+              resolvedUrl = normalizedPath;
+            }
+            thumbnailBuffer.current[path] = resolvedUrl;
+            refs.current.markGenerated(path);
           }
-          if (!resolvedUrl) {
-            // Tauri 2.x asset:// protocol fallback – normalize absolute paths
-            const normalizedPath = thumbnailPath.startsWith('/')
-              ? `asset://localhost${thumbnailPath}`
-              : `asset://localhost/${thumbnailPath}`;
-            resolvedUrl = normalizedPath;
+          if (rating !== undefined) {
+            ratingBuffer.current[path] = rating;
           }
-          thumbnailBuffer.current[path] = resolvedUrl;
-          refs.current.markGenerated(path);
-        }
-        if (rating !== undefined) {
-          ratingBuffer.current[path] = rating;
-        }
-        if (is_edited !== undefined) {
-          editStatusBuffer.current[path] = is_edited;
-        }
-        if (thumbnailPath || data || rating !== undefined || is_edited !== undefined) {
-          scheduleFlush();
-        }
-      }),
+          if (is_edited !== undefined) {
+            editStatusBuffer.current[path] = is_edited;
+          }
+          if (thumbnailPath || data || rating !== undefined || is_edited !== undefined) {
+            scheduleFlush();
+          }
+        },
+      ),
     );
     registerListener(
-      listen('image-metadata-loaded', (event: any) => {
-        if (!isEffectActive) return;
-        const { path, rating, is_edited, tags } = event.payload;
+      listen(
+        'image-metadata-loaded',
+        (event: { payload: { path: string; rating?: number; is_edited?: boolean; tags?: string[] } }) => {
+          if (!isEffectActive) return;
+          const { path, rating, is_edited, tags } = event.payload;
 
-        useLibraryStore.getState().setLibrary((state) => ({
-          imageRatings: { ...state.imageRatings, [path]: rating },
-          imageList: state.imageList.map((img) =>
-            img.path === path ? { ...img, is_edited, tags: tags ?? img.tags } : img,
-          ),
-        }));
-      }),
+          useLibraryStore.getState().setLibrary((state) => ({
+            imageRatings: { ...state.imageRatings, [path]: rating ?? 0 },
+            imageList: state.imageList.map((img) =>
+              img.path === path ? { ...img, is_edited: is_edited ?? img.is_edited, tags: tags ?? img.tags } : img,
+            ),
+          }));
+        },
+      ),
     );
     registerListener(
-      listen('ai-model-download-start', (event: any) => {
-        if (isEffectActive) useProcessStore.getState().setProcess({ aiModelDownloadStatus: event.payload });
+      listen('ai-model-download-start', (event: { payload: unknown }) => {
+        if (isEffectActive)
+          useProcessStore.getState().setProcess({ aiModelDownloadStatus: event.payload as string | null });
       }),
     );
     registerListener(
@@ -196,8 +215,9 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('indexing-progress', (event: any) => {
-        if (isEffectActive) useProcessStore.getState().setProcess({ indexingProgress: event.payload });
+      listen('indexing-progress', (event: { payload: unknown }) => {
+        if (isEffectActive)
+          useProcessStore.getState().setProcess({ indexingProgress: event.payload as Progress | undefined });
       }),
     );
     registerListener(
@@ -212,12 +232,13 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('batch-export-progress', (event: any) => {
-        if (isEffectActive) useProcessStore.getState().setExportState({ progress: event.payload });
+      listen('batch-export-progress', (event: { payload: unknown }) => {
+        if (isEffectActive)
+          useProcessStore.getState().setExportState({ progress: event.payload as Progress | undefined });
       }),
     );
     registerListener(
-      listen('export-complete', (event: any) => {
+      listen('export-complete', (event: { payload: unknown }) => {
         if (isEffectActive) {
           const exportedPaths: string[] = Array.isArray(event.payload) ? event.payload : [];
           useProcessStore.getState().setExportState({
@@ -228,7 +249,7 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('export-error', (event: any) => {
+      listen('export-error', (event: { payload: unknown }) => {
         if (isEffectActive)
           useProcessStore.getState().setExportState({
             status: Status.Error,
@@ -242,7 +263,7 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('import-start', (event: any) => {
+      listen('import-start', (event: { payload: { total: number } }) => {
         if (isEffectActive)
           useProcessStore.getState().setImportState({
             errorMessage: '',
@@ -253,7 +274,7 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('import-progress', (event: any) => {
+      listen('import-progress', (event: { payload: { path: string; current: number; total: number } }) => {
         if (isEffectActive)
           useProcessStore.getState().setImportState({
             path: event.payload.path,
@@ -276,7 +297,7 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('import-error', (event: any) => {
+      listen('import-error', (event: { payload: unknown }) => {
         if (isEffectActive)
           useProcessStore.getState().setImportState({
             status: Status.Error,
@@ -285,7 +306,7 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('denoise-progress', (event: any) => {
+      listen('denoise-progress', (event: { payload: unknown }) => {
         if (isEffectActive)
           useUIStore.getState().setUI((state) => ({
             denoiseModalState: { ...state.denoiseModalState, progressMessage: event.payload as string },
@@ -293,16 +314,16 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('denoise-complete', (event: any) => {
+      listen('denoise-complete', (event: { payload: unknown }) => {
         if (isEffectActive) {
-          const payload = event.payload;
+          const payload = event.payload as Record<string, unknown> | string | null;
           const isObject = typeof payload === 'object' && payload !== null;
           useUIStore.getState().setUI((state) => ({
             denoiseModalState: {
               ...state.denoiseModalState,
               isProcessing: false,
-              previewBase64: isObject ? payload.denoised : payload,
-              originalBase64: isObject ? payload.original : null,
+              previewBase64: isObject ? ((payload as Record<string, unknown>).denoised as string) : payload,
+              originalBase64: isObject ? ((payload as Record<string, unknown>).original as string) : null,
               progressMessage: null,
             },
           }));
@@ -310,7 +331,7 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('denoise-error', (event: any) => {
+      listen('denoise-error', (event: { payload: unknown }) => {
         if (isEffectActive) {
           useUIStore.getState().setUI((state) => ({
             denoiseModalState: {
@@ -324,24 +345,26 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('wgpu-frame-ready', (event: any) => {
+      listen('wgpu-frame-ready', (event: { payload: { path?: string } }) => {
         if (isEffectActive && event.payload?.path === useEditorStore.getState().selectedImage?.path) {
           useEditorStore.getState().setEditor({ hasRenderedFirstFrame: true });
         }
       }),
     );
     registerListener(
-      listen('panorama-progress', (event: any) => {
+      listen('panorama-progress', (event: { payload: unknown }) => {
         if (isEffectActive) {
           useUIStore.getState().setUI((state) => {
             if (state.panoramaModalState.finalImageBase64 || state.panoramaModalState.error) return state;
-            return { panoramaModalState: { ...state.panoramaModalState, progressMessage: event.payload } };
+            return {
+              panoramaModalState: { ...state.panoramaModalState, progressMessage: event.payload as string | null },
+            };
           });
         }
       }),
     );
     registerListener(
-      listen('panorama-complete', (event: any) => {
+      listen('panorama-complete', (event: { payload: { base64: string } }) => {
         if (isEffectActive) {
           useUIStore.getState().setUI((state) => ({
             panoramaModalState: {
@@ -356,7 +379,7 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('panorama-error', (event: any) => {
+      listen('panorama-error', (event: { payload: unknown }) => {
         if (isEffectActive) {
           useUIStore.getState().setUI((state) => ({
             panoramaModalState: {
@@ -371,21 +394,21 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('panorama-warning', (event: any) => {
+      listen('panorama-warning', (event: { payload: unknown }) => {
         if (isEffectActive) {
           toast.warning(String(event.payload), { autoClose: 5000 });
         }
       }),
     );
     registerListener(
-      listen('hdr-progress', (event: any) => {
+      listen('hdr-progress', (event: { payload: unknown }) => {
         if (isEffectActive) {
           useUIStore.getState().setUI((state) => {
             if (state.hdrModalState.finalImageBase64 || state.hdrModalState.error) return state;
             return {
               hdrModalState: {
                 ...state.hdrModalState,
-                progressMessage: event.payload,
+                progressMessage: event.payload as string | null,
               },
             };
           });
@@ -393,7 +416,7 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('hdr-complete', (event: any) => {
+      listen('hdr-complete', (event: { payload: { base64: string } }) => {
         if (isEffectActive) {
           useUIStore.getState().setUI((state) => ({
             hdrModalState: {
@@ -408,7 +431,7 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('hdr-error', (event: any) => {
+      listen('hdr-error', (event: { payload: unknown }) => {
         if (isEffectActive) {
           useUIStore.getState().setUI((state) => ({
             hdrModalState: {
@@ -423,13 +446,13 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('culling-start', (event: any) => {
+      listen('culling-start', (event: { payload: unknown }) => {
         if (isEffectActive) {
           useUIStore.getState().setUI((state) => ({
             cullingModalState: {
               ...state.cullingModalState,
               isOpen: true,
-              progress: { current: 0, total: event.payload, stage: 'Initializing...' },
+              progress: { current: 0, total: event.payload as number, stage: 'Initializing...' },
               suggestions: null,
               error: null,
             },
@@ -438,25 +461,32 @@ export function useTauriListeners({
       }),
     );
     registerListener(
-      listen('culling-progress', (event: any) => {
-        if (isEffectActive) {
-          useUIStore
-            .getState()
-            .setUI((state) => ({ cullingModalState: { ...state.cullingModalState, progress: event.payload } }));
-        }
-      }),
-    );
-    registerListener(
-      listen('culling-complete', (event: any) => {
+      listen('culling-progress', (event: { payload: unknown }) => {
         if (isEffectActive) {
           useUIStore.getState().setUI((state) => ({
-            cullingModalState: { ...state.cullingModalState, progress: null, suggestions: event.payload },
+            cullingModalState: {
+              ...state.cullingModalState,
+              progress: event.payload as { current: number; total: number; stage: string } | null,
+            },
           }));
         }
       }),
     );
     registerListener(
-      listen('culling-error', (event: any) => {
+      listen('culling-complete', (event: { payload: unknown }) => {
+        if (isEffectActive) {
+          useUIStore.getState().setUI((state) => ({
+            cullingModalState: {
+              ...state.cullingModalState,
+              progress: null,
+              suggestions: event.payload as CullingSuggestions | null,
+            },
+          }));
+        }
+      }),
+    );
+    registerListener(
+      listen('culling-error', (event: { payload: unknown }) => {
         if (isEffectActive) {
           useUIStore.getState().setUI((state) => ({
             cullingModalState: { ...state.cullingModalState, progress: null, error: String(event.payload) },

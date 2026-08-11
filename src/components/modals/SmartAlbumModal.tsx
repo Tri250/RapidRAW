@@ -177,12 +177,12 @@ export default function SmartAlbumModal({ isOpen, onClose, images }: SmartAlbumM
                     <input
                       className="w-full bg-bg-primary text-text-primary border border-border rounded-md px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-accent"
                       onChange={(e) => {
-                        const val = condition.value || [0, 0];
+                        const val = (condition.value as number[]) || [0, 0];
                         updateCondition(index, { value: [Number(e.target.value), val[1]] });
                       }}
                       placeholder="Min"
                       type="number"
-                      value={condition.value?.[0] ?? ''}
+                      value={((condition.value as number[])?.[0] ?? '') as unknown as string | number}
                     />
                     <Text variant={TextVariants.small} color={TextColors.secondary}>
                       -
@@ -190,12 +190,12 @@ export default function SmartAlbumModal({ isOpen, onClose, images }: SmartAlbumM
                     <input
                       className="w-full bg-bg-primary text-text-primary border border-border rounded-md px-2 py-1.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-accent"
                       onChange={(e) => {
-                        const val = condition.value || [0, 0];
+                        const val = (condition.value as number[]) || [0, 0];
                         updateCondition(index, { value: [val[0], Number(e.target.value)] });
                       }}
                       placeholder="Max"
                       type="number"
-                      value={condition.value?.[1] ?? ''}
+                      value={((condition.value as number[])?.[1] ?? '') as unknown as string | number}
                     />
                   </div>
                 ) : condition.field === 'isEdited' ? (
@@ -227,7 +227,7 @@ export default function SmartAlbumModal({ isOpen, onClose, images }: SmartAlbumM
                         ? 'number'
                         : 'text'
                     }
-                    value={condition.value ?? ''}
+                    value={(condition.value ?? '') as string | number}
                   />
                 )}
                 {conditions.length > 1 && (

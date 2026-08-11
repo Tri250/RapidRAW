@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { INITIAL_PORTRAIT_ADJUSTMENTS, INITIAL_ADJUSTMENTS, normalizeLoadedAdjustments } from './adjustments';
+import {
+  INITIAL_PORTRAIT_ADJUSTMENTS,
+  INITIAL_ADJUSTMENTS,
+  normalizeLoadedAdjustments,
+  Adjustments,
+} from './adjustments';
 
 describe('INITIAL_PORTRAIT_ADJUSTMENTS', () => {
   it('has all required fields with default zero values', () => {
@@ -20,7 +25,7 @@ describe('INITIAL_ADJUSTMENTS', () => {
 
 describe('normalizeLoadedAdjustments', () => {
   it('returns defaults for null input', () => {
-    const result = normalizeLoadedAdjustments(null as any);
+    const result = normalizeLoadedAdjustments(null as unknown as Adjustments);
     expect(result.portrait.skinSmoothingStrength).toBe(0);
   });
 
@@ -32,7 +37,7 @@ describe('normalizeLoadedAdjustments', () => {
         skinSmoothingStrength: 50,
       },
     };
-    const result = normalizeLoadedAdjustments(loaded as any);
+    const result = normalizeLoadedAdjustments(loaded as unknown as Adjustments);
     expect(result.portrait.skinSmoothingStrength).toBe(50);
   });
 });

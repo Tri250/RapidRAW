@@ -180,7 +180,7 @@ function serializeValue(value: unknown, depth: number, seen: WeakSet<object>): u
   }
 
   if (typeof value === 'function') {
-    return `[Function ${(value as Function).name || 'anonymous'}]`;
+    return `[Function ${(value as (...args: unknown[]) => unknown).name || 'anonymous'}]`;
   }
 
   if (typeof value === 'bigint') {

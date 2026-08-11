@@ -108,7 +108,10 @@ export default function ColorPanelSwitcher() {
     };
 
     const handlePaste = () => {
-      const copiedSection = useEditorStore.getState().copiedSectionAdjustments;
+      const copiedSection = useEditorStore.getState().copiedSectionAdjustments as {
+        section: string;
+        values: Record<string, unknown>;
+      } | null;
       if (!copiedSection || copiedSection.section !== sectionName) return;
       setAdjustments((prev: Adjustments) => ({
         ...prev,
@@ -135,7 +138,10 @@ export default function ColorPanelSwitcher() {
       }));
     };
 
-    const currentCopiedSection = useEditorStore.getState().copiedSectionAdjustments;
+    const currentCopiedSection = useEditorStore.getState().copiedSectionAdjustments as {
+      section: string;
+      values: Record<string, unknown>;
+    } | null;
     const isPasteAllowed = currentCopiedSection && currentCopiedSection.section === sectionName;
     const translatedSection = t(`editor.adjustments.sections.${sectionName}` as any);
 

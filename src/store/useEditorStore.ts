@@ -73,7 +73,7 @@ interface EditorState {
   imageProcessingSelfTestResult: { success: boolean; details: Record<string, { ok: boolean; message: string }> } | null;
 
   // Clipboard
-  copiedSectionAdjustments: any | null;
+  copiedSectionAdjustments: unknown | null;
   copiedMask: MaskContainer | null;
   copiedAdjustments: Adjustments | null;
 
@@ -151,20 +151,17 @@ export const useEditorStore = create<EditorState>((set) => ({
       // and the heavy base64 is only needed for the active render, not history.
       const lightweightAdj = {
         ...newAdj,
-        maskContainers: newAdj.maskContainers?.map((mc: any) => ({
+        masks: newAdj.masks?.map((mc: MaskContainer) => ({
           ...mc,
-          masks: mc.masks?.map((m: any) => ({
-            ...m,
-            subMasks: m.subMasks?.map((sm: any) => ({
-              ...sm,
-              // Replace heavy bitmap data with a placeholder indicator.
-              // When this entry is restored via undo/redo, the mask will
-              // be re-rendered from its definition parameters.
-              bitmapData: sm.bitmapData ? '__mask_ref__' : undefined,
-            })),
+          subMasks: mc.subMasks?.map((sm) => ({
+            ...sm,
+            // Replace heavy bitmap data with a placeholder indicator.
+            // When this entry is restored via undo/redo, the mask will
+            // be re-rendered from its definition parameters.
+            bitmapData: (sm as unknown as Record<string, unknown>).bitmapData ? '__mask_ref__' : undefined,
           })),
         })),
-      };
+      } as Adjustments;
       newHistory.push(lightweightAdj);
       // Cap at 20 entries to limit memory usage.
       if (newHistory.length > 20) newHistory.shift();

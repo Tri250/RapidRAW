@@ -246,7 +246,7 @@ pub async fn cull_images(
         match res {
             Ok(data) => successful_analyses.push(data),
             Err((path, error)) => {
-                eprintln!("Failed to analyze image {}: {}", path, error);
+                log::error!("Failed to analyze image {}: {}", path, error);
                 failed_paths.push(path);
             }
         }

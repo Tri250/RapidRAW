@@ -183,7 +183,7 @@ fn stitch_images(image_paths: Vec<String>, app_handle: AppHandle) -> Result<Dyna
     }
 
     let _ = app_handle.emit("panorama-progress", "Starting panorama process...");
-    println!(
+    log::info!(
         "Starting panorama stitching process for {} images...",
         image_paths.len()
     );
@@ -192,7 +192,7 @@ fn stitch_images(image_paths: Vec<String>, app_handle: AppHandle) -> Result<Dyna
 
     let start_time = Instant::now();
     let _ = app_handle.emit("panorama-progress", "Loading and preparing images...");
-    println!("Loading and preparing images (in parallel)...");
+    log::info!("Loading and preparing images (in parallel)...");
     let brief_pairs = processing::generate_brief_pairs()?;
 
     let image_data_results: Vec<Result<ImageInfo, String>> = image_paths
@@ -209,7 +209,7 @@ fn stitch_images(image_paths: Vec<String>, app_handle: AppHandle) -> Result<Dyna
                         .to_string_lossy()
                 ),
             );
-            println!("  - Processing '{}'", filename);
+            log::info!("  - Processing '{}'", filename);
 
             let file_bytes = fs::read(filename)
                 .map_err(|e| format!("Failed to read image {}: {}", filename, e))?;
@@ -245,7 +245,7 @@ fn stitch_images(image_paths: Vec<String>, app_handle: AppHandle) -> Result<Dyna
             let low_detail_mask = processing::generate_low_detail_mask(&gray_full);
 
             let features = processing::find_features(&gray_small, &brief_pairs);
-            println!("    Found {} features in '{}'", features.len(), filename);
+            log::info!("    Found {} features in '{}'", features.len(), filename);
 
             Ok(ImageInfo {
                 id: i,
@@ -266,14 +266,14 @@ fn stitch_images(image_paths: Vec<String>, app_handle: AppHandle) -> Result<Dyna
         }
     }
 
-    println!(
+    log::info!(
         "Image loading and feature detection completed in {:.2?}\n",
         start_time.elapsed()
     );
 
     let start_time = Instant::now();
     let _ = app_handle.emit("panorama-progress", "Finding image matches...");
-    println!("Finding all pairwise matches (in parallel)...");
+    log::info!("Finding all pairwise matches (in parallel)...");
     let mut pairwise_matches: HashMap<(usize, usize), MatchInfo> = HashMap::new();
 
     let pairs_to_check: Vec<(usize, usize)> = (0..image_data.len())
@@ -298,18 +298,18 @@ fn stitch_images(image_paths: Vec<String>, app_handle: AppHandle) -> Result<Dyna
                 processing::find_homography_ransac(&initial_matches, &keypoints1, &keypoints2)
                 && inliers.len() >= processing::MIN_INLIERS_FOR_CONNECTION
             {
-                println!(
-                    "  - Good match found: '{}' <-> '{}' ({} inliers)",
-                    Path::new(&image_data[i].filename)
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy(),
-                    Path::new(&image_data[j].filename)
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy(),
-                    inliers.len()
-                );
+                log::info!(
+                "  - Good match found: '{}' <-> '{}' ({} inliers)",
+                Path::new(&image_data[i].filename)
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy(),
+                Path::new(&image_data[j].filename)
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy(),
+                inliers.len()
+            );
 
                 let inlier_points: Vec<(nalgebra::Point2<f64>, nalgebra::Point2<f64>)> = inliers
                     .iter()
@@ -345,7 +345,7 @@ fn stitch_images(image_paths: Vec<String>, app_handle: AppHandle) -> Result<Dyna
     for result in match_results.into_iter().flatten() {
         pairwise_matches.insert(result.0, result.1);
     }
-    println!(
+    log::info!(
         "Pairwise matching completed in {:.2?}\n",
         start_time.elapsed()
     );
@@ -359,7 +359,7 @@ fn stitch_images(image_paths: Vec<String>, app_handle: AppHandle) -> Result<Dyna
 
     let start_time = Instant::now();
     let _ = app_handle.emit("panorama-progress", "Determining stitching order...");
-    println!("Determining stitching order...");
+    log::info!("Determining stitching order...");
     let (ordered_indices, global_homographies) =
         build_stitching_order(&image_data, &pairwise_matches)?;
 
@@ -377,7 +377,7 @@ fn stitch_images(image_paths: Vec<String>, app_handle: AppHandle) -> Result<Dyna
                 .to_string()
         })
         .collect();
-    println!("Stitching order determined: {:?}", ordered_filenames);
+    log::info!("Stitching order determined: {:?}", ordered_filenames);
     let _ = app_handle.emit(
         "panorama-progress",
         format!("Stitching order: {}", ordered_filenames.join(" -> ")),
@@ -391,17 +391,17 @@ fn stitch_images(image_paths: Vec<String>, app_handle: AppHandle) -> Result<Dyna
             "Warning: {} image(s) could not be matched and will be excluded.",
             unstitched_count
         );
-        println!("{}", warning_msg);
+        log::warn!("{}", warning_msg);
         let _ = app_handle.emit("panorama-warning", warning_msg);
     }
-    println!(
+    log::info!(
         "Global homography calculation completed in {:.2?}\n",
         start_time.elapsed()
     );
 
     let start_time = Instant::now();
     let _ = app_handle.emit("panorama-progress", "Warping and blending images...");
-    println!("Warping and blending full-resolution images with progressive optimal seams...");
+    log::info!("Warping and blending full-resolution images with progressive optimal seams...");
 
     let panorama = stitching::progressive_seam_stitcher(
         &stitched_images_info,
@@ -409,7 +409,7 @@ fn stitch_images(image_paths: Vec<String>, app_handle: AppHandle) -> Result<Dyna
         app_handle.clone(),
     );
 
-    println!("Stitching completed in {:.2?}\n", start_time.elapsed());
+    log::info!("Stitching completed in {:.2?}\n", start_time.elapsed());
 
     let _ = app_handle.emit("panorama-progress", "Finalizing panorama...");
 

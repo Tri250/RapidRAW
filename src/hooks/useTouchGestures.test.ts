@@ -15,7 +15,7 @@ describe('usePinchZoom', () => {
     const addEventListener = vi.spyOn(el, 'addEventListener');
     const { result } = renderHook(() => {
       const ref = useRef<HTMLElement>(el);
-      return usePinchZoom(ref as any, { onScaleChange: vi.fn() });
+      return usePinchZoom(ref as unknown as React.RefObject<HTMLElement>, { onScaleChange: vi.fn() });
     });
     expect(addEventListener).toHaveBeenCalledWith('touchstart', expect.any(Function), { passive: false });
     expect(addEventListener).toHaveBeenCalledWith('touchmove', expect.any(Function), { passive: false });
@@ -35,7 +35,7 @@ describe('useTwoFingerRotate', () => {
     const addEventListener = vi.spyOn(el, 'addEventListener');
     renderHook(() => {
       const ref = useRef<HTMLElement>(el);
-      return useTwoFingerRotate(ref as any, { onRotationChange: vi.fn() });
+      return useTwoFingerRotate(ref as unknown as React.RefObject<HTMLElement>, { onRotationChange: vi.fn() });
     });
     expect(addEventListener).toHaveBeenCalledWith('touchstart', expect.any(Function), { passive: false });
     expect(addEventListener).toHaveBeenCalledWith('touchmove', expect.any(Function), { passive: false });
@@ -55,7 +55,7 @@ describe('useCanvasPan', () => {
     const addEventListener = vi.spyOn(el, 'addEventListener');
     renderHook(() => {
       const ref = useRef<HTMLElement>(el);
-      return useCanvasPan(ref as any, { onPanChange: vi.fn() });
+      return useCanvasPan(ref as unknown as React.RefObject<HTMLElement>, { onPanChange: vi.fn() });
     });
     expect(addEventListener).toHaveBeenCalledWith('touchstart', expect.any(Function), { passive: false });
     expect(addEventListener).toHaveBeenCalledWith('touchmove', expect.any(Function), { passive: false });
