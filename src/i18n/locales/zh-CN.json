@@ -549,7 +549,13 @@
       "openAiPanel": "打开 AI 工具",
       "openMetadataPanel": "打开元数据",
       "openPresetsPanel": "打开预设",
-      "openExportPanel": "打开导出"
+      "openExportPanel": "打开导出",
+      "openLibraryFailed": "打开图库失败。",
+      "openFolderDialogFailed": "打开文件夹选择对话框失败。",
+      "loadImagesFailed": "加载所选文件夹中的图片失败。",
+      "loadAlbumFailed": "加载相册失败。",
+      "loadFolderTreeFailed": "加载文件夹树失败。",
+      "restoreSessionFailed": "恢复会话失败，文件夹可能已被移动或删除。"
     },
     "androidShare": {
       "cancel": "取消",

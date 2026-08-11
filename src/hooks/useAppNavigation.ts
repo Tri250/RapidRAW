@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { homeDir } from '@tauri-apps/api/path';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { useEditorStore } from '../store/useEditorStore';
 import { useUIStore } from '../store/useUIStore';
@@ -41,6 +42,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
     prevAdjustmentsRef,
   } = refs;
 
+  const { t } = useTranslation();
   const imageSelectGenerationRef = useRef(0);
   const folderSelectGenerationRef = useRef(0);
 
@@ -400,7 +402,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
         }
       } catch (err) {
         console.error('Failed to load folder contents:', err);
-        toast.error('Failed to load images from the selected folder.');
+        toast.error(t('editor.android.loadImagesFailed' as any));
       } finally {
         if (folderSelectGenerationRef.current === generation) {
           useLibraryStore.getState().setLibrary({ isViewLoading: false });
@@ -445,7 +447,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
         });
       } catch (err) {
         console.error('Failed to load album images:', err);
-        toast.error(`Failed to load album: ${err}`);
+        toast.error(t('editor.android.loadAlbumFailed' as any));
       } finally {
         setLibrary({ isViewLoading: false });
       }
@@ -488,7 +490,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
             });
             setLibrary({ folderTrees: [...folderTrees, newTree] });
           } catch (e) {
-            toast.error(`Failed to load folder tree: ${e}`);
+            toast.error(t('editor.android.loadFolderTreeFailed' as any));
           } finally {
             setLibrary({ isTreeLoading: false });
           }
@@ -497,7 +499,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
       }
     } catch (err) {
       console.error(isAndroid ? 'Failed to open Android library root:' : 'Failed to open directory dialog:', err);
-      toast.error(isAndroid ? 'Failed to open library.' : 'Failed to open folder selection dialog.');
+      toast.error(isAndroid ? t('editor.android.openLibraryFailed' as any) : t('editor.android.openFolderDialogFailed' as any));
     }
   };
 
@@ -597,7 +599,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
 
     restore().catch((err) => {
       console.error('Failed to restore session:', err);
-      toast.error('Failed to restore session. A folder may have been moved or deleted.');
+      toast.error(t('editor.android.restoreSessionFailed' as any));
       handleGoHome();
       useLibraryStore.getState().setLibrary({ isTreeLoading: false });
     });

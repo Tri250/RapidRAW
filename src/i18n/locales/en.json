@@ -549,7 +549,13 @@
       "openAiPanel": "Open AI tools",
       "openMetadataPanel": "Open metadata",
       "openPresetsPanel": "Open presets",
-      "openExportPanel": "Open export"
+      "openExportPanel": "Open export",
+      "openLibraryFailed": "Failed to open library.",
+      "openFolderDialogFailed": "Failed to open folder selection dialog.",
+      "loadImagesFailed": "Failed to load images from the selected folder.",
+      "loadAlbumFailed": "Failed to load album.",
+      "loadFolderTreeFailed": "Failed to load folder tree.",
+      "restoreSessionFailed": "Failed to restore session. A folder may have been moved or deleted."
     },
     "androidShare": {
       "cancel": "Cancel",
