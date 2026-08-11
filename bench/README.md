@@ -1,6 +1,9 @@
 # UI Performance Benchmark
+
 Deterministic replay for comparing UI smoothness before/after a change.
+
 ## Usage
+
 1. Run the build you want to measure (`npm start`, or a packaged build) and get to the
    library view with at least one image loaded.
 2. Open devtools (right-click → Inspect) and switch to the Console tab.
@@ -14,7 +17,9 @@ Deterministic replay for comparing UI smoothness before/after a change.
    ```
    node bench/analyze.mjs bench/out/before.json bench/out/after.json
    ```
+
 ## Why it's built this way
+
 - **Self-measuring, not devtools-export-dependent.** `replay.js` times itself with
   `requestAnimationFrame`/`performance.now()` (standard web APIs) rather than relying on
   a devtools Timeline recording. Tauri uses a different webview per OS — WebKitGTK on
@@ -32,8 +37,10 @@ Deterministic replay for comparing UI smoothness before/after a change.
   is bigger than the run-to-run noise.
 - **Per-phase frame attribution.** Frame timing is bucketed into the `scroll`, `open`,
   and `edit` windows separately (not just one number for the whole run), so a result
-  points at *which* interaction got slower instead of just "the run as a whole".
+  points at _which_ interaction got slower instead of just "the run as a whole".
+
 ## Known limitations
+
 - Numbers are only comparable **on the same machine** (same window size, same display
   scaling). A slider's pixel-delta → value-delta depends on its on-screen width, so
   results aren't meaningful across different maintainers' machines — only before/after
@@ -54,7 +61,7 @@ Deterministic replay for comparing UI smoothness before/after a change.
   phase still times out, check `document.querySelectorAll('[data-bench-id]')` in the
   console to confirm the build you're testing actually contains the marker.
 - This is a general smoothness/regression check, not a profiler. It won't tell you
-  *why* something is slow — use devtools Timeline/Performance recording by hand for
+  _why_ something is slow — use devtools Timeline/Performance recording by hand for
   root-causing, and this script for confirming a fix actually helped.
 - Still requires a manual paste-and-save per run (devtools console access, `copy()` to
   clipboard, write `bench/out/<name>.json` by hand). There's no CI/headless runner —

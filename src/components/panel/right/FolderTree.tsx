@@ -711,7 +711,9 @@ export default function FolderTree({
   const filteredAlbumTree = useMemo(() => {
     let base = albumTree;
     if (isSearching) {
-      base = base.map((item: any) => filterAlbumTree(item, trimmedQuery)).filter((t: any): t is AlbumItem => t !== null);
+      base = base
+        .map((item: any) => filterAlbumTree(item, trimmedQuery))
+        .filter((t: any): t is AlbumItem => t !== null);
     }
     return base;
   }, [albumTree, trimmedQuery, isSearching]);
@@ -774,7 +776,9 @@ export default function FolderTree({
       onMouseLeave={() => setIsHovering(false)}
     >
       <div className="p-3 flex justify-between items-center shrink-0 border-b border-surface gap-2 flex-wrap">
-        <Text variant={TextVariants.title} className="truncate min-w-0">{t('library.folders.sourcesTitle', 'Sources')}</Text>
+        <Text variant={TextVariants.title} className="truncate min-w-0">
+          {t('library.folders.sourcesTitle', 'Sources')}
+        </Text>
       </div>
 
       <div className="p-2 flex flex-col flex-1 min-h-0">

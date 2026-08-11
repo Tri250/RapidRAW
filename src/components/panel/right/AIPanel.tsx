@@ -211,7 +211,9 @@ const ConnectionStatus = ({
       hoverContent = (
         <div className="w-full mt-1">
           <div className="flex justify-between items-center mb-1.5 gap-2">
-            <Text variant={TextVariants.small} className="truncate min-w-0">{t('editor.ai.connection.monthlyUsage')}</Text>
+            <Text variant={TextVariants.small} className="truncate min-w-0">
+              {t('editor.ai.connection.monthlyUsage')}
+            </Text>
             <Text variant={TextVariants.small}>
               {t('settings.processing.ai.cloud.signedIn.usageStats', { requests: reqs, limit: limit })}
             </Text>
@@ -1221,7 +1223,9 @@ export default function AIPanel() {
     >
       <div className="flex flex-col h-full select-none overflow-hidden" onContextMenu={handlePanelContextMenu}>
         <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface gap-2 flex-wrap">
-          <Text variant={TextVariants.title} className="truncate min-w-0">{t('editor.ai.inpaintingTitle')}</Text>
+          <Text variant={TextVariants.title} className="truncate min-w-0">
+            {t('editor.ai.inpaintingTitle')}
+          </Text>
           <button
             className="p-2 rounded-full hover:bg-surface transition-colors"
             onClick={handleResetAllAiEdits}

@@ -555,6 +555,7 @@
       "loadImagesFailed": "加载所选文件夹中的图片失败。",
       "loadAlbumFailed": "加载相册失败。",
       "loadFolderTreeFailed": "加载文件夹树失败。",
+      "loadImageFailed": "加载图片失败。",
       "restoreSessionFailed": "恢复会话失败，文件夹可能已被移动或删除。"
     },
     "androidShare": {
@@ -2488,6 +2489,14 @@
     "representative": "代表性照片",
     "splashBackground": "启动页背景",
     "minimizeWindow": "最小化窗口",
-    "maximizeWindow": "最大化窗口"
+    "maximizeWindow": "最大化窗口",
+    "appTitle": "RapidRAW",
+    "errorBoundary": {
+      "icon": "⚠️",
+      "title": "出现错误",
+      "message": "应用程序发生意外错误，您的编辑内容已保存在 sidecar 文件中，不会丢失。",
+      "recover": "尝试恢复",
+      "restart": "重启应用"
+    }
   }
 }

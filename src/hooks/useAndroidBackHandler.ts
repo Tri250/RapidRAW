@@ -144,7 +144,10 @@ export function useAndroidBackHandler() {
       }
       // Show a brief toast so the user knows the preview will reload
       if (didReleasePreviews && editor.selectedImage) {
-        toast.info(t('editor.android.lowMemoryReload' as any, { defaultValue: 'Reloading preview...' }), { autoClose: 2000, hideProgressBar: true });
+        toast.info(t('editor.android.lowMemoryReload' as any, { defaultValue: 'Reloading preview...' }), {
+          autoClose: 2000,
+          hideProgressBar: true,
+        });
       }
     };
 

@@ -161,7 +161,11 @@ export function useAiMasking() {
       cleanupAbortRef.current = cleanupAbort;
       const cleanupTimeout = setTimeout(() => {
         cleanupAbort.abort();
-        toast.error(t('editor.ai.timeout.cleanup', { defaultValue: 'Cleanup timed out. Please check your network and try again.' }));
+        toast.error(
+          t('editor.ai.timeout.cleanup', {
+            defaultValue: 'Cleanup timed out. Please check your network and try again.',
+          }),
+        );
       }, AI_CLEANUP_TIMEOUT_MS);
 
       try {
@@ -247,7 +251,11 @@ export function useAiMasking() {
       generativeAbortRef.current = genAbort;
       const genTimeout = setTimeout(() => {
         genAbort.abort();
-        toast.error(t('editor.ai.timeout.replace', { defaultValue: 'AI Replace timed out. Please check your network and try again.' }));
+        toast.error(
+          t('editor.ai.timeout.replace', {
+            defaultValue: 'AI Replace timed out. Please check your network and try again.',
+          }),
+        );
       }, AI_GENERATIVE_TIMEOUT_MS);
 
       try {
@@ -294,7 +302,9 @@ export function useAiMasking() {
           return;
         }
         patchesSentToBackend.delete(patchId);
-        toast.error(formatAiError(t, t('editor.ai.generativeReplace.failed', { defaultValue: 'Generative Replace failed' }), err));
+        toast.error(
+          formatAiError(t, t('editor.ai.generativeReplace.failed', { defaultValue: 'Generative Replace failed' }), err),
+        );
         setAdjustments((prev: Adjustments) => ({
           ...prev,
           aiPatches: prev.aiPatches.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: false } : p)),
@@ -321,7 +331,11 @@ export function useAiMasking() {
           const entries = await invoke<Array<{ id: string; filePresent: boolean }>>('get_ai_model_status');
           const lamaEntry = entries.find((e) => e.id === 'lama');
           if (lamaEntry && !lamaEntry.filePresent) {
-            toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+            toast.info(
+              t('editor.ai.modelStatus.waitForDownload', {
+                defaultValue: 'AI model is still downloading, please wait…',
+              }),
+            );
             return;
           }
         } catch {
@@ -337,7 +351,11 @@ export function useAiMasking() {
       quickEraseAbortRef.current = abortController;
       const quickEraseTimeout = setTimeout(() => {
         abortController.abort();
-        toast.error(t('editor.ai.quickEraseTimeout', { defaultValue: 'Quick Erase timed out. Please check your network or try again.' }));
+        toast.error(
+          t('editor.ai.quickEraseTimeout', {
+            defaultValue: 'Quick Erase timed out. Please check your network or try again.',
+          }),
+        );
       }, AI_GENERATIVE_TIMEOUT_MS);
 
       // Token only needed for cloud mode (aiProvider already resolved above).
@@ -513,7 +531,9 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error(t('editor.ai.timeout.mask', { defaultValue: 'AI Mask timed out. Please check your network and try again.' }));
+        toast.error(
+          t('editor.ai.timeout.mask', { defaultValue: 'AI Mask timed out. Please check your network and try again.' }),
+        );
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -587,13 +607,20 @@ export function useAiMasking() {
       if (aiProvider === 'cpu') {
         try {
           const entries = await invoke<Array<{ id: string; filePresent: boolean }>>('get_ai_model_status');
-          const samReady = entries.some((e) => e.id === 'samEncoder' && e.filePresent) &&
-                          entries.some((e) => e.id === 'samDecoder' && e.filePresent);
+          const samReady =
+            entries.some((e) => e.id === 'samEncoder' && e.filePresent) &&
+            entries.some((e) => e.id === 'samDecoder' && e.filePresent);
           if (!samReady) {
-            toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+            toast.info(
+              t('editor.ai.modelStatus.waitForDownload', {
+                defaultValue: 'AI model is still downloading, please wait…',
+              }),
+            );
             return;
           }
-        } catch { /* proceed anyway */ }
+        } catch {
+          /* proceed anyway */
+        }
       }
 
       maskAbortRef.current?.abort();
@@ -601,7 +628,11 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error(t('editor.ai.timeout.subjectMask', { defaultValue: 'AI Subject Mask timed out. Please check your network and try again.' }));
+        toast.error(
+          t('editor.ai.timeout.subjectMask', {
+            defaultValue: 'AI Subject Mask timed out. Please check your network and try again.',
+          }),
+        );
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -650,7 +681,9 @@ export function useAiMasking() {
           return;
         }
         patchesSentToBackend.delete(subMaskId);
-        toast.error(formatAiError(t, t('editor.ai.subjectMask.failed', { defaultValue: 'AI Subject Mask failed' }), error));
+        toast.error(
+          formatAiError(t, t('editor.ai.subjectMask.failed', { defaultValue: 'AI Subject Mask failed' }), error),
+        );
       } finally {
         clearTimeout(maskTimeout);
         if (maskAbortRef.current === maskAbort) {
@@ -673,10 +706,16 @@ export function useAiMasking() {
           const entries = await invoke<Array<{ id: string; filePresent: boolean }>>('get_ai_model_status');
           const depthReady = entries.some((e) => e.id === 'depth' && e.filePresent);
           if (!depthReady) {
-            toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+            toast.info(
+              t('editor.ai.modelStatus.waitForDownload', {
+                defaultValue: 'AI model is still downloading, please wait…',
+              }),
+            );
             return;
           }
-        } catch { /* proceed anyway */ }
+        } catch {
+          /* proceed anyway */
+        }
       }
 
       maskAbortRef.current?.abort();
@@ -684,7 +723,11 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error(t('editor.ai.timeout.depthMask', { defaultValue: 'AI Depth Mask timed out. Please check your network and try again.' }));
+        toast.error(
+          t('editor.ai.timeout.depthMask', {
+            defaultValue: 'AI Depth Mask timed out. Please check your network and try again.',
+          }),
+        );
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -750,10 +793,16 @@ export function useAiMasking() {
           const entries = await invoke<Array<{ id: string; filePresent: boolean }>>('get_ai_model_status');
           const u2netReady = entries.some((e) => e.id === 'u2net' && e.filePresent);
           if (!u2netReady) {
-            toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+            toast.info(
+              t('editor.ai.modelStatus.waitForDownload', {
+                defaultValue: 'AI model is still downloading, please wait…',
+              }),
+            );
             return;
           }
-        } catch { /* proceed anyway */ }
+        } catch {
+          /* proceed anyway */
+        }
       }
 
       maskAbortRef.current?.abort();
@@ -761,7 +810,11 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error(t('editor.ai.timeout.foregroundMask', { defaultValue: 'AI Foreground Mask timed out. Please check your network and try again.' }));
+        toast.error(
+          t('editor.ai.timeout.foregroundMask', {
+            defaultValue: 'AI Foreground Mask timed out. Please check your network and try again.',
+          }),
+        );
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -798,7 +851,9 @@ export function useAiMasking() {
           return;
         }
         patchesSentToBackend.delete(subMaskId);
-        toast.error(formatAiError(t, t('editor.ai.foregroundMask.failed', { defaultValue: 'AI Foreground Mask failed' }), error));
+        toast.error(
+          formatAiError(t, t('editor.ai.foregroundMask.failed', { defaultValue: 'AI Foreground Mask failed' }), error),
+        );
       } finally {
         clearTimeout(maskTimeout);
         if (maskAbortRef.current === maskAbort) {
@@ -821,10 +876,16 @@ export function useAiMasking() {
           const entries = await invoke<Array<{ id: string; filePresent: boolean }>>('get_ai_model_status');
           const skySegReady = entries.some((e) => e.id === 'skySeg' && e.filePresent);
           if (!skySegReady) {
-            toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+            toast.info(
+              t('editor.ai.modelStatus.waitForDownload', {
+                defaultValue: 'AI model is still downloading, please wait…',
+              }),
+            );
             return;
           }
-        } catch { /* proceed anyway */ }
+        } catch {
+          /* proceed anyway */
+        }
       }
 
       maskAbortRef.current?.abort();
@@ -832,7 +893,11 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error(t('editor.ai.timeout.skyMask', { defaultValue: 'AI Sky Mask timed out. Please check your network and try again.' }));
+        toast.error(
+          t('editor.ai.timeout.skyMask', {
+            defaultValue: 'AI Sky Mask timed out. Please check your network and try again.',
+          }),
+        );
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -893,7 +958,11 @@ export function useAiMasking() {
       generativeAbortRef.current = genAbort;
       const genTimeout = setTimeout(() => {
         genAbort.abort();
-        toast.error(t('editor.ai.timeout.superResolution', { defaultValue: 'Super Resolution timed out. Please check your network and try again.' }));
+        toast.error(
+          t('editor.ai.timeout.superResolution', {
+            defaultValue: 'Super Resolution timed out. Please check your network and try again.',
+          }),
+        );
       }, AI_GENERATIVE_TIMEOUT_MS);
 
       setEditor({ isGeneratingAi: true });
@@ -938,15 +1007,19 @@ export function useAiMasking() {
           };
         });
 
-        toast.success(t('editor.ai.superResolution.applied', {
-          defaultValue: 'Super resolution {{scale}}x applied ({{width}}×{{height}})',
-          scale,
-          width: newWidth,
-          height: newHeight,
-        }));
+        toast.success(
+          t('editor.ai.superResolution.applied', {
+            defaultValue: 'Super resolution {{scale}}x applied ({{width}}×{{height}})',
+            scale,
+            width: newWidth,
+            height: newHeight,
+          }),
+        );
       } catch (err: any) {
         if (genAbort.signal.aborted) return;
-        toast.error(formatAiError(t, t('editor.ai.superResolution.failed', { defaultValue: 'Super Resolution failed' }), err));
+        toast.error(
+          formatAiError(t, t('editor.ai.superResolution.failed', { defaultValue: 'Super Resolution failed' }), err),
+        );
       } finally {
         clearTimeout(genTimeout);
         if (generativeAbortRef.current === genAbort) {
@@ -1012,7 +1085,9 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error(t('editor.ai.timeout.colorRange', { defaultValue: 'Color Range Mask timed out. Please try again.' }));
+        toast.error(
+          t('editor.ai.timeout.colorRange', { defaultValue: 'Color Range Mask timed out. Please try again.' }),
+        );
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -1061,7 +1136,9 @@ export function useAiMasking() {
           return;
         }
         patchesSentToBackend.delete(subMaskId);
-        toast.error(formatAiError(t, t('editor.ai.colorRange.failed', { defaultValue: 'Color Range Mask failed' }), error));
+        toast.error(
+          formatAiError(t, t('editor.ai.colorRange.failed', { defaultValue: 'Color Range Mask failed' }), error),
+        );
       } finally {
         clearTimeout(maskTimeout);
         if (maskAbortRef.current === maskAbort) {
@@ -1082,7 +1159,9 @@ export function useAiMasking() {
       maskAbortRef.current = maskAbort;
       const maskTimeout = setTimeout(() => {
         maskAbort.abort();
-        toast.error(t('editor.ai.timeout.luminanceRange', { defaultValue: 'Luminance Range Mask timed out. Please try again.' }));
+        toast.error(
+          t('editor.ai.timeout.luminanceRange', { defaultValue: 'Luminance Range Mask timed out. Please try again.' }),
+        );
       }, AI_MASK_TIMEOUT_MS);
 
       setEditor({ isGeneratingAiMask: true });
@@ -1127,7 +1206,13 @@ export function useAiMasking() {
           return;
         }
         patchesSentToBackend.delete(subMaskId);
-        toast.error(formatAiError(t, t('editor.ai.luminanceRange.failed', { defaultValue: 'Luminance Range Mask failed' }), error));
+        toast.error(
+          formatAiError(
+            t,
+            t('editor.ai.luminanceRange.failed', { defaultValue: 'Luminance Range Mask failed' }),
+            error,
+          ),
+        );
       } finally {
         clearTimeout(maskTimeout);
         if (maskAbortRef.current === maskAbort) {
@@ -1197,7 +1282,9 @@ export function useAiMasking() {
     maskAbortRef.current = maskAbort;
     const maskTimeout = setTimeout(() => {
       maskAbort.abort();
-      toast.error(t('editor.ai.timeout.autoStraighten', { defaultValue: 'Auto Straighten timed out. Please try again.' }));
+      toast.error(
+        t('editor.ai.timeout.autoStraighten', { defaultValue: 'Auto Straighten timed out. Please try again.' }),
+      );
     }, AI_MASK_TIMEOUT_MS);
 
     try {
@@ -1215,7 +1302,9 @@ export function useAiMasking() {
       return horizonAngle;
     } catch (error) {
       if (maskAbort.signal.aborted) return null;
-      toast.error(formatAiError(t, t('editor.ai.autoStraighten.failed', { defaultValue: 'Auto Straighten failed' }), error));
+      toast.error(
+        formatAiError(t, t('editor.ai.autoStraighten.failed', { defaultValue: 'Auto Straighten failed' }), error),
+      );
       return null;
     } finally {
       clearTimeout(maskTimeout);
@@ -1231,7 +1320,9 @@ export function useAiMasking() {
     maskAbortRef.current = maskAbort;
     const maskTimeout = setTimeout(() => {
       maskAbort.abort();
-      toast.error(t('editor.ai.timeout.horizonDetect', { defaultValue: 'Horizon Detection timed out. Please try again.' }));
+      toast.error(
+        t('editor.ai.timeout.horizonDetect', { defaultValue: 'Horizon Detection timed out. Please try again.' }),
+      );
     }, AI_MASK_TIMEOUT_MS);
 
     try {
@@ -1249,7 +1340,9 @@ export function useAiMasking() {
       return Array.isArray(lines) ? lines : null;
     } catch (error) {
       if (maskAbort.signal.aborted) return null;
-      toast.error(formatAiError(t, t('editor.ai.horizonDetect.failed', { defaultValue: 'Horizon Detection failed' }), error));
+      toast.error(
+        formatAiError(t, t('editor.ai.horizonDetect.failed', { defaultValue: 'Horizon Detection failed' }), error),
+      );
       return null;
     } finally {
       clearTimeout(maskTimeout);
@@ -1268,10 +1361,16 @@ export function useAiMasking() {
           const entries = await invoke<Array<{ id: string; filePresent: boolean }>>('get_ai_model_status');
           const skySegReady = entries.some((e) => e.id === 'skySeg' && e.filePresent);
           if (!skySegReady) {
-            toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+            toast.info(
+              t('editor.ai.modelStatus.waitForDownload', {
+                defaultValue: 'AI model is still downloading, please wait…',
+              }),
+            );
             return null;
           }
-        } catch { /* proceed anyway */ }
+        } catch {
+          /* proceed anyway */
+        }
       }
 
       // Cancel any previous generative AI request and set up timeout.
@@ -1280,7 +1379,11 @@ export function useAiMasking() {
       generativeAbortRef.current = genAbort;
       const genTimeout = setTimeout(() => {
         genAbort.abort();
-        toast.error(t('editor.ai.timeout.skyReplace', { defaultValue: 'AI Sky Replace timed out. Please check your network and try again.' }));
+        toast.error(
+          t('editor.ai.timeout.skyReplace', {
+            defaultValue: 'AI Sky Replace timed out. Please check your network and try again.',
+          }),
+        );
       }, AI_GENERATIVE_TIMEOUT_MS);
 
       setEditor({ isGeneratingAi: true });
@@ -1315,7 +1418,9 @@ export function useAiMasking() {
         return url;
       } catch (error) {
         if (genAbort.signal.aborted) return null;
-        toast.error(formatAiError(t, t('editor.ai.skyReplace.failed', { defaultValue: 'AI Sky Replace failed' }), error));
+        toast.error(
+          formatAiError(t, t('editor.ai.skyReplace.failed', { defaultValue: 'AI Sky Replace failed' }), error),
+        );
         return null;
       } finally {
         clearTimeout(genTimeout);
@@ -1338,10 +1443,14 @@ export function useAiMasking() {
         const entries = await invoke<Array<{ id: string; filePresent: boolean }>>('get_ai_model_status');
         const u2netReady = entries.some((e) => e.id === 'u2net' && e.filePresent);
         if (!u2netReady) {
-          toast.info(t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }));
+          toast.info(
+            t('editor.ai.modelStatus.waitForDownload', { defaultValue: 'AI model is still downloading, please wait…' }),
+          );
           return null;
         }
-      } catch { /* proceed anyway */ }
+      } catch {
+        /* proceed anyway */
+      }
     }
 
     // Cancel any previous generative AI request and set up timeout.
@@ -1350,7 +1459,11 @@ export function useAiMasking() {
     generativeAbortRef.current = genAbort;
     const genTimeout = setTimeout(() => {
       genAbort.abort();
-        toast.error(t('editor.ai.timeout.bgRemove', { defaultValue: 'AI Background Remove timed out. Please check your network and try again.' }));
+      toast.error(
+        t('editor.ai.timeout.bgRemove', {
+          defaultValue: 'AI Background Remove timed out. Please check your network and try again.',
+        }),
+      );
     }, AI_GENERATIVE_TIMEOUT_MS);
 
     setEditor({ isGeneratingAi: true });
@@ -1383,7 +1496,9 @@ export function useAiMasking() {
       return url;
     } catch (error) {
       if (genAbort.signal.aborted) return null;
-      toast.error(formatAiError(t, t('editor.ai.bgRemove.failed', { defaultValue: 'AI Background Remove failed' }), error));
+      toast.error(
+        formatAiError(t, t('editor.ai.bgRemove.failed', { defaultValue: 'AI Background Remove failed' }), error),
+      );
       return null;
     } finally {
       clearTimeout(genTimeout);

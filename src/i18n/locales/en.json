@@ -555,6 +555,7 @@
       "loadImagesFailed": "Failed to load images from the selected folder.",
       "loadAlbumFailed": "Failed to load album.",
       "loadFolderTreeFailed": "Failed to load folder tree.",
+      "loadImageFailed": "Failed to load image.",
       "restoreSessionFailed": "Failed to restore session. A folder may have been moved or deleted."
     },
     "androidShare": {
@@ -2455,6 +2456,14 @@
     "representative": "Representative",
     "splashBackground": "Splash screen background",
     "minimizeWindow": "Minimize window",
-    "maximizeWindow": "Maximize window"
+    "maximizeWindow": "Maximize window",
+    "appTitle": "RapidRAW",
+    "errorBoundary": {
+      "icon": "⚠️",
+      "title": "Something went wrong",
+      "message": "An unexpected error occurred in the application. Your edits are preserved in sidecar files and will not be lost.",
+      "recover": "Try Recover",
+      "restart": "Restart App"
+    }
   }
 }

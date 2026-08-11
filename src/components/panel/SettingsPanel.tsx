@@ -74,7 +74,9 @@ function ProjectSection({
   const [status, setStatus] = useState<string>('idle');
   const [stats, setStats] = useState<ProjectStatistics | null>(null);
   const [labelQuery, setLabelQuery] = useState('');
-  const [labelResults, setLabelResults] = useState<Array<{ label: string; image_hash: string; confidence: number }>>([]);
+  const [labelResults, setLabelResults] = useState<Array<{ label: string; image_hash: string; confidence: number }>>(
+    [],
+  );
   const [exporting, setExporting] = useState(false);
 
   const refreshStats = useCallback(async () => {
@@ -212,25 +214,43 @@ function ProjectSection({
               label={t('settings.project.uniqueImages', { defaultValue: 'Unique images' })}
               value={stats.unique_images ?? stats.total_images ?? 0}
             />
-            <StatCard label={t('settings.project.totalVersions', { defaultValue: 'Edit versions' })} value={stats.total_versions} />
-            <StatCard label={t('settings.project.totalLabels', { defaultValue: 'AI labels' })} value={stats.total_labels} />
+            <StatCard
+              label={t('settings.project.totalVersions', { defaultValue: 'Edit versions' })}
+              value={stats.total_versions}
+            />
+            <StatCard
+              label={t('settings.project.totalLabels', { defaultValue: 'AI labels' })}
+              value={stats.total_labels}
+            />
             <StatCard
               label={t('settings.project.avgPerImage', { defaultValue: 'Avg versions / image' })}
               value={Number(stats.avg_versions_per_image.toFixed(2))}
             />
             {stats.total_thumbnails !== undefined && (
-              <StatCard label={t('settings.project.totalThumbnails', { defaultValue: 'Thumbnails' })} value={stats.total_thumbnails} />
+              <StatCard
+                label={t('settings.project.totalThumbnails', { defaultValue: 'Thumbnails' })}
+                value={stats.total_thumbnails}
+              />
             )}
             {stats.images_with_versions !== undefined && (
-              <StatCard label={t('settings.project.withVersions', { defaultValue: 'Images w/ versions' })} value={stats.images_with_versions} />
+              <StatCard
+                label={t('settings.project.withVersions', { defaultValue: 'Images w/ versions' })}
+                value={stats.images_with_versions}
+              />
             )}
             {stats.images_with_labels !== undefined && (
-              <StatCard label={t('settings.project.withLabels', { defaultValue: 'Images w/ labels' })} value={stats.images_with_labels} />
+              <StatCard
+                label={t('settings.project.withLabels', { defaultValue: 'Images w/ labels' })}
+                value={stats.images_with_labels}
+              />
             )}
           </div>
         ) : (
           <Text variant={TextVariants.small} color={TextColors.secondary}>
-            {t('settings.project.noData', { defaultValue: 'No project data yet. Open the project DB after selecting a path to populate these counters.' })}
+            {t('settings.project.noData', {
+              defaultValue:
+                'No project data yet. Open the project DB after selecting a path to populate these counters.',
+            })}
           </Text>
         )}
       </div>
@@ -434,7 +454,9 @@ const KeybindRow = ({
 
   return (
     <div className="flex justify-between items-center py-2 gap-2">
-      <Text variant={TextVariants.label} className="truncate min-w-0">{t(def.description as any)}</Text>
+      <Text variant={TextVariants.label} className="truncate min-w-0">
+        {t(def.description as any)}
+      </Text>
       <div className="flex items-center gap-1">
         {isConflicting && <span className="text-yellow-400 text-xs">⚠</span>}
         <button onClick={() => onStartRecording(def.action)} className="flex items-center gap-1 flex-wrap shrink-0">
@@ -756,7 +778,9 @@ const CloudDashboard = () => {
       {isPro ? (
         <div className="bg-surface p-4 rounded-md">
           <div className="flex justify-between items-center mb-2 gap-2">
-            <Text variant={TextVariants.label} className="truncate min-w-0">{t('settings.processing.ai.cloud.signedIn.usage')}</Text>
+            <Text variant={TextVariants.label} className="truncate min-w-0">
+              {t('settings.processing.ai.cloud.signedIn.usage')}
+            </Text>
             <Text variant={TextVariants.small}>
               {t('settings.processing.ai.cloud.signedIn.usageStats', {
                 requests: usage?.requests ?? 0,
@@ -3305,10 +3329,7 @@ export default function SettingsPanel({
               </motion.div>
             )}
             {activeCategory === 'project' && (
-              <ProjectSection
-                dbPath={appSettings?.projectDbPath ?? null}
-                onSettingsChange={onSettingsChange}
-              />
+              <ProjectSection dbPath={appSettings?.projectDbPath ?? null} onSettingsChange={onSettingsChange} />
             )}
           </AnimatePresence>
         </div>

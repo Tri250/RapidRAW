@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useEditorStore } from '../store/useEditorStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { useSettingsStore } from '../store/useSettingsStore';
@@ -8,6 +9,7 @@ import { Invokes } from '../components/ui/AppProperties';
 import { INITIAL_ADJUSTMENTS, normalizeLoadedAdjustments } from '../utils/adjustments';
 
 export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
+  const { t } = useTranslation();
   const selectedImage = useEditorStore((s) => s.selectedImage);
   const adjustments = useEditorStore((s) => s.adjustments);
   const histogram = useEditorStore((s) => s.histogram);
@@ -163,7 +165,7 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
         } catch (err) {
           if (isEffectActive) {
             console.error('Failed to load image:', err);
-            toast.error(`Failed to load image: ${err}`);
+            toast.error(t('editor.android.loadImageFailed' as any));
             // On Android, LoadImage may fail transiently (e.g., GPU context lost after
             // low-memory recovery). Instead of kicking the user out of the editor,
             // keep the selectedImage with its thumbnail as a displayable fallback

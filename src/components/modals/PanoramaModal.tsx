@@ -141,7 +141,11 @@ export default function PanoramaModal({
         <div className="flex h-[460px] overflow-hidden rounded-lg border border-surface">
           <div className="w-2/5 relative overflow-hidden shrink-0 bg-modal-preview-bg flex items-center justify-center">
             {loadingImageUrl ? (
-              <img src={loadingImageUrl} alt={t('a11y.sourcePreview', '源预览')} className="w-full h-full object-cover" />
+              <img
+                src={loadingImageUrl}
+                alt={t('a11y.sourcePreview', '源预览')}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <div className="w-full h-full bg-surface/50" />
             )}

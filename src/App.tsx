@@ -4,6 +4,7 @@ import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ClerkProvider } from '@clerk/react';
 import { ToastContainer, toast, Slide } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 
 import TitleBar from './window/TitleBar';
@@ -87,6 +88,7 @@ const insertChildrenIntoTree = (node: any, targetPath: string, newChildren: any[
 
 function App() {
   const COMPACT_EDITOR_MAX_WIDTH = 900;
+  const { t } = useTranslation();
 
   const { appSettings, theme, osPlatform, handleSettingsChange } = useSettingsStore(
     useShallow((state) => ({
@@ -575,10 +577,10 @@ function App() {
           pinnedFolderTrees: state.pinnedFolderTrees.map((tree) => insertChildrenIntoTree(tree, path, newChildren)),
         }));
       } catch (err) {
-        toast.error(`Failed to load folder: ${err}`);
+        toast.error(t('editor.android.loadFolderTreeFailed' as any));
       }
     },
-    [expandedFolders, appSettings?.enableFolderImageCounts, setLibrary],
+    [expandedFolders, appSettings?.enableFolderImageCounts, setLibrary, t],
   );
 
   const hasRoots = rootPaths && rootPaths.length > 0;

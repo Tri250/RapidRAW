@@ -464,7 +464,11 @@ fn save_image_with_metadata(
         if let Some(parent) = output_path.parent() {
             if !parent.exists() {
                 fs::create_dir_all(parent).map_err(|e| {
-                    format!("Failed to create export directory '{}': {}", parent.display(), e)
+                    format!(
+                        "Failed to create export directory '{}': {}",
+                        parent.display(),
+                        e
+                    )
                 })?;
             }
         }
@@ -473,7 +477,11 @@ fn save_image_with_metadata(
         // via FileProvider.getUriForFile. Also save to MediaStore gallery
         // so the image appears in the system Photos app.
         fs::write(output_path, &image_bytes).map_err(|e| {
-            format!("Failed to write export file '{}': {}", output_path.display(), e)
+            format!(
+                "Failed to write export file '{}': {}",
+                output_path.display(),
+                e
+            )
         })?;
 
         let file_name = output_path
@@ -765,12 +773,20 @@ fn export_masks_for_image(
                 if let Some(parent) = mask_alpha_path.parent() {
                     if !parent.exists() {
                         fs::create_dir_all(parent).map_err(|e| {
-                            format!("Failed to create mask export directory '{}': {}", parent.display(), e)
+                            format!(
+                                "Failed to create mask export directory '{}': {}",
+                                parent.display(),
+                                e
+                            )
                         })?;
                     }
                 }
                 fs::write(&mask_alpha_path, &alpha_bytes).map_err(|e| {
-                    format!("Failed to write mask export file '{}': {}", mask_alpha_path.display(), e)
+                    format!(
+                        "Failed to write mask export file '{}': {}",
+                        mask_alpha_path.display(),
+                        e
+                    )
                 })?;
 
                 let file_name = mask_alpha_path
@@ -1122,12 +1138,20 @@ pub async fn export_images(
                             if let Some(parent) = output_path.parent() {
                                 if !parent.exists() {
                                     fs::create_dir_all(parent).map_err(|e| {
-                                        format!("Failed to create LUT export directory '{}': {}", parent.display(), e)
+                                        format!(
+                                            "Failed to create LUT export directory '{}': {}",
+                                            parent.display(),
+                                            e
+                                        )
                                     })?;
                                 }
                             }
                             fs::write(&output_path, &cube_bytes).map_err(|e| {
-                                format!("Failed to write LUT export file '{}': {}", output_path.display(), e)
+                                format!(
+                                    "Failed to write LUT export file '{}': {}",
+                                    output_path.display(),
+                                    e
+                                )
                             })?;
 
                             let file_name = output_path

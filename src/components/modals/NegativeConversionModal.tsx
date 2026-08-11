@@ -201,7 +201,9 @@ export default function NegativeConversionModal({
   const renderControls = () => (
     <div className="modal-adjustments-pane w-80 shrink-0 bg-bg-secondary flex flex-col border-l border-surface h-full z-10">
       <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface gap-2 flex-wrap">
-        <Text variant={TextVariants.title} className="truncate min-w-0">{t('modals.negativeConversion.title')}</Text>
+        <Text variant={TextVariants.title} className="truncate min-w-0">
+          {t('modals.negativeConversion.title')}
+        </Text>
         <button
           onClick={() => {
             setParams(DEFAULT_PARAMS);

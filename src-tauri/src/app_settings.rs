@@ -596,11 +596,11 @@ pub fn load_settings(app_handle: AppHandle) -> Result<AppSettings, String> {
     // Resolve project DB path lazily: user-configured or the default
     // `<app_data_dir>/rapidraw_project.duckdb`. This guarantees the
     // project-manager WIP module always has a usable database.
-    let default_project_db = app_handle
-        .path()
-        .app_data_dir()
-        .ok()
-        .map(|d| d.join("rapidraw_project.duckdb").to_string_lossy().into_owned());
+    let default_project_db = app_handle.path().app_data_dir().ok().map(|d| {
+        d.join("rapidraw_project.duckdb")
+            .to_string_lossy()
+            .into_owned()
+    });
     match (&settings.project_db_path, &default_project_db) {
         (Some(user_db), _) if !user_db.trim().is_empty() => {
             // Keep the user-configured path as-is.

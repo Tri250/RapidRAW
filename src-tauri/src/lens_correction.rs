@@ -447,7 +447,10 @@ impl Lens {
                     .copied()
                     .collect();
                 find_best_vig(&group)
-            } else if let Some(last) = vignettings.last().filter(|v| focal_length >= v.focal - 0.01) {
+            } else if let Some(last) = vignettings
+                .last()
+                .filter(|v| focal_length >= v.focal - 0.01)
+            {
                 let last_focal = last.focal;
                 let group: Vec<&Vignetting> = vignettings
                     .iter()

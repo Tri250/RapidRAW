@@ -46,8 +46,7 @@ export interface ProjectStatistics {
 export const openProject = (dbPath: string): Promise<string> =>
   invoke(Invokes.ProjectOpen, { dbPath }) as Promise<string>;
 
-export const closeProject = (): Promise<void> =>
-  invoke(Invokes.ProjectClose) as Promise<void>;
+export const closeProject = (): Promise<void> => invoke(Invokes.ProjectClose) as Promise<void>;
 
 export const createEditVersion = (
   dbPath: string,
@@ -128,10 +127,7 @@ export function useProjectManager() {
       createEditVersion(dbPath, imageHash, adjustments, name, parentId),
     [],
   );
-  const listVersionsCb = useCallback(
-    (dbPath: string, imageHash: string) => listVersions(dbPath, imageHash),
-    [],
-  );
+  const listVersionsCb = useCallback((dbPath: string, imageHash: string) => listVersions(dbPath, imageHash), []);
   const getCurrentVersionCb = useCallback(
     (dbPath: string, imageHash: string) => getCurrentVersion(dbPath, imageHash),
     [],
@@ -145,10 +141,7 @@ export function useProjectManager() {
       storeThumbnail(dbPath, imageHash, dataBase64, width, height, format),
     [],
   );
-  const getThumbnailCb = useCallback(
-    (dbPath: string, imageHash: string) => getThumbnail(dbPath, imageHash),
-    [],
-  );
+  const getThumbnailCb = useCallback((dbPath: string, imageHash: string) => getThumbnail(dbPath, imageHash), []);
   const addAiLabelCb = useCallback(
     (dbPath: string, imageHash: string, label: string, confidence: number = 1.0, model: string = 'manual') =>
       addAiLabel(dbPath, imageHash, label, confidence, model),

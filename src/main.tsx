@@ -1,5 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import App from './App';
 import { installFrontendLogBridge } from './utils/frontendLogBridge';
 import './styles.css';
@@ -21,8 +23,13 @@ interface ErrorBoundaryState {
   errorInfo: React.ErrorInfo | null;
 }
 
-class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, ErrorBoundaryState> {
-  constructor(props: { children: React.ReactNode }) {
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  t: TFunction;
+}
+
+class AppErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
   }
@@ -45,6 +52,7 @@ class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, Er
   };
 
   render() {
+    const { t } = this.props;
     if (this.state.hasError) {
       return (
         <div
@@ -62,11 +70,12 @@ class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, Er
             textAlign: 'center',
           }}
         >
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
-          <h1 style={{ fontSize: '1.5rem', margin: '0 0 0.5rem', fontWeight: 600 }}>Something went wrong</h1>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>{t('a11y.errorBoundary.icon')}</div>
+          <h1 style={{ fontSize: '1.5rem', margin: '0 0 0.5rem', fontWeight: 600 }}>
+            {t('a11y.errorBoundary.title')}
+          </h1>
           <p style={{ fontSize: '0.875rem', color: '#a0a0b0', maxWidth: '400px', marginBottom: '1.5rem' }}>
-            An unexpected error occurred in the application. Your edits are preserved in sidecar files and will not be
-            lost.
+            {t('a11y.errorBoundary.message')}
           </p>
           {this.state.error && (
             <pre
@@ -98,7 +107,7 @@ class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, Er
                 fontSize: '0.875rem',
               }}
             >
-              Try Recover
+              {t('a11y.errorBoundary.recover')}
             </button>
             <button
               onClick={this.handleRestart}
@@ -112,7 +121,7 @@ class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, Er
                 fontSize: '0.875rem',
               }}
             >
-              Restart App
+              {t('a11y.errorBoundary.restart')}
             </button>
           </div>
         </div>
@@ -122,11 +131,20 @@ class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, Er
   }
 }
 
+function ErrorBoundaryWithT({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
+  return (
+    <AppErrorBoundary t={t}>
+      {children}
+    </AppErrorBoundary>
+  );
+}
+
 const root = createRoot(document.getElementById('root')!);
 root.render(
   <React.StrictMode>
-    <AppErrorBoundary>
+    <ErrorBoundaryWithT>
       <App />
-    </AppErrorBoundary>
+    </ErrorBoundaryWithT>
   </React.StrictMode>,
 );

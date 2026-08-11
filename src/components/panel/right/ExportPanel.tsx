@@ -598,7 +598,9 @@ export default function ExportPanel({
   return (
     <div className={onClose ? 'h-full bg-bg-secondary rounded-lg flex flex-col' : 'flex flex-col h-full'}>
       <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface gap-2 flex-wrap">
-        <Text variant={TextVariants.title} className="truncate min-w-0">{t('export.title' as any)}</Text>
+        <Text variant={TextVariants.title} className="truncate min-w-0">
+          {t('export.title' as any)}
+        </Text>
         {onClose && (
           <button
             onClick={onClose}
@@ -976,11 +978,7 @@ export default function ExportPanel({
           )}
         </Button>
         {isAndroid && status === Status.Success && lastExportedFilePath && (
-          <Button
-            variant="secondary"
-            className="w-full"
-            onClick={() => setShowAndroidShareSheet(true)}
-          >
+          <Button variant="secondary" className="w-full" onClick={() => setShowAndroidShareSheet(true)}>
             <Share2 size={18} className="mr-2" /> {t('export.share.button')}
           </Button>
         )}
@@ -990,10 +988,14 @@ export default function ExportPanel({
           filePath={lastExportedFilePath}
           mimeType={(() => {
             switch (fileFormat) {
-              case 'png': return 'image/png';
-              case 'webp': return 'image/webp';
-              case 'avif': return 'image/avif';
-              default: return 'image/jpeg';
+              case 'png':
+                return 'image/png';
+              case 'webp':
+                return 'image/webp';
+              case 'avif':
+                return 'image/avif';
+              default:
+                return 'image/jpeg';
             }
           })()}
           visible={showAndroidShareSheet}

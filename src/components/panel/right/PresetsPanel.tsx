@@ -1326,7 +1326,9 @@ export default function PresetsPanel({ onNavigateToCommunity }: PresetsPanelProp
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex flex-col h-full">
         <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface gap-2 flex-wrap">
-          <Text variant={TextVariants.title} className="truncate min-w-0">{t('editor.presets.title')}</Text>
+          <Text variant={TextVariants.title} className="truncate min-w-0">
+            {t('editor.presets.title')}
+          </Text>
           <div className="flex items-center gap-1">
             <button
               className={`p-2 rounded-full hover:bg-surface transition-colors ${isGeneratingAi || !selectedImage?.isReady ? 'opacity-50 cursor-not-allowed' : ''}`}

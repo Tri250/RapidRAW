@@ -58,8 +58,8 @@ mod hdr_deghosting;
 mod image_loader;
 mod image_processing;
 mod inpainting;
-mod lens_blur;
 mod launch_request;
+mod lens_blur;
 mod lens_correction;
 mod lut_processing;
 mod lut_processor;
@@ -162,11 +162,13 @@ use crate::mask_generation::{
     resolve_warped_image_for_masks,
 };
 use crate::window_customizer::PinchZoomDisablePlugin;
-use launch_request::{HeadlessExportSession, LaunchPayload, LaunchRequest, emit_launch_request, parse_launch_args};
 pub use adjustment_utils::*;
 pub use android_integration::*;
 pub use app_settings::*;
 pub use app_state::*;
+use launch_request::{
+    HeadlessExportSession, LaunchPayload, LaunchRequest, emit_launch_request, parse_launch_args,
+};
 use tagging_utils::{candidates, hierarchy};
 
 #[cfg(target_os = "macos")]

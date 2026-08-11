@@ -351,9 +351,7 @@ export function useFileOperations(
                   console.error('Failed to resolve URI:', e);
                   // On Android, content:// URI resolution can fail for various reasons.
                   // Warn the user and skip this file rather than silently proceeding.
-                  toast.warning(
-                    `Unable to resolve file: ${path}. The file may be inaccessible or have been deleted.`,
-                  );
+                  toast.warning(`Unable to resolve file: ${path}. The file may be inaccessible or have been deleted.`);
                   return null;
                 }
               }

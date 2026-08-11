@@ -29,15 +29,50 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { panel: null, icon: Home, labelKey: 'editor.android.bottomNav.library', a11yKey: 'editor.android.openLibrary' },
-  { panel: Panel.Adjustments, icon: SlidersHorizontal, labelKey: 'editor.android.bottomNav.basic', a11yKey: 'editor.android.openBasicPanel' },
-  { panel: Panel.Color, icon: Palette, labelKey: 'editor.android.bottomNav.color', a11yKey: 'editor.android.openColorPanel' },
-  { panel: Panel.Portrait, icon: UserCircle, labelKey: 'editor.android.bottomNav.portrait', a11yKey: 'editor.android.openPortraitPanel' },
+  {
+    panel: Panel.Adjustments,
+    icon: SlidersHorizontal,
+    labelKey: 'editor.android.bottomNav.basic',
+    a11yKey: 'editor.android.openBasicPanel',
+  },
+  {
+    panel: Panel.Color,
+    icon: Palette,
+    labelKey: 'editor.android.bottomNav.color',
+    a11yKey: 'editor.android.openColorPanel',
+  },
+  {
+    panel: Panel.Portrait,
+    icon: UserCircle,
+    labelKey: 'editor.android.bottomNav.portrait',
+    a11yKey: 'editor.android.openPortraitPanel',
+  },
   { panel: Panel.Crop, icon: Crop, labelKey: 'editor.android.bottomNav.crop', a11yKey: 'editor.android.openCropPanel' },
-  { panel: Panel.Masks, icon: Layers, labelKey: 'editor.android.bottomNav.masks', a11yKey: 'editor.android.openMasksPanel' },
+  {
+    panel: Panel.Masks,
+    icon: Layers,
+    labelKey: 'editor.android.bottomNav.masks',
+    a11yKey: 'editor.android.openMasksPanel',
+  },
   { panel: Panel.Ai, icon: Paintbrush, labelKey: 'editor.android.bottomNav.ai', a11yKey: 'editor.android.openAiPanel' },
-  { panel: Panel.Metadata, icon: Info, labelKey: 'editor.android.bottomNav.metadata', a11yKey: 'editor.android.openMetadataPanel' },
-  { panel: Panel.Presets, icon: SwatchBook, labelKey: 'editor.android.bottomNav.presets', a11yKey: 'editor.android.openPresetsPanel' },
-  { panel: Panel.Export, icon: FileInput, labelKey: 'editor.android.bottomNav.export', a11yKey: 'editor.android.openExportPanel' },
+  {
+    panel: Panel.Metadata,
+    icon: Info,
+    labelKey: 'editor.android.bottomNav.metadata',
+    a11yKey: 'editor.android.openMetadataPanel',
+  },
+  {
+    panel: Panel.Presets,
+    icon: SwatchBook,
+    labelKey: 'editor.android.bottomNav.presets',
+    a11yKey: 'editor.android.openPresetsPanel',
+  },
+  {
+    panel: Panel.Export,
+    icon: FileInput,
+    labelKey: 'editor.android.bottomNav.export',
+    a11yKey: 'editor.android.openExportPanel',
+  },
 ];
 
 export default function AndroidBottomNav({ isAndroid }: AndroidBottomNavProps) {

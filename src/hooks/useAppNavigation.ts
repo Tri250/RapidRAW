@@ -499,7 +499,9 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
       }
     } catch (err) {
       console.error(isAndroid ? 'Failed to open Android library root:' : 'Failed to open directory dialog:', err);
-      toast.error(isAndroid ? t('editor.android.openLibraryFailed' as any) : t('editor.android.openFolderDialogFailed' as any));
+      toast.error(
+        isAndroid ? t('editor.android.openLibraryFailed' as any) : t('editor.android.openFolderDialogFailed' as any),
+      );
     }
   };
 

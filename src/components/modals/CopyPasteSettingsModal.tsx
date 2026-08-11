@@ -214,7 +214,9 @@ export default function CopyPasteSettingsModal({ isOpen, onClose, onSave, settin
 
           <div>
             <div className="flex justify-between items-center mb-2 gap-2">
-              <Text variant={TextVariants.heading} className="truncate min-w-0">{t('modals.copyPaste.includedAdjustments')}</Text>
+              <Text variant={TextVariants.heading} className="truncate min-w-0">
+                {t('modals.copyPaste.includedAdjustments')}
+              </Text>
               <div className="flex gap-2">
                 <Button
                   className="px-4 py-2 rounded-md text-text-secondary hover:bg-surface transition-colors"

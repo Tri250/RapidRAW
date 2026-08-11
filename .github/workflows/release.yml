@@ -215,7 +215,7 @@ jobs:
           set -euo pipefail
           tag="${{ needs.version-sync-check.outputs.resolved-tag }}"
           echo "Checking release assets for $tag"
-          
+
           # Get assets list with error handling
           assets=""
           for retry in 1 2 3; do
@@ -225,12 +225,12 @@ jobs:
             echo "Retry $retry: Failed to fetch assets"
             sleep $((retry * 5))
           done
-          
+
           if [[ -z "$assets" ]]; then
             echo "::error::No assets could be retrieved from release"
             exit 1
           fi
-          
+
           echo "Found assets:"
           echo "$assets"
 

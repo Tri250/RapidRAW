@@ -516,7 +516,9 @@ export default function PortraitPanelSwitcher() {
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 flex justify-between items-center shrink-0 border-b border-surface gap-2 flex-wrap">
-        <Text variant={TextVariants.title} className="truncate min-w-0">{t('editor.portraitPanel.title')}</Text>
+        <Text variant={TextVariants.title} className="truncate min-w-0">
+          {t('editor.portraitPanel.title')}
+        </Text>
       </div>
       <div className="px-4 pt-3 pb-1 shrink-0 border-b border-surface/50">
         <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
