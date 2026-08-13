@@ -193,11 +193,9 @@ jobs:
           set -euo pipefail
           tag="${{ needs.version-sync-check.outputs.resolved-tag }}"
           echo "Waiting for release assets for tag: $tag"
-          release_found=false
           for i in $(seq 1 30); do
             if gh release view "$tag" --repo "${{ github.repository }}" >/dev/null 2>&1; then
               echo "Release found"
-              release_found=true
               break
             fi
             if [[ $i -eq 30 ]]; then
