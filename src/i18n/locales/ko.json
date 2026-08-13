@@ -1,4 +1,34 @@
 {
+  "a11y": {
+    "appTitle": "",
+    "closeWindow": "창 닫기",
+    "cropPreview": "크롭 미리보기",
+    "denoised": "Denoised",
+    "errorBoundary": {
+      "icon": "",
+      "message": "",
+      "recover": "",
+      "restart": "",
+      "title": ""
+    },
+    "imageFilmstrip": "이미지 필름스트립",
+    "lensCorrectionPreview": "렌즈 보정 미리보기",
+    "maskOverlay": "Mask Overlay",
+    "maximizeWindow": "Maximize window",
+    "mergedHdr": "Merged HDR",
+    "minimizeWindow": "Minimize window",
+    "nextImage": "다음 이미지",
+    "original": "원본",
+    "preview": "미리보기",
+    "previousImage": "이전 이미지",
+    "representative": "Representative",
+    "selectedPreview": "Selected preview",
+    "sourcePreview": "Source preview",
+    "splashBackground": "Splash screen background",
+    "stitchedPanorama": "Stitched Panorama",
+    "tabs": "Tabs",
+    "transformPreview": "변환 미리보기"
+  },
   "adjustments": {
     "basic": {
       "blacks": "블랙",
@@ -126,6 +156,15 @@
       "size": "크기",
       "vignette": "비네트"
     }
+  },
+  "androidShare": {
+    "cancel": "Cancel",
+    "more": "More",
+    "qq": "QQ",
+    "systemShareTitle": "Share Image",
+    "titleDefault": "Share to",
+    "wechat": "WeChat",
+    "weibo": "Weibo"
   },
   "contextMenus": {
     "album": {
@@ -327,16 +366,27 @@
         "switchToSubtract": "빼기 모드로 전환"
       },
       "addNewEdit": "새 편집 추가",
+      "autoStraighten": {
+        "failed": "자동 수평 보정에 실패했습니다"
+      },
       "bgRemove": {
         "completed": "AI 배경 제거 완료",
         "failed": "AI 배경 제거에 실패했습니다"
       },
+      "bgRemoveLabel": "",
       "bgRemoveTooltip": "AI Background Remove",
       "brush": {
         "add": "추가",
         "erase": "지우기",
         "feather": "브러시 페더",
         "size": "브러시 크기"
+      },
+      "cleanup": {
+        "failed": "정리에 실패했습니다"
+      },
+      "colorRange": {
+        "failed": "색상 범위 마스크에 실패했습니다",
+        "noMatch": "일치하는 색상을 찾을 수 없습니다"
       },
       "comingSoon": "출시 예정",
       "connection": {
@@ -357,17 +407,55 @@
       },
       "createNewTitle": "새 생성형 편집 만들기",
       "createNewTooltip": "새 {{name}} 편집 만들기",
+      "depthMask": {
+        "failed": "AI 깊이 마스크에 실패했습니다",
+        "noDepthData": "깊이 데이터가 생성되지 않았습니다"
+      },
       "dropzoneText": "여기에 놓아 새 편집을 만드세요",
       "editSettingsTitle": "편집 설정",
       "editsTitle": "편집",
       "enhancementTitle": "AI Enhancement",
+      "errorHint": {
+        "downloadFailed": "모델 다운로드에 실패했습니다. 네트워크를 확인하거나 설정 > AI 설정에서 미러 URL을 구성해 주세요 (hf-mirror.com 권장).",
+        "oom": "기기 메모리가 부족합니다. 설정 > 성능에서 최대 처리 해상도를 낮춰 보세요."
+      },
+      "feather": {
+        "failed": "마스크 페더에 실패했습니다"
+      },
+      "foregroundMask": {
+        "failed": "AI 전경 마스크에 실패했습니다",
+        "noForeground": "이미지에서 전경이 감지되지 않았습니다"
+      },
       "generativeEditTitle": "생성형 편집",
+      "generativeReplace": {
+        "failed": "생성적 교체에 실패했습니다"
+      },
+      "horizonDetect": {
+        "failed": "수평선 감지에 실패했습니다"
+      },
       "inpaintingTitle": "인페인팅",
+      "luminanceRange": {
+        "failed": "휘도 범위 마스크에 실패했습니다",
+        "noMatch": "일치하는 휘도 범위를 찾을 수 없습니다"
+      },
       "manualCleanupTitle": "수동 정리",
+      "mask": {
+        "failed": "AI 마스크에 실패했습니다",
+        "noMaskData": "AI 마스크: 마스크 데이터가 생성되지 않았습니다"
+      },
       "mode": {
         "add": "추가",
         "inter": "교차",
         "sub": "제거"
+      },
+      "modelStatus": {
+        "depth": "깊이",
+        "downloading": "온디바이스 모델 로딩 중 ({{done}}/{{total}})",
+        "fg": "전경",
+        "partial": "온디바이스 모델 {{done}}/{{total}} 준비 완료",
+        "sky": "하늘",
+        "subject": "피사체",
+        "waitForDownload": "AI 모델 다운로드 중입니다. 잠시만 기다려 주세요…"
       },
       "noImageSelected": "선택된 이미지가 없습니다.",
       "params": {
@@ -379,16 +467,18 @@
         "aiEdit_one": "AI 편집 {{count}}",
         "aiEdit_other": "AI 편집 {{count}}",
         "clone": "복제 {{count}}",
+        "clone_one": "",
         "clone_other": "",
         "heal": "복구 {{count}}",
+        "heal_one": "",
         "heal_other": "",
         "invertedName": "{{name}} 반전됨",
         "quickErase": "빠른 지우기 {{count}}",
         "quickErase_one": "빠른 지우기 {{count}}",
-        "quickErase_other": "빠른 지우기 {{count}}",
-        "clone_one": "",
-        "heal_one": ""
+        "quickErase_other": "빠른 지우기 {{count}}"
       },
+      "quickEraseFailed": "빠른 지우기에 실패했습니다",
+      "quickEraseTimeout": "빠른 지우기가 시간 초과되었습니다. 네트워크를 확인하거나 다시 시도해 주세요.",
       "resetInpaintingTooltip": "인페인팅 초기화",
       "settings": {
         "aiModelDownloading": "AI 모델 다운로드 중: ",
@@ -409,20 +499,27 @@
         "selectionPropertiesTitle": "선택 영역 속성",
         "useBasicInpaint": "기본 인페인팅 사용"
       },
+      "skyMask": {
+        "failed": "AI 하늘 마스크에 실패했습니다",
+        "noSky": "이미지에서 하늘이 감지되지 않았습니다"
+      },
       "skyReplace": {
         "completed": "AI 하늘 교체 완료",
         "failed": "AI 하늘 교체에 실패했습니다"
       },
+      "skyReplaceLabel": "",
       "skyReplaceTooltip": "AI Sky Replace",
+      "subjectMask": {
+        "failed": "AI 피사체 마스크에 실패했습니다",
+        "noSubject": "이미지에서 피사체가 감지되지 않았습니다"
+      },
       "superResolution": {
-        "failed": "초해상도에 실패했습니다",
         "applied": "초해상도 {{scale}}x 적용 ({{width}}×{{height}})",
+        "failed": "초해상도에 실패했습니다",
         "noImage": "초해상도를 위한 이미지가 선택되지 않았습니다"
       },
       "superResolutionLabel": "슈퍼 해상도",
       "superResolutionTooltip": "Use AI super resolution to upscale image (2x/3x/4x)",
-      "quickEraseFailed": "빠른 지우기에 실패했습니다",
-      "quickEraseTimeout": "빠른 지우기가 시간 초과되었습니다. 네트워크를 확인하거나 다시 시도해 주세요.",
       "timeout": {
         "autoStraighten": "자동 수평 보정이 시간 초과되었습니다. 다시 시도해 주세요.",
         "bgRemove": "AI 배경 제거가 시간 초과되었습니다. 네트워크를 확인하거나 다시 시도해 주세요.",
@@ -439,62 +536,6 @@
         "skyReplace": "AI 하늘 교체가 시간 초과되었습니다. 네트워크를 확인하거나 다시 시도해 주세요.",
         "subjectMask": "AI 피사체 마스크가 시간 초과되었습니다. 네트워크를 확인하거나 다시 시도해 주세요.",
         "superResolution": "초해상도가 시간 초과되었습니다. 네트워크를 확인하거나 다시 시도해 주세요."
-      },
-      "mask": {
-        "noMaskData": "AI 마스크: 마스크 데이터가 생성되지 않았습니다",
-        "failed": "AI 마스크에 실패했습니다"
-      },
-      "depthMask": {
-        "noDepthData": "깊이 데이터가 생성되지 않았습니다",
-        "failed": "AI 깊이 마스크에 실패했습니다"
-      },
-      "foregroundMask": {
-        "noForeground": "이미지에서 전경이 감지되지 않았습니다",
-        "failed": "AI 전경 마스크에 실패했습니다"
-      },
-      "skyMask": {
-        "noSky": "이미지에서 하늘이 감지되지 않았습니다",
-        "failed": "AI 하늘 마스크에 실패했습니다"
-      },
-      "subjectMask": {
-        "noSubject": "이미지에서 피사체가 감지되지 않았습니다",
-        "failed": "AI 피사체 마스크에 실패했습니다"
-      },
-      "cleanup": {
-        "failed": "정리에 실패했습니다"
-      },
-      "generativeReplace": {
-        "failed": "생성적 교체에 실패했습니다"
-      },
-      "colorRange": {
-        "noMatch": "일치하는 색상을 찾을 수 없습니다",
-        "failed": "색상 범위 마스크에 실패했습니다"
-      },
-      "luminanceRange": {
-        "noMatch": "일치하는 휘도 범위를 찾을 수 없습니다",
-        "failed": "휘도 범위 마스크에 실패했습니다"
-      },
-      "feather": {
-        "failed": "마스크 페더에 실패했습니다"
-      },
-      "autoStraighten": {
-        "failed": "자동 수평 보정에 실패했습니다"
-      },
-      "horizonDetect": {
-        "failed": "수평선 감지에 실패했습니다"
-      },
-      "modelStatus": {
-        "waitForDownload": "AI 모델 다운로드 중입니다. 잠시만 기다려 주세요…",
-        "downloading": "온디바이스 모델 로딩 중 ({{done}}/{{total}})",
-        "partial": "온디바이스 모델 {{done}}/{{total}} 준비 완료",
-        "fg": "전경",
-        "sky": "하늘",
-        "subject": "피사체",
-        "depth": "깊이"
-      },
-      "errorHint": {
-        "downloadFailed": "모델 다운로드에 실패했습니다. 네트워크를 확인하거나 설정 > AI 설정에서 미러 URL을 구성해 주세요 (hf-mirror.com 권장).",
-        "oom": "기기 메모리가 부족합니다. 설정 > 성능에서 최대 처리 해상도를 낮춰 보세요."
       }
     },
     "aiRating": {
@@ -502,14 +543,42 @@
       "applyError": "EXIF에 평점을 적용하는 데 실패했습니다: {{error}}",
       "applying": "평점 매기는 중...",
       "applyToExif": "EXIF에 적용",
+      "batchComplete": "{{count}}장의 이미지 평점 완료",
+      "batchComplete_one": "",
       "batchComplete_other": "",
       "batchProgress": "Rating {{current}}/{{total}}...",
       "description": "AI 설명",
       "error": "평점 생성에 실패했습니다: {{error}}",
       "generate": "평점 생성",
-      "title": "AI 스마트 평점",
-      "batchComplete": "{{count}}장의 이미지 평점 완료",
-      "batchComplete_one": ""
+      "title": "AI 스마트 평점"
+    },
+    "android": {
+      "bottomNav": {
+        "ai": "AI",
+        "basic": "기본",
+        "color": "색상",
+        "crop": "크롭",
+        "export": "내보내기",
+        "library": "라이브러리",
+        "masks": "마스크",
+        "metadata": "메타데이터",
+        "more": "더 보기",
+        "portrait": "인물",
+        "presets": "프리셋"
+      },
+      "doubleTapCompare": "두 번 탭하여 원본과 비교",
+      "gotIt": "확인",
+      "swipeHint": "좌우로 스와이프하여 사진 전환"
+    },
+    "androidShare": {
+      "cancel": "취소",
+      "more": "더 보기",
+      "qq": "QQ",
+      "systemShare": "공유",
+      "systemShareTitle": "RapidRAW에서 공유",
+      "titleDefault": "이미지 공유",
+      "wechat": "WeChat",
+      "weibo": "Weibo"
     },
     "colorPanel": {
       "title": "색상"
@@ -630,6 +699,9 @@
       "exporting": "내보내는 중…",
       "savesTo": "외부 편집 — 저장 위치:"
     },
+    "layout": {
+      "split": "분할"
+    },
     "masks": {
       "actions": {
         "addNewComponent": "새 구성 요소 추가",
@@ -734,7 +806,6 @@
       "copy": "복사",
       "emptyClickToAdd": "비어 있음 (클릭하여 추가)",
       "extendedExif": {
-        "title": "확장 EXIF",
         "tags": {
           "ActiveArea": "Active Area",
           "AFAreaInfo": "AF Area Info",
@@ -904,7 +975,8 @@
           "XResolution": "X Resolution",
           "YCbCrPositioning": "YCbCr Positioning",
           "YResolution": "Y Resolution"
-        }
+        },
+        "title": "확장 EXIF"
       },
       "fields": {
         "author": "작성자",
@@ -951,6 +1023,8 @@
         "single": "Single"
       },
       "blemishActive": "Marking",
+      "blemishCount": "{{count}}개의 잡티 표시",
+      "blemishCount_one": "",
       "blemishCount_other": "",
       "blemishHint": "Tap image to mark blemish spots",
       "blemishRemoval": "Blemish Removal",
@@ -983,9 +1057,7 @@
       "teethWhiten": "Teeth Whiten",
       "teethWhitenBrightness": "Brightness",
       "teethWhitenDesaturate": "Desaturate",
-      "title": "인물",
-      "blemishCount": "{{count}}개의 잡티 표시",
-      "blemishCount_one": ""
+      "title": "인물"
     },
     "presets": {
       "amount": "양",
@@ -1082,37 +1154,6 @@
         "undo": "실행 취소 (Ctrl+Z) 또는 기록 (우클릭)"
       },
       "vc": "VC"
-    },
-    "layout": {
-      "split": "분할"
-    },
-    "android": {
-      "bottomNav": {
-        "ai": "AI",
-        "basic": "기본",
-        "color": "색상",
-        "crop": "크롭",
-        "export": "내보내기",
-        "library": "라이브러리",
-        "masks": "마스크",
-        "metadata": "메타데이터",
-        "more": "더 보기",
-        "portrait": "인물",
-        "presets": "프리셋"
-      },
-      "doubleTapCompare": "두 번 탭하여 원본과 비교",
-      "gotIt": "확인",
-      "swipeHint": "좌우로 스와이프하여 사진 전환"
-    },
-    "androidShare": {
-      "cancel": "취소",
-      "more": "더 보기",
-      "qq": "QQ",
-      "systemShare": "공유",
-      "systemShareTitle": "RapidRAW에서 공유",
-      "titleDefault": "이미지 공유",
-      "wechat": "WeChat",
-      "weibo": "Weibo"
     }
   },
   "export": {
@@ -1139,6 +1180,10 @@
       "quality": "품질",
       "qualityLossless": "품질 (무손실)",
       "sequenceVariableRecommended": "파일 이름 충돌을 방지하려면 {sequence} 또는 {original_filename}을 사용하는 것이 좋습니다"
+    },
+    "gallery": {
+      "saved": "시스템 갤러리에 저장됨",
+      "saveFailed": "갤러리 저장에 실패했습니다"
     },
     "labels": {
       "image": "이미지",
@@ -1211,10 +1256,6 @@
       "scale": "크기",
       "spacing": "간격",
       "watermarkImage": "워터마크 이미지"
-    },
-    "gallery": {
-      "saved": "시스템 갤러리에 저장됨",
-      "saveFailed": "갤러리 저장에 실패했습니다"
     }
   },
   "library": {
@@ -1223,9 +1264,9 @@
       "delete": "Delete",
       "export": "Export",
       "rate": "Rate",
-      "selected_other": "",
       "selected": "{count} selected",
-      "selected_one": ""
+      "selected_one": "",
+      "selected_other": ""
     },
     "community": {
       "actionSave": "저장",
@@ -1248,6 +1289,31 @@
       "sortMethods": {
         "name": "이름 (가나다순)"
       }
+    },
+    "culling": {
+      "addTagPlaceholder": "태그 추가...",
+      "altCullingPreviewHighRes": "고해상도 미리보기",
+      "altThumbnailLoading": "썸네일 로딩 중...",
+      "aperture": "조리개",
+      "cameraSettings": "카메라 설정",
+      "clickThumbnailsHint": "비교를 위해 사이드바의 썸네일을 클릭하여 선택하세요",
+      "colorLabel": "색상 라벨",
+      "dimensions": "크기",
+      "editImage": "이미지 편집",
+      "focalLength": "초점 거리",
+      "iso": "ISO",
+      "metadata": "메타데이터",
+      "noMetadataAvailable": "사용 가능한 메타데이터가 없습니다",
+      "none": "없음",
+      "noTagsAdded": "추가된 태그가 없습니다",
+      "rateAndLabel": "평점 및 라벨",
+      "rating": "평점",
+      "selectImagesToCompare": "비교할 이미지 선택",
+      "shutterSpeed": "셔터 속도",
+      "syncZoomAndPan": "줌 및 이동 동기화",
+      "tags": "태그",
+      "toggleFit": "맞춤 전환",
+      "vc": "VC"
     },
     "favorites": {
       "added": "Added to Favorites",
@@ -1299,6 +1365,7 @@
         "modified": "수정일",
         "name": "알파벳순"
       },
+      "sourcesTitle": "",
       "tooltips": {
         "clearSearch": "검색 지우기",
         "collapse": "접기",
@@ -1332,6 +1399,7 @@
       },
       "title": "라이브러리",
       "viewOptions": {
+        "culling": "선별",
         "currentFolder": "현재 폴더",
         "displayMode": "표시 모드",
         "exifDisabledTooltip": "이 옵션을 사용하려면 설정에서 EXIF 읽기를 활성화하세요.",
@@ -1350,8 +1418,7 @@
         "sortDescending": "내림차순 정렬",
         "thumbnailFit": "썸네일 맞춤",
         "thumbnailSize": "썸네일 크기",
-        "title": "보기 옵션",
-        "culling": "선별"
+        "title": "보기 옵션"
       }
     },
     "import": {
@@ -1395,11 +1462,6 @@
       "conditions": "Conditions",
       "create": "Create Smart Album",
       "createButton": "Create",
-      "name": "Album Name",
-      "preview_other": "",
-      "valueFalse": "No",
-      "valuePlaceholder": "Value",
-      "valueTrue": "Yes",
       "fieldCameraModel": "카메라 모델",
       "fieldColorLabel": "색상 라벨",
       "fieldDateModified": "수정일",
@@ -1407,6 +1469,7 @@
       "fieldIsEdited": "편집 상태",
       "fieldRating": "평점",
       "fieldTag": "태그",
+      "name": "Album Name",
       "opBetween": "범위",
       "opContains": "포함",
       "opEquals": "동일",
@@ -1414,7 +1477,11 @@
       "opLessThan": "보다 작음",
       "preview": "{{count}}장의 사진 일치",
       "preview_one": "",
-      "title": "스마트 앨범"
+      "preview_other": "",
+      "title": "스마트 앨범",
+      "valueFalse": "No",
+      "valuePlaceholder": "Value",
+      "valueTrue": "Yes"
     },
     "sort": {
       "aperture": "조리개",
@@ -1469,31 +1536,6 @@
       "communityPresets": "커뮤니티 프리셋",
       "goHome": "홈으로 이동",
       "importImages": "이미지 가져오기"
-    },
-    "culling": {
-      "altThumbnailLoading": "썸네일 로딩 중...",
-      "altCullingPreviewHighRes": "고해상도 미리보기",
-      "metadata": "메타데이터",
-      "dimensions": "크기",
-      "cameraSettings": "카메라 설정",
-      "shutterSpeed": "셔터 속도",
-      "aperture": "조리개",
-      "iso": "ISO",
-      "focalLength": "초점 거리",
-      "noMetadataAvailable": "사용 가능한 메타데이터가 없습니다",
-      "rateAndLabel": "평점 및 라벨",
-      "rating": "평점",
-      "colorLabel": "색상 라벨",
-      "none": "없음",
-      "tags": "태그",
-      "noTagsAdded": "추가된 태그가 없습니다",
-      "addTagPlaceholder": "태그 추가...",
-      "vc": "VC",
-      "editImage": "이미지 편집",
-      "syncZoomAndPan": "줌 및 이동 동기화",
-      "toggleFit": "맞춤 전환",
-      "selectImagesToCompare": "비교할 이미지 선택",
-      "clickThumbnailsHint": "비교를 위해 사이드바의 썸네일을 클릭하여 선택하세요"
     }
   },
   "masks": {
@@ -1842,6 +1884,43 @@
     "noPresets": "No preset data available",
     "noSources": "No online preset sources",
     "noSourcesDesc": "Click \"Add Source\" to add a JSON link",
+    "paramLabels": {
+      "@string/param_color_temp": "色温",
+      "@string/param_cyan_magenta": "青品",
+      "@string/param_exposure": "曝光",
+      "@string/param_filter": "滤镜",
+      "@string/param_iso": "ISO",
+      "@string/param_saturation": "饱和度",
+      "@string/param_sharpness": "锐度",
+      "@string/param_shutter": "快门",
+      "@string/param_soft_light": "柔光",
+      "@string/param_tone": "色调",
+      "@string/param_tone_curve": "色调曲线",
+      "@string/param_vignette": "暗角",
+      "@string/param_warm_cool": "冷暖",
+      "AF对焦模式": "对焦模式",
+      "EV": "EV",
+      "ISO感光度": "ISO",
+      "M测光模式": "测光模式",
+      "WB白平衡": "白平衡",
+      "亮度": "亮度",
+      "光感": "光感",
+      "冷暖": "冷暖",
+      "对比度": "对比度",
+      "快门速度": "快门",
+      "暗角": "暗角",
+      "曝光": "曝光",
+      "曝光补偿": "曝光补偿",
+      "柔光": "柔光",
+      "白平衡": "白平衡",
+      "色温": "色温",
+      "色调": "色调",
+      "锐度": "锐度",
+      "阴影": "阴影",
+      "青品": "青品",
+      "饱和度": "饱和度",
+      "高光": "高光"
+    },
     "presets": "presets",
     "refresh": "Refresh",
     "refreshAll": "Refresh All Sources",
@@ -1849,53 +1928,16 @@
     "retry": "Retry",
     "saved": "Saved",
     "saveToPreview": "Save to Preview",
-    "showDetails": "View Details",
-    "title": "Online Presets",
-    "viewGallery": "View Gallery",
     "sectionTitles": {
-      "@string/section_color_grading": "色彩调整",
       "@string/param_pro_adjust": "专业参数",
+      "@string/section_color_grading": "色彩调整",
       "专业参数": "专业参数",
       "基本调节": "基本调节",
       "色彩调节": "色彩调节"
     },
-    "paramLabels": {
-      "@string/param_filter": "滤镜",
-      "@string/param_soft_light": "柔光",
-      "@string/param_tone_curve": "色调曲线",
-      "@string/param_saturation": "饱和度",
-      "@string/param_warm_cool": "冷暖",
-      "@string/param_cyan_magenta": "青品",
-      "@string/param_sharpness": "锐度",
-      "@string/param_vignette": "暗角",
-      "@string/param_iso": "ISO",
-      "@string/param_shutter": "快门",
-      "@string/param_exposure": "曝光",
-      "@string/param_color_temp": "色温",
-      "@string/param_tone": "色调",
-      "曝光": "曝光",
-      "亮度": "亮度",
-      "对比度": "对比度",
-      "高光": "高光",
-      "阴影": "阴影",
-      "光感": "光感",
-      "饱和度": "饱和度",
-      "色温": "色温",
-      "锐度": "锐度",
-      "冷暖": "冷暖",
-      "青品": "青品",
-      "暗角": "暗角",
-      "色调": "色调",
-      "柔光": "柔光",
-      "ISO感光度": "ISO",
-      "快门速度": "快门",
-      "AF对焦模式": "对焦模式",
-      "WB白平衡": "白平衡",
-      "M测光模式": "测光模式",
-      "白平衡": "白平衡",
-      "曝光补偿": "曝光补偿",
-      "EV": "EV"
-    }
+    "showDetails": "View Details",
+    "title": "Online Presets",
+    "viewGallery": "View Gallery"
   },
   "settings": {
     "adjustments": {
@@ -1912,6 +1954,7 @@
     "categories": {
       "general": "일반",
       "processing": "처리",
+      "project": "",
       "shortcuts": "컨트롤"
     },
     "contact": {
@@ -2080,6 +2123,20 @@
     },
     "language": "언어",
     "languageDesc": "애플리케이션 언어를 변경합니다.",
+    "languageNames": {
+      "de": "Deutsch",
+      "en": "English",
+      "es": "Español",
+      "fr": "Français",
+      "it": "Italiano",
+      "ja": "日本語",
+      "ko": "한국어",
+      "pl": "Polski",
+      "pt": "Português",
+      "ru": "Русский",
+      "zh-CN": "简体中文",
+      "zh-TW": "繁體中文"
+    },
     "lenses": {
       "addButton": "내 렌즈에 추가",
       "addNew": "새 렌즈 추가",
@@ -2094,14 +2151,14 @@
     "presetGallery": {
       "addSource": "데이터 소스 추가",
       "addSourcePlaceholder": "JSON 링크 URL 입력...",
+      "addSourceRejected": "신뢰할 수 있는 도메인(github.com, jsdelivr.net, getrapidraw.com 등)의 HTTPS 소스만 지원됩니다.",
       "description": "Manage online preset JSON data sources. Once added, preset samples can be viewed in the gallery.",
       "disabled": "비활성화",
+      "duplicateSource": "이 데이터 소스는 이미 추가되었습니다.",
       "enabled": "활성화",
       "noSources": "No data sources yet. Please add a JSON link.",
       "removeSource": "데이터 소스 제거",
-      "title": "Online Presets",
-      "addSourceRejected": "신뢰할 수 있는 도메인(github.com, jsdelivr.net, getrapidraw.com 등)의 HTTPS 소스만 지원됩니다.",
-      "duplicateSource": "이 데이터 소스는 이미 추가되었습니다."
+      "title": "Online Presets"
     },
     "processing": {
       "ai": {
@@ -2155,7 +2212,10 @@
         "title": "생성형 AI"
       },
       "aiMirror": "AI 모델 미러 URL",
+      "aiMirrorCleared": "AI 모델 미러 URL이 지워졌습니다.",
       "aiMirrorDesc": "AI 모델 다운로드를 위한 사용자 지정 미러 URL을 설정하세요(예: 중국 사용자는 https://hf-mirror.com 사용). 비워두면 기본 HuggingFace URL이 사용됩니다.",
+      "aiMirrorFailed": "미러 URL 설정에 실패했습니다.",
+      "aiMirrorSet": "AI 모델 미러 URL이 설정되었습니다.",
       "backend": "처리 백엔드",
       "backendDesc": "그래픽 API를 선택합니다. 'Auto'를 권장합니다. 일부 시스템의 충돌을 해결할 수 있습니다.",
       "backends": {
@@ -2241,19 +2301,41 @@
       "wgpuDescRecommended": "브라우저 인코딩을 우회하여 즉각적으로 반응하는 실시간 미리보기를 제공합니다. 성능을 위해 적극 권장합니다.",
       "wgpuLabel": "직접 WGPU 렌더링 활성화",
       "workerThreads": "썸네일 워커 스레드",
-      "workerThreadsDesc": "썸네일을 생성하는 데 사용되는 병렬 스레드 수입니다. 값이 높을수록 라이브러리 로딩 속도가 빨라지지만 CPU와 RAM을 더 많이 사용합니다.",
-      "aiMirrorSet": "AI 모델 미러 URL이 설정되었습니다.",
-      "aiMirrorCleared": "AI 모델 미러 URL이 지워졌습니다.",
-      "aiMirrorFailed": "미러 URL 설정에 실패했습니다."
+      "workerThreadsDesc": "썸네일을 생성하는 데 사용되는 병렬 스레드 수입니다. 값이 높을수록 라이브러리 로딩 속도가 빨라지지만 CPU와 RAM을 더 많이 사용합니다."
+    },
+    "project": {
+      "avgPerImage": "",
+      "choose": "",
+      "close": "",
+      "dbPathLabel": "",
+      "export": "",
+      "exportDesc": "",
+      "exporting": "",
+      "exportTitle": "",
+      "labelSearchPlaceholder": "",
+      "labelSearchTitle": "",
+      "noData": "",
+      "noLabels": "",
+      "open": "",
+      "refresh": "",
+      "search": "",
+      "statsTitle": "",
+      "title": "",
+      "totalLabels": "",
+      "totalThumbnails": "",
+      "totalVersions": "",
+      "uniqueImages": "",
+      "withLabels": "",
+      "withVersions": ""
     },
     "selftest": {
       "allPassed": "All checks passed",
       "description": "Run a comprehensive deep self-test to verify the state of image processing pipeline components such as GPU pipeline, ROI computation, preview rendering, and cache.",
+      "requiresImage": "딥 셀프 테스트를 실행하기 전에 편집기에서 이미지를 선택해 주세요 — 테스트에는 현재 편집 중인 이미지가 필요합니다.",
       "run": "Run Deep Self-Test",
       "running": "Testing…",
       "someFailed": "Some checks failed",
-      "title": "Image Processing Deep Self-Test",
-      "requiresImage": "딥 셀프 테스트를 실행하기 전에 편집기에서 이미지를 선택해 주세요 — 테스트에는 현재 편집 중인 이미지가 필요합니다."
+      "title": "Image Processing Deep Self-Test"
     },
     "tagging": {
       "addCustomPlaceholder": "사용자 지정 AI 태그 추가 (쉼표로 구분)...",
@@ -2308,20 +2390,6 @@
     "title": "설정",
     "tooltips": {
       "goHome": "홈으로 이동"
-    },
-    "languageNames": {
-      "en": "English",
-      "de": "Deutsch",
-      "es": "Español",
-      "fr": "Français",
-      "it": "Italiano",
-      "ja": "日本語",
-      "ko": "한국어",
-      "pl": "Polski",
-      "pt": "Português",
-      "ru": "Русский",
-      "zh-CN": "简体中文",
-      "zh-TW": "繁體中文"
     }
   },
   "ui": {
@@ -2406,36 +2474,5 @@
         "vectorscope": "벡터스코프"
       }
     }
-  },
-  "androidShare": {
-    "cancel": "Cancel",
-    "more": "More",
-    "qq": "QQ",
-    "systemShareTitle": "Share Image",
-    "titleDefault": "Share to",
-    "wechat": "WeChat",
-    "weibo": "Weibo"
-  },
-  "a11y": {
-    "original": "원본",
-    "lensCorrectionPreview": "렌즈 보정 미리보기",
-    "preview": "미리보기",
-    "transformPreview": "변환 미리보기",
-    "imageFilmstrip": "이미지 필름스트립",
-    "previousImage": "이전 이미지",
-    "nextImage": "다음 이미지",
-    "cropPreview": "크롭 미리보기",
-    "closeWindow": "창 닫기",
-    "denoised": "Denoised",
-    "mergedHdr": "Merged HDR",
-    "stitchedPanorama": "Stitched Panorama",
-    "sourcePreview": "Source preview",
-    "selectedPreview": "Selected preview",
-    "maskOverlay": "Mask Overlay",
-    "tabs": "Tabs",
-    "representative": "Representative",
-    "splashBackground": "Splash screen background",
-    "minimizeWindow": "Minimize window",
-    "maximizeWindow": "Maximize window"
   }
 }

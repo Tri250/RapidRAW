@@ -1,12 +1,33 @@
 {
-  "androidShare": {
-    "cancel": "取消",
-    "more": "更多",
-    "qq": "QQ",
-    "systemShareTitle": "分享图片",
-    "titleDefault": "分享到",
-    "wechat": "微信",
-    "weibo": "微博"
+  "a11y": {
+    "appTitle": "RapidRAW",
+    "closeWindow": "关闭窗口",
+    "cropPreview": "裁剪预览",
+    "denoised": "降噪后",
+    "errorBoundary": {
+      "icon": "⚠️",
+      "message": "应用程序发生意外错误，您的编辑内容已保存在 sidecar 文件中，不会丢失。",
+      "recover": "尝试恢复",
+      "restart": "重启应用",
+      "title": "出现错误"
+    },
+    "imageFilmstrip": "图片胶片条",
+    "lensCorrectionPreview": "镜头校正预览",
+    "maskOverlay": "蒙版叠加层",
+    "maximizeWindow": "最大化窗口",
+    "mergedHdr": "HDR 合成结果",
+    "minimizeWindow": "最小化窗口",
+    "nextImage": "下一张图片",
+    "original": "原图",
+    "preview": "预览",
+    "previousImage": "上一张图片",
+    "representative": "代表性照片",
+    "selectedPreview": "当前选中预览",
+    "sourcePreview": "原图预览",
+    "splashBackground": "启动页背景",
+    "stitchedPanorama": "全景拼接结果",
+    "tabs": "标签页",
+    "transformPreview": "变换预览"
   },
   "adjustments": {
     "basic": {
@@ -135,6 +156,15 @@
       "size": "大小",
       "vignette": "暗角"
     }
+  },
+  "androidShare": {
+    "cancel": "取消",
+    "more": "更多",
+    "qq": "QQ",
+    "systemShareTitle": "分享图片",
+    "titleDefault": "分享到",
+    "wechat": "微信",
+    "weibo": "微博"
   },
   "contextMenus": {
     "album": {
@@ -336,16 +366,27 @@
         "switchToSubtract": "切换到减去"
       },
       "addNewEdit": "添加新编辑",
+      "autoStraighten": {
+        "failed": "自动拉直失败"
+      },
       "bgRemove": {
         "completed": "AI背景移除完成",
         "failed": "AI背景移除失败"
       },
+      "bgRemoveLabel": "",
       "bgRemoveTooltip": "AI 自动移除背景",
       "brush": {
         "add": "添加",
         "erase": "擦除",
         "feather": "画笔羽化",
         "size": "画笔大小"
+      },
+      "cleanup": {
+        "failed": "清理操作失败"
+      },
+      "colorRange": {
+        "failed": "颜色范围蒙版失败",
+        "noMatch": "未找到匹配颜色"
       },
       "comingSoon": "即将推出",
       "connection": {
@@ -366,17 +407,55 @@
       },
       "createNewTitle": "创建新的生成式编辑",
       "createNewTooltip": "创建新的 {{name}} 编辑",
+      "depthMask": {
+        "failed": "AI深度蒙版失败",
+        "noDepthData": "未生成深度数据"
+      },
       "dropzoneText": "拖放到此处以创建新编辑",
       "editSettingsTitle": "编辑设置",
       "editsTitle": "编辑",
       "enhancementTitle": "AI 图像增强",
+      "errorHint": {
+        "downloadFailed": "模型下载失败，请检查网络连接或前往「设置-通用-AI设置」配置模型镜像地址（推荐 hf-mirror.com）",
+        "oom": "设备内存不足，请尝试降低「设置-性能」中的最大处理分辨率"
+      },
+      "feather": {
+        "failed": "蒙版羽化失败"
+      },
+      "foregroundMask": {
+        "failed": "AI前景分离失败",
+        "noForeground": "未检测到前景"
+      },
       "generativeEditTitle": "生成式编辑",
+      "generativeReplace": {
+        "failed": "AI生成式替换失败"
+      },
+      "horizonDetect": {
+        "failed": "地平线检测失败"
+      },
       "inpaintingTitle": "图像修复",
+      "luminanceRange": {
+        "failed": "亮度范围蒙版失败",
+        "noMatch": "未找到匹配亮度范围"
+      },
       "manualCleanupTitle": "手动清理",
+      "mask": {
+        "failed": "AI蒙版生成失败",
+        "noMaskData": "未生成蒙版数据"
+      },
       "mode": {
         "add": "添加",
         "inter": "相交",
         "sub": "减去"
+      },
+      "modelStatus": {
+        "depth": "深度",
+        "downloading": "正在加载端侧模型（{{done}}/{{total}}）",
+        "fg": "前景",
+        "partial": "端侧模型 {{done}}/{{total}} 已就绪",
+        "sky": "天空",
+        "subject": "主体",
+        "waitForDownload": "AI模型正在下载中，请稍候…"
       },
       "noImageSelected": "未选择图像。",
       "params": {
@@ -388,16 +467,18 @@
         "aiEdit_one": "AI 编辑 {{count}}",
         "aiEdit_other": "AI 编辑 {{count}}",
         "clone": "克隆 {{count}}",
+        "clone_one": "",
         "clone_other": "",
         "heal": "修复 {{count}}",
+        "heal_one": "",
         "heal_other": "",
         "invertedName": "{{name}} 反转",
         "quickErase": "快速擦除 {{count}}",
         "quickErase_one": "快速擦除 {{count}}",
-        "quickErase_other": "快速擦除 {{count}}",
-        "clone_one": "",
-        "heal_one": ""
+        "quickErase_other": "快速擦除 {{count}}"
       },
+      "quickEraseFailed": "快速橡皮擦失败",
+      "quickEraseTimeout": "快速橡皮擦处理超时，请检查网络或稍后重试。",
       "resetInpaintingTooltip": "重置图像修复",
       "settings": {
         "aiModelDownloading": "AI 模型下载中：",
@@ -418,17 +499,24 @@
         "selectionPropertiesTitle": "选区属性",
         "useBasicInpaint": "使用基础图像修复"
       },
-      "quickEraseFailed": "快速橡皮擦失败",
-      "quickEraseTimeout": "快速橡皮擦处理超时，请检查网络或稍后重试。",
+      "skyMask": {
+        "failed": "AI天空识别失败",
+        "noSky": "未检测到天空"
+      },
       "skyReplace": {
         "completed": "AI天空替换完成",
         "failed": "AI天空替换失败"
       },
+      "skyReplaceLabel": "",
       "skyReplaceTooltip": "AI 自动替换天空",
+      "subjectMask": {
+        "failed": "AI主体识别失败",
+        "noSubject": "未检测到主体"
+      },
       "superResolution": {
-        "noImage": "未选择图像",
         "applied": "超分辨率 {{scale}}x 已应用（{{width}}×{{height}}）",
-        "failed": "超分辨率处理失败"
+        "failed": "超分辨率处理失败",
+        "noImage": "未选择图像"
       },
       "superResolutionLabel": "超分辨率",
       "superResolutionTooltip": "使用 AI 超分辨率将图像放大（2x/3x/4x）",
@@ -448,62 +536,6 @@
         "skyReplace": "AI 天空替换超时，请检查网络后重试。",
         "subjectMask": "AI 主体蒙版超时，请检查网络后重试。",
         "superResolution": "超分辨率处理超时，请检查网络后重试。"
-      },
-      "mask": {
-        "noMaskData": "未生成蒙版数据",
-        "failed": "AI蒙版生成失败"
-      },
-      "depthMask": {
-        "noDepthData": "未生成深度数据",
-        "failed": "AI深度蒙版失败"
-      },
-      "foregroundMask": {
-        "noForeground": "未检测到前景",
-        "failed": "AI前景分离失败"
-      },
-      "skyMask": {
-        "noSky": "未检测到天空",
-        "failed": "AI天空识别失败"
-      },
-      "subjectMask": {
-        "noSubject": "未检测到主体",
-        "failed": "AI主体识别失败"
-      },
-      "cleanup": {
-        "failed": "清理操作失败"
-      },
-      "generativeReplace": {
-        "failed": "AI生成式替换失败"
-      },
-      "colorRange": {
-        "noMatch": "未找到匹配颜色",
-        "failed": "颜色范围蒙版失败"
-      },
-      "luminanceRange": {
-        "noMatch": "未找到匹配亮度范围",
-        "failed": "亮度范围蒙版失败"
-      },
-      "feather": {
-        "failed": "蒙版羽化失败"
-      },
-      "autoStraighten": {
-        "failed": "自动拉直失败"
-      },
-      "horizonDetect": {
-        "failed": "地平线检测失败"
-      },
-      "modelStatus": {
-        "waitForDownload": "AI模型正在下载中，请稍候…",
-        "downloading": "正在加载端侧模型（{{done}}/{{total}}）",
-        "partial": "端侧模型 {{done}}/{{total}} 已就绪",
-        "fg": "前景",
-        "sky": "天空",
-        "subject": "主体",
-        "depth": "深度"
-      },
-      "errorHint": {
-        "downloadFailed": "模型下载失败，请检查网络连接或前往「设置-通用-AI设置」配置模型镜像地址（推荐 hf-mirror.com）",
-        "oom": "设备内存不足，请尝试降低「设置-性能」中的最大处理分辨率"
       }
     },
     "aiRating": {
@@ -512,13 +544,13 @@
       "applying": "正在评分...",
       "applyToExif": "应用到 EXIF",
       "batchComplete": "完成 {{count}} 张图片评分",
+      "batchComplete_one": "",
       "batchComplete_other": "",
       "batchProgress": "正在评分 {{current}}/{{total}}...",
       "description": "AI 描述",
       "error": "生成评分失败：{{error}}",
       "generate": "生成评分",
-      "title": "AI 智能评分",
-      "batchComplete_one": ""
+      "title": "AI 智能评分"
     },
     "android": {
       "bottomNav": {
@@ -534,29 +566,29 @@
         "portrait": "人像",
         "presets": "预设"
       },
+      "closeShareSheet": "关闭分享面板",
       "doubleTapCompare": "双击对比原图",
       "gotIt": "知道了",
-      "swipeHint": "左右滑动切换照片",
-      "lowMemoryReload": "正在重新加载预览…",
-      "shareFailed": "分享失败：{{err}}",
-      "closeShareSheet": "关闭分享面板",
-      "openLibrary": "打开图库",
-      "openBasicPanel": "打开基础调整",
-      "openColorPanel": "打开色彩调整",
-      "openPortraitPanel": "打开人像调整",
-      "openCropPanel": "打开裁剪",
-      "openMasksPanel": "打开蒙版",
-      "openAiPanel": "打开 AI 工具",
-      "openMetadataPanel": "打开元数据",
-      "openPresetsPanel": "打开预设",
-      "openExportPanel": "打开导出",
-      "openLibraryFailed": "打开图库失败。",
-      "openFolderDialogFailed": "打开文件夹选择对话框失败。",
-      "loadImagesFailed": "加载所选文件夹中的图片失败。",
       "loadAlbumFailed": "加载相册失败。",
       "loadFolderTreeFailed": "加载文件夹树失败。",
       "loadImageFailed": "加载图片失败。",
-      "restoreSessionFailed": "恢复会话失败，文件夹可能已被移动或删除。"
+      "loadImagesFailed": "加载所选文件夹中的图片失败。",
+      "lowMemoryReload": "正在重新加载预览…",
+      "openAiPanel": "打开 AI 工具",
+      "openBasicPanel": "打开基础调整",
+      "openColorPanel": "打开色彩调整",
+      "openCropPanel": "打开裁剪",
+      "openExportPanel": "打开导出",
+      "openFolderDialogFailed": "打开文件夹选择对话框失败。",
+      "openLibrary": "打开图库",
+      "openLibraryFailed": "打开图库失败。",
+      "openMasksPanel": "打开蒙版",
+      "openMetadataPanel": "打开元数据",
+      "openPortraitPanel": "打开人像调整",
+      "openPresetsPanel": "打开预设",
+      "restoreSessionFailed": "恢复会话失败，文件夹可能已被移动或删除。",
+      "shareFailed": "分享失败：{{err}}",
+      "swipeHint": "左右滑动切换照片"
     },
     "androidShare": {
       "cancel": "取消",
@@ -686,6 +718,9 @@
       "done": "完成",
       "exporting": "正在导出…",
       "savesTo": "外部编辑 — 保存至"
+    },
+    "layout": {
+      "split": "拆分"
     },
     "masks": {
       "actions": {
@@ -1042,6 +1077,7 @@
       },
       "blemishActive": "标记中",
       "blemishCount": "已标记 {{count}} 个瑕疵点",
+      "blemishCount_one": "",
       "blemishCount_other": "",
       "blemishHint": "点击图片标记瑕疵点",
       "blemishRemoval": "祛除瑕疵",
@@ -1074,8 +1110,7 @@
       "teethWhiten": "牙齿美白",
       "teethWhitenBrightness": "亮度",
       "teethWhitenDesaturate": "饱和度降低",
-      "title": "人像",
-      "blemishCount_one": ""
+      "title": "人像"
     },
     "presets": {
       "amount": "数量",
@@ -1172,9 +1207,6 @@
         "undo": "撤销（Ctrl+Z）或历史记录（右键单击）"
       },
       "vc": "VC"
-    },
-    "layout": {
-      "split": "拆分"
     }
   },
   "export": {
@@ -1286,8 +1318,8 @@
       "export": "导出",
       "rate": "评分",
       "selected": "已选 {count} 张",
-      "selected_other": "",
-      "selected_one": ""
+      "selected_one": "",
+      "selected_other": ""
     },
     "community": {
       "actionSave": "保存",
@@ -1310,6 +1342,31 @@
       "sortMethods": {
         "name": "名称（A-Z）"
       }
+    },
+    "culling": {
+      "addTagPlaceholder": "添加标签...",
+      "altCullingPreviewHighRes": "高分辨率预览",
+      "altThumbnailLoading": "正在加载缩略图...",
+      "aperture": "光圈",
+      "cameraSettings": "相机设置",
+      "clickThumbnailsHint": "点击侧边栏中的缩略图以选择进行比较",
+      "colorLabel": "颜色标签",
+      "dimensions": "尺寸",
+      "editImage": "编辑图片",
+      "focalLength": "焦距",
+      "iso": "ISO",
+      "metadata": "元数据",
+      "noMetadataAvailable": "无可用元数据",
+      "none": "无",
+      "noTagsAdded": "未添加标签",
+      "rateAndLabel": "评分与标签",
+      "rating": "评分",
+      "selectImagesToCompare": "选择图片进行比较",
+      "shutterSpeed": "快门速度",
+      "syncZoomAndPan": "同步缩放和平移",
+      "tags": "标签",
+      "toggleFit": "切换适配",
+      "vc": "VC"
     },
     "favorites": {
       "added": "已添加到收藏",
@@ -1361,6 +1418,7 @@
         "modified": "修改日期",
         "name": "按字母顺序"
       },
+      "sourcesTitle": "",
       "tooltips": {
         "clearSearch": "清除搜索",
         "collapse": "折叠",
@@ -1394,6 +1452,7 @@
       },
       "title": "图库",
       "viewOptions": {
+        "culling": "审片",
         "currentFolder": "当前文件夹",
         "displayMode": "显示模式",
         "exifDisabledTooltip": "在设置中启用 EXIF 读取以使用此选项。",
@@ -1412,8 +1471,7 @@
         "sortDescending": "降序排列",
         "thumbnailFit": "缩略图适应",
         "thumbnailSize": "缩略图大小",
-        "title": "视图选项",
-        "culling": "审片"
+        "title": "视图选项"
       }
     },
     "import": {
@@ -1471,12 +1529,12 @@
       "opGreaterThan": "大于",
       "opLessThan": "小于",
       "preview": "匹配 {count} 张照片",
+      "preview_one": "",
       "preview_other": "",
       "title": "智能相册",
       "valueFalse": "否",
       "valuePlaceholder": "值",
-      "valueTrue": "是",
-      "preview_one": ""
+      "valueTrue": "是"
     },
     "sort": {
       "aperture": "光圈",
@@ -1531,31 +1589,6 @@
       "communityPresets": "社区预设",
       "goHome": "返回首页",
       "importImages": "导入图像"
-    },
-    "culling": {
-      "altThumbnailLoading": "正在加载缩略图...",
-      "altCullingPreviewHighRes": "高分辨率预览",
-      "metadata": "元数据",
-      "dimensions": "尺寸",
-      "cameraSettings": "相机设置",
-      "shutterSpeed": "快门速度",
-      "aperture": "光圈",
-      "iso": "ISO",
-      "focalLength": "焦距",
-      "noMetadataAvailable": "无可用元数据",
-      "rateAndLabel": "评分与标签",
-      "rating": "评分",
-      "colorLabel": "颜色标签",
-      "none": "无",
-      "tags": "标签",
-      "noTagsAdded": "未添加标签",
-      "addTagPlaceholder": "添加标签...",
-      "vc": "VC",
-      "editImage": "编辑图片",
-      "syncZoomAndPan": "同步缩放和平移",
-      "toggleFit": "切换适配",
-      "selectImagesToCompare": "选择图片进行比较",
-      "clickThumbnailsHint": "点击侧边栏中的缩略图以选择进行比较"
     }
   },
   "masks": {
@@ -1904,6 +1937,43 @@
     "noPresets": "暂无预设数据",
     "noSources": "暂无在线预设数据源",
     "noSourcesDesc": "点击「添加数据源」添加 JSON 链接",
+    "paramLabels": {
+      "@string/param_color_temp": "色温",
+      "@string/param_cyan_magenta": "青品",
+      "@string/param_exposure": "曝光",
+      "@string/param_filter": "滤镜",
+      "@string/param_iso": "ISO",
+      "@string/param_saturation": "饱和度",
+      "@string/param_sharpness": "锐度",
+      "@string/param_shutter": "快门",
+      "@string/param_soft_light": "柔光",
+      "@string/param_tone": "色调",
+      "@string/param_tone_curve": "色调曲线",
+      "@string/param_vignette": "暗角",
+      "@string/param_warm_cool": "冷暖",
+      "AF对焦模式": "对焦模式",
+      "EV": "EV",
+      "ISO感光度": "ISO",
+      "M测光模式": "测光模式",
+      "WB白平衡": "白平衡",
+      "亮度": "亮度",
+      "光感": "光感",
+      "冷暖": "冷暖",
+      "对比度": "对比度",
+      "快门速度": "快门",
+      "暗角": "暗角",
+      "曝光": "曝光",
+      "曝光补偿": "曝光补偿",
+      "柔光": "柔光",
+      "白平衡": "白平衡",
+      "色温": "色温",
+      "色调": "色调",
+      "锐度": "锐度",
+      "阴影": "阴影",
+      "青品": "青品",
+      "饱和度": "饱和度",
+      "高光": "高光"
+    },
     "presets": "预设",
     "refresh": "刷新",
     "refreshAll": "刷新所有数据源",
@@ -1911,53 +1981,16 @@
     "retry": "重试",
     "saved": "已保存",
     "saveToPreview": "保存到预览",
-    "showDetails": "查看详情",
-    "title": "在线预设",
-    "viewGallery": "查看画廊",
     "sectionTitles": {
-      "@string/section_color_grading": "色彩调整",
       "@string/param_pro_adjust": "专业参数",
+      "@string/section_color_grading": "色彩调整",
       "专业参数": "专业参数",
       "基本调节": "基本调节",
       "色彩调节": "色彩调节"
     },
-    "paramLabels": {
-      "@string/param_filter": "滤镜",
-      "@string/param_soft_light": "柔光",
-      "@string/param_tone_curve": "色调曲线",
-      "@string/param_saturation": "饱和度",
-      "@string/param_warm_cool": "冷暖",
-      "@string/param_cyan_magenta": "青品",
-      "@string/param_sharpness": "锐度",
-      "@string/param_vignette": "暗角",
-      "@string/param_iso": "ISO",
-      "@string/param_shutter": "快门",
-      "@string/param_exposure": "曝光",
-      "@string/param_color_temp": "色温",
-      "@string/param_tone": "色调",
-      "曝光": "曝光",
-      "亮度": "亮度",
-      "对比度": "对比度",
-      "高光": "高光",
-      "阴影": "阴影",
-      "光感": "光感",
-      "饱和度": "饱和度",
-      "色温": "色温",
-      "锐度": "锐度",
-      "冷暖": "冷暖",
-      "青品": "青品",
-      "暗角": "暗角",
-      "色调": "色调",
-      "柔光": "柔光",
-      "ISO感光度": "ISO",
-      "快门速度": "快门",
-      "AF对焦模式": "对焦模式",
-      "WB白平衡": "白平衡",
-      "M测光模式": "测光模式",
-      "白平衡": "白平衡",
-      "曝光补偿": "曝光补偿",
-      "EV": "EV"
-    }
+    "showDetails": "查看详情",
+    "title": "在线预设",
+    "viewGallery": "查看画廊"
   },
   "settings": {
     "adjustments": {
@@ -1974,6 +2007,7 @@
     "categories": {
       "general": "通用",
       "processing": "处理",
+      "project": "",
       "shortcuts": "控制"
     },
     "contact": {
@@ -2142,6 +2176,20 @@
     },
     "language": "语言",
     "languageDesc": "更改应用程序语言。",
+    "languageNames": {
+      "de": "Deutsch",
+      "en": "English",
+      "es": "Español",
+      "fr": "Français",
+      "it": "Italiano",
+      "ja": "日本語",
+      "ko": "한국어",
+      "pl": "Polski",
+      "pt": "Português",
+      "ru": "Русский",
+      "zh-CN": "简体中文",
+      "zh-TW": "繁體中文"
+    },
     "lenses": {
       "addButton": "添加到我的镜头",
       "addNew": "添加新镜头",
@@ -2217,7 +2265,10 @@
         "title": "生成式 AI"
       },
       "aiMirror": "AI 模型镜像 URL",
+      "aiMirrorCleared": "AI 模型镜像 URL 已清除。",
       "aiMirrorDesc": "设置用于下载 AI 模型的自定义镜像 URL（例如，中国大陆用户可使用 https://hf-mirror.com）。留空则使用默认的 HuggingFace 地址。",
+      "aiMirrorFailed": "设置镜像 URL 失败。",
+      "aiMirrorSet": "AI 模型镜像 URL 已设置。",
       "backend": "处理后端",
       "backendDesc": "选择图形 API。推荐使用「自动」。在某些系统上可能解决崩溃问题。",
       "backends": {
@@ -2303,10 +2354,32 @@
       "wgpuDescRecommended": "绕过浏览器编码，实现即时响应的实时预览。强烈推荐以获得最佳性能。",
       "wgpuLabel": "启用直接 WGPU 渲染",
       "workerThreads": "缩略图工作线程数",
-      "workerThreadsDesc": "用于生成缩略图的并行线程数。较高的值可加快图库加载速度，但会占用更多 CPU 和内存。",
-      "aiMirrorSet": "AI 模型镜像 URL 已设置。",
-      "aiMirrorCleared": "AI 模型镜像 URL 已清除。",
-      "aiMirrorFailed": "设置镜像 URL 失败。"
+      "workerThreadsDesc": "用于生成缩略图的并行线程数。较高的值可加快图库加载速度，但会占用更多 CPU 和内存。"
+    },
+    "project": {
+      "avgPerImage": "",
+      "choose": "",
+      "close": "",
+      "dbPathLabel": "",
+      "export": "",
+      "exportDesc": "",
+      "exporting": "",
+      "exportTitle": "",
+      "labelSearchPlaceholder": "",
+      "labelSearchTitle": "",
+      "noData": "",
+      "noLabels": "",
+      "open": "",
+      "refresh": "",
+      "search": "",
+      "statsTitle": "",
+      "title": "",
+      "totalLabels": "",
+      "totalThumbnails": "",
+      "totalVersions": "",
+      "uniqueImages": "",
+      "withLabels": "",
+      "withVersions": ""
     },
     "selftest": {
       "allPassed": "所有检测项通过",
@@ -2370,20 +2443,6 @@
     "title": "设置",
     "tooltips": {
       "goHome": "返回首页"
-    },
-    "languageNames": {
-      "en": "English",
-      "de": "Deutsch",
-      "es": "Español",
-      "fr": "Français",
-      "it": "Italiano",
-      "ja": "日本語",
-      "ko": "한국어",
-      "pl": "Polski",
-      "pt": "Português",
-      "ru": "Русский",
-      "zh-CN": "简体中文",
-      "zh-TW": "繁體中文"
     }
   },
   "ui": {
@@ -2467,36 +2526,6 @@
         "showClipping": "显示裁剪警告",
         "vectorscope": "矢量示波器"
       }
-    }
-  },
-  "a11y": {
-    "original": "原图",
-    "lensCorrectionPreview": "镜头校正预览",
-    "preview": "预览",
-    "transformPreview": "变换预览",
-    "imageFilmstrip": "图片胶片条",
-    "previousImage": "上一张图片",
-    "nextImage": "下一张图片",
-    "cropPreview": "裁剪预览",
-    "closeWindow": "关闭窗口",
-    "denoised": "降噪后",
-    "mergedHdr": "HDR 合成结果",
-    "stitchedPanorama": "全景拼接结果",
-    "sourcePreview": "原图预览",
-    "selectedPreview": "当前选中预览",
-    "maskOverlay": "蒙版叠加层",
-    "tabs": "标签页",
-    "representative": "代表性照片",
-    "splashBackground": "启动页背景",
-    "minimizeWindow": "最小化窗口",
-    "maximizeWindow": "最大化窗口",
-    "appTitle": "RapidRAW",
-    "errorBoundary": {
-      "icon": "⚠️",
-      "title": "出现错误",
-      "message": "应用程序发生意外错误，您的编辑内容已保存在 sidecar 文件中，不会丢失。",
-      "recover": "尝试恢复",
-      "restart": "重启应用"
     }
   }
 }

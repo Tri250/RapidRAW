@@ -1,4 +1,34 @@
 {
+  "a11y": {
+    "appTitle": "",
+    "closeWindow": "Close window",
+    "cropPreview": "Crop preview",
+    "denoised": "Denoised",
+    "errorBoundary": {
+      "icon": "",
+      "message": "",
+      "recover": "",
+      "restart": "",
+      "title": ""
+    },
+    "imageFilmstrip": "Image filmstrip",
+    "lensCorrectionPreview": "Lens Correction Preview",
+    "maskOverlay": "Mask Overlay",
+    "maximizeWindow": "Maximize window",
+    "mergedHdr": "Merged HDR",
+    "minimizeWindow": "Minimize window",
+    "nextImage": "Next image",
+    "original": "Original",
+    "preview": "Preview",
+    "previousImage": "Previous image",
+    "representative": "Representative",
+    "selectedPreview": "Selected preview",
+    "sourcePreview": "Source preview",
+    "splashBackground": "Splash screen background",
+    "stitchedPanorama": "Stitched Panorama",
+    "tabs": "Tabs",
+    "transformPreview": "Transform Preview"
+  },
   "adjustments": {
     "basic": {
       "blacks": "Затемнение",
@@ -126,6 +156,15 @@
       "size": "Размер",
       "vignette": "Виньетирование"
     }
+  },
+  "androidShare": {
+    "cancel": "Cancel",
+    "more": "More",
+    "qq": "QQ",
+    "systemShareTitle": "Share Image",
+    "titleDefault": "Share to",
+    "wechat": "WeChat",
+    "weibo": "Weibo"
   },
   "contextMenus": {
     "album": {
@@ -359,16 +398,27 @@
         "switchToSubtract": "Переключить на вычитание"
       },
       "addNewEdit": "Добавить изменения",
+      "autoStraighten": {
+        "failed": "Auto Straighten failed"
+      },
       "bgRemove": {
         "completed": "AI Background Remove completed",
         "failed": "AI Background Remove failed"
       },
+      "bgRemoveLabel": "",
       "bgRemoveTooltip": "AI Background Remove",
       "brush": {
         "add": "Добавить",
         "erase": "Стереть",
         "feather": "Растушевка кисти",
         "size": "Размер кисти"
+      },
+      "cleanup": {
+        "failed": "Cleanup failed"
+      },
+      "colorRange": {
+        "failed": "Color Range Mask failed",
+        "noMatch": "No matching colors found"
       },
       "comingSoon": "Скоро",
       "connection": {
@@ -389,17 +439,55 @@
       },
       "createNewTitle": "Создать новую генеративную правку",
       "createNewTooltip": "Создать правку: {{name}}",
+      "depthMask": {
+        "failed": "AI Depth Mask failed",
+        "noDepthData": "No depth data generated"
+      },
       "dropzoneText": "Перетащите сюда, чтобы создать новую правку",
       "editSettingsTitle": "Настройки редактирования",
       "editsTitle": "Правки",
       "enhancementTitle": "AI Enhancement",
+      "errorHint": {
+        "downloadFailed": "Model download failed. Please check your network or configure a mirror URL in Settings > AI Settings (hf-mirror.com recommended).",
+        "oom": "Device memory insufficient. Try lowering the max processing resolution in Settings > Performance."
+      },
+      "feather": {
+        "failed": "Mask Feather failed"
+      },
+      "foregroundMask": {
+        "failed": "AI Foreground Mask failed",
+        "noForeground": "No foreground detected in image"
+      },
       "generativeEditTitle": "Генеративное редактирование",
+      "generativeReplace": {
+        "failed": "Generative Replace failed"
+      },
+      "horizonDetect": {
+        "failed": "Horizon Detection failed"
+      },
       "inpaintingTitle": "Восстановление",
+      "luminanceRange": {
+        "failed": "Luminance Range Mask failed",
+        "noMatch": "No matching luminance range found"
+      },
       "manualCleanupTitle": "Ручная очистка",
+      "mask": {
+        "failed": "AI Mask failed",
+        "noMaskData": "AI Mask: No mask data generated"
+      },
       "mode": {
         "add": "Добавить",
         "inter": "Пересечение",
         "sub": "Вычесть"
+      },
+      "modelStatus": {
+        "depth": "Depth",
+        "downloading": "Loading on-device models ({{done}}/{{total}})",
+        "fg": "FG",
+        "partial": "On-device models {{done}}/{{total}} ready",
+        "sky": "Sky",
+        "subject": "Subject",
+        "waitForDownload": "AI model is still downloading, please wait…"
       },
       "noImageSelected": "Изображение не выбрано.",
       "params": {
@@ -429,6 +517,8 @@
         "quickErase_many": "",
         "quickErase_other": "Быстрое стирание {{count}}"
       },
+      "quickEraseFailed": "Quick Erase failed",
+      "quickEraseTimeout": "Quick Erase timed out. Please check your network or try again.",
       "resetInpaintingTooltip": "Сбросить восстановление",
       "settings": {
         "aiModelDownloading": "Загрузка ИИ-модели: ",
@@ -449,20 +539,27 @@
         "selectionPropertiesTitle": "Свойства выделения",
         "useBasicInpaint": "Использовать простое восстановление"
       },
+      "skyMask": {
+        "failed": "AI Sky Mask failed",
+        "noSky": "No sky detected in image"
+      },
       "skyReplace": {
         "completed": "AI Sky Replace completed",
         "failed": "AI Sky Replace failed"
       },
+      "skyReplaceLabel": "",
       "skyReplaceTooltip": "AI Sky Replace",
+      "subjectMask": {
+        "failed": "AI Subject Mask failed",
+        "noSubject": "No subject detected in image"
+      },
       "superResolution": {
-        "failed": "Super Resolution failed",
         "applied": "Super resolution {{scale}}x applied ({{width}}×{{height}})",
+        "failed": "Super Resolution failed",
         "noImage": "No image selected for super resolution"
       },
       "superResolutionLabel": "Суперразрешение",
       "superResolutionTooltip": "Use AI super resolution to upscale image (2x/3x/4x)",
-      "quickEraseFailed": "Quick Erase failed",
-      "quickEraseTimeout": "Quick Erase timed out. Please check your network or try again.",
       "timeout": {
         "autoStraighten": "Auto Straighten timed out. Please try again.",
         "bgRemove": "AI Background Remove timed out. Please check your network and try again.",
@@ -479,62 +576,6 @@
         "skyReplace": "AI Sky Replace timed out. Please check your network and try again.",
         "subjectMask": "AI Subject Mask timed out. Please check your network and try again.",
         "superResolution": "Super Resolution timed out. Please check your network and try again."
-      },
-      "mask": {
-        "noMaskData": "AI Mask: No mask data generated",
-        "failed": "AI Mask failed"
-      },
-      "depthMask": {
-        "noDepthData": "No depth data generated",
-        "failed": "AI Depth Mask failed"
-      },
-      "foregroundMask": {
-        "noForeground": "No foreground detected in image",
-        "failed": "AI Foreground Mask failed"
-      },
-      "skyMask": {
-        "noSky": "No sky detected in image",
-        "failed": "AI Sky Mask failed"
-      },
-      "subjectMask": {
-        "noSubject": "No subject detected in image",
-        "failed": "AI Subject Mask failed"
-      },
-      "cleanup": {
-        "failed": "Cleanup failed"
-      },
-      "generativeReplace": {
-        "failed": "Generative Replace failed"
-      },
-      "colorRange": {
-        "noMatch": "No matching colors found",
-        "failed": "Color Range Mask failed"
-      },
-      "luminanceRange": {
-        "noMatch": "No matching luminance range found",
-        "failed": "Luminance Range Mask failed"
-      },
-      "feather": {
-        "failed": "Mask Feather failed"
-      },
-      "autoStraighten": {
-        "failed": "Auto Straighten failed"
-      },
-      "horizonDetect": {
-        "failed": "Horizon Detection failed"
-      },
-      "modelStatus": {
-        "waitForDownload": "AI model is still downloading, please wait…",
-        "downloading": "Loading on-device models ({{done}}/{{total}})",
-        "partial": "On-device models {{done}}/{{total}} ready",
-        "fg": "FG",
-        "sky": "Sky",
-        "subject": "Subject",
-        "depth": "Depth"
-      },
-      "errorHint": {
-        "downloadFailed": "Model download failed. Please check your network or configure a mirror URL in Settings > AI Settings (hf-mirror.com recommended).",
-        "oom": "Device memory insufficient. Try lowering the max processing resolution in Settings > Performance."
       }
     },
     "aiRating": {
@@ -542,6 +583,7 @@
       "applyError": "Failed to apply rating to EXIF: {{error}}",
       "applying": "Rating...",
       "applyToExif": "Apply to EXIF",
+      "batchComplete": "Completed rating for {{count}} images",
       "batchComplete_one": "",
       "batchComplete_few": "",
       "batchComplete_many": "",
@@ -550,8 +592,35 @@
       "description": "AI Description",
       "error": "Failed to generate rating: {{error}}",
       "generate": "Generate Rating",
-      "title": "AI Smart Rating",
-      "batchComplete": "Completed rating for {{count}} images"
+      "title": "AI Smart Rating"
+    },
+    "android": {
+      "bottomNav": {
+        "ai": "AI",
+        "basic": "Basic",
+        "color": "Color",
+        "crop": "Crop",
+        "export": "Export",
+        "library": "Library",
+        "masks": "Masks",
+        "metadata": "Metadata",
+        "more": "More",
+        "portrait": "Portrait",
+        "presets": "Presets"
+      },
+      "doubleTapCompare": "Double-tap to compare original",
+      "gotIt": "Got it",
+      "swipeHint": "Swipe left/right to switch photos"
+    },
+    "androidShare": {
+      "cancel": "Cancel",
+      "more": "More",
+      "qq": "QQ",
+      "systemShare": "Share",
+      "systemShareTitle": "Share from RapidRAW",
+      "titleDefault": "Share Image",
+      "wechat": "WeChat",
+      "weibo": "Weibo"
     },
     "colorPanel": {
       "title": "Цвет"
@@ -672,6 +741,9 @@
       "exporting": "Экспорт…",
       "savesTo": "Внешнее редактирование — сохраняется в"
     },
+    "layout": {
+      "split": "Разделить"
+    },
     "masks": {
       "actions": {
         "addNewComponent": "Добавить новый компонент",
@@ -778,7 +850,6 @@
       "copy": "Копировать",
       "emptyClickToAdd": "Пусто (нажмите, чтобы добавить)",
       "extendedExif": {
-        "title": "Расширенный EXIF",
         "tags": {
           "ActiveArea": "Active Area",
           "AFAreaInfo": "AF Area Info",
@@ -948,7 +1019,8 @@
           "XResolution": "X Resolution",
           "YCbCrPositioning": "YCbCr Positioning",
           "YResolution": "Y Resolution"
-        }
+        },
+        "title": "Расширенный EXIF"
       },
       "fields": {
         "author": "Автор",
@@ -995,6 +1067,7 @@
         "single": "Single"
       },
       "blemishActive": "Marking",
+      "blemishCount": "{{count}} spots marked",
       "blemishCount_one": "",
       "blemishCount_few": "",
       "blemishCount_many": "",
@@ -1030,8 +1103,7 @@
       "teethWhiten": "Teeth Whiten",
       "teethWhitenBrightness": "Brightness",
       "teethWhitenDesaturate": "Desaturate",
-      "title": "Портрет",
-      "blemishCount": "{{count}} spots marked"
+      "title": "Портрет"
     },
     "presets": {
       "amount": "Интенсивность",
@@ -1128,37 +1200,6 @@
         "undo": "Отменить (Ctrl+Z) или история (правый клик)"
       },
       "vc": "ВК"
-    },
-    "layout": {
-      "split": "Разделить"
-    },
-    "android": {
-      "bottomNav": {
-        "ai": "AI",
-        "basic": "Basic",
-        "color": "Color",
-        "crop": "Crop",
-        "export": "Export",
-        "library": "Library",
-        "masks": "Masks",
-        "metadata": "Metadata",
-        "more": "More",
-        "portrait": "Portrait",
-        "presets": "Presets"
-      },
-      "doubleTapCompare": "Double-tap to compare original",
-      "gotIt": "Got it",
-      "swipeHint": "Swipe left/right to switch photos"
-    },
-    "androidShare": {
-      "cancel": "Cancel",
-      "more": "More",
-      "qq": "QQ",
-      "systemShare": "Share",
-      "systemShareTitle": "Share from RapidRAW",
-      "titleDefault": "Share Image",
-      "wechat": "WeChat",
-      "weibo": "Weibo"
     }
   },
   "export": {
@@ -1187,6 +1228,10 @@
       "quality": "Качество",
       "qualityLossless": "Качество (без потерь)",
       "sequenceVariableRecommended": "Рекомендуется использовать {sequence} или {original_filename}, чтобы избежать конфликтов имен файлов"
+    },
+    "gallery": {
+      "saved": "Saved to system gallery",
+      "saveFailed": "Failed to save to gallery"
     },
     "labels": {
       "image": "Изображение",
@@ -1241,6 +1286,7 @@
       "noImagesSelected": "Изображения не выбраны.",
       "success": "Экспорт успешно завершен!"
     },
+    "title": "Export",
     "watermark": {
       "addWatermark": "Добавить водяной знак",
       "anchors": {
@@ -1260,12 +1306,7 @@
       "scale": "Масштаб",
       "spacing": "Отступы",
       "watermarkImage": "Изображение водяного знака"
-    },
-    "gallery": {
-      "saved": "Saved to system gallery",
-      "saveFailed": "Failed to save to gallery"
-    },
-    "title": "Export"
+    }
   },
   "library": {
     "batch": {
@@ -1273,11 +1314,11 @@
       "delete": "Delete",
       "export": "Export",
       "rate": "Rate",
+      "selected": "{count} selected",
       "selected_one": "",
       "selected_few": "",
       "selected_many": "",
-      "selected_other": "",
-      "selected": "{count} selected"
+      "selected_other": ""
     },
     "community": {
       "actionSave": "Сохранить",
@@ -1300,6 +1341,31 @@
       "sortMethods": {
         "name": "Имя (А-Я)"
       }
+    },
+    "culling": {
+      "addTagPlaceholder": "Добавить тег...",
+      "altCullingPreviewHighRes": "Предпросмотр в высоком разрешении",
+      "altThumbnailLoading": "Загрузка миниатюры...",
+      "aperture": "Диафрагма",
+      "cameraSettings": "Настройки камеры",
+      "clickThumbnailsHint": "Нажмите на миниатюры на боковой панели, чтобы выбрать их для сравнения",
+      "colorLabel": "Цветовая метка",
+      "dimensions": "Размеры",
+      "editImage": "Редактировать изображение",
+      "focalLength": "Фокусное расстояние",
+      "iso": "ISO",
+      "metadata": "Метаданные",
+      "noMetadataAvailable": "Метаданные недоступны",
+      "none": "Нет",
+      "noTagsAdded": "Теги не добавлены",
+      "rateAndLabel": "Оценка и метка",
+      "rating": "Оценка",
+      "selectImagesToCompare": "Выберите изображения для сравнения",
+      "shutterSpeed": "Выдержка",
+      "syncZoomAndPan": "Синхронизировать масштаб и панораму",
+      "tags": "Теги",
+      "toggleFit": "По размеру",
+      "vc": "VC"
     },
     "favorites": {
       "added": "Added to Favorites",
@@ -1351,6 +1417,7 @@
         "modified": "Дата изменения",
         "name": "По алфавиту"
       },
+      "sourcesTitle": "",
       "tooltips": {
         "clearSearch": "Очистить поиск",
         "collapse": "Свернуть",
@@ -1384,6 +1451,7 @@
       },
       "title": "Библиотека",
       "viewOptions": {
+        "culling": "Отбор",
         "currentFolder": "Текущая папка",
         "displayMode": "Режим отображения",
         "exifDisabledTooltip": "Включите чтение EXIF в настройках, чтобы использовать эту функцию.",
@@ -1402,8 +1470,7 @@
         "sortDescending": "По убыванию",
         "thumbnailFit": "Масштаб превью",
         "thumbnailSize": "Размер превью",
-        "title": "Вид",
-        "culling": "Отбор"
+        "title": "Вид"
       }
     },
     "import": {
@@ -1449,14 +1516,6 @@
       "conditions": "Conditions",
       "create": "Create Smart Album",
       "createButton": "Create",
-      "name": "Album Name",
-      "preview_one": "",
-      "preview_few": "",
-      "preview_many": "",
-      "preview_other": "",
-      "valueFalse": "No",
-      "valuePlaceholder": "Value",
-      "valueTrue": "Yes",
       "fieldCameraModel": "Camera Model",
       "fieldColorLabel": "Color Label",
       "fieldDateModified": "Date Modified",
@@ -1464,13 +1523,21 @@
       "fieldIsEdited": "Edited Status",
       "fieldRating": "Rating",
       "fieldTag": "Tag",
+      "name": "Album Name",
       "opBetween": "Between",
       "opContains": "Contains",
       "opEquals": "Equals",
       "opGreaterThan": "Greater Than",
       "opLessThan": "Less Than",
       "preview": "{count} photos match",
-      "title": "Smart Albums"
+      "preview_one": "",
+      "preview_few": "",
+      "preview_many": "",
+      "preview_other": "",
+      "title": "Smart Albums",
+      "valueFalse": "No",
+      "valuePlaceholder": "Value",
+      "valueTrue": "Yes"
     },
     "sort": {
       "aperture": "Диафрагме",
@@ -1525,31 +1592,6 @@
       "communityPresets": "Пресеты сообщества",
       "goHome": "На главную",
       "importImages": "Импортировать изображения"
-    },
-    "culling": {
-      "altThumbnailLoading": "Загрузка миниатюры...",
-      "altCullingPreviewHighRes": "Предпросмотр в высоком разрешении",
-      "metadata": "Метаданные",
-      "dimensions": "Размеры",
-      "cameraSettings": "Настройки камеры",
-      "shutterSpeed": "Выдержка",
-      "aperture": "Диафрагма",
-      "iso": "ISO",
-      "focalLength": "Фокусное расстояние",
-      "noMetadataAvailable": "Метаданные недоступны",
-      "rateAndLabel": "Оценка и метка",
-      "rating": "Оценка",
-      "colorLabel": "Цветовая метка",
-      "none": "Нет",
-      "tags": "Теги",
-      "noTagsAdded": "Теги не добавлены",
-      "addTagPlaceholder": "Добавить тег...",
-      "vc": "VC",
-      "editImage": "Редактировать изображение",
-      "syncZoomAndPan": "Синхронизировать масштаб и панораму",
-      "toggleFit": "По размеру",
-      "selectImagesToCompare": "Выберите изображения для сравнения",
-      "clickThumbnailsHint": "Нажмите на миниатюры на боковой панели, чтобы выбрать их для сравнения"
     }
   },
   "masks": {
@@ -1910,6 +1952,43 @@
     "noPresets": "No preset data available",
     "noSources": "No online preset sources",
     "noSourcesDesc": "Click \"Add Source\" to add a JSON link",
+    "paramLabels": {
+      "@string/param_color_temp": "Color Temp",
+      "@string/param_cyan_magenta": "Cyan/Magenta",
+      "@string/param_exposure": "Exposure",
+      "@string/param_filter": "Filter",
+      "@string/param_iso": "ISO",
+      "@string/param_saturation": "Saturation",
+      "@string/param_sharpness": "Sharpness",
+      "@string/param_shutter": "Shutter",
+      "@string/param_soft_light": "Soft Light",
+      "@string/param_tone": "Tone",
+      "@string/param_tone_curve": "Tone Curve",
+      "@string/param_vignette": "Vignette",
+      "@string/param_warm_cool": "Warm/Cool",
+      "AF对焦模式": "AF Mode",
+      "EV": "EV",
+      "ISO感光度": "ISO",
+      "M测光模式": "Metering Mode",
+      "WB白平衡": "WB White Balance",
+      "亮度": "Brightness",
+      "光感": "Light Sense",
+      "冷暖": "Warm/Cool",
+      "对比度": "Contrast",
+      "快门速度": "Shutter Speed",
+      "暗角": "Vignette",
+      "曝光": "Exposure",
+      "曝光补偿": "Exposure Comp",
+      "柔光": "Soft Light",
+      "白平衡": "White Balance",
+      "色温": "Color Temp",
+      "色调": "Tone",
+      "锐度": "Sharpness",
+      "阴影": "Shadows",
+      "青品": "Cyan/Magenta",
+      "饱和度": "Saturation",
+      "高光": "Highlights"
+    },
     "presets": "presets",
     "refresh": "Refresh",
     "refreshAll": "Refresh All Sources",
@@ -1917,53 +1996,16 @@
     "retry": "Retry",
     "saved": "Saved",
     "saveToPreview": "Save to Preview",
-    "showDetails": "View Details",
-    "title": "Online Presets",
-    "viewGallery": "View Gallery",
     "sectionTitles": {
-      "@string/section_color_grading": "Color Grading",
       "@string/param_pro_adjust": "Pro Adjustments",
+      "@string/section_color_grading": "Color Grading",
       "专业参数": "Pro Adjustments",
       "基本调节": "Basic Adjustments",
       "色彩调节": "Color Adjustments"
     },
-    "paramLabels": {
-      "@string/param_filter": "Filter",
-      "@string/param_soft_light": "Soft Light",
-      "@string/param_tone_curve": "Tone Curve",
-      "@string/param_saturation": "Saturation",
-      "@string/param_warm_cool": "Warm/Cool",
-      "@string/param_cyan_magenta": "Cyan/Magenta",
-      "@string/param_sharpness": "Sharpness",
-      "@string/param_vignette": "Vignette",
-      "@string/param_iso": "ISO",
-      "@string/param_shutter": "Shutter",
-      "@string/param_exposure": "Exposure",
-      "@string/param_color_temp": "Color Temp",
-      "@string/param_tone": "Tone",
-      "曝光": "Exposure",
-      "亮度": "Brightness",
-      "对比度": "Contrast",
-      "高光": "Highlights",
-      "阴影": "Shadows",
-      "光感": "Light Sense",
-      "饱和度": "Saturation",
-      "色温": "Color Temp",
-      "锐度": "Sharpness",
-      "冷暖": "Warm/Cool",
-      "青品": "Cyan/Magenta",
-      "暗角": "Vignette",
-      "色调": "Tone",
-      "柔光": "Soft Light",
-      "ISO感光度": "ISO",
-      "快门速度": "Shutter Speed",
-      "AF对焦模式": "AF Mode",
-      "WB白平衡": "WB White Balance",
-      "M测光模式": "Metering Mode",
-      "白平衡": "White Balance",
-      "曝光补偿": "Exposure Comp",
-      "EV": "EV"
-    }
+    "showDetails": "View Details",
+    "title": "Online Presets",
+    "viewGallery": "View Gallery"
   },
   "settings": {
     "adjustments": {
@@ -1980,6 +2022,7 @@
     "categories": {
       "general": "Общие",
       "processing": "Обработка",
+      "project": "",
       "shortcuts": "Управление"
     },
     "contact": {
@@ -2154,6 +2197,20 @@
     },
     "language": "Язык",
     "languageDesc": "Изменить язык интерфейса приложения.",
+    "languageNames": {
+      "de": "Deutsch",
+      "en": "English",
+      "es": "Español",
+      "fr": "Français",
+      "it": "Italiano",
+      "ja": "日本語",
+      "ko": "한국어",
+      "pl": "Polski",
+      "pt": "Português",
+      "ru": "Русский",
+      "zh-CN": "简体中文",
+      "zh-TW": "繁體中文"
+    },
     "lenses": {
       "addButton": "Добавить в мои объективы",
       "addNew": "Добавить новый объектив",
@@ -2168,14 +2225,14 @@
     "presetGallery": {
       "addSource": "Add Data Source",
       "addSourcePlaceholder": "Enter JSON link URL...",
+      "addSourceRejected": "Поддерживаются только HTTPS-источники из доверенных доменов (github.com, jsdelivr.net, getrapidraw.com и т.д.).",
       "description": "Manage online preset JSON data sources. Once added, preset samples can be viewed in the gallery.",
       "disabled": "Disabled",
+      "duplicateSource": "Этот источник данных уже был добавлен.",
       "enabled": "Enabled",
       "noSources": "No data sources yet. Please add a JSON link.",
       "removeSource": "Remove Data Source",
-      "title": "Online Presets",
-      "addSourceRejected": "Поддерживаются только HTTPS-источники из доверенных доменов (github.com, jsdelivr.net, getrapidraw.com и т.д.).",
-      "duplicateSource": "Этот источник данных уже был добавлен."
+      "title": "Online Presets"
     },
     "processing": {
       "ai": {
@@ -2229,7 +2286,10 @@
         "title": "Генеративный ИИ"
       },
       "aiMirror": "URL зеркала моделей ИИ",
+      "aiMirrorCleared": "AI model mirror URL cleared.",
       "aiMirrorDesc": "Установите пользовательский URL-адрес зеркала для загрузки моделей ИИ (например, https://hf-mirror.com для пользователей в Китае). Оставьте пустым, чтобы использовать URL-адреса HuggingFace по умолчанию.",
+      "aiMirrorFailed": "Failed to set mirror URL.",
+      "aiMirrorSet": "AI model mirror URL set.",
       "backend": "Графический бэкенд",
       "backendDesc": "Выберите графический API. Рекомендуется значение 'Авто'. Изменение параметра может устранить сбои рендеринга на некоторых конфигурациях оборудования.",
       "backends": {
@@ -2315,19 +2375,41 @@
       "wgpuDescRecommended": "Обходит этап кодирования веб-браузера для моментального обновления интерактивного просмотра. Настоятельно рекомендуется для достижения максимальной отзывчивости интерфейса.",
       "wgpuLabel": "Включить прямой рендеринг WGPU",
       "workerThreads": "Потоки генерации миниатюр",
-      "workerThreadsDesc": "Количество параллельно работающих вычислительных потоков для создания миниатюр снимков. Высокие значения ускоряют первоначальный запуск галереи, но нагружают процессор и ОЗУ.",
-      "aiMirrorSet": "AI model mirror URL set.",
-      "aiMirrorCleared": "AI model mirror URL cleared.",
-      "aiMirrorFailed": "Failed to set mirror URL."
+      "workerThreadsDesc": "Количество параллельно работающих вычислительных потоков для создания миниатюр снимков. Высокие значения ускоряют первоначальный запуск галереи, но нагружают процессор и ОЗУ."
+    },
+    "project": {
+      "avgPerImage": "",
+      "choose": "",
+      "close": "",
+      "dbPathLabel": "",
+      "export": "",
+      "exportDesc": "",
+      "exporting": "",
+      "exportTitle": "",
+      "labelSearchPlaceholder": "",
+      "labelSearchTitle": "",
+      "noData": "",
+      "noLabels": "",
+      "open": "",
+      "refresh": "",
+      "search": "",
+      "statsTitle": "",
+      "title": "",
+      "totalLabels": "",
+      "totalThumbnails": "",
+      "totalVersions": "",
+      "uniqueImages": "",
+      "withLabels": "",
+      "withVersions": ""
     },
     "selftest": {
       "allPassed": "All checks passed",
       "description": "Run a comprehensive deep self-test to verify the state of image processing pipeline components such as GPU pipeline, ROI computation, preview rendering, and cache.",
+      "requiresImage": "Please select an image in the editor before running the deep self-test — the test needs a currently edited image as its target.",
       "run": "Run Deep Self-Test",
       "running": "Testing…",
       "someFailed": "Some checks failed",
-      "title": "Image Processing Deep Self-Test",
-      "requiresImage": "Please select an image in the editor before running the deep self-test — the test needs a currently edited image as its target."
+      "title": "Image Processing Deep Self-Test"
     },
     "tagging": {
       "addCustomPlaceholder": "Добавить пользовательские AI-теги (через запятую)...",
@@ -2382,20 +2464,6 @@
     "title": "Настройки",
     "tooltips": {
       "goHome": "На главную"
-    },
-    "languageNames": {
-      "en": "English",
-      "de": "Deutsch",
-      "es": "Español",
-      "fr": "Français",
-      "it": "Italiano",
-      "ja": "日本語",
-      "ko": "한국어",
-      "pl": "Polski",
-      "pt": "Português",
-      "ru": "Русский",
-      "zh-CN": "简体中文",
-      "zh-TW": "繁體中文"
     }
   },
   "ui": {
@@ -2482,36 +2550,5 @@
         "vectorscope": "Вектороскоп"
       }
     }
-  },
-  "androidShare": {
-    "cancel": "Cancel",
-    "more": "More",
-    "qq": "QQ",
-    "systemShareTitle": "Share Image",
-    "titleDefault": "Share to",
-    "wechat": "WeChat",
-    "weibo": "Weibo"
-  },
-  "a11y": {
-    "original": "Original",
-    "lensCorrectionPreview": "Lens Correction Preview",
-    "preview": "Preview",
-    "transformPreview": "Transform Preview",
-    "imageFilmstrip": "Image filmstrip",
-    "previousImage": "Previous image",
-    "nextImage": "Next image",
-    "cropPreview": "Crop preview",
-    "closeWindow": "Close window",
-    "denoised": "Denoised",
-    "mergedHdr": "Merged HDR",
-    "stitchedPanorama": "Stitched Panorama",
-    "sourcePreview": "Source preview",
-    "selectedPreview": "Selected preview",
-    "maskOverlay": "Mask Overlay",
-    "tabs": "Tabs",
-    "representative": "Representative",
-    "splashBackground": "Splash screen background",
-    "minimizeWindow": "Minimize window",
-    "maximizeWindow": "Maximize window"
   }
 }

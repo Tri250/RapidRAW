@@ -1,12 +1,33 @@
 {
-  "androidShare": {
-    "cancel": "Cancel",
-    "more": "More",
-    "qq": "QQ",
-    "systemShareTitle": "Share Image",
-    "titleDefault": "Share to",
-    "wechat": "WeChat",
-    "weibo": "Weibo"
+  "a11y": {
+    "appTitle": "RapidRAW",
+    "closeWindow": "Close window",
+    "cropPreview": "Crop preview",
+    "denoised": "Denoised",
+    "errorBoundary": {
+      "icon": "⚠️",
+      "message": "An unexpected error occurred in the application. Your edits are preserved in sidecar files and will not be lost.",
+      "recover": "Try Recover",
+      "restart": "Restart App",
+      "title": "Something went wrong"
+    },
+    "imageFilmstrip": "Image filmstrip",
+    "lensCorrectionPreview": "Lens Correction Preview",
+    "maskOverlay": "Mask Overlay",
+    "maximizeWindow": "Maximize window",
+    "mergedHdr": "Merged HDR",
+    "minimizeWindow": "Minimize window",
+    "nextImage": "Next image",
+    "original": "Original",
+    "preview": "Preview",
+    "previousImage": "Previous image",
+    "representative": "Representative",
+    "selectedPreview": "Selected preview",
+    "sourcePreview": "Source preview",
+    "splashBackground": "Splash screen background",
+    "stitchedPanorama": "Stitched Panorama",
+    "tabs": "Tabs",
+    "transformPreview": "Transform Preview"
   },
   "adjustments": {
     "basic": {
@@ -135,6 +156,15 @@
       "size": "Size",
       "vignette": "Vignette"
     }
+  },
+  "androidShare": {
+    "cancel": "Cancel",
+    "more": "More",
+    "qq": "QQ",
+    "systemShareTitle": "Share Image",
+    "titleDefault": "Share to",
+    "wechat": "WeChat",
+    "weibo": "Weibo"
   },
   "contextMenus": {
     "album": {
@@ -336,16 +366,27 @@
         "switchToSubtract": "Switch to Subtract"
       },
       "addNewEdit": "Add New Edit",
+      "autoStraighten": {
+        "failed": "Auto Straighten failed"
+      },
       "bgRemove": {
         "completed": "AI Background Remove completed",
         "failed": "AI Background Remove failed"
       },
+      "bgRemoveLabel": "BG Remove",
       "bgRemoveTooltip": "AI Background Remove",
       "brush": {
         "add": "Add",
         "erase": "Erase",
         "feather": "Brush Feather",
         "size": "Brush Size"
+      },
+      "cleanup": {
+        "failed": "Cleanup failed"
+      },
+      "colorRange": {
+        "failed": "Color Range Mask failed",
+        "noMatch": "No matching colors found"
       },
       "comingSoon": "Coming Soon",
       "connection": {
@@ -366,17 +407,55 @@
       },
       "createNewTitle": "Create New Generative Edit",
       "createNewTooltip": "Create New {{name}} Edit",
+      "depthMask": {
+        "failed": "AI Depth Mask failed",
+        "noDepthData": "No depth data generated"
+      },
       "dropzoneText": "Drop here to create a new edit",
       "editSettingsTitle": "Edit Settings",
       "editsTitle": "Edits",
       "enhancementTitle": "AI Enhancement",
+      "errorHint": {
+        "downloadFailed": "Model download failed. Please check your network or configure a mirror URL in Settings > AI Settings (hf-mirror.com recommended).",
+        "oom": "Device memory insufficient. Try lowering the max processing resolution in Settings > Performance."
+      },
+      "feather": {
+        "failed": "Mask Feather failed"
+      },
+      "foregroundMask": {
+        "failed": "AI Foreground Mask failed",
+        "noForeground": "No foreground detected in image"
+      },
       "generativeEditTitle": "Generative Edit",
+      "generativeReplace": {
+        "failed": "Generative Replace failed"
+      },
+      "horizonDetect": {
+        "failed": "Horizon Detection failed"
+      },
       "inpaintingTitle": "Inpainting",
+      "luminanceRange": {
+        "failed": "Luminance Range Mask failed",
+        "noMatch": "No matching luminance range found"
+      },
       "manualCleanupTitle": "Manual Cleanup",
+      "mask": {
+        "failed": "AI Mask failed",
+        "noMaskData": "AI Mask: No mask data generated"
+      },
       "mode": {
         "add": "Add",
         "inter": "Inter",
         "sub": "Sub"
+      },
+      "modelStatus": {
+        "depth": "Depth",
+        "downloading": "Loading on-device models ({{done}}/{{total}})",
+        "fg": "FG",
+        "partial": "On-device models {{done}}/{{total}} ready",
+        "sky": "Sky",
+        "subject": "Subject",
+        "waitForDownload": "AI model is still downloading, please wait…"
       },
       "noImageSelected": "No image selected.",
       "params": {
@@ -398,6 +477,8 @@
         "quickErase_one": "Quick Erase {{count}}",
         "quickErase_other": "Quick Erase {{count}}"
       },
+      "quickEraseFailed": "Quick Erase failed",
+      "quickEraseTimeout": "Quick Erase timed out. Please check your network or try again.",
       "resetInpaintingTooltip": "Reset Inpainting",
       "settings": {
         "aiModelDownloading": "AI Model Downloading: ",
@@ -418,17 +499,24 @@
         "selectionPropertiesTitle": "Selection Properties",
         "useBasicInpaint": "Use basic inpainting"
       },
-      "quickEraseFailed": "Quick Erase failed",
-      "quickEraseTimeout": "Quick Erase timed out. Please check your network or try again.",
+      "skyMask": {
+        "failed": "AI Sky Mask failed",
+        "noSky": "No sky detected in image"
+      },
       "skyReplace": {
         "completed": "AI Sky Replace completed",
         "failed": "AI Sky Replace failed"
       },
+      "skyReplaceLabel": "Sky Replace",
       "skyReplaceTooltip": "AI Sky Replace",
+      "subjectMask": {
+        "failed": "AI Subject Mask failed",
+        "noSubject": "No subject detected in image"
+      },
       "superResolution": {
-        "noImage": "No image selected for super resolution",
         "applied": "Super resolution {{scale}}x applied ({{width}}×{{height}})",
-        "failed": "Super Resolution failed"
+        "failed": "Super Resolution failed",
+        "noImage": "No image selected for super resolution"
       },
       "superResolutionLabel": "Super Resolution",
       "superResolutionTooltip": "Use AI super resolution to upscale image (2x/3x/4x)",
@@ -448,62 +536,6 @@
         "skyReplace": "AI Sky Replace timed out. Please check your network and try again.",
         "subjectMask": "AI Subject Mask timed out. Please check your network and try again.",
         "superResolution": "Super Resolution timed out. Please check your network and try again."
-      },
-      "mask": {
-        "noMaskData": "AI Mask: No mask data generated",
-        "failed": "AI Mask failed"
-      },
-      "depthMask": {
-        "noDepthData": "No depth data generated",
-        "failed": "AI Depth Mask failed"
-      },
-      "foregroundMask": {
-        "noForeground": "No foreground detected in image",
-        "failed": "AI Foreground Mask failed"
-      },
-      "skyMask": {
-        "noSky": "No sky detected in image",
-        "failed": "AI Sky Mask failed"
-      },
-      "subjectMask": {
-        "noSubject": "No subject detected in image",
-        "failed": "AI Subject Mask failed"
-      },
-      "cleanup": {
-        "failed": "Cleanup failed"
-      },
-      "generativeReplace": {
-        "failed": "Generative Replace failed"
-      },
-      "colorRange": {
-        "noMatch": "No matching colors found",
-        "failed": "Color Range Mask failed"
-      },
-      "luminanceRange": {
-        "noMatch": "No matching luminance range found",
-        "failed": "Luminance Range Mask failed"
-      },
-      "feather": {
-        "failed": "Mask Feather failed"
-      },
-      "autoStraighten": {
-        "failed": "Auto Straighten failed"
-      },
-      "horizonDetect": {
-        "failed": "Horizon Detection failed"
-      },
-      "modelStatus": {
-        "waitForDownload": "AI model is still downloading, please wait…",
-        "downloading": "Loading on-device models ({{done}}/{{total}})",
-        "partial": "On-device models {{done}}/{{total}} ready",
-        "fg": "FG",
-        "sky": "Sky",
-        "subject": "Subject",
-        "depth": "Depth"
-      },
-      "errorHint": {
-        "downloadFailed": "Model download failed. Please check your network or configure a mirror URL in Settings > AI Settings (hf-mirror.com recommended).",
-        "oom": "Device memory insufficient. Try lowering the max processing resolution in Settings > Performance."
       }
     },
     "aiRating": {
@@ -534,29 +566,29 @@
         "portrait": "Portrait",
         "presets": "Presets"
       },
+      "closeShareSheet": "Close share sheet",
       "doubleTapCompare": "Double-tap to compare original",
       "gotIt": "Got it",
-      "swipeHint": "Swipe left/right to switch photos",
-      "lowMemoryReload": "Reloading preview...",
-      "shareFailed": "Share failed: {{err}}",
-      "closeShareSheet": "Close share sheet",
-      "openLibrary": "Open library",
-      "openBasicPanel": "Open basic adjustments",
-      "openColorPanel": "Open color adjustments",
-      "openPortraitPanel": "Open portrait adjustments",
-      "openCropPanel": "Open crop",
-      "openMasksPanel": "Open masks",
-      "openAiPanel": "Open AI tools",
-      "openMetadataPanel": "Open metadata",
-      "openPresetsPanel": "Open presets",
-      "openExportPanel": "Open export",
-      "openLibraryFailed": "Failed to open library.",
-      "openFolderDialogFailed": "Failed to open folder selection dialog.",
-      "loadImagesFailed": "Failed to load images from the selected folder.",
       "loadAlbumFailed": "Failed to load album.",
       "loadFolderTreeFailed": "Failed to load folder tree.",
       "loadImageFailed": "Failed to load image.",
-      "restoreSessionFailed": "Failed to restore session. A folder may have been moved or deleted."
+      "loadImagesFailed": "Failed to load images from the selected folder.",
+      "lowMemoryReload": "Reloading preview...",
+      "openAiPanel": "Open AI tools",
+      "openBasicPanel": "Open basic adjustments",
+      "openColorPanel": "Open color adjustments",
+      "openCropPanel": "Open crop",
+      "openExportPanel": "Open export",
+      "openFolderDialogFailed": "Failed to open folder selection dialog.",
+      "openLibrary": "Open library",
+      "openLibraryFailed": "Failed to open library.",
+      "openMasksPanel": "Open masks",
+      "openMetadataPanel": "Open metadata",
+      "openPortraitPanel": "Open portrait adjustments",
+      "openPresetsPanel": "Open presets",
+      "restoreSessionFailed": "Failed to restore session. A folder may have been moved or deleted.",
+      "shareFailed": "Share failed: {{err}}",
+      "swipeHint": "Swipe left/right to switch photos"
     },
     "androidShare": {
       "cancel": "Cancel",
@@ -686,6 +718,9 @@
       "done": "Done",
       "exporting": "Exporting…",
       "savesTo": "External edit — saves to"
+    },
+    "layout": {
+      "split": "Split"
     },
     "masks": {
       "actions": {
@@ -1139,9 +1174,6 @@
         "undo": "Undo (Ctrl+Z) or History (Right-click)"
       },
       "vc": "VC"
-    },
-    "layout": {
-      "split": "Split"
     }
   },
   "export": {
@@ -1278,6 +1310,31 @@
         "name": "Name (A-Z)"
       }
     },
+    "culling": {
+      "addTagPlaceholder": "Add tag...",
+      "altCullingPreviewHighRes": "High resolution preview",
+      "altThumbnailLoading": "Loading thumbnail...",
+      "aperture": "Aperture",
+      "cameraSettings": "Camera Settings",
+      "clickThumbnailsHint": "Click thumbnails in the sidebar to select them for comparison",
+      "colorLabel": "Color Label",
+      "dimensions": "Dimensions",
+      "editImage": "Edit Image",
+      "focalLength": "Focal Length",
+      "iso": "ISO",
+      "metadata": "Metadata",
+      "noMetadataAvailable": "No metadata available",
+      "none": "None",
+      "noTagsAdded": "No tags added",
+      "rateAndLabel": "Rate & Label",
+      "rating": "Rating",
+      "selectImagesToCompare": "Select images to compare",
+      "shutterSpeed": "Shutter Speed",
+      "syncZoomAndPan": "Sync Zoom & Pan",
+      "tags": "Tags",
+      "toggleFit": "Toggle Fit",
+      "vc": "VC"
+    },
     "favorites": {
       "added": "Added to Favorites",
       "removed": "Removed from Favorites",
@@ -1328,6 +1385,7 @@
         "modified": "Date Modified",
         "name": "Alphabetically"
       },
+      "sourcesTitle": "Sources",
       "tooltips": {
         "clearSearch": "Clear search",
         "collapse": "Collapse",
@@ -1361,6 +1419,7 @@
       },
       "title": "Library",
       "viewOptions": {
+        "culling": "Culling",
         "currentFolder": "Current Folder",
         "displayMode": "Display Mode",
         "exifDisabledTooltip": "Enable EXIF Reading in Settings to use this option.",
@@ -1379,8 +1438,7 @@
         "sortDescending": "Sort Descending",
         "thumbnailFit": "Thumbnail Fit",
         "thumbnailSize": "Thumbnail Size",
-        "title": "View Options",
-        "culling": "Culling"
+        "title": "View Options"
       }
     },
     "import": {
@@ -1498,31 +1556,6 @@
       "communityPresets": "Community Presets",
       "goHome": "Go to Home",
       "importImages": "Import Images"
-    },
-    "culling": {
-      "altThumbnailLoading": "Loading thumbnail...",
-      "altCullingPreviewHighRes": "High resolution preview",
-      "metadata": "Metadata",
-      "dimensions": "Dimensions",
-      "cameraSettings": "Camera Settings",
-      "shutterSpeed": "Shutter Speed",
-      "aperture": "Aperture",
-      "iso": "ISO",
-      "focalLength": "Focal Length",
-      "noMetadataAvailable": "No metadata available",
-      "rateAndLabel": "Rate & Label",
-      "rating": "Rating",
-      "colorLabel": "Color Label",
-      "none": "None",
-      "tags": "Tags",
-      "noTagsAdded": "No tags added",
-      "addTagPlaceholder": "Add tag...",
-      "vc": "VC",
-      "editImage": "Edit Image",
-      "syncZoomAndPan": "Sync Zoom & Pan",
-      "toggleFit": "Toggle Fit",
-      "selectImagesToCompare": "Select images to compare",
-      "clickThumbnailsHint": "Click thumbnails in the sidebar to select them for comparison"
     }
   },
   "masks": {
@@ -1871,6 +1904,43 @@
     "noPresets": "No preset data available",
     "noSources": "No online preset sources",
     "noSourcesDesc": "Click \"Add Source\" to add a JSON link",
+    "paramLabels": {
+      "@string/param_color_temp": "Color Temp",
+      "@string/param_cyan_magenta": "Cyan/Magenta",
+      "@string/param_exposure": "Exposure",
+      "@string/param_filter": "Filter",
+      "@string/param_iso": "ISO",
+      "@string/param_saturation": "Saturation",
+      "@string/param_sharpness": "Sharpness",
+      "@string/param_shutter": "Shutter",
+      "@string/param_soft_light": "Soft Light",
+      "@string/param_tone": "Tone",
+      "@string/param_tone_curve": "Tone Curve",
+      "@string/param_vignette": "Vignette",
+      "@string/param_warm_cool": "Warm/Cool",
+      "AF对焦模式": "AF Mode",
+      "EV": "EV",
+      "ISO感光度": "ISO",
+      "M测光模式": "Metering Mode",
+      "WB白平衡": "WB White Balance",
+      "亮度": "Brightness",
+      "光感": "Light Sense",
+      "冷暖": "Warm/Cool",
+      "对比度": "Contrast",
+      "快门速度": "Shutter Speed",
+      "暗角": "Vignette",
+      "曝光": "Exposure",
+      "曝光补偿": "Exposure Comp",
+      "柔光": "Soft Light",
+      "白平衡": "White Balance",
+      "色温": "Color Temp",
+      "色调": "Tone",
+      "锐度": "Sharpness",
+      "阴影": "Shadows",
+      "青品": "Cyan/Magenta",
+      "饱和度": "Saturation",
+      "高光": "Highlights"
+    },
     "presets": "presets",
     "refresh": "Refresh",
     "refreshAll": "Refresh All Sources",
@@ -1878,53 +1948,16 @@
     "retry": "Retry",
     "saved": "Saved",
     "saveToPreview": "Save to Preview",
-    "showDetails": "View Details",
-    "title": "Online Presets",
-    "viewGallery": "View Gallery",
     "sectionTitles": {
-      "@string/section_color_grading": "Color Grading",
       "@string/param_pro_adjust": "Pro Adjustments",
+      "@string/section_color_grading": "Color Grading",
       "专业参数": "Pro Adjustments",
       "基本调节": "Basic Adjustments",
       "色彩调节": "Color Adjustments"
     },
-    "paramLabels": {
-      "@string/param_filter": "Filter",
-      "@string/param_soft_light": "Soft Light",
-      "@string/param_tone_curve": "Tone Curve",
-      "@string/param_saturation": "Saturation",
-      "@string/param_warm_cool": "Warm/Cool",
-      "@string/param_cyan_magenta": "Cyan/Magenta",
-      "@string/param_sharpness": "Sharpness",
-      "@string/param_vignette": "Vignette",
-      "@string/param_iso": "ISO",
-      "@string/param_shutter": "Shutter",
-      "@string/param_exposure": "Exposure",
-      "@string/param_color_temp": "Color Temp",
-      "@string/param_tone": "Tone",
-      "曝光": "Exposure",
-      "亮度": "Brightness",
-      "对比度": "Contrast",
-      "高光": "Highlights",
-      "阴影": "Shadows",
-      "光感": "Light Sense",
-      "饱和度": "Saturation",
-      "色温": "Color Temp",
-      "锐度": "Sharpness",
-      "冷暖": "Warm/Cool",
-      "青品": "Cyan/Magenta",
-      "暗角": "Vignette",
-      "色调": "Tone",
-      "柔光": "Soft Light",
-      "ISO感光度": "ISO",
-      "快门速度": "Shutter Speed",
-      "AF对焦模式": "AF Mode",
-      "WB白平衡": "WB White Balance",
-      "M测光模式": "Metering Mode",
-      "白平衡": "White Balance",
-      "曝光补偿": "Exposure Comp",
-      "EV": "EV"
-    }
+    "showDetails": "View Details",
+    "title": "Online Presets",
+    "viewGallery": "View Gallery"
   },
   "settings": {
     "adjustments": {
@@ -1941,6 +1974,7 @@
     "categories": {
       "general": "General",
       "processing": "Processing",
+      "project": "Project",
       "shortcuts": "Controls"
     },
     "contact": {
@@ -2109,6 +2143,20 @@
     },
     "language": "Language",
     "languageDesc": "Change the application language.",
+    "languageNames": {
+      "de": "Deutsch",
+      "en": "English",
+      "es": "Español",
+      "fr": "Français",
+      "it": "Italiano",
+      "ja": "日本語",
+      "ko": "한국어",
+      "pl": "Polski",
+      "pt": "Português",
+      "ru": "Русский",
+      "zh-CN": "简体中文",
+      "zh-TW": "繁體中文"
+    },
     "lenses": {
       "addButton": "Add to My Lenses",
       "addNew": "Add New Lens",
@@ -2184,7 +2232,10 @@
         "title": "Generative AI"
       },
       "aiMirror": "AI Model Mirror URL",
+      "aiMirrorCleared": "AI model mirror URL cleared.",
       "aiMirrorDesc": "Set a custom mirror URL for downloading AI models (e.g. https://hf-mirror.com for users in China). Leave empty to use the default HuggingFace URLs.",
+      "aiMirrorFailed": "Failed to set mirror URL.",
+      "aiMirrorSet": "AI model mirror URL set.",
       "backend": "Processing Backend",
       "backendDesc": "Select the graphics API. 'Auto' is recommended. May fix crashes on some systems.",
       "backends": {
@@ -2270,10 +2321,32 @@
       "wgpuDescRecommended": "Bypasses browser encoding for instantly responsive live previews. Highly recommended for performance.",
       "wgpuLabel": "Enable Direct WGPU Render",
       "workerThreads": "Thumbnail Worker Threads",
-      "workerThreadsDesc": "Number of parallel threads used to generate thumbnails. Higher values speed up library loading but use more CPU & RAM.",
-      "aiMirrorSet": "AI model mirror URL set.",
-      "aiMirrorCleared": "AI model mirror URL cleared.",
-      "aiMirrorFailed": "Failed to set mirror URL."
+      "workerThreadsDesc": "Number of parallel threads used to generate thumbnails. Higher values speed up library loading but use more CPU & RAM."
+    },
+    "project": {
+      "avgPerImage": "Avg versions / image",
+      "choose": "Choose…",
+      "close": "Close",
+      "dbPathLabel": "DuckDB path:",
+      "export": "Export to Parquet",
+      "exportDesc": "Export the full edit-version / thumbnail / label history to a Parquet file next to the DuckDB database.",
+      "exporting": "Exporting…",
+      "exportTitle": "Export Edit History",
+      "labelSearchPlaceholder": "e.g. portrait, forest, macro",
+      "labelSearchTitle": "AI Label Search",
+      "noData": "No project data yet. Open the project DB after selecting a path to populate these counters.",
+      "noLabels": "No labels match the query.",
+      "open": "Open",
+      "refresh": "Refresh",
+      "search": "Search",
+      "statsTitle": "Project Statistics",
+      "title": "Project Database",
+      "totalLabels": "AI labels",
+      "totalThumbnails": "Thumbnails",
+      "totalVersions": "Edit versions",
+      "uniqueImages": "Unique images",
+      "withLabels": "Images w/ labels",
+      "withVersions": "Images w/ versions"
     },
     "selftest": {
       "allPassed": "All checks passed",
@@ -2337,20 +2410,6 @@
     "title": "Settings",
     "tooltips": {
       "goHome": "Go to Home"
-    },
-    "languageNames": {
-      "en": "English",
-      "de": "Deutsch",
-      "es": "Español",
-      "fr": "Français",
-      "it": "Italiano",
-      "ja": "日本語",
-      "ko": "한국어",
-      "pl": "Polski",
-      "pt": "Português",
-      "ru": "Русский",
-      "zh-CN": "简体中文",
-      "zh-TW": "繁體中文"
     }
   },
   "ui": {
@@ -2434,36 +2493,6 @@
         "showClipping": "Show Clipping Warnings",
         "vectorscope": "Vectorscope"
       }
-    }
-  },
-  "a11y": {
-    "original": "Original",
-    "lensCorrectionPreview": "Lens Correction Preview",
-    "preview": "Preview",
-    "transformPreview": "Transform Preview",
-    "imageFilmstrip": "Image filmstrip",
-    "previousImage": "Previous image",
-    "nextImage": "Next image",
-    "cropPreview": "Crop preview",
-    "closeWindow": "Close window",
-    "denoised": "Denoised",
-    "mergedHdr": "Merged HDR",
-    "stitchedPanorama": "Stitched Panorama",
-    "sourcePreview": "Source preview",
-    "selectedPreview": "Selected preview",
-    "maskOverlay": "Mask Overlay",
-    "tabs": "Tabs",
-    "representative": "Representative",
-    "splashBackground": "Splash screen background",
-    "minimizeWindow": "Minimize window",
-    "maximizeWindow": "Maximize window",
-    "appTitle": "RapidRAW",
-    "errorBoundary": {
-      "icon": "⚠️",
-      "title": "Something went wrong",
-      "message": "An unexpected error occurred in the application. Your edits are preserved in sidecar files and will not be lost.",
-      "recover": "Try Recover",
-      "restart": "Restart App"
     }
   }
 }

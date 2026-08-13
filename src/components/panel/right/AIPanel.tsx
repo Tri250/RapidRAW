@@ -1333,7 +1333,7 @@ export default function AIPanel() {
                         >
                           <CloudSun size={20} />
                           <Text as="span" variant={TextVariants.small} color={TextColors.primary}>
-                            {t('editor.ai.skyReplace', { defaultValue: 'Sky Replace' })}
+                            {t('editor.ai.skyReplaceLabel', { defaultValue: 'Sky Replace' })}
                           </Text>
                         </button>
                         <button
@@ -1344,7 +1344,7 @@ export default function AIPanel() {
                         >
                           <Eraser size={20} />
                           <Text as="span" variant={TextVariants.small} color={TextColors.primary}>
-                            {t('editor.ai.bgRemove', { defaultValue: 'BG Remove' })}
+                            {t('editor.ai.bgRemoveLabel', { defaultValue: 'BG Remove' })}
                           </Text>
                         </button>
                       </div>
