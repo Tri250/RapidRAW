@@ -26,7 +26,7 @@ export const createSubMask = (
           centerX: width / 2,
           centerY: height / 2,
           radiusX: width / 4,
-          radiusY: width / 4,
+          radiusY: height / 4,
           rotation: 0,
           feather: 0.5,
         },

@@ -26,7 +26,7 @@ describe('createSubMask', () => {
       centerX: 1000,
       centerY: 500,
       radiusX: 500,
-      radiusY: 500,
+      radiusY: 250, // height / 4, not width / 4
       rotation: 0,
       feather: 0.5,
     });

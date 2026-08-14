@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ImageLRUCache } from './ImageLRUCache';
+import { ImageLRUCache, type ImageCacheEntry } from './ImageLRUCache';
 import { INITIAL_ADJUSTMENTS } from './adjustments';
 
 function makeEntry(url: string | null, keySuffix = '') {
@@ -128,5 +128,17 @@ describe('ImageLRUCache', () => {
     entry.finalPreviewUrl = 'https://example.com/img.png';
     cache.set('a', entry);
     expect(cache.isProtected('https://example.com/img.png')).toBe(false);
+  });
+
+  it('revokes both finalPreviewUrl and uncroppedPreviewUrl when evicted', () => {
+    const cache = new ImageLRUCache(1);
+    const entry1: ImageCacheEntry = makeEntry('a');
+    entry1.finalPreviewUrl = 'blob:mock/final';
+    entry1.uncroppedPreviewUrl = 'blob:mock/uncropped';
+    cache.set('a', entry1);
+    cache.set('b', makeEntry('b'));
+    // Both URLs from 'a' should be revoked because 'a' is evicted
+    expect(revokeSpy).toHaveBeenCalledWith('blob:mock/final');
+    expect(revokeSpy).toHaveBeenCalledWith('blob:mock/uncropped');
   });
 });

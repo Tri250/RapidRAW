@@ -112,4 +112,28 @@ describe('calculateCenteredCrop', () => {
     expect(crop.x).toBe(0);
     expect(crop.y).toBe(0);
   });
+
+  it('handles extreme aspect ratios without producing NaN', () => {
+    const extremeARs = [1000, 100, 0.01, 0.001];
+    for (const ar of extremeARs) {
+      const crop = calculateCenteredCrop(1000, 500, 0, ar, 0);
+      expect(crop, `aspect ${ar}`).not.toBeNull();
+      expect(crop!.width, `aspect ${ar}`).not.toBeNaN();
+      expect(crop!.height, `aspect ${ar}`).not.toBeNaN();
+    }
+  });
+
+  it('handles 90 and 270 rotations correctly', () => {
+    for (const rotation of [90, 270, -90]) {
+      const crop = calculateCenteredCrop(400, 300, 0, 1, rotation);
+      expect(crop, `rotation=${rotation}`).not.toBeNull();
+      // For a 400x300 image rotated 90 degrees, the inscribed 1:1 square
+      // should be bounded by the original height (300), not width (400).
+      // The size should be min(400, 300) = 300 when unrotated, but
+      // min(300/cos, 400/sin) when rotated. For 90 degrees, the inscribed
+      // square is 300x300.
+      expect(crop!.width).toBeCloseTo(300, 0);
+      expect(crop!.height).toBeCloseTo(300, 0);
+    }
+  });
 });
