@@ -1,9 +1,10 @@
 use std::fs;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use anyhow::{Result, anyhow};
+use futures::StreamExt;
 use image::imageops::{self, FilterType};
 use image::{
     DynamicImage, GenericImageView, GrayImage, ImageBuffer, Luma, Rgb, Rgb32FImage, Rgba, RgbaImage,
@@ -51,31 +52,6 @@ use tauri::Emitter;
 use tauri::Manager;
 use tokenizers::Tokenizer;
 use tokio::sync::Mutex as TokioMutex;
-
-/// Default mirror base URL for HuggingFace model downloads.
-/// For Chinese users, set to "https://hf-mirror.com" or other domestic CDN.
-/// Leave empty to use the default HuggingFace URLs directly.
-const DEFAULT_HF_MIRROR_BASE: &str = "https://hf-mirror.com";
-
-/// Environment variable to override the HuggingFace mirror base URL at runtime.
-const HF_MIRROR_ENV_VAR: &str = "RAPIDRAW_HF_MIRROR";
-
-fn resolve_model_url(original_url: &str) -> String {
-    let mirror_base = std::env::var(HF_MIRROR_ENV_VAR)
-        .ok()
-        .filter(|v| !v.is_empty())
-        .unwrap_or_else(|| DEFAULT_HF_MIRROR_BASE.to_string());
-
-    if mirror_base.is_empty() {
-        return original_url.to_string();
-    }
-
-    // Replace huggingface.co with the mirror domain
-    original_url.replace(
-        "https://huggingface.co/",
-        &format!("{}/", mirror_base.trim_end_matches('/')),
-    )
-}
 
 const ENCODER_URL: &str = "https://huggingface.co/CyberTimon/RapidRAW-Models/resolve/main/sam_vit_b_01ec64_encoder.onnx?download=true";
 const DECODER_URL: &str = "https://huggingface.co/CyberTimon/RapidRAW-Models/resolve/main/sam_vit_b_01ec64_decoder.onnx?download=true";
@@ -362,195 +338,206 @@ fn get_models_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf> {
     Ok(models_dir)
 }
 
-fn persist_downloaded_asset(dest: &Path, bytes: &[u8]) -> Result<()> {
-    if bytes.is_empty() {
-        return Err(anyhow::anyhow!(
-            "Downloaded asset for {} was empty",
-            dest.display()
-        ));
-    }
-
-    let parent = dest.parent().ok_or_else(|| {
-        anyhow::anyhow!(
-            "Cannot determine parent directory for downloaded asset {}",
-            dest.display()
-        )
-    })?;
-    fs::create_dir_all(parent)?;
-
-    let file_name = dest
-        .file_name()
-        .and_then(|name| name.to_str())
-        .ok_or_else(|| anyhow::anyhow!("Invalid downloaded asset path {}", dest.display()))?;
-    let tmp_path = dest.with_file_name(format!(".{}.download", file_name));
-
-    {
-        let mut file = fs::File::create(&tmp_path)?;
-        if let Err(e) = file.write_all(bytes) {
-            let _ = fs::remove_file(&tmp_path);
-            return Err(e.into());
-        }
-        if let Err(e) = file.sync_all() {
-            let _ = fs::remove_file(&tmp_path);
-            return Err(e.into());
-        }
-    }
-
-    if let Err(e) = fs::rename(&tmp_path, dest).or_else(|rename_error| -> std::io::Result<()> {
-        if dest.exists() {
-            fs::remove_file(dest)?;
-            fs::rename(&tmp_path, dest)?;
-            Ok(())
-        } else {
-            Err(rename_error)
-        }
-    }) {
-        let _ = fs::remove_file(&tmp_path);
-        return Err(e.into());
-    }
-    Ok(())
-}
 
 /// Build a list of candidate URLs to try for a model download.
-/// Priority order:
-/// 1. User-configured mirror (via RAPIDRAW_HF_MIRROR env var or DEFAULT_HF_MIRROR_BASE)
-/// 2. Chinese domestic mirror (hf-mirror.com) - fastest for CN users
-/// 3. Original HuggingFace URL (last resort for non-CN users)
+/// Priority order (no duplicates):
+/// 1. User-configured mirror (via RAPIDRAW_HF_MIRROR env var)
+/// 2. Default domestic mirror (hf-mirror.com) — best for CN users
+/// 3. Original HuggingFace URL (fallback for non-CN users)
 fn build_download_candidates(original_url: &str) -> Vec<String> {
     let mut candidates = Vec::new();
 
-    // 1. User-configured or environment-based mirror (highest priority)
-    let resolved = resolve_model_url(original_url);
-    if resolved != original_url {
-        candidates.push(resolved.clone());
-    }
-
-    // 2. Also try hf-mirror.com directly (as fallback or if mirror_base is empty)
-    if original_url.contains("huggingface.co") {
-        let cn_mirror = original_url.replace("https://huggingface.co/", "https://hf-mirror.com/");
-        if !candidates.contains(&cn_mirror) {
-            candidates.push(cn_mirror);
+    // 1. If user has explicitly set a custom mirror via env var, prioritize it
+    if let Ok(custom_mirror) = std::env::var("RAPIDRAW_HF_MIRROR") {
+        let trimmed = custom_mirror.trim();
+        if !trimmed.is_empty() {
+            candidates.push(original_url.replace(
+                "https://huggingface.co/",
+                &format!("{}/", trimmed.trim_end_matches('/')),
+            ));
         }
     }
+
+    // 2. Add the default domestic mirror (hf-mirror.com)
+    candidates.push(original_url.replace(
+        "https://huggingface.co/",
+        "https://hf-mirror.com/",
+    ));
 
     // 3. Original HuggingFace URL (last resort)
     candidates.push(original_url.to_string());
 
+    // Deduplicate while preserving order
+    candidates.dedup();
+
     candidates
 }
 
-async fn download_model_with_retries(url: &str, dest: &Path) -> Result<()> {
-    let candidates = build_download_candidates(url);
-    let max_attempts_per_host = 3;
-    let mut last_error = None;
+/// Download a model file by streaming directly to disk.
+/// This avoids loading the entire model file into memory (critical for 500MB+ models).
+/// Returns the number of bytes downloaded on success.
+/// Emits progress events via the app_handle if provided.
+async fn download_to_file(
+    url: &str,
+    dest: &Path,
+    app_handle: Option<&tauri::AppHandle>,
+    model_name: &str,
+) -> Result<u64> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(600))
+        .connect_timeout(std::time::Duration::from_secs(30))
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new());
 
-    // Maximum model file size: 1 GB on desktop, 500 MB on Android.
-    // Prevents OOM from loading extremely large files into memory on
-    // memory-constrained mobile devices.
+    let response = client.get(url).send().await?;
+
+    if !response.status().is_success() {
+        return Err(anyhow::anyhow!("HTTP {} for {}", response.status(), url));
+    }
+
+    // Validate Content-Length before downloading
     #[cfg(target_os = "android")]
-    const MAX_MODEL_SIZE: usize = 500 * 1024 * 1024;
+    const MAX_MODEL_SIZE: u64 = 500 * 1024 * 1024;
     #[cfg(not(target_os = "android"))]
-    const MAX_MODEL_SIZE: usize = 1024 * 1024 * 1024;
+    const MAX_MODEL_SIZE: u64 = 1024 * 1024 * 1024;
 
-    for candidate in &candidates {
+    let expected_size = response.content_length();
+    if let Some(content_length) = expected_size {
+        if content_length > MAX_MODEL_SIZE {
+            return Err(anyhow::anyhow!(
+                "Model file too large ({} MB exceeds {} MB limit)",
+                content_length / (1024 * 1024),
+                MAX_MODEL_SIZE / (1024 * 1024)
+            ));
+        }
+    }
+
+    // Stream the body directly to a temp file
+    let parent = dest.parent().ok_or_else(|| {
+        anyhow::anyhow!("Cannot determine parent directory for {}", dest.display())
+    })?;
+    fs::create_dir_all(parent)?;
+
+    let tmp_path = dest.with_extension("downloading");
+    let mut file = fs::File::create(&tmp_path)?;
+
+    let mut stream = response.bytes_stream();
+    let mut total_bytes: u64 = 0;
+    let mut last_reported_pct: u32 = 0;
+
+    while let Some(chunk) = stream.next().await {
+        let bytes = chunk?;
+        total_bytes += bytes.len() as u64;
+
+        // Check size limit during streaming
+        if total_bytes > MAX_MODEL_SIZE {
+            let _ = fs::remove_file(&tmp_path);
+            return Err(anyhow::anyhow!(
+                "Downloaded file too large ({} MB)",
+                total_bytes / (1024 * 1024)
+            ));
+        }
+
+        // Report progress (10% granularity)
+        if let Some(expected) = expected_size {
+            let pct = ((total_bytes as f64 / expected as f64) * 100.0) as u32;
+            if pct >= last_reported_pct + 10 {
+                last_reported_pct = pct;
+                if let Some(h) = app_handle {
+                    let _ = h.emit(
+                        "ai-model-download-progress",
+                        serde_json::json!({
+                            "model": model_name,
+                            "bytes": total_bytes,
+                            "total": expected,
+                            "percent": pct,
+                        }),
+                    );
+                }
+            }
+        }
+
+        file.write_all(&bytes)?;
+    }
+
+    file.sync_all()?;
+    drop(file);
+
+    // Minimum size check: if entire file is less than 1KB, it's not a real model
+    if total_bytes < 1024 {
+        let _ = fs::remove_file(&tmp_path);
+        return Err(anyhow::anyhow!(
+            "Downloaded file too small ({} bytes), likely an error page",
+            total_bytes
+        ));
+    }
+
+    // Atomically rename to final destination
+    if dest.exists() {
+        let _ = fs::remove_file(dest);
+    }
+    fs::rename(&tmp_path, dest)?;
+
+    // Emit final progress event
+    if let Some(h) = app_handle {
+        let _ = h.emit(
+            "ai-model-download-progress",
+            serde_json::json!({
+                "model": model_name,
+                "bytes": total_bytes,
+                "total": total_bytes,
+                "percent": 100,
+            }),
+        );
+    }
+
+    Ok(total_bytes)
+}
+
+async fn download_model_with_retries(
+    url: &str,
+    dest: &Path,
+    app_handle: Option<&tauri::AppHandle>,
+    model_name: &str,
+) -> Result<()> {
+    let candidates = build_download_candidates(url);
+    let max_attempts_per_host = 2;
+    let mut last_error: Option<String> = None;
+
+    for (candidate_idx, candidate) in candidates.iter().enumerate() {
         for attempt in 1..=max_attempts_per_host {
             log::info!(
-                "Downloading model from {} (attempt {}/{})...",
+                "Downloading model from {} (candidate {}/{}, attempt {}/{})...",
                 candidate,
+                candidate_idx + 1,
+                candidates.len(),
                 attempt,
                 max_attempts_per_host
             );
 
-            let client = reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(300))
-                .connect_timeout(std::time::Duration::from_secs(30))
-                .build()
-                .unwrap_or_else(|_| reqwest::Client::new());
-
-            match client.get(candidate).send().await {
-                Ok(response) => {
-                    if response.status().is_success() {
-                        // Check Content-Length header before downloading to avoid
-                        // downloading files that are obviously too large.
-                        if let Some(content_length) = response.content_length() {
-                            if content_length as usize > MAX_MODEL_SIZE {
-                                log::warn!(
-                                    "Download from {} reports {} bytes, exceeds max {} bytes",
-                                    candidate,
-                                    content_length,
-                                    MAX_MODEL_SIZE
-                                );
-                                last_error = Some(format!(
-                                    "File too large ({} MB exceeds {} MB limit)",
-                                    content_length / (1024 * 1024),
-                                    MAX_MODEL_SIZE / (1024 * 1024)
-                                ));
-                                continue;
-                            }
-                        }
-                        match response.bytes().await {
-                            Ok(bytes) => {
-                                if bytes.len() < 1024 {
-                                    // Too small to be a real model file; likely an error page.
-                                    log::warn!(
-                                        "Download from {} returned only {} bytes, treating as failure",
-                                        candidate,
-                                        bytes.len()
-                                    );
-                                    last_error = Some(format!(
-                                        "Download from {} returned only {} bytes",
-                                        candidate,
-                                        bytes.len()
-                                    ));
-                                } else if bytes.len() > MAX_MODEL_SIZE {
-                                    log::warn!(
-                                        "Downloaded {} bytes from {}, exceeds {} byte limit",
-                                        bytes.len(),
-                                        candidate,
-                                        MAX_MODEL_SIZE
-                                    );
-                                    last_error = Some(format!(
-                                        "Downloaded file too large ({} MB)",
-                                        bytes.len() / (1024 * 1024)
-                                    ));
-                                } else {
-                                    return persist_downloaded_asset(dest, &bytes);
-                                }
-                            }
-                            Err(e) => {
-                                log::warn!(
-                                    "Failed to read bytes from {} (attempt {}): {}",
-                                    candidate,
-                                    attempt,
-                                    e
-                                );
-                                last_error = Some(format!("Failed to read response bytes: {}", e));
-                            }
-                        }
-                    } else {
-                        log::warn!(
-                            "Download from {} failed with HTTP {} (attempt {})",
-                            candidate,
-                            response.status(),
-                            attempt
-                        );
-                        last_error = Some(format!("HTTP {}", response.status()));
-                    }
+            match download_to_file(candidate, dest, app_handle, model_name).await {
+                Ok(bytes) => {
+                    log::info!("Successfully downloaded {} bytes from {}", bytes, candidate);
+                    return Ok(());
                 }
                 Err(e) => {
                     log::warn!(
-                        "Request to {} failed (attempt {}): {}",
+                        "Download from {} attempt {}/{} failed: {}",
                         candidate,
                         attempt,
+                        max_attempts_per_host,
                         e
                     );
-                    last_error = Some(format!("{}", e));
+                    last_error = Some(e.to_string());
+                    // Clean up partial download
+                    let tmp_path = dest.with_extension("downloading");
+                    let _ = fs::remove_file(&tmp_path);
                 }
             }
 
             if attempt < max_attempts_per_host {
                 let backoff = std::time::Duration::from_secs(2u64.pow(attempt));
-                log::info!("Retrying download in {:?}...", backoff);
+                log::info!("Retrying in {:?}...", backoff);
                 tokio::time::sleep(backoff).await;
             }
         }
@@ -559,21 +546,27 @@ async fn download_model_with_retries(url: &str, dest: &Path) -> Result<()> {
     #[cfg(target_os = "android")]
     {
         return Err(anyhow::anyhow!(
-            "模型下载失败，请检查网络连接。建议：1. 切换网络重试；2. 前往「设置-通用-AI设置」配置模型镜像地址（推荐 hf-mirror.com）；3. 使用 Wi-Fi 网络。最后错误: {}",
+            "模型下载失败，所有镜像源均不可用。建议：1. 切换网络重试；2. 前往「设置-AI设置」配置模型镜像地址；3. 使用 Wi-Fi 网络。最后错误: {}",
             last_error.unwrap_or_else(|| "Unknown".to_string())
         ));
     }
     #[cfg(not(target_os = "android"))]
     {
-        return Err(anyhow::anyhow!(
-            "Model download failed after exhausting all mirrors and retries. Last error: {}",
+        Err(anyhow::anyhow!(
+            "Model download failed after trying {} mirror(s). Last error: {}",
+            candidates.len(),
             last_error.unwrap_or_else(|| "Unknown".to_string())
-        ));
+        ))
     }
 }
 
-async fn download_model(url: &str, dest: &Path) -> Result<()> {
-    download_model_with_retries(url, dest).await
+async fn download_model(
+    url: &str,
+    dest: &Path,
+    app_handle: Option<&tauri::AppHandle>,
+    model_name: &str,
+) -> Result<()> {
+    download_model_with_retries(url, dest, app_handle, model_name).await
 }
 
 fn verify_sha256(path: &Path, expected_hash: &str) -> Result<bool> {
@@ -646,7 +639,7 @@ async fn download_and_verify_model(
             fs::remove_file(&dest_path)?;
         }
         let _ = app_handle.emit("ai-model-download-start", model_name);
-        let download_result = download_model(url, &dest_path).await;
+        let download_result = download_model(url, &dest_path, Some(app_handle), model_name).await;
         let _ = app_handle.emit("ai-model-download-finish", model_name);
         download_result?;
 
@@ -962,7 +955,7 @@ pub async fn prefetch_model_file(app_handle: &tauri::AppHandle, id: AiModelId) -
             let tokenizer_path = models_dir.join(CLIP_TOKENIZER_FILENAME);
             if !tokenizer_path.exists() {
                 let _ = app_handle.emit("ai-model-download-start", "CLIP Tokenizer");
-                let r = download_model(CLIP_TOKENIZER_URL, &tokenizer_path).await;
+                let r = download_model(CLIP_TOKENIZER_URL, &tokenizer_path, Some(app_handle), "CLIP Tokenizer").await;
                 let _ = app_handle.emit("ai-model-download-finish", "CLIP Tokenizer");
                 r?;
             }
@@ -1104,7 +1097,7 @@ pub async fn get_or_init_clip_models(
     let clip_tokenizer_path = models_dir.join(CLIP_TOKENIZER_FILENAME);
     if !clip_tokenizer_path.exists() {
         let _ = app_handle.emit("ai-model-download-start", "CLIP Tokenizer");
-        let download_result = download_model(CLIP_TOKENIZER_URL, &clip_tokenizer_path).await;
+        let download_result = download_model(CLIP_TOKENIZER_URL, &clip_tokenizer_path, Some(app_handle), "CLIP Tokenizer").await;
         let _ = app_handle.emit("ai-model-download-finish", "CLIP Tokenizer");
         download_result?;
     }
@@ -1217,7 +1210,7 @@ async fn download_model_if_missing(
         return Ok(());
     }
     let _ = app_handle.emit("ai-model-download-start", model_name);
-    let result = download_model(url, &dest_path)
+    let result = download_model(url, &dest_path, Some(app_handle), model_name)
         .await
         .map_err(|e| e.to_string());
     let _ = app_handle.emit("ai-model-download-finish", model_name);

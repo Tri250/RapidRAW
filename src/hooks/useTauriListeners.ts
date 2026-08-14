@@ -185,8 +185,15 @@ export function useTauriListeners({
       }),
     );
     registerListener(
+      listen('ai-model-download-progress', (event: any) => {
+        if (isEffectActive) useProcessStore.getState().setProcess({ aiModelDownloadProgress: event.payload });
+      }),
+    );
+    registerListener(
       listen('ai-model-download-finish', () => {
-        if (isEffectActive) useProcessStore.getState().setProcess({ aiModelDownloadStatus: null });
+        if (isEffectActive) {
+          useProcessStore.getState().setProcess({ aiModelDownloadStatus: null, aiModelDownloadProgress: null });
+        }
       }),
     );
     registerListener(
