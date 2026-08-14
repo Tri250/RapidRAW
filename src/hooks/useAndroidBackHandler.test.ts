@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useAndroidBackHandler } from './useAndroidBackHandler';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useUIStore } from '../store/useUIStore';
+import i18n from '../i18n';
 
 vi.mock('../store/useSettingsStore', () => ({
   useSettingsStore: Object.assign(
@@ -40,6 +41,12 @@ vi.mock('../store/useUIStore', () => ({
 }));
 
 describe('useAndroidBackHandler', () => {
+  beforeAll(async () => {
+    // useAndroidBackHandler renders through react-i18next; initialize the
+    // instance so useTranslation does not emit NO_I18NEXT_INSTANCE warnings.
+    await i18n.init();
+  });
+
   beforeEach(() => {
     delete (window as any).__handleAndroidBack;
     (useSettingsStore as any).mockImplementation((selector?: (s: any) => any) => {

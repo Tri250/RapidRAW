@@ -26,8 +26,13 @@ export function buildImageGroups(
   }
   const groupedPaths = new Set<string>();
   const badges = new Map<GroupId, GroupBadgeInfo>();
+  // Track groups that are actually collapsed (2+ real files). Virtual copies
+  // of those groups must also be hidden, otherwise they leak into the library
+  // as separate items next to the collapsed primary.
+  const collapsedGroupIds = new Set<GroupId>();
   for (const [groupId, files] of buckets) {
     if (files.length < 2) continue;
+    collapsedGroupIds.add(groupId);
     const primary = pickPrimary(files, preference);
     for (const file of files) {
       if (file.path !== primary.path) {
@@ -40,7 +45,9 @@ export function buildImageGroups(
       label: Array.from(extensions).sort().join('+'),
     });
   }
-  const displayList = images.filter((img) => !groupedPaths.has(img.path));
+  const displayList = images.filter(
+    (img) => !groupedPaths.has(img.path) && !(img.is_virtual_copy && img.group_id && collapsedGroupIds.has(img.group_id)),
+  );
   return { displayList, badges };
 }
 function pickPrimary(files: ImageFile[], preference: GroupPreference): ImageFile {

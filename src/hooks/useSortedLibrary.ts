@@ -11,8 +11,12 @@ import {
 } from '../components/ui/AppProperties';
 import { buildImageGroups, GroupBadgeInfo, GroupingResult, GroupId } from '../utils/imageGrouping';
 
+// The \b after the field alternation is essential: without it a plain tag like
+// "sunset" or "sky" would be captured as the single-letter field "s" (shutter)
+// with value "unset"/"ky" and silently evaluated as a broken numeric query that
+// matches every image. The word boundary keeps fields attached to their value.
 export const ADVANCED_QUERY_REGEX =
-  /^(iso|aperture|f|shutter|s|focal|mm|rating|color|camera|make|model|lens)\s*(?::)?\s*(>=|<=|>|<|=)?\s*(.+)$/i;
+  /^(iso|aperture|f|shutter|s|focal|mm|rating|color|camera|make|model|lens)\b\s*(?::)?\s*(>=|<=|>|<|=)?\s*(.+)$/i;
 
 export const parseShutter = (val: string | undefined): number => {
   if (!val) return 0;
@@ -25,6 +29,26 @@ export const parseShutter = (val: string | undefined): number => {
   }
   const numVal = parseFloat(cleanVal);
   return isNaN(numVal) ? 0 : numVal;
+};
+
+/**
+ * Returns true only when the string is a usable shutter-speed query value
+ * (a fraction like "1/200", a decimal like "0.5", or a plain number).
+ * parseShutter returns 0 for garbage input, so this is used to reject
+ * malformed advanced queries instead of letting "s:abc" match every image
+ * that has no exposure data (0 === 0).
+ */
+export const isValidShutterValue = (val: string | undefined): boolean => {
+  if (!val) return false;
+  const cleanVal = val.replace(/s$/i, '').trim();
+  if (!cleanVal) return false;
+  if (cleanVal.includes('/')) {
+    const [num, den] = cleanVal.split('/');
+    const numN = parseFloat(num);
+    const denN = parseFloat(den);
+    return Number.isFinite(numN) && Number.isFinite(denN) && denN !== 0;
+  }
+  return Number.isFinite(parseFloat(cleanVal));
 };
 
 export const parseAperture = (val: string | undefined): number => {
@@ -169,6 +193,14 @@ export function computeGroupedLibrary(libraryState: any, settingsState: any): Gr
       else if (field === 'shutter' || field === 's') {
         imgVal = parseShutter(image.exif?.ExposureTime);
         qVal = parseShutter(value);
+      }
+
+      // Reject malformed query values so they cannot silently match every
+      // image: parseFloat(garbage) is NaN, and parseShutter(garbage) is 0,
+      // which would otherwise compare equal to the 0 of images without exif.
+      const isShutterField = field === 'shutter' || field === 's';
+      if (isShutterField ? !isValidShutterValue(value) : !Number.isFinite(qVal)) {
+        return false;
       }
 
       switch (operator) {

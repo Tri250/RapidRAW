@@ -27,8 +27,15 @@ export function calculateCenteredCrop(
 
   const angle = Math.abs(rotation);
   const rad = ((angle % 180) * Math.PI) / 180;
-  const sin = Math.sin(rad);
-  const cos = Math.cos(rad);
+  // The inscribed-crop extents depend only on the absolute values of the
+  // rotation terms: rotating the image by θ or −θ / θ+180° yields the same
+  // maximum crop (mirror symmetry). Using raw sin/cos here makes the
+  // denominators (aspectRatio*sin + cos) collapse to near zero for angles in
+  // (90°, 180°) — e.g. 135° — producing astronomically large, out-of-bounds
+  // crops. Absolute values keep the denominators >= 1, so the crop is always
+  // finite, positive and centered inside the image.
+  const sin = Math.abs(Math.sin(rad));
+  const cos = Math.abs(Math.cos(rad));
 
   const denomH = aspectRatio * sin + cos;
   const denomW = aspectRatio * cos + sin;
