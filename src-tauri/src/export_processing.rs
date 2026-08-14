@@ -344,7 +344,13 @@ fn process_image_for_export_pipeline(
     all_adjustments.global.show_clipping = 0;
 
     let lut_path = js_adjustments["lutPath"].as_str();
-    let lut = lut_path.and_then(|p| get_or_load_lut(state, p).ok());
+    let lut = lut_path.and_then(|p| match get_or_load_lut(state, p) {
+        Ok(lut) => Some(lut),
+        Err(e) => {
+            log::warn!("LUT load failed for export, skipping: {}", e);
+            None
+        }
+    });
 
     let unique_hash = calculate_full_job_hash(path, js_adjustments);
 
@@ -415,9 +421,8 @@ fn process_image_for_export_pipeline(
                 }
             };
 
-            if let Err(e) = apply_portrait_adjustments(&mut result, portrait_json, &face_regions) {
-                log::warn!("Portrait processing failed during export: {}", e);
-            }
+            // Propagate portrait errors so export doesn't silently diverge from the preview pipeline.
+            apply_portrait_adjustments(&mut result, portrait_json, &face_regions)?;
         }
     }
 
@@ -695,7 +700,13 @@ fn export_masks_for_image(
         let tm_override = resolve_tonemapper_override_from_handle(app_handle, is_raw);
         let all_adjustments = get_all_adjustments_from_json(js_adjustments, is_raw, tm_override);
         let lut_path = js_adjustments["lutPath"].as_str();
-        let lut = lut_path.and_then(|p| get_or_load_lut(state, p).ok());
+        let lut = lut_path.and_then(|p| match get_or_load_lut(state, p) {
+            Ok(lut) => Some(lut),
+            Err(e) => {
+                log::warn!("LUT load failed for export, skipping: {}", e);
+                None
+            }
+        });
         let unique_hash = calculate_full_job_hash(source_path_str, js_adjustments);
         let output_dir = output_path_obj.parent().unwrap_or(output_path_obj);
         let stem = output_path_obj
@@ -861,7 +872,13 @@ fn export_adjustments_as_lut(
     all_adjustments.global.chromatic_aberration_blue_yellow = 0.0;
 
     let lut_path = js_adjustments["lutPath"].as_str();
-    let lut = lut_path.and_then(|p| get_or_load_lut(state, p).ok());
+    let lut = lut_path.and_then(|p| match get_or_load_lut(state, p) {
+        Ok(lut) => Some(lut),
+        Err(e) => {
+            log::warn!("LUT load failed for export, skipping: {}", e);
+            None
+        }
+    });
     let unique_hash = calculate_full_job_hash(source_path_str, &clean_json);
 
     let processed_lut = process_and_get_dynamic_image(
@@ -1216,17 +1233,12 @@ pub async fn export_images(
                         }
                     };
 
-                    let mut main_export_adjustments = js_adjustments.clone();
-                    if export_settings.export_masks
-                        && let Some(obj) = main_export_adjustments.as_object_mut()
-                    {
-                        obj.insert("masks".to_string(), serde_json::json!([]));
-                    }
-
+                    // Keep all adjustments (including local masks) in the main export.
+                    // Independent mask files are generated separately by export_masks_for_image below.
                     let final_image = process_image_for_export(
                         &source_path_str,
                         &base_image,
-                        &main_export_adjustments,
+                        &js_adjustments,
                         &export_settings,
                         &context_clone,
                         &state,
@@ -1462,9 +1474,16 @@ pub async fn estimate_export_sizes(
             get_all_adjustments_from_json(&adjustments_clone, is_raw, tm_override);
         all_adjustments.global.show_clipping = 0;
 
-        let lut = adjustments_clone["lutPath"]
-            .as_str()
-            .and_then(|p| get_or_load_lut(&state, p).ok());
+        let lut =
+            adjustments_clone["lutPath"]
+                .as_str()
+                .and_then(|p| match get_or_load_lut(&state, p) {
+                    Ok(lut) => Some(lut),
+                    Err(e) => {
+                        log::warn!("LUT load failed for export, skipping: {}", e);
+                        None
+                    }
+                });
         let unique_hash =
             calculate_full_job_hash(&loaded_image.path, &adjustments_clone).wrapping_add(1);
 
@@ -1600,9 +1619,16 @@ pub async fn estimate_export_sizes(
             get_all_adjustments_from_json(&js_adjustments, is_raw, tm_override);
         all_adjustments.global.show_clipping = 0;
 
-        let lut = js_adjustments["lutPath"]
-            .as_str()
-            .and_then(|p| get_or_load_lut(&state, p).ok());
+        let lut =
+            js_adjustments["lutPath"]
+                .as_str()
+                .and_then(|p| match get_or_load_lut(&state, p) {
+                    Ok(lut) => Some(lut),
+                    Err(e) => {
+                        log::warn!("LUT load failed for export, skipping: {}", e);
+                        None
+                    }
+                });
         let unique_hash =
             calculate_full_job_hash(&source_path_str, &js_adjustments).wrapping_add(1);
 

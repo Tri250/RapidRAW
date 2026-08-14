@@ -8,6 +8,15 @@ use tauri::{AppHandle, Manager};
 
 use crate::app_state::AppState;
 
+/// Atomically write content to a file by first writing to a temporary file
+/// then renaming it, to prevent data corruption on crash.
+fn atomic_write(path: &std::path::Path, content: &str) -> Result<(), String> {
+    let tmp_path = path.with_extension("tmp");
+    fs::write(&tmp_path, content).map_err(|e| e.to_string())?;
+    fs::rename(&tmp_path, path).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SortCriteria {
@@ -560,7 +569,18 @@ pub fn load_settings(app_handle: AppHandle) -> Result<AppSettings, String> {
 
     let mut settings: AppSettings = if path.exists() {
         let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-        serde_json::from_str(&content).unwrap_or_default()
+        serde_json::from_str(&content).unwrap_or_else(|e| {
+            log::warn!(
+                "Failed to parse settings.json: {}. Backing up corrupted file and using defaults.",
+                e
+            );
+            // Backup the corrupted file so user data isn't permanently lost.
+            let backup_path = path.with_extension("json.bak");
+            if let Err(be) = fs::rename(&path, &backup_path) {
+                log::warn!("Failed to backup corrupted settings file: {}", be);
+            }
+            AppSettings::default()
+        })
     } else {
         AppSettings::default()
     };
@@ -642,7 +662,9 @@ pub fn load_settings(app_handle: AppHandle) -> Result<AppSettings, String> {
     }
 
     if settings_modified && let Ok(json_string) = serde_json::to_string_pretty(&settings) {
-        let _ = fs::write(&path, json_string);
+        if let Err(e) = atomic_write(&path, &json_string) {
+            log::warn!("Failed to atomically write settings: {}", e);
+        }
     }
 
     Ok(settings)
@@ -652,7 +674,7 @@ pub fn load_settings(app_handle: AppHandle) -> Result<AppSettings, String> {
 pub fn save_settings(settings: AppSettings, app_handle: AppHandle) -> Result<(), String> {
     let path = get_settings_path(&app_handle)?;
     let json_string = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
-    fs::write(path, json_string).map_err(|e| e.to_string())?;
+    atomic_write(&path, &json_string)?;
 
     let state = app_handle.state::<AppState>();
     let cache_size = settings.image_cache_size.unwrap_or(5) as usize;

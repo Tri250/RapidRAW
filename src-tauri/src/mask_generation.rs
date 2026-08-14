@@ -408,7 +408,8 @@ fn render_stroke_layer_parallel(
     bb_w: u32,
     bb_h: u32,
 ) -> GrayImage {
-    let mut out_pixels = vec![0u8; (bb_w * bb_h) as usize];
+    // Cast to usize before multiplying to prevent u32 overflow on very large bounding boxes.
+    let mut out_pixels = vec![0u8; (bb_w as usize) * (bb_h as usize)];
     if points.is_empty() || radius <= 0.0 {
         return GrayImage::from_raw(bb_w, bb_h, out_pixels).unwrap_or_else(|| {
             eprintln!(
@@ -571,7 +572,10 @@ fn generate_radial_bitmap(
     crop_offset: (f32, f32),
 ) -> GrayImage {
     let params: RadialMaskParameters =
-        serde_json::from_value(params_value.clone()).unwrap_or_default();
+        serde_json::from_value(params_value.clone()).unwrap_or_else(|e| {
+            log::warn!("Mask parameter JSON parse error: {}, using defaults", e);
+            <RadialMaskParameters>::default()
+        });
     let mut mask = GrayImage::new(width, height);
 
     let center_x = (params.center_x as f32 * scale - crop_offset.0) as i32;
@@ -615,7 +619,10 @@ fn generate_linear_bitmap(
     crop_offset: (f32, f32),
 ) -> GrayImage {
     let params: LinearMaskParameters =
-        serde_json::from_value(params_value.clone()).unwrap_or_default();
+        serde_json::from_value(params_value.clone()).unwrap_or_else(|e| {
+            log::warn!("Mask parameter JSON parse error: {}, using defaults", e);
+            <LinearMaskParameters>::default()
+        });
     let mut mask = GrayImage::new(width, height);
 
     let start_x = params.start_x as f32 * scale - crop_offset.0;
@@ -669,7 +676,10 @@ fn generate_brush_bitmap(
     crop_offset: (f32, f32),
 ) -> GrayImage {
     let params: BrushMaskParameters =
-        serde_json::from_value(params_value.clone()).unwrap_or_default();
+        serde_json::from_value(params_value.clone()).unwrap_or_else(|e| {
+            log::warn!("Mask parameter JSON parse error: {}, using defaults", e);
+            <BrushMaskParameters>::default()
+        });
     let mut final_mask = GrayImage::new(width, height);
 
     for line in &params.lines {
@@ -736,7 +746,10 @@ fn generate_flow_bitmap(
     crop_offset: (f32, f32),
 ) -> GrayImage {
     let params: FlowMaskParameters =
-        serde_json::from_value(params_value.clone()).unwrap_or_default();
+        serde_json::from_value(params_value.clone()).unwrap_or_else(|e| {
+            log::warn!("Mask parameter JSON parse error: {}, using defaults", e);
+            <FlowMaskParameters>::default()
+        });
     let mut final_mask = GrayImage::new(width, height);
 
     for line in &params.lines {
@@ -903,8 +916,11 @@ fn generate_ai_sky_bitmap(
     crop_offset: (f32, f32),
 ) -> Option<GrayImage> {
     let params: AiSkyMaskParameters = serde_json::from_value(params_value.clone()).ok()?;
-    let grow_feather: GrowFeatherParameters =
-        serde_json::from_value(params_value.clone()).unwrap_or_default();
+    let grow_feather: GrowFeatherParameters = serde_json::from_value(params_value.clone())
+        .unwrap_or_else(|e| {
+            log::warn!("Mask parameter JSON parse error: {}, using defaults", e);
+            <GrowFeatherParameters>::default()
+        });
     let data_url = params.mask_data_base64?;
 
     let tf = TransformParams {
@@ -938,8 +954,11 @@ fn generate_ai_depth_bitmap(
     crop_offset: (f32, f32),
 ) -> Option<GrayImage> {
     let params: AiDepthMaskParameters = serde_json::from_value(params_value.clone()).ok()?;
-    let grow_feather: GrowFeatherParameters =
-        serde_json::from_value(params_value.clone()).unwrap_or_default();
+    let grow_feather: GrowFeatherParameters = serde_json::from_value(params_value.clone())
+        .unwrap_or_else(|e| {
+            log::warn!("Mask parameter JSON parse error: {}, using defaults", e);
+            <GrowFeatherParameters>::default()
+        });
     let data_url = params.mask_data_base64?;
 
     let tf = TransformParams {
@@ -1002,8 +1021,11 @@ fn generate_ai_foreground_bitmap(
     crop_offset: (f32, f32),
 ) -> Option<GrayImage> {
     let params: AiForegroundMaskParameters = serde_json::from_value(params_value.clone()).ok()?;
-    let grow_feather: GrowFeatherParameters =
-        serde_json::from_value(params_value.clone()).unwrap_or_default();
+    let grow_feather: GrowFeatherParameters = serde_json::from_value(params_value.clone())
+        .unwrap_or_else(|e| {
+            log::warn!("Mask parameter JSON parse error: {}, using defaults", e);
+            <GrowFeatherParameters>::default()
+        });
     let data_url = params.mask_data_base64?;
 
     let tf = TransformParams {
@@ -1037,8 +1059,11 @@ fn generate_ai_subject_bitmap(
     crop_offset: (f32, f32),
 ) -> Option<GrayImage> {
     let params: AiSubjectMaskParameters = serde_json::from_value(params_value.clone()).ok()?;
-    let grow_feather: GrowFeatherParameters =
-        serde_json::from_value(params_value.clone()).unwrap_or_default();
+    let grow_feather: GrowFeatherParameters = serde_json::from_value(params_value.clone())
+        .unwrap_or_else(|e| {
+            log::warn!("Mask parameter JSON parse error: {}, using defaults", e);
+            <GrowFeatherParameters>::default()
+        });
     let data_url = params.mask_data_base64?;
 
     let tf = TransformParams {

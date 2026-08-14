@@ -1203,9 +1203,12 @@ pub fn inverse_transform_point(
     let (forward_transform, cx_f32, cy_f32, hd) = build_transform_matrices(&params, width, height);
     let cx = cx_f32 as f64;
     let cy = cy_f32 as f64;
-    let inv = forward_transform
-        .try_inverse()
-        .unwrap_or(nalgebra::Matrix3::identity());
+    let inv = forward_transform.try_inverse().unwrap_or_else(|| {
+        log::warn!(
+            "Geometry warp: forward transform is singular in map_coordinate, using identity"
+        );
+        nalgebra::Matrix3::identity()
+    });
 
     let vec = inv * nalgebra::Vector3::new(x as f32, y as f32, 1.0);
     if vec.z.abs() > 1e-6 {
@@ -3758,6 +3761,8 @@ pub fn detect_horizon_lines(state: tauri::State<AppState>) -> Result<Vec<Horizon
     if w < 3 || h < 3 {
         return Err("Image too small for horizon detection".to_string());
     }
+    // Cast to usize to prevent u32 overflow in the Hough accumulation loop below.
+    let (w_usize, h_usize) = (w as usize, h as usize);
 
     // Convert to grayscale
     let gray = loaded_image.image.to_luma8();
@@ -3789,9 +3794,9 @@ pub fn detect_horizon_lines(state: tauri::State<AppState>) -> Result<Vec<Horizon
 
     let mut accumulator = vec![0u32; rho_steps * theta_steps];
 
-    for y in 1..(h - 1) {
-        for x in 1..(w - 1) {
-            if edges[(y * w + x) as usize] {
+    for y in 1..(h_usize - 1) {
+        for x in 1..(w_usize - 1) {
+            if edges[y * w_usize + x] {
                 for ti in 0..theta_steps {
                     let theta = theta_min + ti as f32 * theta_step;
                     let rho = x as f32 * theta.cos() + y as f32 * theta.sin();
@@ -3803,7 +3808,7 @@ pub fn detect_horizon_lines(state: tauri::State<AppState>) -> Result<Vec<Horizon
     }
 
     // Find peaks in accumulator
-    let threshold = (w.min(h) as f32 * 0.15).ceil() as u32;
+    let threshold = (w_usize.min(h_usize) as f32 * 0.15).ceil() as u32;
     let mut peaks: Vec<(usize, usize, u32)> = Vec::new();
 
     for ri in 2..(rho_steps - 2) {
@@ -3906,7 +3911,9 @@ pub fn auto_straighten_horizon(
 
 /// Compute Sobel gradient magnitude and direction.
 fn compute_sobel_gradients(gray: &image::GrayImage) -> (Vec<f32>, Vec<f32>) {
+    // Cast dimensions to usize early so all subsequent arithmetic avoids u32 overflow.
     let (w, h) = gray.dimensions();
+    let (w, h) = (w as usize, h as usize);
     let raw = gray.as_raw();
     let total = (w * h) as usize;
     let mut mag = vec![0.0f32; total];
@@ -3942,7 +3949,9 @@ fn compute_sobel_gradients(gray: &image::GrayImage) -> (Vec<f32>, Vec<f32>) {
 
 /// Non-maximum suppression for Canny edge detection.
 fn non_maximum_suppression(mag: &[f32], dir: &[f32], w: u32, h: u32) -> Vec<f32> {
-    let total = (w * h) as usize;
+    // Cast to usize early; subsequent arithmetic (y*w+x etc.) must not overflow u32.
+    let (w, h) = (w as usize, h as usize);
+    let total = w * h;
     let mut nms = vec![0.0f32; total];
 
     if w < 3 || h < 3 {
@@ -3976,13 +3985,13 @@ fn non_maximum_suppression(mag: &[f32], dir: &[f32], w: u32, h: u32) -> Vec<f32>
                 }
             };
 
-            let nx1 = (x as i32 + dx1).clamp(0, w as i32 - 1) as u32;
-            let ny1 = (y as i32 + dy1).clamp(0, h as i32 - 1) as u32;
-            let nx2 = (x as i32 + dx2).clamp(0, w as i32 - 1) as u32;
-            let ny2 = (y as i32 + dy2).clamp(0, h as i32 - 1) as u32;
+            let nx1 = (x as i32 + dx1).clamp(0, w as i32 - 1) as usize;
+            let ny1 = (y as i32 + dy1).clamp(0, h as i32 - 1) as usize;
+            let nx2 = (x as i32 + dx2).clamp(0, w as i32 - 1) as usize;
+            let ny2 = (y as i32 + dy2).clamp(0, h as i32 - 1) as usize;
 
-            let m1 = mag[(ny1 * w + nx1) as usize];
-            let m2 = mag[(ny2 * w + nx2) as usize];
+            let m1 = mag[ny1 * w + nx1];
+            let m2 = mag[ny2 * w + nx2];
 
             if m >= m1 && m >= m2 {
                 nms[idx] = m;
@@ -4001,7 +4010,9 @@ fn double_threshold_hysteresis(
     low_thresh: f32,
     high_thresh: f32,
 ) -> Vec<bool> {
-    let total = (w * h) as usize;
+    // Cast to usize early so indexing arithmetic doesn't overflow on large images.
+    let (w, h) = (w as usize, h as usize);
+    let total = w * h;
     let mut strong = vec![false; total];
     let mut weak = vec![false; total];
 
@@ -4034,9 +4045,9 @@ fn double_threshold_hysteresis(
                         if dx == 0 && dy == 0 {
                             continue;
                         }
-                        let nx = (x as i32 + dx).clamp(0, w as i32 - 1) as u32;
-                        let ny = (y as i32 + dy).clamp(0, h as i32 - 1) as u32;
-                        if edges[(ny * w + nx) as usize] {
+                        let nx = (x as i32 + dx).clamp(0, w as i32 - 1) as usize;
+                        let ny = (y as i32 + dy).clamp(0, h as i32 - 1) as usize;
+                        if edges[ny * w + nx] {
                             edges[idx] = true;
                             changed = true;
                         }
