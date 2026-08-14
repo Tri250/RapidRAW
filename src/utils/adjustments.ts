@@ -621,19 +621,19 @@ export const INITIAL_ADJUSTMENTS: Adjustments = {
 };
 
 const deepCloneCurves = (curves: any): Curves => ({
-  blue: curves?.blue?.map((p: Coord) => ({ ...p })) || [
+  blue: Array.isArray(curves?.blue) ? curves.blue.map((p: Coord) => ({ ...p })) : [
     { x: 0, y: 0 },
     { x: 255, y: 255 },
   ],
-  green: curves?.green?.map((p: Coord) => ({ ...p })) || [
+  green: Array.isArray(curves?.green) ? curves.green.map((p: Coord) => ({ ...p })) : [
     { x: 0, y: 0 },
     { x: 255, y: 255 },
   ],
-  luma: curves?.luma?.map((p: Coord) => ({ ...p })) || [
+  luma: Array.isArray(curves?.luma) ? curves.luma.map((p: Coord) => ({ ...p })) : [
     { x: 0, y: 0 },
     { x: 255, y: 255 },
   ],
-  red: curves?.red?.map((p: Coord) => ({ ...p })) || [
+  red: Array.isArray(curves?.red) ? curves.red.map((p: Coord) => ({ ...p })) : [
     { x: 0, y: 0 },
     { x: 255, y: 255 },
   ],
@@ -652,7 +652,7 @@ export const normalizeLoadedAdjustments = (loadedAdjustments: Adjustments): Adju
   }
 
   const normalizeSubMasks = (subMasks: any[]) => {
-    return (subMasks || []).map((subMask: Partial<SubMask>) => ({
+    return (subMasks || []).filter(Boolean).map((subMask: Partial<SubMask>) => ({
       visible: true,
       mode: SubMaskMode.Additive,
       invert: false,
@@ -661,7 +661,7 @@ export const normalizeLoadedAdjustments = (loadedAdjustments: Adjustments): Adju
     }));
   };
 
-  const normalizedMasks: MaskContainer[] = (loadedAdjustments.masks || []).map((maskContainer: MaskContainer) => {
+  const normalizedMasks: MaskContainer[] = (loadedAdjustments.masks || []).filter(Boolean).map((maskContainer: MaskContainer) => {
     const containerAdjustments = maskContainer.adjustments || {};
     const normalizedSubMasks = normalizeSubMasks(maskContainer.subMasks);
 

@@ -27,9 +27,6 @@ export class ImageLRUCache {
     this.cache.delete(key);
     this.cache.set(key, entry);
 
-    if (entry.finalPreviewUrl) this.protectedBlobUrls.delete(entry.finalPreviewUrl);
-    if (entry.uncroppedPreviewUrl) this.protectedBlobUrls.delete(entry.uncroppedPreviewUrl);
-
     return entry;
   }
 

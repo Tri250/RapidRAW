@@ -124,4 +124,45 @@ describe('normalizeLoadedAdjustments', () => {
     const result = normalizeLoadedAdjustments(loaded as any);
     expect(result.masks[0].subMasks).toEqual([]);
   });
+
+  it('handles malformed curves data gracefully (e.g., non-array values)', () => {
+    const loaded = {
+      ...INITIAL_ADJUSTMENTS,
+      curves: {
+        blue: 'not-an-array', // This should be ignored
+        green: null,         // This should be ignored
+      },
+    };
+    const result = normalizeLoadedAdjustments(loaded as any);
+    expect(result.curves.blue).toEqual([
+      { x: 0, y: 0 },
+      { x: 255, y: 255 },
+    ]);
+    expect(result.curves.green).toEqual([
+      { x: 0, y: 0 },
+      { x: 255, y: 255 },
+    ]);
+  });
+
+  it('handles malformed mask subMasks array (contains nulls)', () => {
+    const loaded = {
+      ...INITIAL_ADJUSTMENTS,
+      masks: [
+        null, // Null mask container should be filtered out
+        {
+          adjustments: INITIAL_MASK_ADJUSTMENTS,
+          invert: false,
+          name: 'test',
+          opacity: 100,
+          visible: true,
+          id: 'test-id',
+          subMasks: [null, { type: 'brush' }], // Contains a null element
+        },
+      ],
+    };
+    const result = normalizeLoadedAdjustments(loaded as any);
+    // Should not crash and should filter out null elements
+    expect(result.masks.length).toBe(1);
+    expect(result.masks[0].subMasks.length).toBe(1); // Only the valid one
+  });
 });

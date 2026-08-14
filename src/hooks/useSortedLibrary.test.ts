@@ -257,6 +257,67 @@ describe('computeGroupedLibrary', () => {
     expect(result.displayList.map((i) => i.path)).toEqual(['/a/A.jpg']);
   });
 
+  it('returns empty list when filter excludes all', () => {
+    const library = {
+      ...emptyLibrary,
+      filterCriteria: { colors: ['nonexistent'], rating: 0, rawStatus: RawStatus.All },
+      imageList: [makeFile({ path: '/a/A.jpg', tags: ['color:red'] })],
+    };
+    const result = computeGroupedLibrary(library, emptySettings);
+    expect(result.displayList).toEqual([]);
+  });
+
+  it('matches advanced queries using > and < operators', () => {
+    const library = {
+      ...emptyLibrary,
+      searchCriteria: { tags: ['iso>400'], text: '', mode: 'AND' },
+      imageList: [
+        makeFile({ path: '/a/A.jpg', exif: { PhotographicSensitivity: '800' } as any }),
+        makeFile({ path: '/a/B.jpg', exif: { PhotographicSensitivity: '100' } as any }),
+        makeFile({ path: '/a/C.jpg', exif: null }),
+      ],
+    };
+    const result = computeGroupedLibrary(library, emptySettings);
+    expect(result.displayList.map((i) => i.path)).toEqual(['/a/A.jpg']);
+  });
+
+  it('matches advanced queries using = operator on camera model', () => {
+    const library = {
+      ...emptyLibrary,
+      searchCriteria: { tags: ['model:EOS R5'], text: '', mode: 'AND' },
+      imageList: [
+        makeFile({ path: '/a/A.jpg', exif: { Make: 'Canon', Model: 'EOS R5' } as any }),
+        makeFile({ path: '/a/B.jpg', exif: { Make: 'Canon', Model: 'EOS R6' } as any }),
+      ],
+    };
+    const result = computeGroupedLibrary(library, emptySettings);
+    expect(result.displayList.map((i) => i.path)).toEqual(['/a/A.jpg']);
+  });
+
+  it('does not crash on unknown sort key, falls back to name', () => {
+    const library = {
+      ...emptyLibrary,
+      sortCriteria: { key: 'unknown_field', order: SortDirection.Ascending },
+      imageList: [makeFile({ path: '/a/C.jpg' }), makeFile({ path: '/a/A.jpg' }), makeFile({ path: '/a/B.jpg' })],
+    };
+    const result = computeGroupedLibrary(library, emptySettings);
+    expect(result.displayList.map((i) => i.path)).toEqual(['/a/A.jpg', '/a/B.jpg', '/a/C.jpg']);
+  });
+
+  it('sorts by date_taken using modified time when dates equal', () => {
+    const library = {
+      ...emptyLibrary,
+      sortCriteria: { key: 'date_taken', order: SortDirection.Ascending },
+      imageList: [
+        makeFile({ path: '/a/B.jpg', modified: 200, exif: { DateTimeOriginal: '2023:01:01 10:00:00' } as any }),
+        makeFile({ path: '/a/A.jpg', modified: 100, exif: { DateTimeOriginal: '2023:01:01 10:00:00' } as any }),
+      ],
+    };
+    const result = computeGroupedLibrary(library, emptySettings);
+    // Since dates are equal, it should fall back to modified time
+    expect(result.displayList.map((i) => i.path)).toEqual(['/a/A.jpg', '/a/B.jpg']);
+  });
+
   it('matches plain text search against filename', () => {
     const library = {
       ...emptyLibrary,

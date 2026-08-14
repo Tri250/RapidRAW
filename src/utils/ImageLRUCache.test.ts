@@ -81,6 +81,9 @@ describe('ImageLRUCache', () => {
     const cache = new ImageLRUCache(5);
     cache.set('a', makeEntry('a'));
     expect(cache.isProtected('blob:mock/a')).toBe(true);
+    // get should not unprotect the URL
+    cache.get('a');
+    expect(cache.isProtected('blob:mock/a')).toBe(true);
     cache.delete('a');
     expect(cache.isProtected('blob:mock/a')).toBe(false);
   });

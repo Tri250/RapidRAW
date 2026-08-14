@@ -145,4 +145,18 @@ describe('createSubMask', () => {
     const mask = createSubMask(Mask.Brush, { width: 100, height: 100 }, SubMaskMode.Intersect);
     expect(mask.mode).toBe(SubMaskMode.Intersect);
   });
+
+  it('generates correct Linear rotation and range', () => {
+    const mask = createSubMask(Mask.Linear, { width: 400, height: 200 });
+    expect(mask.parameters.startX).toBe(100);
+    expect(mask.parameters.startY).toBe(100);
+    expect(mask.parameters.endX).toBe(300);
+    expect(mask.parameters.endY).toBe(100);
+    expect(mask.parameters.range).toBe(50);
+  });
+
+  it('Brush parameters are empty lines array', () => {
+    const mask = createSubMask(Mask.Brush, { width: 2000, height: 1000 });
+    expect(mask.parameters).toEqual({ lines: [] });
+  });
 });
