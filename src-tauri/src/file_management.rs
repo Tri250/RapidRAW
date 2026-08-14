@@ -3808,6 +3808,23 @@ pub fn rename_files(
     }
     operations.extend(sidecar_operations);
 
+    // Guard against duplicate target paths within this batch. `fs::rename`
+    // silently overwrites an existing file on Unix, so if a template without a
+    // unique placeholder (e.g. no {sequence}) is applied to multiple files that
+    // share an extension, the first file would be silently destroyed by the
+    // second rename. Reject the batch before touching the filesystem.
+    let mut seen_targets: HashMap<&PathBuf, &PathBuf> = HashMap::new();
+    for (original, target) in &operations {
+        if let Some(prev) = seen_targets.insert(target, original) {
+            return Err(format!(
+                "Batch rename would produce duplicate filename \"{}\" (from \"{}\" and \"{}\"). Use a template with a unique placeholder such as {{sequence}}.",
+                target.display(),
+                prev.display(),
+                original.display()
+            ));
+        }
+    }
+
     for (old_path, new_path) in operations {
         fs::rename(&old_path, &new_path).map_err(|e| {
             format!(
