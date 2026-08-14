@@ -9,6 +9,7 @@
 //! specification.
 
 use std::fmt;
+use std::sync::OnceLock;
 
 // ---------------------------------------------------------------------------
 // ColorSpace enum
@@ -204,33 +205,42 @@ pub fn xyz_to_rgb(primaries: &ColorPrimaries) -> Mat3 {
 // ---------------------------------------------------------------------------
 
 /// Pre-computed sRGB → XYZ (D65).
+/// Cached with `OnceLock` so the matrix (which only depends on the fixed
+/// `SRGB_PRIMARIES` constants) is computed once instead of on every pixel
+/// during color conversions.
 fn srgb_to_xyz_matrix() -> Mat3 {
-    rgb_to_xyz(&SRGB_PRIMARIES)
+    static CACHED: OnceLock<Mat3> = OnceLock::new();
+    *CACHED.get_or_init(|| rgb_to_xyz(&SRGB_PRIMARIES))
 }
 
 /// Pre-computed XYZ (D65) → sRGB.
 fn xyz_to_srgb_matrix() -> Mat3 {
-    xyz_to_rgb(&SRGB_PRIMARIES)
+    static CACHED: OnceLock<Mat3> = OnceLock::new();
+    *CACHED.get_or_init(|| xyz_to_rgb(&SRGB_PRIMARIES))
 }
 
 /// Pre-computed Display P3 → XYZ (D65).
 fn p3_to_xyz_matrix() -> Mat3 {
-    rgb_to_xyz(&P3_PRIMARIES)
+    static CACHED: OnceLock<Mat3> = OnceLock::new();
+    *CACHED.get_or_init(|| rgb_to_xyz(&P3_PRIMARIES))
 }
 
 /// Pre-computed XYZ (D65) → Display P3.
 fn xyz_to_p3_matrix() -> Mat3 {
-    xyz_to_rgb(&P3_PRIMARIES)
+    static CACHED: OnceLock<Mat3> = OnceLock::new();
+    *CACHED.get_or_init(|| xyz_to_rgb(&P3_PRIMARIES))
 }
 
 /// Pre-computed ACES 2065-1 → XYZ.
 fn aces_to_xyz_matrix() -> Mat3 {
-    rgb_to_xyz(&ACES_PRIMARIES)
+    static CACHED: OnceLock<Mat3> = OnceLock::new();
+    *CACHED.get_or_init(|| rgb_to_xyz(&ACES_PRIMARIES))
 }
 
 /// Pre-computed XYZ → ACES 2065-1.
 fn xyz_to_aces_matrix() -> Mat3 {
-    xyz_to_rgb(&ACES_PRIMARIES)
+    static CACHED: OnceLock<Mat3> = OnceLock::new();
+    *CACHED.get_or_init(|| xyz_to_rgb(&ACES_PRIMARIES))
 }
 
 /// The official ACES linear sRGB ↔ ACEScg matrix (D60-based).
