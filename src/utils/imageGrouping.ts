@@ -46,7 +46,8 @@ export function buildImageGroups(
     });
   }
   const displayList = images.filter(
-    (img) => !groupedPaths.has(img.path) && !(img.is_virtual_copy && img.group_id && collapsedGroupIds.has(img.group_id)),
+    (img) =>
+      !groupedPaths.has(img.path) && !(img.is_virtual_copy && img.group_id && collapsedGroupIds.has(img.group_id)),
   );
   return { displayList, badges };
 }

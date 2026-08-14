@@ -63,7 +63,8 @@ audit_result=$(npm audit --audit-level=high 2>&1 || true)
 if echo "$audit_result" | grep -q "found 0 vulnerabilities"; then
   echo "  OK: No high-severity vulnerabilities"
 else
-  vuln_count=$(echo "$audit_result" | grep -oP '\d+(?= high severity)' || echo "0")
+  vuln_count="$(echo "$audit_result" | grep -oE '[0-9]+ high severity' | grep -oE '^[0-9]+' | head -1 || true)"
+  vuln_count="${vuln_count:-0}"
   if [[ "$vuln_count" == "0" ]]; then
     echo "  OK: No high-severity vulnerabilities"
   else

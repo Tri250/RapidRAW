@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  buildImageGroups,
-  getFileExtension,
-  getVariantLabel,
-  findGroupVariants,
-} from './imageGrouping';
+import { buildImageGroups, getFileExtension, getVariantLabel, findGroupVariants } from './imageGrouping';
 import type { ImageFile } from '../components/ui/AppProperties';
 
 function makeFile(path: string, overrides: Partial<ImageFile> = {}): ImageFile {

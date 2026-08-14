@@ -29,7 +29,23 @@ i18n.use(initReactI18next).init({
     ko: { translation: ko },
     ru: { translation: ru },
   },
-  lng: 'zh-CN',
+  // Detect the initial language: user's saved choice first, then the system
+  // locale, falling back to English. `useAppInitialization` later applies the
+  // persisted setting, but using the right value here avoids a flash of the
+  // wrong language (e.g. forcing Chinese on non-Chinese users) on first paint.
+  lng: (() => {
+    try {
+      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('i18nextLng') : null;
+      if (saved) return saved;
+      if (typeof navigator !== 'undefined') {
+        const lang = navigator.language || (navigator as { userLanguage?: string }).userLanguage;
+        if (lang) return lang.replace('_', '-');
+      }
+    } catch (_e) {
+      // localStorage/navigator unavailable — fall through to English
+    }
+    return 'en';
+  })(),
   fallbackLng: 'en',
   // Treat empty string values as missing so that incomplete plural variants
   // (e.g. key_many: "") fall back to key_other / base form instead of

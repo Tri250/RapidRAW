@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { INITIAL_PORTRAIT_ADJUSTMENTS, INITIAL_ADJUSTMENTS, INITIAL_MASK_ADJUSTMENTS, normalizeLoadedAdjustments } from './adjustments';
+import {
+  INITIAL_PORTRAIT_ADJUSTMENTS,
+  INITIAL_ADJUSTMENTS,
+  INITIAL_MASK_ADJUSTMENTS,
+  normalizeLoadedAdjustments,
+} from './adjustments';
 
 describe('INITIAL_PORTRAIT_ADJUSTMENTS', () => {
   it('has all required fields with default zero values', () => {
@@ -40,7 +45,10 @@ describe('normalizeLoadedAdjustments', () => {
     const loaded = {
       ...INITIAL_ADJUSTMENTS,
       curves: {
-        luma: [{ x: 0, y: 0 }, { x: 255, y: 255 }],
+        luma: [
+          { x: 0, y: 0 },
+          { x: 255, y: 255 },
+        ],
       },
     };
     const result = normalizeLoadedAdjustments(loaded as any);
@@ -56,7 +64,10 @@ describe('normalizeLoadedAdjustments', () => {
       { x: 0, y: 0 },
       { x: 255, y: 255 },
     ]);
-    expect(result.curves.luma).toEqual([{ x: 0, y: 0 }, { x: 255, y: 255 }]);
+    expect(result.curves.luma).toEqual([
+      { x: 0, y: 0 },
+      { x: 255, y: 255 },
+    ]);
   });
 
   it('fills in missing parametric curve channels', () => {
@@ -130,7 +141,7 @@ describe('normalizeLoadedAdjustments', () => {
       ...INITIAL_ADJUSTMENTS,
       curves: {
         blue: 'not-an-array', // This should be ignored
-        green: null,         // This should be ignored
+        green: null, // This should be ignored
       },
     };
     const result = normalizeLoadedAdjustments(loaded as any);

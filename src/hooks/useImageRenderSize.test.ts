@@ -96,7 +96,7 @@ describe('useImageRenderSize', () => {
     expect(result.current.width).toBeCloseTo(400 * (900 / 1600));
     expect(result.current.offsetY).toBeCloseTo(0);
     expect(result.current.offsetX).toBeCloseTo((800 - 400 * (900 / 1600)) / 2);
-    expect(result.current.scale).toBeCloseTo(400 * (900 / 1600) / 900);
+    expect(result.current.scale).toBeCloseTo((400 * (900 / 1600)) / 900);
   });
 
   it('matches the exact fit for equal aspect ratios', () => {
@@ -133,10 +133,9 @@ describe('useImageRenderSize', () => {
     Object.defineProperty(container, 'clientWidth', { value: 400, configurable: true });
     Object.defineProperty(container, 'clientHeight', { value: 400, configurable: true });
     const ref = { current: container };
-    const { result, rerender } = renderHook(
-      ({ dims }) => useImageRenderSize(ref, dims),
-      { initialProps: { dims: { width: 1600, height: 900 } } },
-    );
+    const { result, rerender } = renderHook(({ dims }) => useImageRenderSize(ref, dims), {
+      initialProps: { dims: { width: 1600, height: 900 } },
+    });
 
     expect(result.current.width).toBeCloseTo(400);
 

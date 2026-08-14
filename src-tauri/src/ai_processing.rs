@@ -338,7 +338,6 @@ fn get_models_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf> {
     Ok(models_dir)
 }
 
-
 /// Build a list of candidate URLs to try for a model download.
 /// Priority order (no duplicates):
 /// 1. User-configured mirror (via RAPIDRAW_HF_MIRROR env var)
@@ -359,10 +358,7 @@ fn build_download_candidates(original_url: &str) -> Vec<String> {
     }
 
     // 2. Add the default domestic mirror (hf-mirror.com)
-    candidates.push(original_url.replace(
-        "https://huggingface.co/",
-        "https://hf-mirror.com/",
-    ));
+    candidates.push(original_url.replace("https://huggingface.co/", "https://hf-mirror.com/"));
 
     // 3. Original HuggingFace URL (last resort)
     candidates.push(original_url.to_string());
@@ -955,7 +951,13 @@ pub async fn prefetch_model_file(app_handle: &tauri::AppHandle, id: AiModelId) -
             let tokenizer_path = models_dir.join(CLIP_TOKENIZER_FILENAME);
             if !tokenizer_path.exists() {
                 let _ = app_handle.emit("ai-model-download-start", "CLIP Tokenizer");
-                let r = download_model(CLIP_TOKENIZER_URL, &tokenizer_path, Some(app_handle), "CLIP Tokenizer").await;
+                let r = download_model(
+                    CLIP_TOKENIZER_URL,
+                    &tokenizer_path,
+                    Some(app_handle),
+                    "CLIP Tokenizer",
+                )
+                .await;
                 let _ = app_handle.emit("ai-model-download-finish", "CLIP Tokenizer");
                 r?;
             }
@@ -1097,7 +1099,13 @@ pub async fn get_or_init_clip_models(
     let clip_tokenizer_path = models_dir.join(CLIP_TOKENIZER_FILENAME);
     if !clip_tokenizer_path.exists() {
         let _ = app_handle.emit("ai-model-download-start", "CLIP Tokenizer");
-        let download_result = download_model(CLIP_TOKENIZER_URL, &clip_tokenizer_path, Some(app_handle), "CLIP Tokenizer").await;
+        let download_result = download_model(
+            CLIP_TOKENIZER_URL,
+            &clip_tokenizer_path,
+            Some(app_handle),
+            "CLIP Tokenizer",
+        )
+        .await;
         let _ = app_handle.emit("ai-model-download-finish", "CLIP Tokenizer");
         download_result?;
     }

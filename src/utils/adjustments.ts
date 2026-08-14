@@ -621,22 +621,30 @@ export const INITIAL_ADJUSTMENTS: Adjustments = {
 };
 
 const deepCloneCurves = (curves: any): Curves => ({
-  blue: Array.isArray(curves?.blue) ? curves.blue.map((p: Coord) => ({ ...p })) : [
-    { x: 0, y: 0 },
-    { x: 255, y: 255 },
-  ],
-  green: Array.isArray(curves?.green) ? curves.green.map((p: Coord) => ({ ...p })) : [
-    { x: 0, y: 0 },
-    { x: 255, y: 255 },
-  ],
-  luma: Array.isArray(curves?.luma) ? curves.luma.map((p: Coord) => ({ ...p })) : [
-    { x: 0, y: 0 },
-    { x: 255, y: 255 },
-  ],
-  red: Array.isArray(curves?.red) ? curves.red.map((p: Coord) => ({ ...p })) : [
-    { x: 0, y: 0 },
-    { x: 255, y: 255 },
-  ],
+  blue: Array.isArray(curves?.blue)
+    ? curves.blue.map((p: Coord) => ({ ...p }))
+    : [
+        { x: 0, y: 0 },
+        { x: 255, y: 255 },
+      ],
+  green: Array.isArray(curves?.green)
+    ? curves.green.map((p: Coord) => ({ ...p }))
+    : [
+        { x: 0, y: 0 },
+        { x: 255, y: 255 },
+      ],
+  luma: Array.isArray(curves?.luma)
+    ? curves.luma.map((p: Coord) => ({ ...p }))
+    : [
+        { x: 0, y: 0 },
+        { x: 255, y: 255 },
+      ],
+  red: Array.isArray(curves?.red)
+    ? curves.red.map((p: Coord) => ({ ...p }))
+    : [
+        { x: 0, y: 0 },
+        { x: 255, y: 255 },
+      ],
 });
 
 const deepCloneParametric = (pCurve: any): ParametricCurve => ({
@@ -661,40 +669,42 @@ export const normalizeLoadedAdjustments = (loadedAdjustments: Adjustments): Adju
     }));
   };
 
-  const normalizedMasks: MaskContainer[] = (loadedAdjustments.masks || []).filter(Boolean).map((maskContainer: MaskContainer) => {
-    const containerAdjustments = maskContainer.adjustments || {};
-    const normalizedSubMasks = normalizeSubMasks(maskContainer.subMasks);
+  const normalizedMasks: MaskContainer[] = (loadedAdjustments.masks || [])
+    .filter(Boolean)
+    .map((maskContainer: MaskContainer) => {
+      const containerAdjustments = maskContainer.adjustments || {};
+      const normalizedSubMasks = normalizeSubMasks(maskContainer.subMasks);
 
-    return {
-      ...INITIAL_MASK_CONTAINER,
-      id: maskContainer.id || uuidv4(),
-      ...maskContainer,
-      adjustments: {
-        ...INITIAL_MASK_ADJUSTMENTS,
-        ...containerAdjustments,
-        flareAmount: containerAdjustments.flareAmount ?? INITIAL_MASK_ADJUSTMENTS.flareAmount,
-        glowAmount: containerAdjustments.glowAmount ?? INITIAL_MASK_ADJUSTMENTS.glowAmount,
-        halationAmount: containerAdjustments.halationAmount ?? INITIAL_MASK_ADJUSTMENTS.halationAmount,
-        hue: containerAdjustments.hue ?? INITIAL_MASK_ADJUSTMENTS.hue,
-        colorGrading: { ...INITIAL_MASK_ADJUSTMENTS.colorGrading, ...(containerAdjustments.colorGrading || {}) },
-        hsl: { ...INITIAL_MASK_ADJUSTMENTS.hsl, ...(containerAdjustments.hsl || {}) },
-        curves: containerAdjustments.curves ? deepCloneCurves(containerAdjustments.curves) : getDefaultCurves(),
-        pointCurves: containerAdjustments.pointCurves
-          ? deepCloneCurves(containerAdjustments.pointCurves)
-          : getDefaultCurves(),
-        parametricCurve: containerAdjustments.parametricCurve
-          ? deepCloneParametric(containerAdjustments.parametricCurve)
-          : getDefaultParametricCurve(),
-        curveMode: containerAdjustments.curveMode || INITIAL_MASK_ADJUSTMENTS.curveMode,
-        sectionVisibility: {
-          ...INITIAL_MASK_ADJUSTMENTS.sectionVisibility,
-          ...(containerAdjustments.sectionVisibility || {}),
+      return {
+        ...INITIAL_MASK_CONTAINER,
+        id: maskContainer.id || uuidv4(),
+        ...maskContainer,
+        adjustments: {
+          ...INITIAL_MASK_ADJUSTMENTS,
+          ...containerAdjustments,
+          flareAmount: containerAdjustments.flareAmount ?? INITIAL_MASK_ADJUSTMENTS.flareAmount,
+          glowAmount: containerAdjustments.glowAmount ?? INITIAL_MASK_ADJUSTMENTS.glowAmount,
+          halationAmount: containerAdjustments.halationAmount ?? INITIAL_MASK_ADJUSTMENTS.halationAmount,
+          hue: containerAdjustments.hue ?? INITIAL_MASK_ADJUSTMENTS.hue,
+          colorGrading: { ...INITIAL_MASK_ADJUSTMENTS.colorGrading, ...(containerAdjustments.colorGrading || {}) },
+          hsl: { ...INITIAL_MASK_ADJUSTMENTS.hsl, ...(containerAdjustments.hsl || {}) },
+          curves: containerAdjustments.curves ? deepCloneCurves(containerAdjustments.curves) : getDefaultCurves(),
+          pointCurves: containerAdjustments.pointCurves
+            ? deepCloneCurves(containerAdjustments.pointCurves)
+            : getDefaultCurves(),
+          parametricCurve: containerAdjustments.parametricCurve
+            ? deepCloneParametric(containerAdjustments.parametricCurve)
+            : getDefaultParametricCurve(),
+          curveMode: containerAdjustments.curveMode || INITIAL_MASK_ADJUSTMENTS.curveMode,
+          sectionVisibility: {
+            ...INITIAL_MASK_ADJUSTMENTS.sectionVisibility,
+            ...(containerAdjustments.sectionVisibility || {}),
+          },
+          sharpnessThreshold: containerAdjustments.sharpnessThreshold ?? INITIAL_MASK_ADJUSTMENTS.sharpnessThreshold,
         },
-        sharpnessThreshold: containerAdjustments.sharpnessThreshold ?? INITIAL_MASK_ADJUSTMENTS.sharpnessThreshold,
-      },
-      subMasks: normalizedSubMasks,
-    } as MaskContainer;
-  });
+        subMasks: normalizedSubMasks,
+      } as MaskContainer;
+    });
 
   const normalizedAiPatches = (loadedAdjustments.aiPatches || []).map((patch: any) => ({
     visible: true,

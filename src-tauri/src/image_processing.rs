@@ -775,9 +775,10 @@ pub fn warp_image_geometry(image: &DynamicImage, params: GeometryParams) -> Dyna
 
     let (forward_transform, cx, cy, half_diagonal) =
         build_transform_matrices(&params, width as f32, height as f32);
-    let inv = forward_transform
-        .try_inverse()
-        .unwrap_or(NaMatrix3::identity());
+    let inv = forward_transform.try_inverse().unwrap_or_else(|| {
+        log::warn!("Geometry warp: forward transform is singular, skipping warp");
+        NaMatrix3::identity()
+    });
 
     let step_vec_x = NaVector3::new(inv[(0, 0)], inv[(1, 0)], inv[(2, 0)]);
     let step_vec_y = NaVector3::new(inv[(0, 1)], inv[(1, 1)], inv[(2, 1)]);

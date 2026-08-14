@@ -1678,7 +1678,8 @@ pub fn generate_color_range_mask(
     let hue_wraps = h_lo > h_hi;
 
     // Compute raw mask
-    let mut mask_data = vec![0u8; (w * h) as usize];
+    // Cast to usize before multiplying so large images can't overflow a u32.
+    let mut mask_data = vec![0u8; (w as usize) * (h as usize)];
 
     for y in 0..h {
         for x in 0..w {
@@ -1703,7 +1704,7 @@ pub fn generate_color_range_mask(
             let lum_weight = if lum >= l_lo && lum <= l_hi { 1.0 } else { 0.0 };
 
             let combined = hue_weight * sat_weight * lum_weight;
-            let idx = (y * w + x) as usize;
+            let idx = (y as usize) * (w as usize) + (x as usize);
             mask_data[idx] = (combined * 255.0_f32).round().clamp(0.0_f32, 255.0_f32) as u8;
         }
     }
@@ -1798,7 +1799,8 @@ pub fn generate_luminance_range_mask(
     };
     let feather_sigma = feather_v / 100.0 * 0.3; // Gaussian sigma for transition
 
-    let mut mask_data = vec![0u8; (w * h) as usize];
+    // Cast to usize before multiplying so large images can't overflow a u32.
+    let mut mask_data = vec![0u8; (w as usize) * (h as usize)];
 
     for y in 0..h {
         for x in 0..w {
@@ -1821,7 +1823,7 @@ pub fn generate_luminance_range_mask(
                 0.0
             };
 
-            let idx = (y * w + x) as usize;
+            let idx = (y as usize) * (w as usize) + (x as usize);
             mask_data[idx] = (intensity * 255.0).round().clamp(0.0, 255.0) as u8;
         }
     }
@@ -1838,7 +1840,7 @@ pub fn generate_luminance_range_mask(
     // Encode to PNG base64 data-URL for frontend compatibility (expects mask_data_base64 field)
     let gray_img = GrayImage::from_raw(w, h, mask_data)
         .ok_or("Failed to build final GrayImage (luminance)")?;
-    let mut png_buf: Vec<u8> = Vec::with_capacity((w * h) as usize * 2);
+    let mut png_buf: Vec<u8> = Vec::with_capacity((w as usize) * (h as usize) * 2);
     {
         let mut cur = Cursor::new(&mut png_buf);
         image::codecs::png::PngEncoder::new(&mut cur)

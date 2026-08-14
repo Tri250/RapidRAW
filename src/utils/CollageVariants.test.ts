@@ -9,7 +9,11 @@ function cellArea(c: LayoutCell) {
 
 describe('LAYOUTS', () => {
   it('provides layouts for every supported image count 1..9', () => {
-    expect(Object.keys(LAYOUTS).map(Number).sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(
+      Object.keys(LAYOUTS)
+        .map(Number)
+        .sort((a, b) => a - b),
+    ).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
 
   it('each layout has a number of cells matching its image count (no silent image drop)', () => {
@@ -36,8 +40,12 @@ describe('LAYOUTS', () => {
           expect(cell.y, `count=${count} layout=${lIdx} cell=${cIdx} y`).toBeGreaterThanOrEqual(0);
           expect(cell.width, `count=${count} layout=${lIdx} cell=${cIdx} width`).toBeGreaterThan(0);
           expect(cell.height, `count=${count} layout=${lIdx} cell=${cIdx} height`).toBeGreaterThan(0);
-          expect(cell.x + cell.width, `count=${count} layout=${lIdx} cell=${cIdx} x+width`).toBeLessThanOrEqual(1 + EPS);
-          expect(cell.y + cell.height, `count=${count} layout=${lIdx} cell=${cIdx} y+height`).toBeLessThanOrEqual(1 + EPS);
+          expect(cell.x + cell.width, `count=${count} layout=${lIdx} cell=${cIdx} x+width`).toBeLessThanOrEqual(
+            1 + EPS,
+          );
+          expect(cell.y + cell.height, `count=${count} layout=${lIdx} cell=${cIdx} y+height`).toBeLessThanOrEqual(
+            1 + EPS,
+          );
         }
       }
     }
@@ -58,10 +66,7 @@ describe('LAYOUTS', () => {
             const b = cells[j];
             const overlapX = a.x < b.x + b.width - EPS && b.x < a.x + a.width - EPS;
             const overlapY = a.y < b.y + b.height - EPS && b.y < a.y + a.height - EPS;
-            expect(
-              overlapX && overlapY,
-              `count=${count} layout=${lIdx}: cells ${i} and ${j} overlap`,
-            ).toBe(false);
+            expect(overlapX && overlapY, `count=${count} layout=${lIdx}: cells ${i} and ${j} overlap`).toBe(false);
           }
         }
       }

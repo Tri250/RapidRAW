@@ -167,11 +167,7 @@ describe('computeGroupedLibrary', () => {
   it('sorts by name ascending by default', () => {
     const library = {
       ...emptyLibrary,
-      imageList: [
-        makeFile({ path: '/a/B.jpg' }),
-        makeFile({ path: '/a/A.jpg' }),
-        makeFile({ path: '/a/C.jpg' }),
-      ],
+      imageList: [makeFile({ path: '/a/B.jpg' }), makeFile({ path: '/a/A.jpg' }), makeFile({ path: '/a/C.jpg' })],
     };
     const result = computeGroupedLibrary(library, emptySettings);
     expect(result.displayList.map((i) => i.path)).toEqual(['/a/A.jpg', '/a/B.jpg', '/a/C.jpg']);
@@ -224,10 +220,7 @@ describe('computeGroupedLibrary', () => {
     const library = {
       ...emptyLibrary,
       filterCriteria: { colors: [], rating: 0, rawStatus: RawStatus.All, editedStatus: EditedStatus.EditedOnly },
-      imageList: [
-        makeFile({ path: '/a/A.jpg', is_edited: true }),
-        makeFile({ path: '/a/B.jpg', is_edited: false }),
-      ],
+      imageList: [makeFile({ path: '/a/A.jpg', is_edited: true }), makeFile({ path: '/a/B.jpg', is_edited: false })],
     };
     const result = computeGroupedLibrary(library, emptySettings);
     expect(result.displayList.map((i) => i.path)).toEqual(['/a/A.jpg']);
@@ -345,10 +338,7 @@ describe('computeGroupedLibrary', () => {
     const library = {
       ...emptyLibrary,
       searchCriteria: { tags: ['sunset', 'ocean'], text: '', mode: 'OR' },
-      imageList: [
-        makeFile({ path: '/a/A.jpg', tags: ['sunset'] }),
-        makeFile({ path: '/a/B.jpg', tags: ['portrait'] }),
-      ],
+      imageList: [makeFile({ path: '/a/A.jpg', tags: ['sunset'] }), makeFile({ path: '/a/B.jpg', tags: ['portrait'] })],
     };
     const result = computeGroupedLibrary(library, emptySettings);
     expect(result.displayList.map((i) => i.path)).toEqual(['/a/A.jpg']);
@@ -360,10 +350,7 @@ describe('computeGroupedLibrary', () => {
     const library = {
       ...emptyLibrary,
       searchCriteria: { tags: ['sunset'], text: '', mode: 'AND' },
-      imageList: [
-        makeFile({ path: '/a/A.jpg', tags: ['sunset'] }),
-        makeFile({ path: '/a/B.jpg', tags: ['portrait'] }),
-      ],
+      imageList: [makeFile({ path: '/a/A.jpg', tags: ['sunset'] }), makeFile({ path: '/a/B.jpg', tags: ['portrait'] })],
     };
     const result = computeGroupedLibrary(library, emptySettings);
     expect(result.displayList.map((i) => i.path)).toEqual(['/a/A.jpg']);
@@ -464,10 +451,7 @@ describe('computeGroupedLibrary', () => {
     const library = {
       ...emptyLibrary,
       filterCriteria: { colors: [], rating: 0, rawStatus: RawStatus.RawOnly },
-      imageList: [
-        makeFile({ path: '/a/PIC.CR2', group_id: 'g1' }),
-        makeFile({ path: '/a/PIC.jpg', group_id: 'g1' }),
-      ],
+      imageList: [makeFile({ path: '/a/PIC.CR2', group_id: 'g1' }), makeFile({ path: '/a/PIC.jpg', group_id: 'g1' })],
     };
     const settings = {
       ...emptySettings,

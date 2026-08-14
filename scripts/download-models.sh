@@ -43,7 +43,7 @@ for entry in "${models[@]}"; do
   # -C - resume, --retry 5, max-time 600s per file, follow redirects
   for attempt in 1 2 3; do
     if curl -L -C - --retry 5 --retry-delay 3 --connect-timeout 30 --max-time 900 \
-         -o "$dest" "$url" 2>&1 | tail -1; then
+         -o "$dest" "$url"; then
       actual="$(sha256sum "$dest" | awk '{print $1}')"
       if [[ "$actual" == "$expected" ]]; then
         echo "[OK] $name downloaded and verified ($(du -h "$dest" | cut -f1))"

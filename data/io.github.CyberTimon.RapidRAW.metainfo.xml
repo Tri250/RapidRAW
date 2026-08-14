@@ -38,6 +38,15 @@
   <url type="homepage">https://github.com/Tri250/RapidRAW</url>
 
   <releases>
+    <release version="v1.8.31" date="2026-08-13">
+        <url type="details">https://github.com/Tri250/RapidRAW/releases/tag/v1.8.31</url>
+        <description translate="no">
+            <p>RapidRAW v1.8.31 - 发布更新</p>
+            <ul>
+                <li>发布说明详见 GitHub Releases 页面：https://github.com/Tri250/RapidRAW/releases/tag/v1.8.31</li>
+            </ul>
+        </description>
+    </release>
     <release version="v1.8.19" date="2026-07-25">
         <url type="details">https://github.com/Tri250/RapidRAW/releases/tag/v1.8.19</url>
         <description translate="no">

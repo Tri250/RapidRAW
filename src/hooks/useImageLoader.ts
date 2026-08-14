@@ -7,6 +7,7 @@ import { useLibraryStore } from '../store/useLibraryStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { Invokes } from '../components/ui/AppProperties';
 import { INITIAL_ADJUSTMENTS, normalizeLoadedAdjustments } from '../utils/adjustments';
+import { globalImageCache } from '../utils/ImageLRUCache';
 
 export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
   const { t } = useTranslation();
@@ -137,8 +138,12 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
                     if (!currentHasRenderedFirstFrame || isAndroid) {
                       setEditor((state) => {
                         const prevUrl = state.finalPreviewUrl;
-                        if (prevUrl && prevUrl.startsWith('blob:')) {
-                          setTimeout(() => URL.revokeObjectURL(prevUrl), 100);
+                        if (prevUrl && prevUrl.startsWith('blob:') && !globalImageCache.isProtected(prevUrl)) {
+                          setTimeout(() => {
+                            if (!globalImageCache.isProtected(prevUrl)) {
+                              URL.revokeObjectURL(prevUrl);
+                            }
+                          }, 100);
                         }
                         return { finalPreviewUrl: url };
                       });
@@ -213,6 +218,7 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
     selectedImage?.path,
     selectedImage?.isReady,
     appSettings?.editorPreviewResolution,
+    appSettings?.useWgpuRenderer,
     isAndroid,
     resetHistory,
     setEditor,

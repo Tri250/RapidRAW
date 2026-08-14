@@ -308,6 +308,10 @@ export function useImageProcessing(
   );
 
   const flushPipelineRetryTimerRef = useRef<number | null>(null);
+  // Tracks a pending requestAnimationFrame scheduled by flushPipeline so it
+  // can be cancelled on unmount / image change instead of firing into a
+  // detached component.
+  const flushPipelineRafRef = useRef<number | null>(null);
 
   // Keep a ref to the latest flushPipeline so that the setTimeout retry
   // inside it always invokes the up-to-date closure (avoiding stale
@@ -342,7 +346,10 @@ export function useImageProcessing(
     executeApplyAdjustments(adjustments, true, targetRes).finally(() => {
       inFlightCountRef.current -= 1;
       if (pendingApplyRef.current) {
-        requestAnimationFrame(() => flushPipelineRef.current());
+        flushPipelineRafRef.current = requestAnimationFrame(() => {
+          flushPipelineRafRef.current = null;
+          flushPipelineRef.current();
+        });
       }
     });
   }, [executeApplyAdjustments, isAndroid]);
@@ -494,6 +501,10 @@ export function useImageProcessing(
         window.clearTimeout(flushPipelineRetryTimerRef.current);
         flushPipelineRetryTimerRef.current = null;
       }
+      if (flushPipelineRafRef.current !== null) {
+        cancelAnimationFrame(flushPipelineRafRef.current);
+        flushPipelineRafRef.current = null;
+      }
     };
   }, [requestHiFiZoom, requestHiFiOriginalZoom]);
 
@@ -504,6 +515,10 @@ export function useImageProcessing(
     if (flushPipelineRetryTimerRef.current !== null) {
       window.clearTimeout(flushPipelineRetryTimerRef.current);
       flushPipelineRetryTimerRef.current = null;
+    }
+    if (flushPipelineRafRef.current !== null) {
+      cancelAnimationFrame(flushPipelineRafRef.current);
+      flushPipelineRafRef.current = null;
     }
   }, [selectedImage?.path]);
 
