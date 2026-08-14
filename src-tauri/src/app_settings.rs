@@ -531,10 +531,9 @@ impl Default for AppSettings {
             exif_overlay: Some("off".to_string()),
             language: Some("zh-CN".to_string()),
             folder_tree_sort: Some(FolderTreeSort::default()),
-            #[cfg(target_os = "android")]
+            // Default to Chinese mirror for all platforms since hf-mirror.com
+            // is accessible worldwide and provides better speed for CN users.
             ai_model_mirror_url: Some("https://hf-mirror.com".to_string()),
-            #[cfg(not(target_os = "android"))]
-            ai_model_mirror_url: None,
             // Project DB path is determined at load-time from app data dir,
             // defaulting here to None so the frontend always sees the resolved value.
             project_db_path: None,
@@ -568,9 +567,9 @@ pub fn load_settings(app_handle: AppHandle) -> Result<AppSettings, String> {
 
     let mut settings_modified = false;
 
-    // Android: if no mirror URL is configured, apply the default domestic
-    // mirror automatically so users don't have to manually set it up.
-    #[cfg(target_os = "android")]
+    // If no mirror URL is configured, apply the default domestic mirror
+    // automatically so users don't have to manually set it up.
+    // hf-mirror.com is accessible worldwide and provides better speed for CN users.
     if settings.ai_model_mirror_url.is_none()
         || settings
             .ai_model_mirror_url

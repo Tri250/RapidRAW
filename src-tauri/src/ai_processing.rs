@@ -55,7 +55,7 @@ use tokio::sync::Mutex as TokioMutex;
 /// Default mirror base URL for HuggingFace model downloads.
 /// For Chinese users, set to "https://hf-mirror.com" or other domestic CDN.
 /// Leave empty to use the default HuggingFace URLs directly.
-const DEFAULT_HF_MIRROR_BASE: &str = "";
+const DEFAULT_HF_MIRROR_BASE: &str = "https://hf-mirror.com";
 
 /// Environment variable to override the HuggingFace mirror base URL at runtime.
 const HF_MIRROR_ENV_VAR: &str = "RAPIDRAW_HF_MIRROR";
@@ -412,25 +412,29 @@ fn persist_downloaded_asset(dest: &Path, bytes: &[u8]) -> Result<()> {
 }
 
 /// Build a list of candidate URLs to try for a model download.
-/// Order: user-configured mirror -> hf-mirror.com -> huggingface.co (original).
+/// Priority order:
+/// 1. User-configured mirror (via RAPIDRAW_HF_MIRROR env var or DEFAULT_HF_MIRROR_BASE)
+/// 2. Chinese domestic mirror (hf-mirror.com) - fastest for CN users
+/// 3. Original HuggingFace URL (last resort for non-CN users)
 fn build_download_candidates(original_url: &str) -> Vec<String> {
     let mut candidates = Vec::new();
-    let resolved = resolve_model_url(original_url);
 
-    // 1. User-configured or environment-based mirror (if different from original).
+    // 1. User-configured or environment-based mirror (highest priority)
+    let resolved = resolve_model_url(original_url);
     if resolved != original_url {
         candidates.push(resolved.clone());
     }
 
-    // 2. Chinese domestic mirror (hf-mirror.com).
+    // 2. Also try hf-mirror.com directly (as fallback or if mirror_base is empty)
     if original_url.contains("huggingface.co") {
-        candidates.push(original_url.replace("https://huggingface.co/", "https://hf-mirror.com/"));
+        let cn_mirror = original_url.replace("https://huggingface.co/", "https://hf-mirror.com/");
+        if !candidates.contains(&cn_mirror) {
+            candidates.push(cn_mirror);
+        }
     }
 
-    // 3. Original HuggingFace URL (last resort).
-    if !candidates.contains(&original_url.to_string()) {
-        candidates.push(original_url.to_string());
-    }
+    // 3. Original HuggingFace URL (last resort)
+    candidates.push(original_url.to_string());
 
     candidates
 }
