@@ -38,6 +38,18 @@
   <url type="homepage">https://github.com/Tri250/RapidRAW</url>
 
   <releases>
+    <release version="v1.8.32" date="2026-08-15">
+        <url type="details">https://github.com/Tri250/RapidRAW/releases/tag/v1.8.32</url>
+        <description translate="no">
+            <p>RAW工坊 v1.8.32 - 网络限制优化·GPU缓存预算·全面自检修复</p>
+            <ul>
+                <li>网络限制优化：模型下载镜像降级链（用户镜像→hf-mirror.com→huggingface.co）、重试与超时、断点续传与SHA256校验</li>
+                <li>GPU管线稳定性：纹理缓存新增512MB字节预算上限，驱逐逻辑同时考虑条目数与总内存占用，防止大图处理OOM</li>
+                <li>CI修复：应用cargo fmt修复color_science/image_processing，使cargo fmt --check通过</li>
+                <li>发布工作流自检：全部workflow通过actionlint校验，版本一致性检查通过</li>
+            </ul>
+        </description>
+    </release>
     <release version="v1.8.19" date="2026-07-25">
         <url type="details">https://github.com/Tri250/RapidRAW/releases/tag/v1.8.19</url>
         <description translate="no">
