@@ -870,7 +870,9 @@ fn apply_dehaze(color: vec3<f32>, blurred_color_input_space: vec3<f32>, is_raw: 
         let safe_dark = max(spatial_dark - 0.02, 0.0);
         let mapped_haze = safe_dark / (safe_dark + 0.2);
         let t = max(1.0 - amount * mapped_haze * 0.85, 0.15);
-        var recovered = (color - atmospheric_light) / t + atmospheric_light;
+        var recovered = (color - atmospheric_light) / max(t, 0.15) + atmospheric_light;
+        // Clamp to prevent overflow/NaN from extreme division
+        recovered = clamp(recovered, vec3<f32>(-10.0), vec3<f32>(10.0));
         let rec_luma = get_luma(max(recovered, vec3<f32>(0.0)));
         let shadow_lift = smoothstep(0.1, 0.0, rec_luma) * (1.0 - t) * 0.15;
         recovered += shadow_lift;
@@ -878,13 +880,14 @@ fn apply_dehaze(color: vec3<f32>, blurred_color_input_space: vec3<f32>, is_raw: 
         let sat_boost = haze_removed * 0.5;
         let final_luma = get_luma(max(recovered, vec3<f32>(0.0)));
         recovered = mix(vec3<f32>(final_luma), recovered, 1.0 + sat_boost);
-        return max(recovered, vec3<f32>(0.0));
+        return clamp(recovered, vec3<f32>(0.0), vec3<f32>(10.0));
     } else {
         let regional_dark = min(blurred_linear.r, min(blurred_linear.g, blurred_linear.b));
         let safe_dark = max(regional_dark - 0.02, 0.0);
         let mapped_depth = safe_dark / (safe_dark + 0.2);
         let depth_factor = mix(0.4, 1.0, mapped_depth);
-        return mix(color, atmospheric_light, abs(amount) * 0.7 * depth_factor);
+        let result = mix(color, atmospheric_light, abs(amount) * 0.7 * depth_factor);
+        return clamp(result, vec3<f32>(0.0), vec3<f32>(10.0));
     }
 }
 

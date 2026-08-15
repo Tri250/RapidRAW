@@ -302,6 +302,24 @@ pub fn acescg_to_linear_srgb(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
 const ACESCC_A: f64 = 9.72;
 const ACESCC_B: f64 = 0.3013698630;
 
+/// Rec.2020 / BT.2100 transfer function (linear → gamma).
+pub fn linear_to_rec2020(v: f64) -> f64 {
+    if v < 0.0107 {
+        4.5 * v
+    } else {
+        1.099_296_826_8 * v.powf(0.45) - 0.099_296_826_8
+    }
+}
+
+/// Rec.2020 / BT.2100 transfer function (gamma → linear).
+pub fn rec2020_to_linear(v: f64) -> f64 {
+    if v < 0.081 {
+        v / 4.5
+    } else {
+        ((v + 0.099_296_826_8) / 1.099_296_826_8).powf(1.0 / 0.45)
+    }
+}
+
 /// Convert scene-linear (ACEScg) value to ACEScc logarithmic encoding.
 ///
 /// ACEScc encodes scene-linear values in [0, 1] to a logarithmic space
@@ -513,11 +531,11 @@ pub fn aces_output_transform(r: f64, g: f64, b: f64, target_space: ColorSpace) -
             let xyz = mat3_vec(&srgb_to_xyz_matrix(), [lr, lg, lb]);
             let rec = mat3_vec(&xyz_to_rgb(&REC2020_PRIMARIES), xyz);
 
-            // Rec.2020 10-bit gamma (same function shape as sRGB per BT.2100)
+            // Rec.2020 uses BT.2100 transfer function, NOT the sRGB transfer.
             (
-                linear_to_srgb(rec[0]),
-                linear_to_srgb(rec[1]),
-                linear_to_srgb(rec[2]),
+                linear_to_rec2020(rec[0]),
+                linear_to_rec2020(rec[1]),
+                linear_to_rec2020(rec[2]),
             )
         }
         ColorSpace::ACES2065_1 | ColorSpace::ACEScg => {
@@ -632,9 +650,14 @@ fn primaries_for_space(space: ColorSpace) -> &'static ColorPrimaries {
 /// Convert gamma-encoded RGB to linear RGB based on the color space
 fn to_linear(r: f64, g: f64, b: f64, space: ColorSpace) -> (f64, f64, f64) {
     match space {
-        ColorSpace::SRGB | ColorSpace::DisplayP3 | ColorSpace::Rec2020 => {
+        ColorSpace::SRGB | ColorSpace::DisplayP3 => {
             (srgb_to_linear(r), srgb_to_linear(g), srgb_to_linear(b))
         }
+        ColorSpace::Rec2020 => (
+            rec2020_to_linear(r),
+            rec2020_to_linear(g),
+            rec2020_to_linear(b),
+        ),
         ColorSpace::LinearSRGB | ColorSpace::ACES2065_1 | ColorSpace::ACEScg => (r, g, b),
         ColorSpace::ACEScc => acescc_to_linear(r, g, b),
         ColorSpace::ACEScct => acescct_to_linear(r, g, b),
@@ -644,9 +667,14 @@ fn to_linear(r: f64, g: f64, b: f64, space: ColorSpace) -> (f64, f64, f64) {
 /// Convert linear RGB to gamma-encoded RGB based on the color space
 fn from_linear(r: f64, g: f64, b: f64, space: ColorSpace) -> (f64, f64, f64) {
     match space {
-        ColorSpace::SRGB | ColorSpace::DisplayP3 | ColorSpace::Rec2020 => {
+        ColorSpace::SRGB | ColorSpace::DisplayP3 => {
             (linear_to_srgb(r), linear_to_srgb(g), linear_to_srgb(b))
         }
+        ColorSpace::Rec2020 => (
+            linear_to_rec2020(r),
+            linear_to_rec2020(g),
+            linear_to_rec2020(b),
+        ),
         ColorSpace::LinearSRGB | ColorSpace::ACES2065_1 | ColorSpace::ACEScg => (r, g, b),
         ColorSpace::ACEScc => linear_to_acescc(r, g, b),
         ColorSpace::ACEScct => linear_to_acescct(r, g, b),
@@ -817,5 +845,51 @@ mod tests {
             "White X should be ~0.9505, got {}",
             xyz[0]
         );
+    }
+
+    #[test]
+    fn test_rec2020_transfer_roundtrip() {
+        for v in &[0.0, 0.005, 0.0107, 0.1, 0.5, 1.0] {
+            let linear = rec2020_to_linear(*v);
+            let back = linear_to_rec2020(linear);
+            assert!(
+                (back - *v).abs() < 1e-10,
+                "Rec2020 roundtrip failed for v={}: got {}",
+                v,
+                back
+            );
+        }
+    }
+
+    #[test]
+    fn test_rec2020_transfer_boundary() {
+        // At the linear boundary (0.0107), both branches should give same result
+        let low = linear_to_rec2020(0.0107);
+        let high = 4.5 * 0.0107; // same value via linear branch
+        assert!(
+            (low - high).abs() < 1e-12,
+            "Rec2020 linear_to boundary mismatch: {} vs {}",
+            low,
+            high
+        );
+
+        // At the gamma boundary (0.081), both branches should give same result
+        let g_low = rec2020_to_linear(0.081);
+        let g_high = 0.081 / 4.5; // same value via linear branch
+        assert!(
+            (g_low - g_high).abs() < 1e-12,
+            "Rec2020 to_linear boundary mismatch: {} vs {}",
+            g_low,
+            g_high
+        );
+    }
+
+    #[test]
+    fn test_rec2020_output_transform() {
+        // Rec2020 output should be in [0, 1] for reasonable inputs
+        let (r, g, b) = aces_output_transform(0.18, 0.18, 0.18, ColorSpace::Rec2020);
+        assert!(r >= 0.0 && r <= 1.0, "R out of range: {}", r);
+        assert!(g >= 0.0 && g <= 1.0);
+        assert!(b >= 0.0 && b <= 1.0);
     }
 }

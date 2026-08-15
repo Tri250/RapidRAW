@@ -2,7 +2,8 @@
 // wired into all call sites. Remove this allow once integration is complete.
 #![allow(dead_code)]
 
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -106,15 +107,22 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     let color = textureLoad(input_image, vec2<i32>(i32(x), i32(y)), 0);
     var rgb = color.rgb;
 
+    // Safety: replace any NaN/Inf with zero before processing
+    if isnan(rgb.r) || isnan(rgb.g) || isnan(rgb.b) {
+        rgb = vec3<f32>(0.0);
+    }
+    rgb = clamp(rgb, vec3<f32>(-65504.0), vec3<f32>(65504.0));
+
     // --- Exposure: multiply by 2^exposure ---
-    rgb = rgb * pow(2.0, adjustments.exposure);
+    let exp_factor = pow(2.0, adjustments.exposure);
+    rgb = rgb * exp_factor;
 
     // --- Contrast: (value - 0.5) * contrast + 0.5 ---
     let contrast_factor = 1.0 + adjustments.contrast;
     rgb = (rgb - 0.5) * contrast_factor + 0.5;
 
     // --- Highlights / Shadows (tone-range masks) ---
-    let luminance = dot(rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
+    let luminance = max(dot(rgb, vec3<f32>(0.2126, 0.7152, 0.0722)), 0.0);
 
     // highlights mask: smooth step for bright areas
     let hl_mask = smoothstep(0.4, 0.9, luminance);
@@ -131,7 +139,6 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     rgb = rgb - adjustments.blacks * bk_mask * 0.5;
 
     // --- Temperature / Tint (channel-dependent scaling) ---
-    // Temperature shifts R/B channels; Tint shifts G channel
     let temp_shift = adjustments.temperature;
     let tint_shift = adjustments.tint;
     rgb.r = rgb.r * (1.0 + temp_shift * 0.1);
@@ -141,33 +148,29 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     // --- Saturation / Vibrance (HSL-based) ---
     let hsl = rgb_to_hsl(rgb);
     var new_sat = hsl.g;
-    // Vibrance: less-saturated pixels get more boost
     new_sat = new_sat + adjustments.vibrance * (1.0 - new_sat);
     new_sat = new_sat + adjustments.saturation;
     new_sat = clamp(new_sat, 0.0, 1.0);
     rgb = hsl_to_rgb(vec3<f32>(hsl.r, new_sat, hsl.b));
 
-    // --- Dehaze / Haze ---
-    // Simple dehaze: increase contrast and reduce fog
+    // --- Dehaze / Haze (with safe division) ---
     let dehaze_factor = 1.0 + adjustments.dehaze;
-    let haze_factor = 1.0 + adjustments.haze;
-    rgb = (rgb - 0.5) * dehaze_factor / haze_factor + 0.5;
+    let haze_factor = max(1.0 + adjustments.haze, 0.01);
+    rgb = (rgb - 0.5) * (dehaze_factor / haze_factor) + 0.5;
 
     // --- Clarity: local contrast boost (approximated globally) ---
     let clarity_boost = 1.0 + adjustments.clarity * 0.1;
-    let lum_dot = dot(rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
+    let lum_dot = max(dot(rgb, vec3<f32>(0.2126, 0.7152, 0.0722)), 0.0);
     rgb = mix(vec3<f32>(lum_dot), rgb, clarity_boost);
 
     // --- Sharpness (approximate: boost local contrast) ---
-    // Full sharpness needs neighbor samples; here we apply a global
-    // micro-contrast boost proportional to the parameter.
     let sharp_boost = 1.0 + adjustments.sharpness * 0.3;
-    let lum2 = dot(rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
+    let lum2 = max(dot(rgb, vec3<f32>(0.2126, 0.7152, 0.0722)), 0.0);
     rgb = mix(vec3<f32>(lum2), rgb, sharp_boost);
 
     // --- Vignette: radial darkening ---
-    let uv_x = (f32(x) + 0.5) / f32(params.width);
-    let uv_y = (f32(y) + 0.5) / f32(params.height);
+    let uv_x = (f32(x) + 0.5) / max(f32(params.width), 1.0);
+    let uv_y = (f32(y) + 0.5) / max(f32(params.height), 1.0);
     let dist = distance(vec2<f32>(uv_x, uv_y), vec2<f32>(0.5, 0.5));
     let vig = 1.0 - adjustments.vignette * smoothstep(0.3, 0.9, dist);
     rgb = rgb * vig;
@@ -179,9 +182,14 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         rgb = rgb + noise * adjustments.grain_amount * 0.15;
     }
 
+    // Final NaN/Inf guard: replace any non-finite values with mid-gray
+    if isnan(rgb.r) || isnan(rgb.g) || isnan(rgb.b) {
+        rgb = vec3<f32>(0.5);
+    }
+
     // Clamp and write
     rgb = clamp(rgb, vec3<f32>(0.0), vec3<f32>(1.0));
-    textureStore(output_image, vec2<i32>(i32(x), i32(y)), vec4<f32>(rgb, color.a));
+    textureStore(output_image, vec2<i32>(i32(x), i32(y)), vec4<f32>(rgb, clamp(color.a, 0.0, 1.0)));
 }
 "#;
 
@@ -250,11 +258,76 @@ struct ShaderParams {
 // GpuPipeline – manages wgpu device/queue and compiled shader modules
 // ---------------------------------------------------------------------------
 
+const MAX_TEXTURE_CACHE_SIZE: usize = 4;
+const MAX_TOTAL_TEXTURE_CACHE_SIZE: usize = 16;
+/// Hard cap on total memory held by the pooled textures (RGBA8 = 4 bytes/px).
+/// Guards against OOM when processing very large images by evicting the oldest
+/// entries once the combined footprint exceeds this budget.
+const MAX_TOTAL_TEXTURE_CACHE_BYTES: u64 = 512 * 1024 * 1024; // 512 MB
+
+struct TextureCacheEntry {
+    texture: wgpu::Texture,
+    view: wgpu::TextureView,
+    size_bytes: u64,
+}
+
+// wgpu resources are designed to be shared across threads.
+unsafe impl Send for TextureCacheEntry {}
+unsafe impl Sync for TextureCacheEntry {}
+
+/// RAII guard that releases a pooled texture back to the cache on drop.
+struct TextureGuard<'a> {
+    entry: Option<TextureCacheEntry>,
+    pipeline: &'a GpuPipeline,
+}
+
+impl<'a> TextureGuard<'a> {
+    fn new(pipeline: &'a GpuPipeline, device: &wgpu::Device, width: u32, height: u32) -> Self {
+        Self {
+            entry: Some(pipeline.acquire_texture(device, width, height)),
+            pipeline,
+        }
+    }
+
+    fn texture(&self) -> &wgpu::Texture {
+        &self.entry.as_ref().unwrap().texture
+    }
+
+    fn view(&self) -> &wgpu::TextureView {
+        &self.entry.as_ref().unwrap().view
+    }
+}
+
+impl<'a> Drop for TextureGuard<'a> {
+    fn drop(&mut self) {
+        if let Some(entry) = self.entry.take() {
+            self.pipeline.release_texture(entry);
+        }
+    }
+}
+
 pub struct GpuPipeline {
     device: Arc<wgpu::Device>,
     queue: Arc<wgpu::Queue>,
     bind_group_layout: wgpu::BindGroupLayout,
     pipeline_cache: wgpu::ComputePipeline,
+    texture_cache: Mutex<HashMap<(u32, u32), Vec<TextureCacheEntry>>>,
+    total_cached_textures: Mutex<usize>,
+    total_cached_bytes: Mutex<u64>,
+}
+
+impl Drop for GpuPipeline {
+    fn drop(&mut self) {
+        if let Ok(mut cache) = self.texture_cache.lock() {
+            cache.clear();
+        }
+        if let Ok(mut count) = self.total_cached_textures.lock() {
+            *count = 0;
+        }
+        if let Ok(mut bytes) = self.total_cached_bytes.lock() {
+            *bytes = 0;
+        }
+    }
 }
 
 impl GpuPipeline {
@@ -365,7 +438,140 @@ impl GpuPipeline {
             queue,
             bind_group_layout,
             pipeline_cache,
+            texture_cache: Mutex::new(HashMap::new()),
+            total_cached_textures: Mutex::new(0),
+            total_cached_bytes: Mutex::new(0),
         })
+    }
+
+    /// Get a pooled output texture or create a new one if none available.
+    fn acquire_texture(&self, device: &wgpu::Device, width: u32, height: u32) -> TextureCacheEntry {
+        let key = (width, height);
+        {
+            if let Ok(mut cache) = self.texture_cache.lock() {
+                if let Some(entries) = cache.get_mut(&key) {
+                    if let Some(entry) = entries.pop() {
+                        if let Ok(mut count) = self.total_cached_textures.lock() {
+                            *count = count.saturating_sub(1);
+                        }
+                        if let Ok(mut bytes) = self.total_cached_bytes.lock() {
+                            *bytes = bytes.saturating_sub(entry.size_bytes);
+                        }
+                        return entry;
+                    }
+                }
+            }
+        }
+
+        let texture_size = (width as u64)
+            .checked_mul(height as u64)
+            .and_then(|v| v.checked_mul(4))
+            .unwrap_or(0);
+
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Cached Output Texture"),
+            size: wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+            usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::COPY_SRC,
+            view_formats: &[],
+        });
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        TextureCacheEntry {
+            texture,
+            view,
+            size_bytes: texture_size,
+        }
+    }
+
+    /// Return a texture to the cache for reuse.
+    fn release_texture(&self, entry: TextureCacheEntry) {
+        let key = (entry.texture.width(), entry.texture.height());
+
+        let (total_count, total_bytes) = (
+            self.total_cached_textures.lock().map(|c| *c).unwrap_or(0),
+            self.total_cached_bytes.lock().map(|b| *b).unwrap_or(0),
+        );
+
+        // Enforce both the entry-count cap and the total byte budget. We must
+        // free room for the incoming texture before inserting it.
+        let incoming_bytes = entry.size_bytes;
+        let would_exceed_bytes =
+            total_bytes.saturating_add(incoming_bytes) > MAX_TOTAL_TEXTURE_CACHE_BYTES;
+        let at_count_cap = total_count >= MAX_TOTAL_TEXTURE_CACHE_SIZE;
+
+        if at_count_cap || would_exceed_bytes {
+            // Evict cached entries (oldest first) until both limits are satisfied.
+            if let Ok(mut cache) = self.texture_cache.lock() {
+                let mut evicted_bytes = 0u64;
+                let mut evicted_count = 0usize;
+                let keys: Vec<(u32, u32)> = cache.keys().cloned().collect();
+                'outer: for k in keys {
+                    if let Some(entries) = cache.get_mut(&k) {
+                        while entries.pop().is_some() {
+                            evicted_count += 1;
+                        }
+                    }
+                    // Recompute the byte total by scanning the cache.
+                    let mut cur_bytes = 0u64;
+                    for entries in cache.values() {
+                        for e in entries {
+                            cur_bytes = cur_bytes.saturating_add(e.size_bytes);
+                        }
+                    }
+                    let cur_count = total_count.saturating_sub(evicted_count);
+                    if cur_count < MAX_TOTAL_TEXTURE_CACHE_SIZE
+                        && cur_bytes.saturating_add(incoming_bytes) <= MAX_TOTAL_TEXTURE_CACHE_BYTES
+                    {
+                        break 'outer;
+                    }
+                }
+                evicted_bytes = total_bytes.saturating_sub({
+                    let mut b = 0u64;
+                    for entries in cache.values() {
+                        for e in entries {
+                            b = b.saturating_add(e.size_bytes);
+                        }
+                    }
+                    b
+                });
+                if let Ok(mut count) = self.total_cached_textures.lock() {
+                    *count = count.saturating_sub(evicted_count);
+                }
+                if let Ok(mut bytes) = self.total_cached_bytes.lock() {
+                    *bytes = bytes.saturating_sub(evicted_bytes);
+                }
+            }
+        }
+
+        // Re-check the byte budget after eviction; if the incoming texture alone
+        // exceeds the budget, drop it entirely rather than caching it.
+        let (new_count, new_bytes) = (
+            self.total_cached_textures.lock().map(|c| *c).unwrap_or(0),
+            self.total_cached_bytes.lock().map(|b| *b).unwrap_or(0),
+        );
+        if new_bytes.saturating_add(incoming_bytes) > MAX_TOTAL_TEXTURE_CACHE_BYTES {
+            return;
+        }
+
+        if let Ok(mut cache) = self.texture_cache.lock() {
+            let entries = cache.entry(key).or_insert_with(Vec::new);
+            if entries.len() < MAX_TEXTURE_CACHE_SIZE && new_count < MAX_TOTAL_TEXTURE_CACHE_SIZE {
+                entries.push(entry);
+                if let Ok(mut count) = self.total_cached_textures.lock() {
+                    *count = count.saturating_add(1);
+                }
+                if let Ok(mut bytes) = self.total_cached_bytes.lock() {
+                    *bytes = bytes.saturating_add(incoming_bytes);
+                }
+            }
+        }
     }
 
     /// Access the underlying device.
@@ -390,8 +596,23 @@ pub fn apply_adjustments(
     height: u32,
     uniforms: AdjustmentUniforms,
 ) -> Result<Vec<u8>> {
-    let device = &pipeline.device;
-    let queue = &pipeline.queue;
+    let expected_len = (width as usize)
+        .checked_mul(height as usize)
+        .and_then(|v| v.checked_mul(4))
+        .ok_or_else(|| anyhow::anyhow!("Image dimensions overflow: {}x{}", width, height))?;
+
+    if image_data.len() != expected_len {
+        return Err(anyhow::anyhow!(
+            "Image data length mismatch: expected {} bytes for {}x{}, got {} bytes",
+            expected_len,
+            width,
+            height,
+            image_data.len()
+        ));
+    }
+
+    let device = pipeline.device.clone();
+    let queue = pipeline.queue.clone();
 
     let texture_size = wgpu::Extent3d {
         width,
@@ -417,18 +638,9 @@ pub fn apply_adjustments(
     );
     let input_view = input_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-    // --- Create output storage texture ---
-    let output_texture = device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("Adjustment Output Texture"),
-        size: texture_size,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8Unorm,
-        usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::COPY_SRC,
-        view_formats: &[],
-    });
-    let output_view = output_texture.create_view(&wgpu::TextureViewDescriptor::default());
+    // --- Acquire pooled output storage texture (RAII: auto-release on scope exit) ---
+    let output_guard = TextureGuard::new(pipeline, device, width, height);
+    let output_view = output_guard.view();
 
     // --- Create uniform buffers ---
     let adjustments_buffer = device.create_buffer(&wgpu::BufferDescriptor {
@@ -472,7 +684,7 @@ pub fn apply_adjustments(
             },
             wgpu::BindGroupEntry {
                 binding: 3,
-                resource: wgpu::BindingResource::TextureView(&output_view),
+                resource: wgpu::BindingResource::TextureView(output_view),
             },
         ],
     });
@@ -507,7 +719,7 @@ pub fn apply_adjustments(
 
     encoder.copy_texture_to_buffer(
         wgpu::TexelCopyTextureInfo {
-            texture: &output_texture,
+            texture: output_guard.texture(),
             mip_level: 0,
             origin: wgpu::Origin3d::ZERO,
             aspect: wgpu::TextureAspect::All,
@@ -545,6 +757,8 @@ pub fn apply_adjustments(
     let padded_data = mapped.to_vec();
     drop(mapped);
     readback_buffer.unmap();
+
+    // Texture is automatically released back to cache when output_guard is dropped.
 
     // Remove row padding if necessary
     if padded_bytes_per_row == unpadded_bytes_per_row {
