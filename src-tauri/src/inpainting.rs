@@ -25,6 +25,32 @@ fn resilient_lock<'a, T>(mutex: &'a Mutex<T>) -> MutexGuard<'a, T> {
     }
 }
 
+/// Ensure the inverse-transformed mask is exactly `target_w x target_h` so the
+/// downstream bounds scan and color extraction always use the same row stride as
+/// the source image. `inverse_transform_mask` may return a canvas of a different
+/// size (e.g. fine rotation or lens/geometry warping grows/shrinks the canvas),
+/// which otherwise makes the row-sliced scan misalign and falsely report
+/// "Mask is empty".
+fn align_mask_to_image(
+    mask: image::GrayImage,
+    target_w: u32,
+    target_h: u32,
+) -> image::GrayImage {
+    let (w, h) = mask.dimensions();
+    if w == target_w && h == target_h {
+        return mask;
+    }
+    if w == 0 || h == 0 || target_w == 0 || target_h == 0 {
+        return image::GrayImage::new(target_w, target_h);
+    }
+    image::imageops::resize(
+        &mask,
+        target_w,
+        target_h,
+        image::imageops::FilterType::Lanczos3,
+    )
+}
+
 #[tauri::command]
 pub async fn generate_manual_cleanup_patch(
     patch_definition: AiPatchDefinition,
@@ -103,6 +129,7 @@ pub async fn generate_manual_cleanup_patch(
 
     let mask_bitmap =
         crate::image_processing::inverse_transform_mask(mask_bitmap, &current_adjustments);
+    let mask_bitmap = align_mask_to_image(mask_bitmap, img_w, img_h);
 
     let mask_raw = mask_bitmap.as_raw();
     let img_w_usize = img_w as usize;
@@ -135,7 +162,11 @@ pub async fn generate_manual_cleanup_patch(
     }
 
     if min_y == img_h_usize {
-        return Err("Mask is empty.".to_string());
+        let mask_dim = mask_bitmap.dimensions();
+        return Err(format!(
+            "Mask is empty. Mask size {}x{}, expected {}x{}.",
+            mask_dim.0, mask_dim.1, img_w, img_h
+        ));
     }
 
     for y in (min_y..img_h_usize).rev() {
@@ -419,6 +450,7 @@ pub async fn invoke_generative_replace_with_mask_def(
 
     let mask_bitmap =
         crate::image_processing::inverse_transform_mask(mask_bitmap, &current_adjustments);
+    let mask_bitmap = align_mask_to_image(mask_bitmap, img_w, img_h);
 
     let patch_rgba = if use_fast_inpaint {
         // Try LaMa inpainting first; fall back to a simple clone-stamp
@@ -553,7 +585,11 @@ pub async fn invoke_generative_replace_with_mask_def(
         }
     }
     if min_y == img_h_usize {
-        return Err("Mask is empty.".to_string());
+        let mask_dim = mask_bitmap.dimensions();
+        return Err(format!(
+            "Mask is empty. Mask size {}x{}, expected {}x{}.",
+            mask_dim.0, mask_dim.1, img_w, img_h
+        ));
     }
 
     for y in (min_y..img_h_usize).rev() {

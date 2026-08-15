@@ -150,6 +150,24 @@ export function useAiMasking() {
       )?.id;
       if (!patchId) return;
 
+      // Guard: if the heal sub-mask has no brush strokes yet, there is nothing to
+      // clean — skip the backend round-trip (which would otherwise fail with
+      // "Mask is empty") and tell the user to paint a region first.
+      const targetSubMask = (Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : [])
+        .find((p: AiPatch) => p.id === patchId)
+        ?.subMasks?.find((sm: SubMask) => sm.id === subMaskId);
+      const lineCount = Array.isArray(targetSubMask?.parameters?.lines)
+        ? targetSubMask.parameters.lines.length
+        : 0;
+      if (lineCount === 0) {
+        toast.info(
+          t('editor.ai.cleanup.noRegion', {
+            defaultValue: 'Paint over the area you want to clean up first.',
+          }),
+        );
+        return;
+      }
+
       setAdjustments((prev: Adjustments) => ({
         ...prev,
         aiPatches: prev.aiPatches?.map((p: AiPatch) => (p.id === patchId ? { ...p, isLoading: true } : p)),
