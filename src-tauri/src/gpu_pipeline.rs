@@ -622,7 +622,7 @@ pub fn apply_adjustments(
 
     // --- Create input texture and upload image data ---
     let input_texture = device.create_texture_with_data(
-        queue,
+        &queue,
         &wgpu::TextureDescriptor {
             label: Some("Adjustment Input Texture"),
             size: texture_size,
@@ -639,7 +639,7 @@ pub fn apply_adjustments(
     let input_view = input_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
     // --- Acquire pooled output storage texture (RAII: auto-release on scope exit) ---
-    let output_guard = TextureGuard::new(pipeline, device, width, height);
+    let output_guard = TextureGuard::new(pipeline, &device, width, height);
     let output_view = output_guard.view();
 
     // --- Create uniform buffers ---
