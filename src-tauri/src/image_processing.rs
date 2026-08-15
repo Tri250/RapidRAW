@@ -874,7 +874,11 @@ pub fn warp_image_geometry(image: &DynamicImage, params: GeometryParams) -> Dyna
                                 let b = lk2;
                                 let c = lk3;
                                 let d = 1.0 - a - b - c;
-                                ru_norm_safe * (a * ru_norm2 * ru_norm_safe + b * ru_norm2 + c * ru_norm_safe + d)
+                                ru_norm_safe
+                                    * (a * ru_norm2 * ru_norm_safe
+                                        + b * ru_norm2
+                                        + c * ru_norm_safe
+                                        + d)
                             } else {
                                 ru_norm_safe
                                     * (1.0
@@ -883,7 +887,8 @@ pub fn warp_image_geometry(image: &DynamicImage, params: GeometryParams) -> Dyna
                                         + lk3 * (ru_norm2 * ru_norm2 * ru_norm2))
                             };
 
-                            let effective_r_norm = ru_norm_safe + (rd_norm - ru_norm_safe) * lens_dist_amt;
+                            let effective_r_norm =
+                                ru_norm_safe + (rd_norm - ru_norm_safe) * lens_dist_amt;
                             let scale = (effective_r_norm / ru_norm_safe).clamp(0.1, 10.0);
 
                             src_x = cx + (dx * scale) as f32;
@@ -1263,7 +1268,8 @@ pub fn inverse_transform_point(
                     let b = lk2;
                     let c = lk3;
                     let d = 1.0 - a - b - c;
-                    ru_norm_safe * (a * ru_norm2 * ru_norm_safe + b * ru_norm2 + c * ru_norm_safe + d)
+                    ru_norm_safe
+                        * (a * ru_norm2 * ru_norm_safe + b * ru_norm2 + c * ru_norm_safe + d)
                 } else {
                     ru_norm_safe
                         * (1.0

@@ -653,9 +653,11 @@ fn to_linear(r: f64, g: f64, b: f64, space: ColorSpace) -> (f64, f64, f64) {
         ColorSpace::SRGB | ColorSpace::DisplayP3 => {
             (srgb_to_linear(r), srgb_to_linear(g), srgb_to_linear(b))
         }
-        ColorSpace::Rec2020 => {
-            (rec2020_to_linear(r), rec2020_to_linear(g), rec2020_to_linear(b))
-        }
+        ColorSpace::Rec2020 => (
+            rec2020_to_linear(r),
+            rec2020_to_linear(g),
+            rec2020_to_linear(b),
+        ),
         ColorSpace::LinearSRGB | ColorSpace::ACES2065_1 | ColorSpace::ACEScg => (r, g, b),
         ColorSpace::ACEScc => acescc_to_linear(r, g, b),
         ColorSpace::ACEScct => acescct_to_linear(r, g, b),
@@ -668,9 +670,11 @@ fn from_linear(r: f64, g: f64, b: f64, space: ColorSpace) -> (f64, f64, f64) {
         ColorSpace::SRGB | ColorSpace::DisplayP3 => {
             (linear_to_srgb(r), linear_to_srgb(g), linear_to_srgb(b))
         }
-        ColorSpace::Rec2020 => {
-            (linear_to_rec2020(r), linear_to_rec2020(g), linear_to_rec2020(b))
-        }
+        ColorSpace::Rec2020 => (
+            linear_to_rec2020(r),
+            linear_to_rec2020(g),
+            linear_to_rec2020(b),
+        ),
         ColorSpace::LinearSRGB | ColorSpace::ACES2065_1 | ColorSpace::ACEScg => (r, g, b),
         ColorSpace::ACEScc => linear_to_acescc(r, g, b),
         ColorSpace::ACEScct => linear_to_acescct(r, g, b),

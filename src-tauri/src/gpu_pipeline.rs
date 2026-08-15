@@ -260,6 +260,10 @@ struct ShaderParams {
 
 const MAX_TEXTURE_CACHE_SIZE: usize = 4;
 const MAX_TOTAL_TEXTURE_CACHE_SIZE: usize = 16;
+/// Hard cap on total memory held by the pooled textures (RGBA8 = 4 bytes/px).
+/// Guards against OOM when processing very large images by evicting the oldest
+/// entries once the combined footprint exceeds this budget.
+const MAX_TOTAL_TEXTURE_CACHE_BYTES: u64 = 512 * 1024 * 1024; // 512 MB
 
 struct TextureCacheEntry {
     texture: wgpu::Texture,
@@ -309,6 +313,7 @@ pub struct GpuPipeline {
     pipeline_cache: wgpu::ComputePipeline,
     texture_cache: Mutex<HashMap<(u32, u32), Vec<TextureCacheEntry>>>,
     total_cached_textures: Mutex<usize>,
+    total_cached_bytes: Mutex<u64>,
 }
 
 impl Drop for GpuPipeline {
@@ -318,6 +323,9 @@ impl Drop for GpuPipeline {
         }
         if let Ok(mut count) = self.total_cached_textures.lock() {
             *count = 0;
+        }
+        if let Ok(mut bytes) = self.total_cached_bytes.lock() {
+            *bytes = 0;
         }
     }
 }
@@ -432,16 +440,12 @@ impl GpuPipeline {
             pipeline_cache,
             texture_cache: Mutex::new(HashMap::new()),
             total_cached_textures: Mutex::new(0),
+            total_cached_bytes: Mutex::new(0),
         })
     }
 
     /// Get a pooled output texture or create a new one if none available.
-    fn acquire_texture(
-        &self,
-        device: &wgpu::Device,
-        width: u32,
-        height: u32,
-    ) -> TextureCacheEntry {
+    fn acquire_texture(&self, device: &wgpu::Device, width: u32, height: u32) -> TextureCacheEntry {
         let key = (width, height);
         {
             if let Ok(mut cache) = self.texture_cache.lock() {
@@ -449,6 +453,9 @@ impl GpuPipeline {
                     if let Some(entry) = entries.pop() {
                         if let Ok(mut count) = self.total_cached_textures.lock() {
                             *count = count.saturating_sub(1);
+                        }
+                        if let Ok(mut bytes) = self.total_cached_bytes.lock() {
+                            *bytes = bytes.saturating_sub(entry.size_bytes);
                         }
                         return entry;
                     }
@@ -487,37 +494,81 @@ impl GpuPipeline {
     fn release_texture(&self, entry: TextureCacheEntry) {
         let key = (entry.texture.width(), entry.texture.height());
 
-        let total_count = self
-            .total_cached_textures
-            .lock()
-            .map(|c| *c)
-            .unwrap_or(0);
+        let (total_count, total_bytes) = (
+            self.total_cached_textures.lock().map(|c| *c).unwrap_or(0),
+            self.total_cached_bytes.lock().map(|b| *b).unwrap_or(0),
+        );
 
-        if total_count >= MAX_TOTAL_TEXTURE_CACHE_SIZE {
-            // Evict the oldest entry from the first non-empty cache
+        // Enforce both the entry-count cap and the total byte budget. We must
+        // free room for the incoming texture before inserting it.
+        let incoming_bytes = entry.size_bytes;
+        let would_exceed_bytes =
+            total_bytes.saturating_add(incoming_bytes) > MAX_TOTAL_TEXTURE_CACHE_BYTES;
+        let at_count_cap = total_count >= MAX_TOTAL_TEXTURE_CACHE_SIZE;
+
+        if at_count_cap || would_exceed_bytes {
+            // Evict cached entries (oldest first) until both limits are satisfied.
             if let Ok(mut cache) = self.texture_cache.lock() {
-                let mut evicted = false;
-                for entries in cache.values_mut() {
-                    if entries.pop().is_some() {
-                        evicted = true;
-                        break;
+                let mut evicted_bytes = 0u64;
+                let mut evicted_count = 0usize;
+                let keys: Vec<(u32, u32)> = cache.keys().cloned().collect();
+                'outer: for k in keys {
+                    if let Some(entries) = cache.get_mut(&k) {
+                        while entries.pop().is_some() {
+                            evicted_count += 1;
+                        }
+                    }
+                    // Recompute the byte total by scanning the cache.
+                    let mut cur_bytes = 0u64;
+                    for entries in cache.values() {
+                        for e in entries {
+                            cur_bytes = cur_bytes.saturating_add(e.size_bytes);
+                        }
+                    }
+                    let cur_count = total_count.saturating_sub(evicted_count);
+                    if cur_count < MAX_TOTAL_TEXTURE_CACHE_SIZE
+                        && cur_bytes.saturating_add(incoming_bytes) <= MAX_TOTAL_TEXTURE_CACHE_BYTES
+                    {
+                        break 'outer;
                     }
                 }
-                if !evicted {
-                    return; // No space, drop the texture
-                }
+                evicted_bytes = total_bytes.saturating_sub({
+                    let mut b = 0u64;
+                    for entries in cache.values() {
+                        for e in entries {
+                            b = b.saturating_add(e.size_bytes);
+                        }
+                    }
+                    b
+                });
                 if let Ok(mut count) = self.total_cached_textures.lock() {
-                    *count = count.saturating_sub(1);
+                    *count = count.saturating_sub(evicted_count);
+                }
+                if let Ok(mut bytes) = self.total_cached_bytes.lock() {
+                    *bytes = bytes.saturating_sub(evicted_bytes);
                 }
             }
         }
 
+        // Re-check the byte budget after eviction; if the incoming texture alone
+        // exceeds the budget, drop it entirely rather than caching it.
+        let (new_count, new_bytes) = (
+            self.total_cached_textures.lock().map(|c| *c).unwrap_or(0),
+            self.total_cached_bytes.lock().map(|b| *b).unwrap_or(0),
+        );
+        if new_bytes.saturating_add(incoming_bytes) > MAX_TOTAL_TEXTURE_CACHE_BYTES {
+            return;
+        }
+
         if let Ok(mut cache) = self.texture_cache.lock() {
             let entries = cache.entry(key).or_insert_with(Vec::new);
-            if entries.len() < MAX_TEXTURE_CACHE_SIZE {
+            if entries.len() < MAX_TEXTURE_CACHE_SIZE && new_count < MAX_TOTAL_TEXTURE_CACHE_SIZE {
                 entries.push(entry);
                 if let Ok(mut count) = self.total_cached_textures.lock() {
                     *count = count.saturating_add(1);
+                }
+                if let Ok(mut bytes) = self.total_cached_bytes.lock() {
+                    *bytes = bytes.saturating_add(incoming_bytes);
                 }
             }
         }
