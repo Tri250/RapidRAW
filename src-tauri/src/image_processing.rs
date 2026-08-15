@@ -515,19 +515,20 @@ fn build_transform_matrices(
 ) -> (NaMatrix3<f32>, f32, f32, f64) {
     let cx = width / 2.0;
     let cy = height / 2.0;
-    let ref_dim = 2000.0;
+    let ref_dim = 2000.0_f32;
 
-    let p_vert = (params.vertical / 100000.0) * (ref_dim / height);
-    let p_horiz = (-params.horizontal / 100000.0) * (ref_dim / width);
+    let p_vert = (params.vertical / 100000.0) * (ref_dim / height.max(1.0));
+    let p_horiz = (-params.horizontal / 100000.0) * (ref_dim / width.max(1.0));
     let theta = params.rotate.to_radians();
 
     let aspect_factor = if params.aspect >= 0.0 {
         1.0 + params.aspect / 100.0
     } else {
         1.0 / (1.0 + params.aspect.abs() / 100.0)
-    };
+    }
+    .clamp(0.1, 10.0);
 
-    let scale_factor = params.scale / 100.0;
+    let scale_factor = (params.scale / 100.0).clamp(0.01, 10.0);
     let off_x = (params.x_offset / 100.0) * width;
     let off_y = (params.y_offset / 100.0) * height;
 
@@ -660,11 +661,15 @@ fn solve_generic_distortion_inv(r_target: f64, k_scaled: f64) -> f64 {
     r
 }
 
-fn compute_lens_auto_crop_scale(params: &GeometryParams, width: f32, height: f32) -> f64 {
-    let cx = (width / 2.0) as f64;
-    let cy = (height / 2.0) as f64;
-    let half_diagonal = (cx * cx + cy * cy).sqrt();
-    let max_radius_sq_inv = 1.0 / (cx * cx + cy * cy);
+fn compute_lens_auto_crop_scale(params: &GeometryParams, width: f64, height: f64) -> f64 {
+    let cx = width / 2.0;
+    let cy = height / 2.0;
+    let diag_sq = cx * cx + cy * cy;
+    if diag_sq < 1.0 {
+        return 1.0;
+    }
+    let half_diagonal = diag_sq.sqrt();
+    let max_radius_sq_inv = 1.0 / diag_sq;
 
     let lk1 = params.lens_dist_k1 as f64;
     let lk2 = params.lens_dist_k2 as f64;
@@ -679,13 +684,13 @@ fn compute_lens_auto_crop_scale(params: &GeometryParams, width: f32, height: f32
 
     let sample_points: [(f64, f64); 8] = [
         (cx, 0.0),
-        (cx, height as f64),
+        (cx, height),
         (0.0, cy),
-        (width as f64, cy),
+        (width, cy),
         (0.0, 0.0),
-        (width as f64, 0.0),
-        (0.0, height as f64),
-        (width as f64, height as f64),
+        (width, 0.0),
+        (0.0, height),
+        (width, height),
     ];
 
     let mut max_scale: f64 = 1.0;
@@ -703,24 +708,25 @@ fn compute_lens_auto_crop_scale(params: &GeometryParams, width: f32, height: f32
 
         if has_lens_correction {
             let ru_norm = ru / half_diagonal;
-            let ru_norm2 = ru_norm * ru_norm;
+            let ru_norm_safe = ru_norm.max(1e-10);
+            let ru_norm2 = ru_norm_safe * ru_norm_safe;
 
             let rd_norm = if is_ptlens {
                 let a = lk1;
                 let b = lk2;
                 let c = lk3;
                 let d = 1.0 - a - b - c;
-                ru_norm * (a * ru_norm2 * ru_norm + b * ru_norm2 + c * ru_norm + d)
+                ru_norm_safe * (a * ru_norm2 * ru_norm_safe + b * ru_norm2 + c * ru_norm_safe + d)
             } else {
-                ru_norm
+                ru_norm_safe
                     * (1.0
                         + lk1 * ru_norm2
                         + lk2 * (ru_norm2 * ru_norm2)
                         + lk3 * (ru_norm2 * ru_norm2 * ru_norm2))
             };
 
-            let effective_r_norm = ru_norm + (rd_norm - ru_norm) * lens_dist_amt;
-            let scale = effective_r_norm / ru_norm;
+            let effective_r_norm = ru_norm_safe + (rd_norm - ru_norm_safe) * lens_dist_amt;
+            let scale = (effective_r_norm / ru_norm_safe).clamp(0.1, 10.0);
 
             mapped_dx *= scale;
             mapped_dy *= scale;
@@ -734,7 +740,8 @@ fn compute_lens_auto_crop_scale(params: &GeometryParams, width: f32, height: f32
         }
 
         let mapped_ru = (mapped_dx * mapped_dx + mapped_dy * mapped_dy).sqrt();
-        let scale = mapped_ru / ru;
+        let scale = if ru > 1e-6 { mapped_ru / ru } else { 1.0 };
+        let scale = scale.clamp(0.5, 4.0);
 
         if scale > max_scale {
             max_scale = scale;
@@ -796,11 +803,12 @@ pub fn warp_image_geometry(image: &DynamicImage, params: GeometryParams) -> Dyna
         && (lk1.abs() > 1e-6 || lk2.abs() > 1e-6 || lk3.abs() > 1e-6);
     let is_ptlens = params.lens_model == 1;
 
-    let auto_crop_scale = if has_lens_correction || k_distortion.abs() > 1e-5 {
-        compute_lens_auto_crop_scale(&params, width as f32, height as f32) as f32
+    let auto_crop_scale: f64 = if has_lens_correction || k_distortion.abs() > 1e-5 {
+        compute_lens_auto_crop_scale(&params, width as f64, height as f64)
     } else {
         1.0
     };
+    let auto_crop_scale_f32 = auto_crop_scale as f32;
 
     let vr = if (params.tca_vr - 1.0).abs() > 1e-5 {
         params.tca_vr + (1.0 - params.tca_vr) * (1.0 - params.lens_tca_amount)
@@ -846,9 +854,9 @@ pub fn warp_image_geometry(image: &DynamicImage, params: GeometryParams) -> Dyna
                     let mut src_x = current_vec.x * inv_z;
                     let mut src_y = current_vec.y * inv_z;
 
-                    if auto_crop_scale > 1.0 {
-                        src_x = cx + (src_x - cx) / auto_crop_scale;
-                        src_y = cy + (src_y - cy) / auto_crop_scale;
+                    if auto_crop_scale_f32 > 1.0 {
+                        src_x = cx + (src_x - cx) / auto_crop_scale_f32;
+                        src_y = cy + (src_y - cy) / auto_crop_scale_f32;
                     }
 
                     if has_lens_correction {
@@ -858,24 +866,25 @@ pub fn warp_image_geometry(image: &DynamicImage, params: GeometryParams) -> Dyna
 
                         if ru > 1e-6 {
                             let ru_norm = ru / hd;
-                            let ru_norm2 = ru_norm * ru_norm;
+                            let ru_norm_safe = ru_norm.max(1e-10);
+                            let ru_norm2 = ru_norm_safe * ru_norm_safe;
 
                             let rd_norm = if is_ptlens {
                                 let a = lk1;
                                 let b = lk2;
                                 let c = lk3;
                                 let d = 1.0 - a - b - c;
-                                ru_norm * (a * ru_norm2 * ru_norm + b * ru_norm2 + c * ru_norm + d)
+                                ru_norm_safe * (a * ru_norm2 * ru_norm_safe + b * ru_norm2 + c * ru_norm_safe + d)
                             } else {
-                                ru_norm
+                                ru_norm_safe
                                     * (1.0
                                         + lk1 * ru_norm2
                                         + lk2 * (ru_norm2 * ru_norm2)
                                         + lk3 * (ru_norm2 * ru_norm2 * ru_norm2))
                             };
 
-                            let effective_r_norm = ru_norm + (rd_norm - ru_norm) * lens_dist_amt;
-                            let scale = effective_r_norm / ru_norm;
+                            let effective_r_norm = ru_norm_safe + (rd_norm - ru_norm_safe) * lens_dist_amt;
+                            let scale = (effective_r_norm / ru_norm_safe).clamp(0.1, 10.0);
 
                             src_x = cx + (dx * scale) as f32;
                             src_y = cy + (dy * scale) as f32;
@@ -979,11 +988,12 @@ pub fn unwarp_image_geometry(warped_image: &DynamicImage, params: GeometryParams
         && (lk1.abs() > 1e-6 || lk2.abs() > 1e-6 || lk3.abs() > 1e-6);
     let is_ptlens = params.lens_model == 1;
 
-    let auto_crop_scale = if has_lens_correction || k_distortion.abs() > 1e-5 {
-        compute_lens_auto_crop_scale(&params, width as f32, height as f32) as f32
+    let auto_crop_scale: f64 = if has_lens_correction || k_distortion.abs() > 1e-5 {
+        compute_lens_auto_crop_scale(&params, width as f64, height as f64)
     } else {
         1.0
     };
+    let auto_crop_scale_f32 = auto_crop_scale as f32;
 
     let src_raw = src_img.as_raw();
     let width_usize = width as usize;
@@ -1009,7 +1019,7 @@ pub fn unwarp_image_geometry(warped_image: &DynamicImage, params: GeometryParams
                         let k_effective = k_distortion * max_radius_sq_inv;
                         let r_straight = solve_generic_distortion_inv(r_distorted, k_effective);
 
-                        let scale = r_straight / r_distorted;
+                        let scale = (r_straight / r_distorted).clamp(0.1, 10.0);
                         current_x = cx + (dx * scale) as f32;
                         current_y = cy + (dy * scale) as f32;
                     }
@@ -1024,6 +1034,11 @@ pub fn unwarp_image_geometry(warped_image: &DynamicImage, params: GeometryParams
                         let mut ru = rd;
 
                         for _ in 0..8 {
+                            if ru.is_nan() || ru < 1e-10 {
+                                ru = rd;
+                                break;
+                            }
+
                             let ru_norm = ru / hd;
                             let ru_norm2 = ru_norm * ru_norm;
 
@@ -1066,15 +1081,15 @@ pub fn unwarp_image_geometry(warped_image: &DynamicImage, params: GeometryParams
                             }
                         }
 
-                        let scale = ru / rd;
+                        let scale = (ru / rd).clamp(0.1, 10.0);
                         current_x = cx + (dx * scale) as f32;
                         current_y = cy + (dy * scale) as f32;
                     }
                 }
 
-                if auto_crop_scale > 1.0 {
-                    current_x = cx + (current_x - cx) * auto_crop_scale;
-                    current_y = cy + (current_y - cy) * auto_crop_scale;
+                if auto_crop_scale_f32 > 1.0 {
+                    current_x = cx + (current_x - cx) * auto_crop_scale_f32;
+                    current_y = cy + (current_y - cy) * auto_crop_scale_f32;
                 }
 
                 let target_vec = forward_transform * NaVector3::new(current_x, current_y, 1.0);
@@ -1223,7 +1238,7 @@ pub fn inverse_transform_point(
         let is_ptlens = params.lens_model == 1;
 
         let auto_crop_scale = if has_lens_correction || k_distortion.abs() > 1e-5 {
-            compute_lens_auto_crop_scale(&params, width, height)
+            compute_lens_auto_crop_scale(&params, width as f64, height as f64)
         } else {
             1.0
         };
@@ -1240,24 +1255,25 @@ pub fn inverse_transform_point(
 
             if ru > 1e-6 {
                 let ru_norm = ru / hd;
-                let ru_norm2 = ru_norm * ru_norm;
+                let ru_norm_safe = ru_norm.max(1e-10);
+                let ru_norm2 = ru_norm_safe * ru_norm_safe;
 
                 let rd_norm = if is_ptlens {
                     let a = lk1;
                     let b = lk2;
                     let c = lk3;
                     let d = 1.0 - a - b - c;
-                    ru_norm * (a * ru_norm2 * ru_norm + b * ru_norm2 + c * ru_norm + d)
+                    ru_norm_safe * (a * ru_norm2 * ru_norm_safe + b * ru_norm2 + c * ru_norm_safe + d)
                 } else {
-                    ru_norm
+                    ru_norm_safe
                         * (1.0
                             + lk1 * ru_norm2
                             + lk2 * (ru_norm2 * ru_norm2)
                             + lk3 * (ru_norm2 * ru_norm2 * ru_norm2))
                 };
 
-                let effective_r_norm = ru_norm + (rd_norm - ru_norm) * lens_dist_amt;
-                let scale = effective_r_norm / ru_norm;
+                let effective_r_norm = ru_norm_safe + (rd_norm - ru_norm_safe) * lens_dist_amt;
+                let scale = (effective_r_norm / ru_norm_safe).clamp(0.1, 10.0);
 
                 src_x = cx + (dx * scale);
                 src_y = cy + (dy * scale);
@@ -1425,7 +1441,7 @@ pub fn apply_rotation<'a>(
     rotation_degrees: f32,
 ) -> Cow<'a, DynamicImage> {
     let image = image.into_cow();
-    if rotation_degrees % 360.0 == 0.0 {
+    if (rotation_degrees % 360.0).abs() < 1e-6 {
         return image;
     }
 
@@ -4540,7 +4556,7 @@ fn cpu_apply_tonal_adjustments(
         let final_t = cpu_mix(t_pixel_curved, contrasted_t, 0.85).max(0.0);
         let curved_luma = final_t.powf(2.2);
 
-        let luma_ratio = curved_luma / safe_pixel_luma;
+        let luma_ratio = (curved_luma / safe_pixel_luma).clamp(0.01, 10.0);
         rgb[0] *= luma_ratio;
         rgb[1] *= luma_ratio;
         rgb[2] *= luma_ratio;
@@ -4552,7 +4568,7 @@ fn cpu_apply_tonal_adjustments(
         let detail_amp = 1.0 + lift_amount * 1.2 * noise_protection;
         let enhanced_detail = safe_detail.powf(detail_amp);
         let detail_correction = enhanced_detail / safe_detail;
-        let linear_correction = detail_correction.powf(2.2);
+        let linear_correction = detail_correction.powf(2.2).clamp(0.01, 10.0);
         rgb[0] *= linear_correction;
         rgb[1] *= linear_correction;
         rgb[2] *= linear_correction;
@@ -5056,7 +5072,10 @@ const AGX_TARGET_WHITE_PRE_GAMMA: f32 = 1.0;
 
 #[inline]
 fn agx_sigmoid(x: f32, power: f32) -> f32 {
-    x / (1.0 + x.powf(power)).powf(1.0 / power)
+    let x = x.max(0.0);
+    let safe_power = power.max(0.01);
+    let denom = 1.0 + x.powf(safe_power);
+    (x / denom).powf(1.0 / safe_power)
 }
 
 #[inline]
