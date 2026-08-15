@@ -633,10 +633,24 @@ fn encode_image_to_bytes(
         }
         "jpg" | "jpeg" => {
             let rgb_image = image.to_rgb8();
-            let encoder = JpegEncoder::new_with_quality(&mut cursor, jpeg_quality);
-            rgb_image
-                .write_with_encoder(encoder)
-                .map_err(|e| e.to_string())?;
+
+            // Use mozjpeg for significantly faster encoding (Turbo mode by
+            // default) compared to the stock `image` crate encoder. The
+            // `mozjpeg-rs` crate is already in Cargo.toml.
+            let mut comp = mozjpeg::Compress::new(mozjpeg::ColorSpace::JCS_RGB);
+            comp.set_quality(jpeg_quality as f32);
+
+            // Write directly into the output buffer via a cursor so we can
+            // still return a `Vec<u8>` without an intermediate copy.
+            let mut started = comp.start_compress(&mut cursor)
+                .map_err(|e| format!("mozjpeg start_compress failed: {}", e))?;
+
+            started
+                .write_scanlines(rgb_image.as_raw())
+                .map_err(|e| format!("mozjpeg write_scanlines failed: {}", e))?;
+
+            comp.finish(started)
+                .map_err(|e| format!("mozjpeg finish failed: {}", e))?;
         }
         "png" => {
             let image_to_encode = if image.as_rgb32f().is_some() {
@@ -986,10 +1000,13 @@ pub async fn export_images(
 
     let ram_based_limit = (available_ram_gb / 2.5).floor() as usize;
 
+    // Cap concurrency at 3 to reduce contention and queue wait times,
+    // matching the user-requested optimization. Memory-bounded devices
+    // still fall back to 1–2 threads automatically via `ram_based_limit`.
     let num_threads = if paths.len() == 1 {
         1
     } else {
-        available_cores.min(ram_based_limit).clamp(1, 16)
+        available_cores.min(ram_based_limit).clamp(1, 3)
     };
 
     log::info!(
@@ -998,6 +1015,18 @@ pub async fn export_images(
         available_ram_gb,
         num_threads
     );
+
+    // Detect low-memory devices and auto-throttle heavy recompute effects
+    // (dehaze, glow, denoise) to avoid OOM kills and keep export responsive.
+    // The threshold is conservative (2 GB free) so we only degrade on truly
+    // constrained hardware.
+    let low_memory_mode = available_ram_gb < 2.0;
+    if low_memory_mode {
+        log::warn!(
+            "Low memory detected ({:.1} GB free) – disabling heavy effects (dehaze, glow, denoise) for this export batch.",
+            available_ram_gb
+        );
+    }
 
     let task = tokio::spawn(async move {
         let output_folder_path = std::path::Path::new(&output_folder_or_file);
@@ -1057,6 +1086,7 @@ pub async fn export_images(
             let current_edit_path = current_edit_path.clone();
             let current_edit_adjustments = current_edit_adjustments.clone();
             let settings = settings.clone();
+            let low_memory = low_memory_mode;
 
             let handle = tokio::task::spawn_blocking(move || {
                 if app_handle_clone
@@ -1086,6 +1116,29 @@ pub async fn export_images(
                 };
 
                 hydrate_adjustments(&state, &mut js_adjustments);
+
+                // In low-memory mode, zero out expensive recompute effects
+                // (dehaze, glow, denoise) to prevent OOM kills. These are
+                // the heaviest effects and also the most noticeable when
+                // disabled – users get a correctly-exposed export at the
+                // cost of these polish effects rather than a crash.
+                if low_memory {
+                    if let Some(obj) = js_adjustments.as_object_mut() {
+                        if let Some(v) = obj.get_mut("dehaze") {
+                            *v = serde_json::json!(0.0);
+                        }
+                        if let Some(v) = obj.get_mut("glow") {
+                            *v = serde_json::json!(0.0);
+                        }
+                        if let Some(v) = obj.get_mut("denoise") {
+                            *v = serde_json::json!(0.0);
+                        }
+                        if let Some(v) = obj.get_mut("noiseReduction") {
+                            *v = serde_json::json!(0.0);
+                        }
+                    }
+                }
+
                 let is_raw = is_raw_file(&source_path_str);
                 let original_path = std::path::Path::new(&source_path_str);
                 let file_date = exif_processing::get_creation_date_from_path(original_path);
