@@ -152,7 +152,20 @@ pub fn parse_cube_file(content: &str) -> Result<Lut3D> {
     }
 
     let lut_size = size.context("LUT_3D_SIZE keyword not found in .cube file")?;
-    let expected = lut_size * lut_size * lut_size;
+
+    // Guard against usize overflow and unreasonably large LUTs. A corrupt
+    // header value could silently wrap around in the multiplication below
+    // and produce an incorrect "expected" count, masking the corruption.
+    if lut_size > 512 {
+        anyhow::bail!(
+            "LUT_3D_SIZE ({}) is unreasonably large (max supported: 512). The file may be corrupt.",
+            lut_size
+        );
+    }
+    let expected = lut_size
+        .checked_mul(lut_size)
+        .and_then(|v| v.checked_mul(lut_size))
+        .with_context(|| format!("LUT size {} causes arithmetic overflow.", lut_size))?;
 
     if table.len() != expected {
         anyhow::bail!(

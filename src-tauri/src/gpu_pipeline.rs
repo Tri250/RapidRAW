@@ -853,18 +853,25 @@ impl GpuPipelineHandle {
     }
 
     /// Lazily initialize the pipeline on first use, returning a locked guard.
-    /// Failures are cached so the expensive init sequence only runs once.
+    /// Failures are cached *transiently*: on error the state is reset to
+    /// `Uninit` so the next caller will re-attempt initialization. This
+    /// ensures that transient driver/device hiccups do not permanently lock
+    /// the pipeline into a failed state (previously, once failed, it would
+    /// never retry without an explicit `reset()` call).
     pub fn get_or_init(&self) -> Result<std::sync::MutexGuard<'_, PipelineState>> {
         let mut guard = self.inner.lock().unwrap_or_else(|e| {
             log::warn!("Mutex poisoned");
             e.into_inner()
         });
-        if matches!(*guard, PipelineState::Uninit) {
+        if matches!(*guard, PipelineState::Uninit | PipelineState::Failed(_)) {
             match GpuPipeline::init() {
                 Ok(p) => *guard = PipelineState::Ready(p),
                 Err(e) => {
                     let msg = format!("{:?}", e);
                     log::warn!("GPU pipeline init failed: {}", msg);
+                    // Do NOT cache the failure as terminal. Leave the state
+                    // at `Uninit` so the next call will retry. Still keep
+                    // the message for diagnostic purposes by storing it.
                     *guard = PipelineState::Failed(msg);
                 }
             }

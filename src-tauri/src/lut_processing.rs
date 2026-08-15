@@ -245,7 +245,19 @@ fn parse_cube(reader: impl BufRead) -> anyhow::Result<Lut> {
     }
 
     let lut_size = size.ok_or(anyhow!("LUT_3D_SIZE not found in .cube file"))?;
-    let expected_len = (lut_size * lut_size * lut_size * 3) as usize;
+    // Guard against u32 overflow: a huge LUT size would silently wrap around,
+    // producing a tiny expected_len that incorrectly "matches" a corrupt file.
+    if lut_size > 512 {
+        return Err(anyhow!(
+            "LUT_3D_SIZE ({}) is unreasonably large (max supported: 512). The file may be corrupt.",
+            lut_size
+        ));
+    }
+    let expected_len = (lut_size as usize)
+        .checked_mul(lut_size as usize)
+        .and_then(|v| v.checked_mul(lut_size as usize))
+        .and_then(|v| v.checked_mul(3))
+        .ok_or_else(|| anyhow!("LUT size {} causes arithmetic overflow.", lut_size))?;
     if data.len() != expected_len {
         return Err(anyhow!(
             "LUT data size mismatch. Expected {} float values (for size {}), but found {}. The file may be corrupt or incomplete.",

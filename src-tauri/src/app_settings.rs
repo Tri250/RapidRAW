@@ -561,7 +561,21 @@ pub fn load_settings(app_handle: AppHandle) -> Result<AppSettings, String> {
 
     let mut settings: AppSettings = if path.exists() {
         let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-        serde_json::from_str(&content).unwrap_or_default()
+        match serde_json::from_str::<AppSettings>(&content) {
+            Ok(parsed) => parsed,
+            Err(e) => {
+                log::warn!(
+                    "Settings file corrupt ({}). Backing up and loading defaults to avoid losing all config.",
+                    e
+                );
+                // Back up the corrupt file so the user can attempt recovery
+                // later, instead of silently discarding the only copy of their
+                // configuration.
+                let backup_path = path.with_extension("json.bak");
+                let _ = fs::copy(&path, &backup_path);
+                AppSettings::default()
+            }
+        }
     } else {
         AppSettings::default()
     };
@@ -653,7 +667,13 @@ pub fn load_settings(app_handle: AppHandle) -> Result<AppSettings, String> {
 pub fn save_settings(settings: AppSettings, app_handle: AppHandle) -> Result<(), String> {
     let path = get_settings_path(&app_handle)?;
     let json_string = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
-    fs::write(path, json_string).map_err(|e| e.to_string())?;
+
+    // Atomic write: write to a temporary file in the same directory and rename
+    // into place. This prevents a crash / power loss during fs::write from
+    // corrupting the existing settings file.
+    let tmp_path = path.with_extension("json.tmp");
+    fs::write(&tmp_path, &json_string).map_err(|e| e.to_string())?;
+    fs::rename(&tmp_path, &path).map_err(|e| e.to_string())?;
 
     let state = app_handle.state::<AppState>();
     let cache_size = settings.image_cache_size.unwrap_or(5) as usize;

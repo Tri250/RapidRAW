@@ -4152,6 +4152,14 @@ fn cpu_gaussian_blur_luma(data: &[f32], w: usize, h: usize, radius: f32) -> Vec<
         .map(|x| (-(x as f32).powi(2) / (2.0 * sigma.powi(2))).exp())
         .collect();
     let sum: f32 = kernel[0] + 2.0 * kernel.iter().skip(1).sum::<f32>();
+    if !sum.is_finite() || sum <= 0.0 {
+        // Degenerate kernel — return clamped input unchanged rather than
+        // propagating NaN/inf to the entire output buffer.
+        return data
+            .iter()
+            .map(|v| if v.is_finite() { v.clamp(0.0, 1.0) } else { 0.0 })
+            .collect();
+    }
 
     for y in 0..h {
         for x in 0..w {
@@ -4160,12 +4168,16 @@ fn cpu_gaussian_blur_luma(data: &[f32], w: usize, h: usize, radius: f32) -> Vec<
                 let xl = (x as isize - k as isize).max(0) as usize;
                 let xr = (x + k).min(w - 1);
                 let wl = if k == 0 { kernel[0] } else { kernel[k] };
-                acc += data[y * w + xl] * wl;
+                let vl = data[y * w + xl];
+                let vr = data[y * w + xr];
+                acc += (if vl.is_finite() { vl } else { 0.0 }) * wl;
                 if k > 0 {
-                    acc += data[y * w + xr] * wl;
+                    acc += (if vr.is_finite() { vr } else { 0.0 }) * wl;
                 }
             }
-            hor[y * w + x] = acc / sum;
+            // Clamp to [0,1] before division to prevent any residual NaN/inf
+            // from contaminating neighbouring pixels in the next pass.
+            hor[y * w + x] = (acc / sum).clamp(0.0, 1.0);
         }
     }
     let mut out = vec![0.0f32; w * h];
@@ -4176,12 +4188,14 @@ fn cpu_gaussian_blur_luma(data: &[f32], w: usize, h: usize, radius: f32) -> Vec<
                 let yu = (y as isize - k as isize).max(0) as usize;
                 let yd = (y + k).min(h - 1);
                 let wl = if k == 0 { kernel[0] } else { kernel[k] };
-                acc += hor[yu * w + x] * wl;
+                let vu = hor[yu * w + x];
+                let vd = hor[yd * w + x];
+                acc += (if vu.is_finite() { vu } else { 0.0 }) * wl;
                 if k > 0 {
-                    acc += hor[yd * w + x] * wl;
+                    acc += (if vd.is_finite() { vd } else { 0.0 }) * wl;
                 }
             }
-            out[y * w + x] = acc / sum;
+            out[y * w + x] = (acc / sum).clamp(0.0, 1.0);
         }
     }
     out
@@ -4196,6 +4210,14 @@ fn cpu_create_blur_rgb_buffer(rgb: &[f32], w: usize, h: usize, scale: f32) -> Ve
         .map(|x| (-(x as f32).powi(2) / (2.0 * sigma.powi(2))).exp())
         .collect();
     let sum: f32 = kernel[0] + 2.0 * kernel.iter().skip(1).sum::<f32>();
+    if !sum.is_finite() || sum <= 0.0 {
+        // Degenerate kernel — return clamped input unchanged rather than
+        // propagating NaN/inf to the entire output buffer.
+        return rgb
+            .iter()
+            .map(|v| if v.is_finite() { v.clamp(0.0, 1.0) } else { 0.0 })
+            .collect();
+    }
 
     // Horizontal pass
     let mut hor = vec![0.0f32; w * h * 3];
@@ -4209,15 +4231,17 @@ fn cpu_create_blur_rgb_buffer(rgb: &[f32], w: usize, h: usize, scale: f32) -> Ve
                 let base_l = (y * w + xl) * 3;
                 let base_r = (y * w + xr) * 3;
                 for c in 0..3 {
-                    acc[c] += rgb[base_l + c] * wl;
+                    let vl = rgb[base_l + c];
+                    let vr = rgb[base_r + c];
+                    acc[c] += (if vl.is_finite() { vl } else { 0.0 }) * wl;
                     if k > 0 {
-                        acc[c] += rgb[base_r + c] * wl;
+                        acc[c] += (if vr.is_finite() { vr } else { 0.0 }) * wl;
                     }
                 }
             }
             let base = (y * w + x) * 3;
             for c in 0..3 {
-                hor[base + c] = acc[c] / sum;
+                hor[base + c] = (acc[c] / sum).clamp(0.0, 1.0);
             }
         }
     }
@@ -4234,15 +4258,17 @@ fn cpu_create_blur_rgb_buffer(rgb: &[f32], w: usize, h: usize, scale: f32) -> Ve
                 let base_u = (yu * w + x) * 3;
                 let base_d = (yd * w + x) * 3;
                 for c in 0..3 {
-                    acc[c] += hor[base_u + c] * wl;
+                    let vu = hor[base_u + c];
+                    let vd = hor[base_d + c];
+                    acc[c] += (if vu.is_finite() { vu } else { 0.0 }) * wl;
                     if k > 0 {
-                        acc[c] += hor[base_d + c] * wl;
+                        acc[c] += (if vd.is_finite() { vd } else { 0.0 }) * wl;
                     }
                 }
             }
             let base = (y * w + x) * 3;
             for c in 0..3 {
-                out[base + c] = acc[c] / sum;
+                out[base + c] = (acc[c] / sum).clamp(0.0, 1.0);
             }
         }
     }

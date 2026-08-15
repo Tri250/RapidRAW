@@ -363,63 +363,71 @@ fn process_image_for_export_pipeline(
     )?;
 
     // Apply portrait adjustments if present
-    if let Some(portrait_json) = js_adjustments.get("portrait") {
-        if !portrait_json.is_null() {
-            // Mirror the preview pipeline: prefer ONNX face detector if available,
-            // fall back to skin-tone heuristic detector for export consistency.
-            let face_regions = {
-                let ai_state_guard = state.ai_state.lock_resilient();
-                if let Some(detector_arc) = ai_state_guard
-                    .as_ref()
-                    .and_then(|s| s.face_landmark_detector.clone())
-                {
-                    drop(ai_state_guard);
-                    let mut detector_guard = detector_arc.lock_resilient();
-                    let onnx_regions = detect_face_regions_onnx(&result, &mut detector_guard);
-                    // If ONNX detector returned zero faces (unusual but possible on profile / partial shots),
-                    // still try the heuristic detector as a safety net.
-                    if onnx_regions.is_empty() {
-                        detect_face_regions(&result)
-                    } else {
-                        onnx_regions
-                    }
-                } else {
-                    drop(ai_state_guard);
-                    // Try a synchronous init attempt (downloads may already be cached from preview).
-                    match tauri::async_runtime::block_on(async {
-                        crate::ai_processing::get_or_init_face_landmark_detector(
-                            app_handle,
-                            &state.ai_state,
-                            &state.ai_init_lock,
-                        )
-                        .await
-                    }) {
-                        Ok(detector_arc) => {
+            if let Some(portrait_json) = js_adjustments.get("portrait") {
+                if !portrait_json.is_null() {
+                    // Mirror the preview pipeline: prefer ONNX face detector if available,
+                    // fall back to skin-tone heuristic detector for export consistency.
+                    let face_regions = {
+                        let ai_state_guard = state.ai_state.lock_resilient();
+                        if let Some(detector_arc) = ai_state_guard
+                            .as_ref()
+                            .and_then(|s| s.face_landmark_detector.clone())
+                        {
+                            drop(ai_state_guard);
                             let mut detector_guard = detector_arc.lock_resilient();
-                            let onnx_regions =
-                                detect_face_regions_onnx(&result, &mut detector_guard);
+                            let onnx_regions = detect_face_regions_onnx(&result, &mut detector_guard);
+                            // If ONNX detector returned zero faces (unusual but possible on profile / partial shots),
+                            // still try the heuristic detector as a safety net.
                             if onnx_regions.is_empty() {
                                 detect_face_regions(&result)
                             } else {
                                 onnx_regions
                             }
+                        } else {
+                            drop(ai_state_guard);
+                            // Try a synchronous init attempt (downloads may already be cached from preview).
+                            match tauri::async_runtime::block_on(async {
+                                crate::ai_processing::get_or_init_face_landmark_detector(
+                                    app_handle,
+                                    &state.ai_state,
+                                    &state.ai_init_lock,
+                                )
+                                .await
+                            }) {
+                                Ok(detector_arc) => {
+                                    let mut detector_guard = detector_arc.lock_resilient();
+                                    let onnx_regions =
+                                        detect_face_regions_onnx(&result, &mut detector_guard);
+                                    if onnx_regions.is_empty() {
+                                        detect_face_regions(&result)
+                                    } else {
+                                        onnx_regions
+                                    }
+                                }
+                                Err(e) => {
+                                    log::warn!(
+                                        "Face landmark detector unavailable for export, falling back to skin-tone detection: {}",
+                                        e
+                                    );
+                                    detect_face_regions(&result)
+                                }
+                            }
                         }
-                        Err(e) => {
-                            log::warn!(
-                                "Face landmark detector unavailable for export, falling back to skin-tone detection: {}",
-                                e
-                            );
-                            detect_face_regions(&result)
-                        }
+                    };
+
+                    // Fail loudly for portrait export: portrait is a user-visible
+                    // effect, silently swallowing the error (as the previous
+                    // `log::warn!` did) means the user's "portrait" export is
+                    // silently a no-op. Surface the error so the batch export
+                    // framework can report it and not leave the user with a
+                    // misleading "export succeeded" toast.
+                    if let Err(e) =
+                        apply_portrait_adjustments(&mut result, portrait_json, &face_regions)
+                    {
+                        return Err(format!("Portrait processing failed: {}", e));
                     }
                 }
-            };
-
-            if let Err(e) = apply_portrait_adjustments(&mut result, portrait_json, &face_regions) {
-                log::warn!("Portrait processing failed during export: {}", e);
             }
-        }
-    }
 
     Ok(result)
 }
@@ -1216,10 +1224,14 @@ pub async fn export_images(
                         }
                     };
 
+                    // Always strip masks from the main composite. Per-mask
+                    // effects are rendered to their own output file via
+                    // `export_masks_for_image` below (when `export_masks` is
+                    // true). Leaving masks in the main adjustments causes the
+                    // main export to contain the mask overlay, producing a
+                    // washed-out or "cleared" main image.
                     let mut main_export_adjustments = js_adjustments.clone();
-                    if export_settings.export_masks
-                        && let Some(obj) = main_export_adjustments.as_object_mut()
-                    {
+                    if let Some(obj) = main_export_adjustments.as_object_mut() {
                         obj.insert("masks".to_string(), serde_json::json!([]));
                     }
 

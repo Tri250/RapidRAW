@@ -105,11 +105,17 @@ struct GrowFeatherParameters {
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 struct RadialMaskParameters {
+    #[serde(default)]
     center_x: f64,
+    #[serde(default)]
     center_y: f64,
+    #[serde(default)]
     radius_x: f64,
+    #[serde(default)]
     radius_y: f64,
+    #[serde(default)]
     rotation: f32,
+    #[serde(default)]
     feather: f32,
 }
 
@@ -570,8 +576,20 @@ fn generate_radial_bitmap(
     scale: f32,
     crop_offset: (f32, f32),
 ) -> GrayImage {
-    let params: RadialMaskParameters =
-        serde_json::from_value(params_value.clone()).unwrap_or_default();
+    // Use `from_value` with `serde(default)` on the struct fields so
+    // missing fields fall back to sensible defaults but *schema mismatches*
+    // (e.g. wrong type for `center_x`) are surfaced as warnings instead of
+    // silently producing an all-zero mask via `unwrap_or_default`.
+    let params: RadialMaskParameters = match serde_json::from_value(params_value.clone()) {
+        Ok(p) => p,
+        Err(e) => {
+            log::warn!(
+                "Failed to parse radial mask parameters ({}): falling back to defaults",
+                e
+            );
+            RadialMaskParameters::default()
+        }
+    };
     let mut mask = GrayImage::new(width, height);
 
     let center_x = (params.center_x as f32 * scale - crop_offset.0) as i32;
@@ -614,8 +632,16 @@ fn generate_linear_bitmap(
     scale: f32,
     crop_offset: (f32, f32),
 ) -> GrayImage {
-    let params: LinearMaskParameters =
-        serde_json::from_value(params_value.clone()).unwrap_or_default();
+    let params: LinearMaskParameters = match serde_json::from_value(params_value.clone()) {
+        Ok(p) => p,
+        Err(e) => {
+            log::warn!(
+                "Failed to parse linear mask parameters ({}): falling back to defaults",
+                e
+            );
+            LinearMaskParameters::default()
+        }
+    };
     let mut mask = GrayImage::new(width, height);
 
     let start_x = params.start_x as f32 * scale - crop_offset.0;

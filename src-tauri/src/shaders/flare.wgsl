@@ -63,7 +63,20 @@ fn apply_filmic_exposure(color_in: vec3<f32>, brightness_adj: f32) -> vec3<f32> 
 fn apply_tonal_adjustments(color: vec3<f32>, con: f32, wh: f32) -> vec3<f32> {
     var rgb = color;
 
-    if (wh != 0.0) {
+    if con != 0.0 {
+        // Contrast around mid-grey (0.5 in linear space). A positive value
+        // pushes luma closer to extremes; a negative value softens it.
+        let luma = get_luma(rgb);
+        let contrast_factor = 1.0 + con;
+        let new_luma = (luma - 0.5) * contrast_factor + 0.5;
+        new_luma = clamp(new_luma, 0.0, 1.0);
+        if luma > 0.0001 {
+            let scale = new_luma / luma;
+            rgb *= scale;
+        }
+    }
+
+    if wh != 0.0 {
         let white_level = 1.0 - wh * 0.25;
         rgb = rgb / max(white_level, 0.01);
     }

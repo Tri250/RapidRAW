@@ -1226,19 +1226,22 @@ fn apply_all_curves(color: vec3<f32>, luma_curve: array<Point, 16>, luma_curve_c
     let blue_is_default = is_default_curve(blue_curve, blue_curve_count);
     let rgb_curves_are_active = !red_is_default || !green_is_default || !blue_is_default;
 
+    var final_color: vec3<f32>;
     if (rgb_curves_are_active) {
         let color_graded = vec3<f32>(apply_curve(color.r, red_curve, red_curve_count), apply_curve(color.g, green_curve, green_curve_count), apply_curve(color.b, blue_curve, blue_curve_count));
         let luma_initial = get_luma(color);
         let luma_target = apply_curve(luma_initial, luma_curve, luma_curve_count);
         let luma_graded = get_luma(color_graded);
-        var final_color: vec3<f32>;
         if (luma_graded > 0.001) { final_color = color_graded * (luma_target / luma_graded); } else { final_color = vec3<f32>(luma_target); }
         let max_comp = max(final_color.r, max(final_color.g, final_color.b));
         if (max_comp > 1.0) { final_color = final_color / max_comp; }
-        return final_color;
     } else {
-        return vec3<f32>(apply_curve(color.r, luma_curve, luma_curve_count), apply_curve(color.g, luma_curve, luma_curve_count), apply_curve(color.b, luma_curve, luma_curve_count));
+        final_color = vec3<f32>(apply_curve(color.r, luma_curve, luma_curve_count), apply_curve(color.g, luma_curve, luma_curve_count), apply_curve(color.b, luma_curve, luma_curve_count));
     }
+    // Defensive clamp: apply_curve can produce values outside [0,1] when
+    // control points drift; clamp here to prevent downstream sRGB conversion
+    // and texture writes from receiving out-of-range values.
+    return clamp(final_color, vec3<f32>(0.0), vec3<f32>(1.0));
 }
 
 fn get_mask_influence(mask_index: u32, coords: vec2<u32>) -> f32 {
