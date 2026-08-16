@@ -13,9 +13,15 @@ import { globalImageCache } from '../utils/ImageLRUCache';
 // Android uses CPU-only rendering (wgpu renderer disabled). Reduce
 // preview resolution and concurrency to keep real-time preview smooth.
 const ANDROID_MAX_PREVIEW_RES = 1280;
-const ANDROID_DRAG_RES = 800;
+// Lower the interactive-drag resolution on Android. The backend additionally
+// applies an interactive downsampling divisor, so the effective drag
+// resolution ends up ~320-430px – fast enough for 8-12 FPS while dragging
+// instead of the previous ~530px which stalled at 3-6 FPS.
+const ANDROID_DRAG_RES = 640;
 const ANDROID_FIRST_RENDER_RES = 640;
-const ANDROID_MAX_INFLIGHT = 2;
+// Allow up to 3 concurrent in-flight preview requests on Android (matching
+// desktop) to reduce queue wait time during rapid slider drags.
+const ANDROID_MAX_INFLIGHT = 3;
 
 export function useImageProcessing(
   transformWrapperRef: any,

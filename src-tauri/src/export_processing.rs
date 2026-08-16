@@ -363,71 +363,69 @@ fn process_image_for_export_pipeline(
     )?;
 
     // Apply portrait adjustments if present
-            if let Some(portrait_json) = js_adjustments.get("portrait") {
-                if !portrait_json.is_null() {
-                    // Mirror the preview pipeline: prefer ONNX face detector if available,
-                    // fall back to skin-tone heuristic detector for export consistency.
-                    let face_regions = {
-                        let ai_state_guard = state.ai_state.lock_resilient();
-                        if let Some(detector_arc) = ai_state_guard
-                            .as_ref()
-                            .and_then(|s| s.face_landmark_detector.clone())
-                        {
-                            drop(ai_state_guard);
+    if let Some(portrait_json) = js_adjustments.get("portrait") {
+        if !portrait_json.is_null() {
+            // Mirror the preview pipeline: prefer ONNX face detector if available,
+            // fall back to skin-tone heuristic detector for export consistency.
+            let face_regions = {
+                let ai_state_guard = state.ai_state.lock_resilient();
+                if let Some(detector_arc) = ai_state_guard
+                    .as_ref()
+                    .and_then(|s| s.face_landmark_detector.clone())
+                {
+                    drop(ai_state_guard);
+                    let mut detector_guard = detector_arc.lock_resilient();
+                    let onnx_regions = detect_face_regions_onnx(&result, &mut detector_guard);
+                    // If ONNX detector returned zero faces (unusual but possible on profile / partial shots),
+                    // still try the heuristic detector as a safety net.
+                    if onnx_regions.is_empty() {
+                        detect_face_regions(&result)
+                    } else {
+                        onnx_regions
+                    }
+                } else {
+                    drop(ai_state_guard);
+                    // Try a synchronous init attempt (downloads may already be cached from preview).
+                    match tauri::async_runtime::block_on(async {
+                        crate::ai_processing::get_or_init_face_landmark_detector(
+                            app_handle,
+                            &state.ai_state,
+                            &state.ai_init_lock,
+                        )
+                        .await
+                    }) {
+                        Ok(detector_arc) => {
                             let mut detector_guard = detector_arc.lock_resilient();
-                            let onnx_regions = detect_face_regions_onnx(&result, &mut detector_guard);
-                            // If ONNX detector returned zero faces (unusual but possible on profile / partial shots),
-                            // still try the heuristic detector as a safety net.
+                            let onnx_regions =
+                                detect_face_regions_onnx(&result, &mut detector_guard);
                             if onnx_regions.is_empty() {
                                 detect_face_regions(&result)
                             } else {
                                 onnx_regions
                             }
-                        } else {
-                            drop(ai_state_guard);
-                            // Try a synchronous init attempt (downloads may already be cached from preview).
-                            match tauri::async_runtime::block_on(async {
-                                crate::ai_processing::get_or_init_face_landmark_detector(
-                                    app_handle,
-                                    &state.ai_state,
-                                    &state.ai_init_lock,
-                                )
-                                .await
-                            }) {
-                                Ok(detector_arc) => {
-                                    let mut detector_guard = detector_arc.lock_resilient();
-                                    let onnx_regions =
-                                        detect_face_regions_onnx(&result, &mut detector_guard);
-                                    if onnx_regions.is_empty() {
-                                        detect_face_regions(&result)
-                                    } else {
-                                        onnx_regions
-                                    }
-                                }
-                                Err(e) => {
-                                    log::warn!(
-                                        "Face landmark detector unavailable for export, falling back to skin-tone detection: {}",
-                                        e
-                                    );
-                                    detect_face_regions(&result)
-                                }
-                            }
                         }
-                    };
-
-                    // Fail loudly for portrait export: portrait is a user-visible
-                    // effect, silently swallowing the error (as the previous
-                    // `log::warn!` did) means the user's "portrait" export is
-                    // silently a no-op. Surface the error so the batch export
-                    // framework can report it and not leave the user with a
-                    // misleading "export succeeded" toast.
-                    if let Err(e) =
-                        apply_portrait_adjustments(&mut result, portrait_json, &face_regions)
-                    {
-                        return Err(format!("Portrait processing failed: {}", e));
+                        Err(e) => {
+                            log::warn!(
+                                "Face landmark detector unavailable for export, falling back to skin-tone detection: {}",
+                                e
+                            );
+                            detect_face_regions(&result)
+                        }
                     }
                 }
+            };
+
+            // Fail loudly for portrait export: portrait is a user-visible
+            // effect, silently swallowing the error (as the previous
+            // `log::warn!` did) means the user's "portrait" export is
+            // silently a no-op. Surface the error so the batch export
+            // framework can report it and not leave the user with a
+            // misleading "export succeeded" toast.
+            if let Err(e) = apply_portrait_adjustments(&mut result, portrait_json, &face_regions) {
+                return Err(format!("Portrait processing failed: {}", e));
             }
+        }
+    }
 
     Ok(result)
 }
@@ -632,25 +630,22 @@ fn encode_image_to_bytes(
             return Ok(webp_mem.to_vec());
         }
         "jpg" | "jpeg" => {
+            // Encode with the stock `image` crate JPEG encoder, honoring the
+            // requested quality. (The `mozjpeg-rs` dependency is a pure-Rust
+            // encoder with a different API than the `mozjpeg` crate; keep the
+            // reliable, always-available `image` encoder here.)
             let rgb_image = image.to_rgb8();
-
-            // Use mozjpeg for significantly faster encoding (Turbo mode by
-            // default) compared to the stock `image` crate encoder. The
-            // `mozjpeg-rs` crate is already in Cargo.toml.
-            let mut comp = mozjpeg::Compress::new(mozjpeg::ColorSpace::JCS_RGB);
-            comp.set_quality(jpeg_quality as f32);
-
-            // Write directly into the output buffer via a cursor so we can
-            // still return a `Vec<u8>` without an intermediate copy.
-            let mut started = comp.start_compress(&mut cursor)
-                .map_err(|e| format!("mozjpeg start_compress failed: {}", e))?;
-
-            started
-                .write_scanlines(rgb_image.as_raw())
-                .map_err(|e| format!("mozjpeg write_scanlines failed: {}", e))?;
-
-            comp.finish(started)
-                .map_err(|e| format!("mozjpeg finish failed: {}", e))?;
+            let (w, h) = rgb_image.dimensions();
+            let mut encoder =
+                image::codecs::jpeg::JpegEncoder::new_with_quality(&mut cursor, jpeg_quality);
+            encoder
+                .encode(
+                    rgb_image.as_raw(),
+                    w,
+                    h,
+                    image::ExtendedColorType::Rgb8,
+                )
+                .map_err(|e| format!("JPEG encode failed: {}", e))?;
         }
         "png" => {
             let image_to_encode = if image.as_rgb32f().is_some() {

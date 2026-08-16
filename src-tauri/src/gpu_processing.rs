@@ -493,7 +493,10 @@ fn read_texture_data_roi(
     device
         .poll(wgpu::PollType::Wait {
             submission_index: None,
-            timeout: Some(std::time::Duration::from_secs(60)),
+            // Readback is normally 15–40ms on mobile GPUs. A generous 5s cap
+            // prevents a hung GPU from blocking the preview thread for a full
+            // minute; on timeout we fall back to the CPU path instead.
+            timeout: Some(std::time::Duration::from_secs(5)),
         })
         .map_err(|e| format!("Failed while polling mapped GPU buffer: {}", e))?;
     let map_result = rx

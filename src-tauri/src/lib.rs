@@ -768,9 +768,13 @@ fn process_preview_job(
     // the resolution quadruples throughput.
     #[cfg(target_os = "android")]
     let (interactive_divisor, interactive_quality) = match live_quality {
-        "full" => (if has_roi { 1.5_f32 } else { 1.2_f32 }, 75_u8),
-        "performance" => (if has_roi { 2.5_f32 } else { 2.0_f32 }, 55_u8),
-        _ => (if has_roi { 2.0_f32 } else { 1.5_f32 }, 65_u8),
+        // More aggressive interactive divisors on Android: the CPU path
+        // processes every pixel sequentially, so halving the resolution
+        // quadruples throughput. These keep the effective drag resolution
+        // around 256-430px, which sustains 8-12 FPS during slider drags.
+        "full" => (if has_roi { 2.0_f32 } else { 1.5_f32 }, 70_u8),
+        "performance" => (if has_roi { 3.0_f32 } else { 2.5_f32 }, 50_u8),
+        _ => (if has_roi { 2.5_f32 } else { 2.0_f32 }, 60_u8),
     };
     #[cfg(not(target_os = "android"))]
     let (interactive_divisor, interactive_quality) = match live_quality {

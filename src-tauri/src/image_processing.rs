@@ -4157,7 +4157,13 @@ fn cpu_gaussian_blur_luma(data: &[f32], w: usize, h: usize, radius: f32) -> Vec<
         // propagating NaN/inf to the entire output buffer.
         return data
             .iter()
-            .map(|v| if v.is_finite() { v.clamp(0.0, 1.0) } else { 0.0 })
+            .map(|v| {
+                if v.is_finite() {
+                    v.clamp(0.0, 1.0)
+                } else {
+                    0.0
+                }
+            })
             .collect();
     }
 
@@ -4215,7 +4221,13 @@ fn cpu_create_blur_rgb_buffer(rgb: &[f32], w: usize, h: usize, scale: f32) -> Ve
         // propagating NaN/inf to the entire output buffer.
         return rgb
             .iter()
-            .map(|v| if v.is_finite() { v.clamp(0.0, 1.0) } else { 0.0 })
+            .map(|v| {
+                if v.is_finite() {
+                    v.clamp(0.0, 1.0)
+                } else {
+                    0.0
+                }
+            })
             .collect();
     }
 

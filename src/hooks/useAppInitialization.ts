@@ -249,13 +249,19 @@ export const useAppInitialization = ({
           }
         }
 
-        // On Android, eagerly prefetch small AI models in the background so
-        // that first-time mask / inpaint operations don't time out waiting
-        // for a network download.
+        // On Android, prefetch small AI models in the background so that
+        // first-time mask / inpaint operations don't time out waiting for a
+        // network download. Defer the prefetch to a browser idle slot so it
+        // does not compete with the initial library load / editor render for
+        // CPU and I/O, which would otherwise stall the first preview.
         if (isAndroid) {
-          invoke(Invokes.PrefetchAiModels).catch((e) => {
-            console.warn('Background AI model prefetch failed on Android:', e);
-          });
+          const prefetch = () => {
+            invoke(Invokes.PrefetchAiModels).catch((e) => {
+              console.warn('Background AI model prefetch failed on Android:', e);
+            });
+          };
+          const schedule = (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 2000));
+          schedule(prefetch);
         }
       })
       .catch((err) => {

@@ -323,6 +323,11 @@ pub struct GpuPipeline {
     staging_buffer_cache: Mutex<HashMap<u64, Vec<wgpu::Buffer>>>,
     // Android WGPU Surface for direct rendering to screen – avoids CPU
     // readback + JPEG encoding + Base64 round-trip (~300ms → ~30ms latency).
+    // The instance is retained so the surface is created from the *same*
+    // instance that produced the device; presenting a surface on a device
+    // from a different instance is invalid in wgpu.
+    #[cfg(target_os = "android")]
+    instance: wgpu::Instance,
     #[cfg(target_os = "android")]
     surface: Option<wgpu::Surface<'static>>,
     #[cfg(target_os = "android")]
@@ -462,6 +467,8 @@ impl GpuPipeline {
             total_cached_bytes: Mutex::new(0),
             staging_buffer_cache: Mutex::new(HashMap::new()),
             #[cfg(target_os = "android")]
+            instance,
+            #[cfg(target_os = "android")]
             surface: None,
             #[cfg(target_os = "android")]
             surface_config: None,
@@ -475,17 +482,26 @@ impl GpuPipeline {
     /// + JPEG encode + Base64 decode pipeline entirely.
     #[cfg(target_os = "android")]
     pub fn init_surface(&mut self, native_window_ptr: *mut std::ffi::c_void) -> Result<()> {
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::all(),
-            ..Default::default()
-        });
+        // Reuse the instance that created `self.device` so the surface and the
+        // compute device belong to the same wgpu instance (required by wgpu).
+        let instance = &self.instance;
 
-        // Create surface from ANativeWindow
+        // Create a raw Android (NDK) window handle from the ANativeWindow pointer.
+        // wgpu 30 no longer exposes a dedicated `AndroidNativeWindow` surface target;
+        // the generic `RawHandle` variant is the supported way to attach a surface to
+        // an ANativeWindow.
+        let android_handle = wgpu::rwh::AndroidNdkWindowHandle::new(
+            std::ptr::NonNull::new(native_window_ptr)
+                .context("ANativeWindow pointer was null")?,
+        );
+
         let surface = unsafe {
-            instance.create_surface_unsafe(SurfaceTargetUnsafe::AndroidNativeWindow(
-                native_window_ptr as *const std::ffi::c_void,
-            ))
-        }.context("Failed to create WGPU Surface from ANativeWindow")?;
+            instance.create_surface_unsafe(SurfaceTargetUnsafe::RawHandle {
+                raw_display_handle: None,
+                raw_window_handle: wgpu::rwh::RawWindowHandle::AndroidNdk(android_handle),
+            })
+        }
+        .context("Failed to create WGPU Surface from ANativeWindow")?;
 
         // Request adapter with surface compatibility
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
@@ -497,7 +513,9 @@ impl GpuPipeline {
 
         // Configure surface
         let surface_caps = surface.get_capabilities(&adapter);
-        let surface_format = surface_caps.formats.iter()
+        let surface_format = surface_caps
+            .formats
+            .iter()
             .find(|f| f.is_srgb())
             .copied()
             .unwrap_or(surface_caps.formats[0]);
@@ -505,11 +523,13 @@ impl GpuPipeline {
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_DST,
             format: surface_format,
+            color_space: wgpu::SurfaceColorSpace::Auto,
             width: 1, // Will be resized on first render
             height: 1,
             present_mode: wgpu::PresentMode::Fifo,
-            desired_maximum_frame_latency: None,
-            old_surface_status: None,
+            alpha_mode: wgpu::CompositeAlphaMode::Auto,
+            view_formats: vec![],
+            desired_maximum_frame_latency: 2,
         };
 
         surface.configure(&self.device, &config);
@@ -525,7 +545,9 @@ impl GpuPipeline {
     /// Render directly to the Android Surface, bypassing CPU readback.
     #[cfg(target_os = "android")]
     pub fn render_to_surface(&self, width: u32, height: u32) -> Result<()> {
-        let surface = self.surface.as_ref()
+        let surface = self
+            .surface
+            .as_ref()
             .context("Android Surface not initialized")?;
 
         // Reconfigure surface if size changed
@@ -539,14 +561,19 @@ impl GpuPipeline {
             }
         }
 
-        let frame = surface.get_current_texture()
+        let frame = surface
+            .get_current_texture()
             .map_err(|e| anyhow::anyhow!("Failed to acquire surface texture: {:?}", e))?;
 
-        let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let view = frame
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Android Surface Render Encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Android Surface Render Encoder"),
+            });
 
         // Clear the frame with transparent black
         {
@@ -559,10 +586,12 @@ impl GpuPipeline {
                         load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
                         store: wgpu::StoreOp::Store,
                     },
+                    depth_slice: None,
                 })],
                 depth_stencil_attachment: None,
                 timestamp_writes: None,
                 occlusion_query_set: None,
+                multiview_mask: std::num::NonZeroU32::new(0),
             });
             let _ = &mut pass; // Suppress unused warning
         }
@@ -1165,12 +1194,15 @@ pub fn gpu_apply_adjustments(
                 Ok(result_data) => {
                     // Render to surface for direct screen output
                     let _ = pipeline.render_to_surface(width, height);
-                    
+
                     // Still return the original data as the result is on screen
                     Ok(image_data_base64)
                 }
                 Err(e) => {
-                    log::warn!("GPU adjustments failed on Android, returning original: {}", e);
+                    log::warn!(
+                        "GPU adjustments failed on Android, returning original: {}",
+                        e
+                    );
                     Ok(image_data_base64)
                 }
             }
@@ -1259,60 +1291,84 @@ pub fn gpu_apply_adjustments(
 
 /// Tauri command: Initialize the WGPU Surface for Android native window rendering.
 /// This must be called from the Android main thread with a valid ANativeWindow pointer.
+/// On non-Android platforms this is a no-op that returns Ok.
 #[tauri::command]
-#[cfg(target_os = "android")]
 pub async fn init_android_surface(native_window_ptr: u64) -> Result<(), String> {
-    let ptr = native_window_ptr as *mut std::ffi::c_void;
-    
-    // Initialize on a blocking thread to avoid main thread blocking
-    tokio::task::spawn_blocking(move || {
-        let mut guard = GPU_PIPELINE_HANDLE.inner.lock()
-            .map_err(|e| format!("Failed to lock GPU pipeline: {}", e))?;
-        
-        match &mut *guard {
-            PipelineState::Ready(pipeline) => {
-                pipeline.init_surface(ptr)
-                    .map_err(|e| format!("Failed to init Android Surface: {}", e))?;
-                log::info!("Android Surface initialized successfully");
-                Ok(())
+    #[cfg(target_os = "android")]
+    {
+        let ptr = native_window_ptr as *mut std::ffi::c_void;
+
+        // Initialize on a blocking thread to avoid main thread blocking
+        tokio::task::spawn_blocking(move || {
+            let mut guard = GPU_PIPELINE_HANDLE
+                .inner
+                .lock()
+                .map_err(|e| format!("Failed to lock GPU pipeline: {}", e))?;
+
+            match &mut *guard {
+                PipelineState::Ready(pipeline) => {
+                    pipeline
+                        .init_surface(ptr)
+                        .map_err(|e| format!("Failed to init Android Surface: {}", e))?;
+                    log::info!("Android Surface initialized successfully");
+                    Ok(())
+                }
+                PipelineState::Uninit => {
+                    // Initialize pipeline first
+                    let new_pipeline = GpuPipeline::init()
+                        .map_err(|e| format!("Failed to init GPU pipeline: {}", e))?;
+                    let mut new_pipeline = new_pipeline;
+                    new_pipeline
+                        .init_surface(ptr)
+                        .map_err(|e| format!("Failed to init Android Surface: {}", e))?;
+                    *guard = PipelineState::Ready(new_pipeline);
+                    log::info!("Android Surface and Pipeline initialized successfully");
+                    Ok(())
+                }
+                PipelineState::Failed(msg) => {
+                    // Reset and retry
+                    log::warn!(
+                        "GPU pipeline was in Failed state ({}), resetting for Android Surface",
+                        msg
+                    );
+                    let new_pipeline = GpuPipeline::init()
+                        .map_err(|e| format!("Failed to init GPU pipeline: {}", e))?;
+                    let mut new_pipeline = new_pipeline;
+                    new_pipeline
+                        .init_surface(ptr)
+                        .map_err(|e| format!("Failed to init Android Surface: {}", e))?;
+                    *guard = PipelineState::Ready(new_pipeline);
+                    log::info!("Android Surface initialized after reset");
+                    Ok(())
+                }
             }
-            PipelineState::Uninit => {
-                // Initialize pipeline first
-                let new_pipeline = GpuPipeline::init()
-                    .map_err(|e| format!("Failed to init GPU pipeline: {}", e))?;
-                let mut new_pipeline = new_pipeline;
-                new_pipeline.init_surface(ptr)
-                    .map_err(|e| format!("Failed to init Android Surface: {}", e))?;
-                *guard = PipelineState::Ready(new_pipeline);
-                log::info!("Android Surface and Pipeline initialized successfully");
-                Ok(())
-            }
-            PipelineState::Failed(msg) => {
-                // Reset and retry
-                log::warn!("GPU pipeline was in Failed state ({}), resetting for Android Surface", msg);
-                let new_pipeline = GpuPipeline::init()
-                    .map_err(|e| format!("Failed to init GPU pipeline: {}", e))?;
-                let mut new_pipeline = new_pipeline;
-                new_pipeline.init_surface(ptr)
-                    .map_err(|e| format!("Failed to init Android Surface: {}", e))?;
-                *guard = PipelineState::Ready(new_pipeline);
-                log::info!("Android Surface initialized after reset");
-                Ok(())
-            }
-        }
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+        })
+        .await
+        .map_err(|e| format!("Task join error: {}", e))?
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = native_window_ptr;
+        Ok(())
+    }
 }
 
 /// Tauri command: Check if Android Surface is available for direct rendering.
+/// Always returns false on non-Android platforms.
 #[tauri::command]
-#[cfg(target_os = "android")]
 pub async fn is_android_surface_available() -> bool {
-    let guard = match GPU_PIPELINE_HANDLE.inner.lock() {
-        Ok(g) => g,
-        Err(_) => return false,
-    };
-    
-    matches!(&*guard, PipelineState::Ready(p) if p.surface.is_some())
+    #[cfg(target_os = "android")]
+    {
+        let guard = match GPU_PIPELINE_HANDLE.inner.lock() {
+            Ok(g) => g,
+            Err(_) => return false,
+        };
+        matches!(&*guard, PipelineState::Ready(p) if p.surface.is_some())
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        false
+    }
 }
