@@ -269,8 +269,13 @@ pub fn srgb_to_linear(v: f64) -> f64 {
 }
 
 /// Apply sRGB transfer function (linear → gamma).
+///
+/// The linear/gamma breakpoint is the exact inverse of the gamma→linear
+/// breakpoint (0.04045 / 12.92). Using the rounded value 0.0031308 here
+/// breaks round-trips at the boundary by ~2.7e-8.
 pub fn linear_to_srgb(v: f64) -> f64 {
-    if v.abs() <= 0.0031308 {
+    const LINEAR_THRESHOLD: f64 = 0.04045 / 12.92; // 0.0031308049535603715
+    if v.abs() <= LINEAR_THRESHOLD {
         v * 12.92
     } else {
         1.055 * v.abs().powf(1.0 / 2.4) - 0.055
@@ -298,40 +303,50 @@ pub fn acescg_to_linear_srgb(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
 // ACEScc / ACEScct logarithmic encoding
 // ---------------------------------------------------------------------------
 
-/// ACEScc constants.
+/// ACEScc / ACEScct log-encoding constants.
+///
+/// Per the ACES specifications (ACEScc: S-2014-003, ACEScct: S-2016-001) the
+/// pure-log segment is:  V = (log2(x) + 9.72) / 17.52
+/// The divisor 17.52 makes the curve continuous and tangent with the ACEScct
+/// linear toe at x = 0.0078125.
 const ACESCC_A: f64 = 9.72;
-const ACESCC_B: f64 = 0.3013698630;
+const ACESCC_B: f64 = 17.52;
+
+/// Rec.2020 / BT.2100 transfer function constants.
+const REC2020_ALPHA: f64 = 1.099_296_826_809_44;
+const REC2020_BETA: f64 = 0.018_053_968_510_807; // 4.5 * beta = 0.08124285829863
 
 /// Rec.2020 / BT.2100 transfer function (linear → gamma).
 pub fn linear_to_rec2020(v: f64) -> f64 {
-    if v < 0.0107 {
+    if v < REC2020_BETA {
         4.5 * v
     } else {
-        1.099_296_826_8 * v.powf(0.45) - 0.099_296_826_8
+        REC2020_ALPHA * v.powf(0.45) - (REC2020_ALPHA - 1.0)
     }
 }
 
 /// Rec.2020 / BT.2100 transfer function (gamma → linear).
 pub fn rec2020_to_linear(v: f64) -> f64 {
-    if v < 0.081 {
+    const LINEAR_THRESHOLD: f64 = 4.5 * REC2020_BETA; // 0.08124285829863
+    if v < LINEAR_THRESHOLD {
         v / 4.5
     } else {
-        ((v + 0.099_296_826_8) / 1.099_296_826_8).powf(1.0 / 0.45)
+        ((v + REC2020_ALPHA - 1.0) / REC2020_ALPHA).powf(1.0 / 0.45)
     }
 }
 
 /// Convert scene-linear (ACEScg) value to ACEScc logarithmic encoding.
 ///
-/// ACEScc encodes scene-linear values in [0, 1] to a logarithmic space
-/// suitable for grading in standard video tools.
+/// ACEScc encodes scene-linear values to a logarithmic space suitable for
+/// grading in standard video tools (S-2014-003):
+///   V = (log2(x) + 9.72) / 17.52
+/// for x > 0, and 0 for x <= 0 (negatives are clipped).
 pub fn linear_to_acescc(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
     fn encode(v: f64) -> f64 {
         if v <= 0.0 {
             0.0
-        } else if v < ACESCC_A {
-            (2.0_f64.log2() * v + ACESCC_B) / 5.0
         } else {
-            (v.log2() + ACESCC_B) / 5.0
+            (v.log2() + ACESCC_A) / ACESCC_B
         }
     }
     (encode(r), encode(g), encode(b))
@@ -340,22 +355,14 @@ pub fn linear_to_acescc(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
 /// Convert ACEScc logarithmic encoding back to scene-linear (ACEScg).
 pub fn acescc_to_linear(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
     fn decode(v: f64) -> f64 {
-        if v < 0.0 {
-            0.0
-        } else if v <= (2.0_f64.log2() * ACESCC_A + ACESCC_B) / 5.0 {
-            // v = (log2(2)*x + ACESCC_B) / 5  =>  x = (5*v - ACESCC_B)
-            let x = (5.0 * v - ACESCC_B) / 2.0_f64.log2();
-            x.max(0.0)
-        } else {
-            // v = (log2(x) + ACESCC_B) / 5  =>  x = 2^(5*v - ACESCC_B)
-            let x = 2.0_f64.powf(5.0 * v - ACESCC_B);
-            x.max(0.0)
-        }
+        // v = (log2(x) + 9.72) / 17.52  =>  x = 2^(17.52*v - 9.72)
+        // Small positive x encode to negative V, so we must not clamp here.
+        2.0_f64.powf(ACESCC_B * v - ACESCC_A).max(0.0)
     }
     (decode(r), decode(g), decode(b))
 }
 
-/// ACEScct linear segment threshold and slope.
+/// ACEScct linear segment threshold and slope (S-2016-001).
 /// Cut-point in linear: 0.0078125 (1/128)
 const ACESCCT_CUT: f64 = 0.0078125;
 const ACESCCT_SLOPE: f64 = 10.5402377416515;
@@ -363,16 +370,17 @@ const ACESCCT_OFFSET: f64 = 0.0729055341958355;
 
 /// Convert scene-linear (ACEScg) value to ACEScct quasi-logarithmic encoding.
 ///
-/// ACEScct has a linear segment near zero to provide a "toe" that better
-/// matches the behaviour of traditional log film scans.
+/// ACEScct (S-2016-001) has a linear "toe" near zero:
+///   V = 10.5402377416545 * x + 0.0729055341958355   for x <  0.0078125
+///   V = (log2(x) + 9.72) / 17.52                     for x >= 0.0078125
 pub fn linear_to_acescct(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
     fn encode(v: f64) -> f64 {
-        if v <= 0.0 {
-            ACESCCT_OFFSET + v * ACESCCT_SLOPE / 2.0
-        } else if v < ACESCCT_CUT {
-            ACESCCT_OFFSET + v * ACESCCT_SLOPE / 2.0
+        // Use the linear branch at the cut point (<=) so the boundary
+        // round-trips exactly; the log branch takes over above the cut.
+        if v <= ACESCCT_CUT {
+            ACESCCT_OFFSET + v * ACESCCT_SLOPE
         } else {
-            (v.log2() + ACESCC_B) / 5.0
+            (v.log2() + ACESCC_A) / ACESCC_B
         }
     }
     (encode(r), encode(g), encode(b))
@@ -382,13 +390,13 @@ pub fn linear_to_acescct(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
 pub fn acescct_to_linear(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
     fn decode(v: f64) -> f64 {
         // Threshold in ACEScct where the log curve crosses the linear segment
-        let threshold = (ACESCCT_CUT.log2() + ACESCC_B) / 5.0;
+        let threshold = (ACESCCT_CUT.log2() + ACESCC_A) / ACESCC_B;
         if v <= threshold {
-            // Linear segment: v = offset + slope/2 * x  =>  x = 2*(v - offset)/slope
-            (2.0 * (v - ACESCCT_OFFSET) / ACESCCT_SLOPE).max(0.0)
+            // Linear segment: v = offset + slope * x  =>  x = (v - offset)/slope
+            ((v - ACESCCT_OFFSET) / ACESCCT_SLOPE).max(0.0)
         } else {
-            // Log segment: v = (log2(x) + ACESCC_B) / 5  =>  x = 2^(5*v - ACESCC_B)
-            2.0_f64.powf(5.0 * v - ACESCC_B).max(0.0)
+            // Log segment: v = (log2(x) + 9.72) / 17.52  =>  x = 2^(17.52*v - 9.72)
+            2.0_f64.powf(ACESCC_B * v - ACESCC_A).max(0.0)
         }
     }
     (decode(r), decode(g), decode(b))
@@ -444,13 +452,15 @@ pub fn display_p3_to_srgb(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
 // ACES RRT + ODT
 // ---------------------------------------------------------------------------
 
-/// Krzysztof Narkiewicz's fitted ACES curve approximation.
+/// Filmic tone curve approximation of the ACES RRT+ODT response.
 ///
-/// This is the widely-used polynomial approximation of the ACES RRT+ODT
-/// filmic S-curve, accurate to within 0.001 of the reference implementation
-/// across the normal range.
+/// This is the widely-used rational polynomial fit (popularized by
+/// K. Narkiewicz / J. Hable) of the ACES filmic S-curve. It is applied to
+/// scene-referred linear input and produces a soft-rolled-off display
+/// response. Reference points of this curve:
+///   0.18 (mid-grey) -> ~0.267   1.0 -> ~0.804
 pub fn aces_fitted(x: f64) -> f64 {
-    // Coefficients from Krzysztof Narkiewicz's fitted curve
+    // Coefficients from the fitted ACES curve
     let a = 2.51;
     let b = 0.03;
     let c = 2.43;
@@ -720,9 +730,10 @@ mod tests {
         let (r, g, b) = (0.18, 0.5, 0.8);
         let (ar, ag, ab) = linear_srgb_to_acescg(r, g, b);
         let (br, bg, bb) = acescg_to_linear_srgb(ar, ag, ab);
-        assert!((br - r).abs() < 1e-12, "R mismatch: {} vs {}", br, r);
-        assert!((bg - g).abs() < 1e-12, "G mismatch: {} vs {}", bg, g);
-        assert!((bb - b).abs() < 1e-12, "B mismatch: {} vs {}", bb, b);
+        // Matrices are rounded to 10 decimal places, so allow ~1e-6.
+        assert!((br - r).abs() < 1e-6, "R mismatch: {} vs {}", br, r);
+        assert!((bg - g).abs() < 1e-6, "G mismatch: {} vs {}", bg, g);
+        assert!((bb - b).abs() < 1e-6, "B mismatch: {} vs {}", bb, b);
     }
 
     #[test]
@@ -773,11 +784,12 @@ mod tests {
 
     #[test]
     fn test_aces_fitted_midgrey() {
-        // 18% grey should map to roughly 0.46 (display-referred mid)
+        // 18% grey maps to the curve's known response (~0.267), not the
+        // full ACES reference (~0.5) — this fit is used without pre-exposure.
         let mid = aces_fitted(0.18);
         assert!(
-            (mid - 0.4616).abs() < 0.01,
-            "18% grey should map to ~0.46, got {}",
+            (mid - 0.267).abs() < 0.01,
+            "18% grey should map to ~0.267, got {}",
             mid
         );
     }
@@ -785,9 +797,10 @@ mod tests {
     #[test]
     fn test_aces_fitted_bounds() {
         assert!(aces_fitted(0.0).abs() < 1e-10, "Zero in → zero out");
+        // The fitted curve rolls off below 1.0 (~0.804 at x=1.0)
         assert!(
-            (aces_fitted(1.0) - 1.0).abs() < 0.01,
-            "One in → ~one out, got {}",
+            (aces_fitted(1.0) - 0.804).abs() < 0.01,
+            "One in → ~0.804 out, got {}",
             aces_fitted(1.0)
         );
         // Should be monotonically increasing

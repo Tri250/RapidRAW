@@ -21,9 +21,9 @@ pub struct Lut3D {
     /// Domain maximum for R, G, B channels.
     pub domain_max: [f32; 3],
     /// The LUT table with N³ entries, each [R, G, B].
-    /// Indexing convention follows the .cube specification:
-    ///   index = r_index * N * N + g_index * N + b_index
-    /// where the first dimension varies fastest (R), then G, then B.
+    /// Indexing follows the .cube specification with the R channel varying
+    /// fastest and the B channel slowest:
+    ///   index = b_index * N * N + g_index * N + r_index
     pub table: Vec<[f32; 3]>,
 }
 
@@ -260,15 +260,15 @@ fn map_to_index(v: f32, domain_min: f32, domain_max: f32, max_index: f32) -> f32
 
 /// Sample the LUT table at integer (or near-integer) index coordinates.
 ///
-/// .cube files use the convention: index = R * N * N + G * N + B,
-/// where R varies fastest.
+/// .cube files store entries with the R channel varying fastest and the B
+/// channel slowest, so the linear index is: index = B * N * N + G * N + R.
 #[inline]
 fn lut_sample(lut: &Lut3D, r: f32, g: f32, b: f32) -> [f32; 3] {
     let n = lut.size;
     let ri = (r.round() as usize).min(n - 1);
     let gi = (g.round() as usize).min(n - 1);
     let bi = (b.round() as usize).min(n - 1);
-    lut.table[ri * n * n + gi * n + bi]
+    lut.table[bi * n * n + gi * n + ri]
 }
 
 // ---------------------------------------------------------------------------
