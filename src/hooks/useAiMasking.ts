@@ -156,9 +156,7 @@ export function useAiMasking() {
       const targetSubMask = (Array.isArray(adjustments.aiPatches) ? adjustments.aiPatches : [])
         .find((p: AiPatch) => p.id === patchId)
         ?.subMasks?.find((sm: SubMask) => sm.id === subMaskId);
-      const lineCount = Array.isArray(targetSubMask?.parameters?.lines)
-        ? targetSubMask.parameters.lines.length
-        : 0;
+      const lineCount = Array.isArray(targetSubMask?.parameters?.lines) ? targetSubMask.parameters.lines.length : 0;
       if (lineCount === 0) {
         toast.info(
           t('editor.ai.cleanup.noRegion', {

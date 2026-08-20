@@ -1644,8 +1644,7 @@ const ImageCanvas = memo(
     const brushStageSize = (brushSettings?.size ?? 0) / effectiveZoomScale;
     // Guard against a 0/undefined brush size: a zero-radius stroke would make the
     // backend's mask bitmap empty (and the cleanup fail with "Mask is empty").
-    const brushImageSpaceSize =
-      Math.max(0.5, brushStageSize) / Math.max(0.001, imageRenderSize.scale || 1);
+    const brushImageSpaceSize = Math.max(0.5, brushStageSize) / Math.max(0.001, imageRenderSize.scale || 1);
 
     const isBrushActive =
       (isMasking || isAiEditing) &&
