@@ -116,8 +116,16 @@ jobs:
           fi
           echo "::notice::All version sources are in sync: v${pkg_version} (toolchain=${toolchain_channel:-n/a}, edition=${rust_edition}, tag=${TAG})"
 
+  # Production gate: the release build MUST NOT proceed unless the blocking
+  # quality gates (typecheck / lint / tests / clippy -D warnings / npm+cargo
+  # audit) all pass. Tag pushes bypass pr-ci/ci.yml, so gates are re-run here
+  # to keep a tagged release from shipping known-broken or vulnerable code.
+  quality-gates:
+    name: Quality gates (required before release)
+    uses: ./.github/workflows/quality-gates.yml
+
   release:
-    needs: version-sync-check
+    needs: [version-sync-check, quality-gates]
     strategy:
       fail-fast: false
       matrix:
