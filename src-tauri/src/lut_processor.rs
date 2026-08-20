@@ -302,6 +302,7 @@ pub fn apply_lut_to_image(lut: &Lut3D, image_data: &[u8], width: u32, height: u3
     output
 }
 
+#[allow(dead_code)]
 /// Apply a 3D LUT to 16-bit RGBA image data.
 ///
 /// Each pixel is converted from 0-65535 to 0.0-1.0 float, the LUT is applied
@@ -393,7 +394,7 @@ mod tests {
 
     fn identity_lut(size: usize) -> Lut3D {
         let mut table = Vec::with_capacity(size * size * size);
-        let n = size as f32;
+        let _n = size as f32;
         let denom = (size - 1) as f32;
         for bi in 0..size {
             for gi in 0..size {

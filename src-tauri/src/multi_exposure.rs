@@ -95,6 +95,7 @@ fn find_ifd_entry(file_bytes: &[u8], ifd_offset: usize, tag_id: u16) -> Option<u
 /// # Returns
 /// Neutralized coefficients (all 1.0) if multiple exposure is detected,
 /// otherwise the original coefficients unchanged.
+#[allow(dead_code)]
 pub fn neutralize_wb_if_multiexposure(wb_coeffs: [f32; 4], file_bytes: &[u8]) -> [f32; 4] {
     if is_incamera_multiexposure_canon(file_bytes) {
         log::info!("[raw_hdr_wb] multi-exposure CR2 detected, neutralizing WB");
@@ -121,6 +122,7 @@ pub fn neutralize_wb_if_multiexposure(wb_coeffs: [f32; 4], file_bytes: &[u8]) ->
 ///
 /// Only mutates existing `color` objects; missing keys are created so the
 /// neutral state is explicit and survives round-trips to the sidecar.
+#[allow(dead_code)]
 pub fn neutralize_adjustments_wb_if_multiexposure(
     adjustments: &mut serde_json::Value,
     file_bytes: &[u8],

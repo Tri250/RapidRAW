@@ -868,7 +868,7 @@ pub fn composite_patches_on_image(
                 }
             }
 
-            use image::{DynamicImage, ImageBuffer, Luma, LumaA, Rgb, Rgba};
+            use image::{DynamicImage, ImageBuffer, LumaA};
             composited_image = if base_is_gray {
                 // NOTE: image 0.25 has no DynamicImage::ImageLuma32F / ImageLumaA32F
                 // variants, so we carry gray float data in Rgb32F / Rgba32F (replicate
@@ -878,9 +878,8 @@ pub fn composite_patches_on_image(
                     let raw: Vec<f32> = rgba32_img
                         .pixels()
                         .flat_map(|p| {
-                            let y =
-                                0.2126 * p[0] as f32 + 0.7152 * p[1] as f32 + 0.0722 * p[2] as f32;
-                            [y, y, y, p[3] as f32]
+                            let y = 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2];
+                            [y, y, y, p[3]]
                         })
                         .collect();
                     let gray_a = ImageBuffer::from_raw(w, h, raw)
@@ -891,8 +890,7 @@ pub fn composite_patches_on_image(
                     let raw: Vec<f32> = rgba32_img
                         .pixels()
                         .flat_map(|p| {
-                            let y =
-                                0.2126 * p[0] as f32 + 0.7152 * p[1] as f32 + 0.0722 * p[2] as f32;
+                            let y = 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2];
                             [y, y, y]
                         })
                         .collect();
@@ -906,7 +904,7 @@ pub fn composite_patches_on_image(
                 let (w, h) = rgba32_img.dimensions();
                 let raw: Vec<f32> = rgba32_img
                     .pixels()
-                    .flat_map(|p| [p[0] as f32, p[1] as f32, p[2] as f32])
+                    .flat_map(|p| [p[0], p[1], p[2]])
                     .collect();
                 let rgb_buf = ImageBuffer::from_raw(w, h, raw)
                     .ok_or_else(|| anyhow::anyhow!("Failed to repack Rgb32F buffer"))?;
@@ -918,7 +916,6 @@ pub fn composite_patches_on_image(
             // ColorType it handed in (otherwise downstream encoders may pick a
             // 32F encoder for an 8-bit JPEG/PNG export and corrupt / fail).
             if base_is_8bit_int {
-                use image::Pixel;
                 composited_image = match composited_image.color() {
                     image::ColorType::Rgba32F => {
                         if base_is_gray {
@@ -954,7 +951,6 @@ pub fn composite_patches_on_image(
                     _ => composited_image,
                 };
             } else if base_is_16bit {
-                use image::Pixel;
                 composited_image = match composited_image.color() {
                     image::ColorType::Rgba32F => {
                         if base_is_gray {

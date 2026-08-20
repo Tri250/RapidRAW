@@ -82,6 +82,7 @@ impl ProjectDb {
     }
 
     /// Open an in-memory DuckDB database (useful for tests and ephemeral sessions).
+    #[allow(dead_code)]
     pub fn open_in_memory() -> Result<Self> {
         let conn = Connection::open_in_memory().context("Failed to open in-memory DuckDB")?;
         conn.execute_batch(SCHEMA)
@@ -167,6 +168,7 @@ pub fn create_version(
 }
 
 /// Retrieve a single edit version by its id.
+#[allow(dead_code)]
 pub fn get_version(db: &ProjectDb, id: &str) -> Result<Option<EditVersion>> {
     let mut stmt = db
         .connection()
@@ -252,6 +254,7 @@ pub fn set_current_version(db: &ProjectDb, id: &str) -> Result<()> {
 
 /// Clone an existing version, creating a new row with a new id. The clone
 /// starts as non-current.
+#[allow(dead_code)]
 pub fn clone_version(
     db: &ProjectDb,
     source_id: &str,
@@ -390,6 +393,7 @@ pub fn get_thumbnail(db: &ProjectDb, image_hash: &str) -> Result<Option<Thumbnai
 }
 
 /// Check whether a thumbnail exists for the given image hash.
+#[allow(dead_code)]
 pub fn has_thumbnail(db: &ProjectDb, image_hash: &str) -> Result<bool> {
     let count: i64 = db
         .connection()
@@ -496,6 +500,7 @@ pub fn search_by_label(db: &ProjectDb, label_query: &str) -> Result<Vec<AiLabel>
 }
 
 /// Return every unique label across all images and models.
+#[allow(dead_code)]
 pub fn get_all_unique_labels(db: &ProjectDb) -> Result<Vec<String>> {
     let mut stmt = db
         .connection()
@@ -518,6 +523,7 @@ pub fn get_all_unique_labels(db: &ProjectDb) -> Result<Vec<String>> {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct Collection {
     pub id: String,
     pub name: String,
@@ -526,6 +532,7 @@ pub struct Collection {
 }
 
 /// Create a new smart collection.
+#[allow(dead_code)]
 pub fn create_collection(
     db: &ProjectDb,
     id: &str,
@@ -549,6 +556,7 @@ pub fn create_collection(
 }
 
 /// List all collections, ordered by name.
+#[allow(dead_code)]
 pub fn list_collections(db: &ProjectDb) -> Result<Vec<Collection>> {
     let mut stmt = db
         .connection()
@@ -574,6 +582,7 @@ pub fn list_collections(db: &ProjectDb) -> Result<Vec<Collection>> {
 }
 
 /// Delete a collection by id.
+#[allow(dead_code)]
 pub fn delete_collection(db: &ProjectDb, id: &str) -> Result<bool> {
     let affected = db
         .connection()
@@ -593,6 +602,7 @@ use std::sync::Mutex as StdMutex;
 
 static PROJECT_DB: StdMutex<Option<ProjectDb>> = StdMutex::new(None);
 
+#[allow(dead_code)]
 fn with_db<F, T>(f: F) -> Result<T, String>
 where
     F: FnOnce(&ProjectDb) -> anyhow::Result<T>,

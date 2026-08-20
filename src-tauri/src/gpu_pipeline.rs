@@ -666,7 +666,6 @@ impl GpuPipeline {
         if at_count_cap || would_exceed_bytes {
             // Evict cached entries (oldest first) until both limits are satisfied.
             if let Ok(mut cache) = self.texture_cache.lock() {
-                let mut evicted_bytes = 0u64;
                 let mut evicted_count = 0usize;
                 let keys: Vec<(u32, u32)> = cache.keys().cloned().collect();
                 'outer: for k in keys {
@@ -689,7 +688,7 @@ impl GpuPipeline {
                         break 'outer;
                     }
                 }
-                evicted_bytes = total_bytes.saturating_sub({
+                let evicted_bytes = total_bytes.saturating_sub({
                     let mut b = 0u64;
                     for entries in cache.values() {
                         for e in entries {
@@ -754,7 +753,7 @@ impl GpuPipeline {
             // Fall back to the smallest buffer that is large enough.
             let mut best_key: Option<u64> = None;
             for k in cache.keys() {
-                if *k >= size && best_key.map_or(true, |bk| *k < bk) {
+                if *k >= size && best_key.is_none_or(|bk| *k < bk) {
                     best_key = Some(*k);
                 }
             }
@@ -917,7 +916,7 @@ pub fn apply_adjustments(
     let output_buffer_size = (padded_bytes_per_row * height) as u64;
 
     // Acquire a pooled staging buffer to avoid per-frame allocation overhead.
-    let mut readback_buffer = pipeline.acquire_staging_buffer(&device, output_buffer_size);
+    let readback_buffer = pipeline.acquire_staging_buffer(&device, output_buffer_size);
 
     encoder.copy_texture_to_buffer(
         wgpu::TexelCopyTextureInfo {

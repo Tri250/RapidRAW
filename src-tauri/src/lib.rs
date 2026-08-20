@@ -244,6 +244,7 @@ pub struct PresetParam {
 // ── V2 preset source format (OMaster-Community) ──
 
 #[derive(Deserialize, Debug, Clone)]
+#[allow(dead_code)]
 struct CommunityPresetV2Source {
     version: u32,
     name: String,
@@ -473,7 +474,7 @@ fn resolve_cached_preview(
     preview_dim: u32,
     interactive_divisor: f32,
     is_interactive: bool,
-    target_resolution: Option<u32>,
+    _target_resolution: Option<u32>,
 ) -> Result<(Arc<DynamicImage>, f32, (f32, f32)), String> {
     let mut cached_preview_lock = state.cached_preview.lock_resilient();
 
@@ -2674,7 +2675,7 @@ pub fn run() {
     // Android / iOS: cap threads to avoid overwhelming the little-core cluster
     // and starving the UI / GC threads. 4 workers is a good sweet spot on
     // modern 64-bit mobile SoCs (2-4 big cores + thermal headroom).
-    let mut tp_builder = rayon::ThreadPoolBuilder::new().stack_size(8 * 1024 * 1024);
+    let tp_builder = rayon::ThreadPoolBuilder::new().stack_size(8 * 1024 * 1024);
     #[cfg(any(target_os = "android", target_os = "ios"))]
     {
         let logical = std::thread::available_parallelism()

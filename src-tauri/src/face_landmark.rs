@@ -169,7 +169,7 @@ impl FaceLandmarkDetector {
                 continue;
             }
             let grid_w = input_size / stride;
-            let grid_h = input_size / stride;
+            let _grid_h = input_size / stride;
 
             for i in 0..n {
                 let score_val = score_arr[[0, i, 0]];
@@ -321,7 +321,7 @@ impl FaceLandmarkDetector {
             .to_owned();
         let shape = arr.shape().to_vec();
 
-        let mut points = [(0.0f32, 0.0f32); 106];
+        let points;
 
         let extract_and_map = |slice: &[f32]| {
             let mut pts = [(0.0f32, 0.0f32); 106];

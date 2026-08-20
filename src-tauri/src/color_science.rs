@@ -740,7 +740,7 @@ mod tests {
     fn test_acescct_roundtrip() {
         for v in &[0.001, 0.005, 0.0078125, 0.01, 0.18, 0.5, 1.0, 4.0] {
             let (cr, cg, cb) = linear_to_acescct(*v, *v, *v);
-            let (lr, lg, lb) = acescct_to_linear(cr, cg, cb);
+            let (lr, _lg, _lb) = acescct_to_linear(cr, cg, cb);
             assert!(
                 (lr - *v).abs() < 1e-10,
                 "R roundtrip failed for {}: got {}",

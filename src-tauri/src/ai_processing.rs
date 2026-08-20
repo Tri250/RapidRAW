@@ -207,6 +207,7 @@ pub struct CachedDepthMap {
 /// downloaded all 5 models (SAM encoder/decoder, U²-Net, sky seg, depth)
 /// before any single AI feature became usable — e.g. the small U²-Net
 /// foreground mask was blocked behind the large SAM encoder download.
+#[derive(Default)]
 pub struct AiState {
     pub sam_encoder: Option<Arc<Mutex<Session>>>,
     pub sam_decoder: Option<Arc<Mutex<Session>>>,
@@ -219,24 +220,6 @@ pub struct AiState {
     pub embeddings: Option<ImageEmbeddings>,
     pub depth_map: Option<CachedDepthMap>,
     pub face_landmark_detector: Option<Arc<Mutex<crate::face_landmark::FaceLandmarkDetector>>>,
-}
-
-impl Default for AiState {
-    fn default() -> Self {
-        Self {
-            sam_encoder: None,
-            sam_decoder: None,
-            u2netp: None,
-            sky_seg: None,
-            depth_anything: None,
-            denoise_model: None,
-            clip_models: None,
-            lama_model: None,
-            embeddings: None,
-            depth_map: None,
-            face_landmark_detector: None,
-        }
-    }
 }
 
 /// Logical model identifiers used for status reporting and prefetch ordering.
@@ -561,10 +544,10 @@ async fn download_model_with_retries(url: &str, dest: &Path) -> Result<()> {
     }
     #[cfg(not(target_os = "android"))]
     {
-        return Err(anyhow::anyhow!(
+        Err(anyhow::anyhow!(
             "Model download failed after exhausting all mirrors and retries. Last error: {}",
             last_error.unwrap_or_else(|| "Unknown".to_string())
-        ));
+        ))
     }
 }
 
@@ -657,6 +640,7 @@ async fn download_and_verify_model(
 }
 
 /// Manifest entry for a single ONNX model.
+#[allow(dead_code)]
 struct ModelManifest {
     id: AiModelId,
     filename: &'static str,

@@ -1219,7 +1219,7 @@ pub fn detect_face_regions(img: &DynamicImage) -> Vec<FaceRegion> {
     // 4 & 5. Filter by face-like properties and facial feature verification
     let mut verified: Vec<(Component, f32)> = Vec::new();
     for comp in &top_components {
-        let (cx, cy, cwidth, cheight) = comp.bounding_box;
+        let (_cx, _cy, cwidth, cheight) = comp.bounding_box;
         let aspect = cwidth as f32 / cheight as f32;
 
         // Filter 1: Aspect ratio check (face is roughly 0.6 - 1.4 w/h)
@@ -1492,7 +1492,7 @@ fn compute_face_symmetry(comp: &Component, _w: u32) -> f32 {
         return 0.5;
     }
 
-    let face_cx = cx + cwidth / 2;
+    let _face_cx = cx + cwidth / 2;
     let half_w = cwidth / 2;
 
     // Build a mini-mask of skin pixels within the bounding box
@@ -1593,7 +1593,7 @@ pub fn detect_face_regions_onnx(
 
                 // Jawline: 3 key points from contour (0, 16, 32)
                 // Guard every index to avoid panics on short landmark arrays.
-                let p0 = pts.get(0).copied().unwrap_or((0.0, 0.0));
+                let p0 = pts.first().copied().unwrap_or((0.0, 0.0));
                 let p16 = pts.get(16).copied().unwrap_or(p0);
                 let p32 = pts.get(32).copied().unwrap_or(p16);
                 let jawline_points = vec![p0, p16, p32];

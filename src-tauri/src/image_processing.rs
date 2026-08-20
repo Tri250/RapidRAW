@@ -33,6 +33,7 @@ static CONCURRENT_PROCESSING_COUNT: std::sync::atomic::AtomicUsize =
 
 /// Math constants shared across the module.
 const PI: f32 = std::f32::consts::PI;
+#[allow(dead_code)]
 const EPS: f32 = 1e-6;
 
 /// Validates that image dimensions won't cause OOM or integer overflow.
@@ -2284,12 +2285,10 @@ fn get_global_adjustments_from_json(
                 .as_f64()
                 .unwrap_or(default.unwrap_or(0.0)) as f32
                 / scale
+        } else if let Some(d) = default {
+            d as f32 / scale
         } else {
-            if let Some(d) = default {
-                d as f32 / scale
-            } else {
-                0.0
-            }
+            0.0
         }
     };
 
@@ -4138,6 +4137,7 @@ fn cpu_get_luma(p: &[f32]) -> f32 {
     0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]
 }
 #[inline]
+#[allow(dead_code)]
 fn cpu_get_maxc(p: &[f32]) -> f32 {
     cpu_max3(p[0], p[1], p[2])
 }
@@ -4693,18 +4693,17 @@ fn cpu_apply_highlights_adjustment(pix: &mut [f32], _blur: f32, highlights: f32)
     }
 
     let luma = pixel_luma;
-    let mut final_color = [pix[0], pix[1], pix[2]];
+    let mut final_color;
     if highlights < 0.0 {
-        let new_luma: f32;
-        if luma <= 1.0 {
+        let new_luma: f32 = if luma <= 1.0 {
             let gamma = 1.0 - highlights * 1.75;
-            new_luma = luma.powf(gamma);
+            luma.powf(gamma)
         } else {
             let luma_excess = luma - 1.0;
             let compression_strength = -highlights * 6.0;
             let compressed_excess = luma_excess / (1.0 + luma_excess * compression_strength);
-            new_luma = 1.0 + compressed_excess;
-        }
+            1.0 + compressed_excess
+        };
         let scale = new_luma / luma.max(0.0001);
         let tonally_adjusted = [pix[0] * scale, pix[1] * scale, pix[2] * scale];
         let desaturation_amount = cpu_smoothstep(1.0, 10.0, luma);
@@ -4766,6 +4765,7 @@ fn cpu_hsv_to_rgb(h: f32, s: f32, v: f32) -> [f32; 3] {
 }
 
 #[inline]
+#[allow(dead_code)]
 fn cpu_hue_diff(a: f32, b: f32) -> f32 {
     let d = (a - b).abs();
     if d > 180.0 { 360.0 - d } else { d }
@@ -5476,6 +5476,7 @@ fn cpu_apply_grain(
 
 /// Validate image dimensions for safe processing.
 #[deprecated = "Use module-level validate_image_dimensions directly"]
+#[allow(dead_code)]
 pub fn validate_image_dimensions_public(width: u32, height: u32) -> Result<(), String> {
     validate_image_dimensions(width, height)
 }

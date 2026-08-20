@@ -375,9 +375,7 @@ pub fn sanitize_filename(name: &str) -> String {
         .map(|c| if INVALID.contains(&c) { '_' } else { c })
         .collect();
     // Remove trailing spaces/dots which are illegal or confusing on Windows.
-    sanitized = sanitized
-        .trim_end_matches(|c: char| c == ' ' || c == '.')
-        .to_string();
+    sanitized = sanitized.trim_end_matches([' ', '.']).to_string();
 
     // Avoid reserved Windows device names (CON, PRN, AUX, NUL, COM1-9, LPT1-9)
     // and any name that starts with one of them followed by a dot.
@@ -3269,21 +3267,19 @@ pub fn delete_files_from_disk(paths: Vec<String>, app_handle: AppHandle) -> Resu
             if sidecar_path.exists() {
                 files_to_trash.insert(sidecar_path);
             }
-        } else {
-            if source_path.exists() {
-                match find_all_associated_files(&source_path) {
-                    Ok(associated_files) => {
-                        for file in associated_files {
-                            files_to_trash.insert(file);
-                        }
+        } else if source_path.exists() {
+            match find_all_associated_files(&source_path) {
+                Ok(associated_files) => {
+                    for file in associated_files {
+                        files_to_trash.insert(file);
                     }
-                    Err(e) => {
-                        log::warn!(
-                            "Could not find associated files for {}: {}",
-                            source_path.display(),
-                            e
-                        );
-                    }
+                }
+                Err(e) => {
+                    log::warn!(
+                        "Could not find associated files for {}: {}",
+                        source_path.display(),
+                        e
+                    );
                 }
             }
         }

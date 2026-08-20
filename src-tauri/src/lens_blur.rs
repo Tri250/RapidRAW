@@ -164,7 +164,7 @@ fn generate_bokeh_taps(radius: f32, shape: &str) -> Vec<BokehTap> {
         }];
     }
 
-    let r_f = radius as f32;
+    let r_f = radius;
     let r_sq = r_f * r_f;
 
     let mut taps: Vec<BokehTap> = Vec::new();
@@ -196,7 +196,7 @@ fn generate_bokeh_taps(radius: f32, shape: &str) -> Vec<BokehTap> {
         }
         "octagon" | "oct" => {
             // Octagonal bokeh
-            let r_half = r_f * 0.7071; // cos(45°)
+            let r_half = r_f * std::f32::consts::FRAC_1_SQRT_2; // cos(45°)
             for dy in -r..=r {
                 for dx in -r..=r {
                     let dist_sq = (dx * dx + dy * dy) as f32;

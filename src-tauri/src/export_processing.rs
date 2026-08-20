@@ -6,7 +6,6 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use image::codecs::jpeg::JpegEncoder;
 use image::{DynamicImage, GenericImageView, GrayImage, ImageBuffer, ImageFormat, Luma, imageops};
 use jxl_encoder::{LosslessConfig, LossyConfig, PixelLayout};
 use serde::{Deserialize, Serialize};
@@ -147,7 +146,7 @@ fn apply_watermark(
 
     let spacing_pixels = (base_min_dim * (watermark_settings.spacing / 100.0))
         .round()
-        .clamp(0.0, base_min_dim as f32) as i64;
+        .clamp(0.0, base_min_dim) as i64;
     let (wm_w, wm_h) = final_watermark.dimensions();
 
     let x = match watermark_settings.anchor {
@@ -1745,7 +1744,7 @@ pub fn export_single_image_headless(
             .map_err(|e| format!("Failed to load image: {}", e))?;
 
     // Determine adjustments: CLI override > sidecar > default
-    let mut adjustments: Value = if let Some(adj_str) = &opts.adjustments_override {
+    let adjustments: Value = if let Some(adj_str) = &opts.adjustments_override {
         serde_json::from_str(adj_str)
             .map_err(|e| format!("Failed to parse --adjustments JSON: {}", e))?
     } else {
@@ -1768,7 +1767,7 @@ pub fn export_single_image_headless(
         other => return Err(format!("Unsupported output format: '{}'", other)),
     };
 
-    let export_settings = ExportSettings {
+    let _export_settings = ExportSettings {
         jpeg_quality: opts.quality,
         resize: None,
         keep_metadata: opts.keep_metadata,

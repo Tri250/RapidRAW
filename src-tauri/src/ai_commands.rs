@@ -651,14 +651,12 @@ fn compute_rating_from_features(image: &image::DynamicImage) -> (u8, String) {
         } else {
             "Average quality".to_string()
         }
+    } else if var_lum < 0.02 {
+        "Low contrast".to_string()
+    } else if avg_sat < 0.1 {
+        "Flat colors".to_string()
     } else {
-        if var_lum < 0.02 {
-            "Low contrast".to_string()
-        } else if avg_sat < 0.1 {
-            "Flat colors".to_string()
-        } else {
-            "Consider adjustments".to_string()
-        }
+        "Consider adjustments".to_string()
     };
 
     (rating, desc)
@@ -789,10 +787,10 @@ pub async fn generate_ai_sky_replace(
     path: String,
     sky_prompt: String,
     blend_amount: f32,
-    rotation: f32,
-    flip_horizontal: bool,
-    flip_vertical: bool,
-    orientation_steps: u8,
+    _rotation: f32,
+    _flip_horizontal: bool,
+    _flip_vertical: bool,
+    _orientation_steps: u8,
     state: tauri::State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<Vec<u8>, String> {

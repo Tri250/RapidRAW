@@ -33,10 +33,8 @@ pub fn hydrate_sub_masks(
                     let val = params.get(key).unwrap();
                     if !val.is_null() {
                         cache.insert(id.clone(), val.clone());
-                    } else {
-                        if let Some(cached_data) = cache.get(&id) {
-                            params.insert(key.to_string(), cached_data.clone());
-                        }
+                    } else if let Some(cached_data) = cache.get(&id) {
+                        params.insert(key.to_string(), cached_data.clone());
                     }
                 }
             }
@@ -68,10 +66,8 @@ pub fn hydrate_adjustments(state: &tauri::State<AppState>, adjustments: &mut ser
                     if let Some(data) = patch.get("patchData") {
                         cache.insert(id.clone(), data.clone());
                     }
-                } else {
-                    if let Some(cached_data) = cache.get(&id) {
-                        patch["patchData"] = cached_data.clone();
-                    }
+                } else if let Some(cached_data) = cache.get(&id) {
+                    patch["patchData"] = cached_data.clone();
                 }
             }
 

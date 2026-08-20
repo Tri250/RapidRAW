@@ -361,12 +361,10 @@ fn denoise_image(
         } else {
             (w, h)
         }
+    } else if h > 4000 {
+        ((4000.0 * w as f32 / h as f32).round() as u32, 4000)
     } else {
-        if h > 4000 {
-            ((4000.0 * w as f32 / h as f32).round() as u32, 4000)
-        } else {
-            (w, h)
-        }
+        (w, h)
     };
 
     let denoised_preview = if new_w != w {
