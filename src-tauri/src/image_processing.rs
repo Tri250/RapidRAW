@@ -4693,8 +4693,7 @@ fn cpu_apply_highlights_adjustment(pix: &mut [f32], _blur: f32, highlights: f32)
     }
 
     let luma = pixel_luma;
-    let final_color;
-    if highlights < 0.0 {
+    let final_color = if highlights < 0.0 {
         let new_luma: f32 = if luma <= 1.0 {
             let gamma = 1.0 - highlights * 1.75;
             luma.powf(gamma)
@@ -4708,16 +4707,16 @@ fn cpu_apply_highlights_adjustment(pix: &mut [f32], _blur: f32, highlights: f32)
         let tonally_adjusted = [pix[0] * scale, pix[1] * scale, pix[2] * scale];
         let desaturation_amount = cpu_smoothstep(1.0, 10.0, luma);
         let white_point = [new_luma; 3];
-        final_color = [
+        [
             cpu_mix(tonally_adjusted[0], white_point[0], desaturation_amount),
             cpu_mix(tonally_adjusted[1], white_point[1], desaturation_amount),
             cpu_mix(tonally_adjusted[2], white_point[2], desaturation_amount),
-        ];
+        ]
     } else {
         let adjustment = highlights * 1.75;
         let factor = 2.0f32.powf(adjustment);
-        final_color = [pix[0] * factor, pix[1] * factor, pix[2] * factor];
-    }
+        [pix[0] * factor, pix[1] * factor, pix[2] * factor]
+    };
 
     for c in 0..3 {
         pix[c] = cpu_mix(pix[c], final_color[c], highlight_mask);
