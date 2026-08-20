@@ -120,8 +120,16 @@ fn apply_watermark(
 
     let watermark_scale_factor =
         (base_min_dim * (watermark_settings.scale / 100.0)) / watermark_img.width().max(1) as f32;
-    let new_wm_w = (watermark_img.width() as f32 * watermark_scale_factor).round() as u32;
-    let new_wm_h = (watermark_img.height() as f32 * watermark_scale_factor).round() as u32;
+    let mut new_wm_w = (watermark_img.width() as f32 * watermark_scale_factor).round() as u32;
+    let mut new_wm_h = (watermark_img.height() as f32 * watermark_scale_factor).round() as u32;
+
+    // Guard against an unbounded scale producing a huge in-memory resize
+    // (resize_exact allocates `w*h*4` bytes). Cap at the base image size,
+    // since a watermark larger than the image is never placed legibly and
+    // only risks OOM with Lanczos3.
+    let max_wm_dim = base_w.max(base_h);
+    new_wm_w = new_wm_w.min(max_wm_dim);
+    new_wm_h = new_wm_h.min(max_wm_dim);
 
     if new_wm_w == 0 || new_wm_h == 0 {
         return Ok(());
@@ -1426,7 +1434,7 @@ pub async fn estimate_export_sizes(
     app_handle: tauri::AppHandle,
 ) -> Result<usize, String> {
     if output_format.to_lowercase() == "cube" {
-        return Ok(1_050_000 * paths.len());
+        return Ok(1_050_000usize.saturating_mul(paths.len()));
     }
 
     if paths.is_empty() {
@@ -1707,7 +1715,7 @@ pub async fn estimate_export_sizes(
         (single_image_estimated_size as f64 * pixel_ratio) as usize
     };
 
-    Ok(single_image_extrapolated_size * paths.len())
+    Ok(single_image_extrapolated_size.saturating_mul(paths.len()))
 }
 
 /// Options for a headless (CLI) export — no GUI required.

@@ -465,18 +465,28 @@ fn interpolate_pixel(
     y: f32,
     pixel_out: &mut [f32],
 ) {
-    if x.is_nan()
-        || y.is_nan()
-        || x < 0.0
-        || y < 0.0
-        || x >= (src_width as f32 - 1.0)
-        || y >= (src_height as f32 - 1.0)
-    {
+    if x.is_nan() || y.is_nan() || src_width == 0 || src_height == 0 {
+        pixel_out[..3].fill(0.0);
         return;
     }
 
-    let x0 = x.floor() as usize;
-    let y0 = y.floor() as usize;
+    // Clamp to the nearest valid source pixel instead of returning early and
+    // leaving `pixel_out` untouched (which produced black edge/out-of-range
+    // pixels during rotation/perspective/warp, inconsistent with the TCA path).
+    let x = x.clamp(0.0, src_width as f32 - 1.0);
+    let y = y.clamp(0.0, src_height as f32 - 1.0);
+
+    // Degenerate single-row/column images: nearest neighbour sampling only.
+    if src_width < 2 || src_height < 2 {
+        let xi = (x as usize).min(src_width - 1);
+        let yi = (y as usize).min(src_height - 1);
+        let idx = (yi * src_width + xi) * 3;
+        pixel_out.copy_from_slice(&src_raw[idx..idx + 3]);
+        return;
+    }
+
+    let x0 = (x.floor() as usize).min(src_width - 2);
+    let y0 = (y.floor() as usize).min(src_height - 2);
 
     let wx = x - x0 as f32;
     let wy = y - y0 as f32;
@@ -600,14 +610,22 @@ fn interpolate_pixel_with_tca(
         let x_clamped = target_x.clamp(0.0, src_width as f32 - 1.0);
         let y_clamped = target_y.clamp(0.0, src_height as f32 - 1.0);
 
+        // Degenerate single-row/column images: nearest neighbour sampling only.
+        // Bilinear would read past the single buffer row/column below.
+        if src_width < 2 || src_height < 2 {
+            let xi = (x_clamped as usize).min(src_width - 1);
+            let yi = (y_clamped as usize).min(src_height - 1);
+            return src_raw[(yi * src_width + xi) * 3 + channel_idx];
+        }
+
         let mut x0 = x_clamped.floor() as usize;
         let mut y0 = y_clamped.floor() as usize;
 
-        if src_width >= 2 && x0 >= src_width - 1 {
-            x0 = src_width.saturating_sub(2);
+        if x0 >= src_width - 1 {
+            x0 = src_width - 2;
         }
-        if src_height >= 2 && y0 >= src_height - 1 {
-            y0 = src_height.saturating_sub(2);
+        if y0 >= src_height - 1 {
+            y0 = src_height - 2;
         }
 
         let wx = x_clamped - x0 as f32;
