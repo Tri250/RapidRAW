@@ -1,0 +1,14 @@
+[advisories]
+ignore = [
+  # RUSTSEC-2026-0194/0195 (quick-xml DoS).  The vulnerable quick-xml 0.37.5 is
+  # pulled in transitively ONLY by `little_exif` 0.6.23 (latest release), which
+  # hard-pins quick-xml = "0.37.5".  quick-xml <=0.39 offers no patched release,
+  # and upgrading little_exif is impossible (already at max version).  The
+  # affected code path (BytesStart::attributes / NsReader) is used to deserialize
+  # XMP metadata embedded in a locally-selected image file -- it is not reachable
+  # by remote/untrusted network input (no I/O-driven parsing loop on attacker
+  # controlled XML).  A patched quick-xml (>=0.41) is used directly by the app
+  # for all other XML parsing.  Revisit on next little_exif/quick-xml upgrade.
+  "RUSTSEC-2026-0194",
+  "RUSTSEC-2026-0195",
+]
