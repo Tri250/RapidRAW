@@ -4693,7 +4693,7 @@ fn cpu_apply_highlights_adjustment(pix: &mut [f32], _blur: f32, highlights: f32)
     }
 
     let luma = pixel_luma;
-    let mut final_color;
+    let final_color;
     if highlights < 0.0 {
         let new_luma: f32 = if luma <= 1.0 {
             let gamma = 1.0 - highlights * 1.75;
