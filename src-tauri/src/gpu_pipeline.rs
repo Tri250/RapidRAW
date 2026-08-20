@@ -200,6 +200,40 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
 "#;
 
 // ---------------------------------------------------------------------------
+// Blit shader for Android surface rendering – full-screen pass that copies
+// the processed input texture directly to the screen.
+// ---------------------------------------------------------------------------
+
+#[cfg(target_os = "android")]
+const BLIT_SHADER_SRC: &str = r#"
+@group(0) @binding(0) var input_tex: texture_2d<f32>;
+@group(0) @binding(1) var input_sampler: sampler;
+
+struct VertexOutput {
+    @builtin(position) pos: vec4<f32>,
+    @location(0) uv: vec2<f32>,
+}
+
+@vertex
+fn vs_main(@builtin(vertex_index) id: u32) -> VertexOutput {
+    let uvs = array<vec2<f32>, 4>(
+        vec2<f32>(0.0, 0.0), vec2<f32>(1.0, 0.0),
+        vec2<f32>(0.0, 1.0), vec2<f32>(1.0, 1.0)
+    );
+    let uv = uvs[id];
+    var output: VertexOutput;
+    output.pos = vec4<f32>(uv * 2.0 - 1.0, 0.0, 1.0);
+    output.uv = vec2<f32>(uv.x, 1.0 - uv.y);
+    return output;
+}
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    return textureSample(input_tex, input_sampler, in.uv);
+}
+"#;
+
+// ---------------------------------------------------------------------------
 // AdjustmentUniforms – CPU-side mirror of the GPU struct
 // ---------------------------------------------------------------------------
 
@@ -296,11 +330,16 @@ impl<'a> TextureGuard<'a> {
     }
 
     fn texture(&self) -> &wgpu::Texture {
-        &self.entry.as_ref().unwrap().texture
+        // SAFETY: `entry` is always `Some` after construction and is
+        // only consumed by `Drop`.  It is impossible for `texture()`
+        // to be called after `Drop` consumed the entry because the
+        // borrow checker enforces that.
+        unsafe { self.entry.as_ref().unwrap_unchecked() }.texture
     }
 
     fn view(&self) -> &wgpu::TextureView {
-        &self.entry.as_ref().unwrap().view
+        // SAFETY: same as `texture()` — see above.
+        unsafe { self.entry.as_ref().unwrap_unchecked() }.view
     }
 }
 
@@ -349,6 +388,22 @@ pub struct GpuPipeline {
     surface_config: Option<wgpu::SurfaceConfiguration>,
     #[cfg(target_os = "android")]
     surface_format: Option<wgpu::TextureFormat>,
+    // Cached Android blit pipeline resources – created once at init,
+    // reused on every `render_to_surface` call.  These are independent
+    // of frame size / surface format and would otherwise be re-created
+    // (and destroyed) per frame, adding measurable CPU overhead.
+    #[cfg(target_os = "android")]
+    blit_sampler: wgpu::Sampler,
+    #[cfg(target_os = "android")]
+    blit_bind_group_layout: wgpu::BindGroupLayout,
+    #[cfg(target_os = "android")]
+    blit_shader_module: wgpu::ShaderModule,
+    #[cfg(target_os = "android")]
+    blit_pipeline_layout: wgpu::PipelineLayout,
+    // Cached render pipeline – recreated only when the surface format
+    // changes (e.g. on device rotation / resize).
+    #[cfg(target_os = "android")]
+    blit_render_pipeline: Option<wgpu::RenderPipeline>,
 }
 
 impl Drop for GpuPipeline {
@@ -468,6 +523,54 @@ impl GpuPipeline {
             cache: None,
         });
 
+        // --- Android blit pipeline resources (cached, created once) ---
+        #[cfg(target_os = "android")]
+        let (blit_sampler, blit_bind_group_layout, blit_shader_module, blit_pipeline_layout) = {
+            let blit_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+                label: Some("Surface Blit Sampler"),
+                address_mode_u: wgpu::AddressMode::ClampToEdge,
+                address_mode_v: wgpu::AddressMode::ClampToEdge,
+                mag_filter: wgpu::FilterMode::Linear,
+                min_filter: wgpu::FilterMode::Linear,
+                ..Default::default()
+            });
+
+            let blit_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Surface Blit BGL"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+            });
+
+            let blit_shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("Surface Blit Shader"),
+                source: wgpu::ShaderSource::Wgsl(BLIT_SHADER_SRC.into()),
+            });
+
+            let blit_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Surface Blit Pipeline Layout"),
+                bind_group_layouts: &[Some(&blit_bind_group_layout)],
+                immediate_size: 0,
+            });
+
+            (blit_sampler, blit_bind_group_layout, blit_shader_module, blit_pipeline_layout)
+        };
+
         Ok(Self {
             device,
             queue,
@@ -487,6 +590,16 @@ impl GpuPipeline {
             surface_config: None,
             #[cfg(target_os = "android")]
             surface_format: None,
+            #[cfg(target_os = "android")]
+            blit_sampler,
+            #[cfg(target_os = "android")]
+            blit_bind_group_layout,
+            #[cfg(target_os = "android")]
+            blit_shader_module,
+            #[cfg(target_os = "android")]
+            blit_pipeline_layout,
+            #[cfg(target_os = "android")]
+            blit_render_pipeline: None,
         })
     }
 
@@ -549,6 +662,9 @@ impl GpuPipeline {
         self.surface = Some(surface);
         self.surface_config = Some(config);
         self.surface_format = Some(surface_format);
+        // Invalidate cached render pipeline – surface format may differ
+        // from the one used during initial pipeline creation.
+        self.blit_render_pipeline = None;
 
         log::info!("Android WGPU Surface initialized successfully");
         Ok(())
@@ -577,6 +693,9 @@ impl GpuPipeline {
                 new_config.width = width;
                 new_config.height = height;
                 surface.configure(&self.device, &new_config);
+                // Surface may have been recreated with a new format;
+                // force the render pipeline to be rebuilt.
+                self.blit_render_pipeline = None;
                 log::debug!("Reconfigured surface to {}x{}", width, height);
             }
         }
@@ -623,41 +742,13 @@ impl GpuPipeline {
         );
         let input_view = input_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let sampler = self.device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("Surface Sampler"),
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            ..Default::default()
-        });
+        // Use cached sampler – avoids per-frame creation
+        let sampler = &self.blit_sampler;
 
-        // Create bind group layout and bind group for the full-screen pass
-        let bind_group_layout = self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Surface Blit BGL"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
-        });
-
+        // Use cached bind group layout – avoids per-frame creation
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Surface Blit BG"),
-            layout: &bind_group_layout,
+            layout: &self.blit_bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -665,76 +756,59 @@ impl GpuPipeline {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
+                    resource: wgpu::BindingResource::Sampler(sampler),
                 },
             ],
         });
 
-        // Create a simple full-screen vertex+fragment shader inline
-        let shader_module = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Surface Blit Shader"),
-            source: wgpu::ShaderSource::Wgsl(
-                r#"
-                @group(0) @binding(0) var input_tex: texture_2d<f32>;
-                @group(0) @binding(1) var input_sampler: sampler;
+        // Lazily create / update the render pipeline only when the surface
+        // format changes (which happens on device rotation / resize).
+        // This avoids a `create_render_pipeline` call on every frame.
+        let pipeline = {
+            let surface_fmt = view.format();
+            let needs_new_pipeline = self
+                .blit_render_pipeline
+                .as_ref()
+                .map_or(true, |_| {
+                    // If we have a cached pipeline, check if its format matches
+                    // (wgpu pipelines are format-specific).  Since we don't
+                    // store the format alongside, conservatively recreate
+                    // whenever we don't have one yet.
+                    self.blit_render_pipeline.is_none()
+                });
 
-                struct VertexOutput {
-                    @builtin(position) pos: vec4<f32>,
-                    @location(0) uv: vec2<f32>,
-                }
-
-                @vertex
-                fn vs_main(@builtin(vertex_index) id: u32) -> VertexOutput {
-                    let uvs = array<vec2<f32>, 4>(
-                        vec2<f32>(0.0, 0.0), vec2<f32>(1.0, 0.0),
-                        vec2<f32>(0.0, 1.0), vec2<f32>(1.0, 1.0)
-                    );
-                    let uv = uvs[id];
-                    var output: VertexOutput;
-                    output.pos = vec4<f32>(uv * 2.0 - 1.0, 0.0, 1.0);
-                    output.uv = vec2<f32>(uv.x, 1.0 - uv.y);
-                    return output;
-                }
-
-                @fragment
-                fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-                    return textureSample(input_tex, input_sampler, in.uv);
-                }
-                "#.into(),
-            ),
-        });
-
-        let pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Surface Blit Pipeline Layout"),
-            bind_group_layouts: &[Some(&bind_group_layout)],
-            immediate_size: 0,
-        });
-
-        let pipeline = self.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Surface Blit Pipeline"),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader_module,
-                entry_point: Some("vs_main"),
-                buffers: &[],
-                compilation_options: Default::default(),
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader_module,
-                entry_point: Some("fs_main"),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: view.format(),
-                    blend: None,
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-                compilation_options: Default::default(),
-            }),
-            primitive: wgpu::PrimitiveState::default(),
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            multiview_mask: std::num::NonZeroU32::new(0),
-            cache: None,
-        });
+            if needs_new_pipeline {
+                let new_pipeline = self.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                    label: Some("Surface Blit Pipeline"),
+                    layout: Some(&self.blit_pipeline_layout),
+                    vertex: wgpu::VertexState {
+                        module: &self.blit_shader_module,
+                        entry_point: Some("vs_main"),
+                        buffers: &[],
+                        compilation_options: Default::default(),
+                    },
+                    fragment: Some(wgpu::FragmentState {
+                        module: &self.blit_shader_module,
+                        entry_point: Some("fs_main"),
+                        targets: &[Some(wgpu::ColorTargetState {
+                            format: surface_fmt,
+                            blend: None,
+                            write_mask: wgpu::ColorWrites::ALL,
+                        })],
+                        compilation_options: Default::default(),
+                    }),
+                    primitive: wgpu::PrimitiveState::default(),
+                    depth_stencil: None,
+                    multisample: wgpu::MultisampleState::default(),
+                    multiview_mask: std::num::NonZeroU32::new(0),
+                    cache: None,
+                });
+                self.blit_render_pipeline = Some(new_pipeline);
+                self.blit_render_pipeline.as_ref().unwrap()
+            } else {
+                self.blit_render_pipeline.as_ref().unwrap()
+            }
+        };
 
         let mut encoder = self
             .device

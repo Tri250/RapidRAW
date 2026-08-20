@@ -541,13 +541,17 @@ fn apply_filmic_exposure(color_in: vec3<f32>, brightness_adj: f32) -> vec3<f32> 
     let scale = pow(2.0, direct_adj);
     let k = pow(2.0, -rational_adj * MIDTONE_STRENGTH);
     let luma_abs = abs(original_luma);
+    let safe_original_luma = max(luma_abs, 1e-4);
     let luma_floor = floor(luma_abs / TOP_ANCHOR) * TOP_ANCHOR;
     let luma_norm = (luma_abs - luma_floor) / TOP_ANCHOR;
     let shaped_norm = luma_norm / (luma_norm + (1.0 - luma_norm) * k);
     let shaped_luma_abs = luma_floor + (shaped_norm * TOP_ANCHOR);
     let new_luma = sign(original_luma) * shaped_luma_abs * scale;
     let chroma = color_in - vec3<f32>(original_luma);
-    let total_luma_scale = new_luma / original_luma;
+    // Guard against near-zero original_luma: when original_luma is very
+    // small the ratio new_luma/original_luma becomes extreme, amplifying
+    // noise in near-black regions. Clamp the ratio to a sensible range.
+    let total_luma_scale = clamp(new_luma / safe_original_luma, 0.01, 100.0);
     let luma_weight = clamp(new_luma, 0.0, 2.0) * 0.5;
     let dynamic_exp = mix(0.95, 0.65, luma_weight);
     let base_chroma_scale = pow(total_luma_scale, dynamic_exp);
@@ -665,8 +669,12 @@ fn apply_hsl_panel(color: vec3<f32>, hsl_adjustments: array<HslColor, 8>, coords
     var total_sat_multiplier: f32 = 0.0;
     var total_lum_adjust: f32 = 0.0;
 
+    // total_raw_influence can be zero if the hue is outside all HSL
+    // ranges (e.g. degenerate input).  Guard against division by zero.
+    let safe_total_influence = max(total_raw_influence, 1e-6);
+
     for (var i = 0u; i < 8u; i = i + 1u) {
-        let normalized_influence = raw_influences[i] / total_raw_influence;
+        let normalized_influence = raw_influences[i] / safe_total_influence;
 
         let hue_sat_influence = normalized_influence * saturation_mask;
         let luma_influence = normalized_influence * luminance_weight;
@@ -689,7 +697,10 @@ fn apply_hsl_panel(color: vec3<f32>, hsl_adjustments: array<HslColor, 8>, coords
     if (new_luma < 0.0001) {
         return vec3<f32>(max(0.0, target_luma));
     }
-    let final_color = hs_shifted_rgb * (target_luma / new_luma);
+    // Clamp the luma rescaling ratio to avoid extreme amplification
+    // (or near-total suppression) when new_luma diverges from target_luma.
+    let luma_rescale = clamp(target_luma / max(new_luma, 1e-4), 0.01, 100.0);
+    let final_color = hs_shifted_rgb * luma_rescale;
     return final_color;
 }
 
@@ -803,11 +814,14 @@ fn apply_centre_local_contrast(
         return color_in;
     }
     let full_dims_f = vec2<f32>(textureDimensions(input_texture));
+    // Guard against degenerate texture dimensions (0x0) which would
+    // cause division-by-zero in the aspect / UV calculations below.
+    let safe_dims = max(full_dims_f, vec2<f32>(1.0));
     let coord_f = vec2<f32>(coords_i);
     let midpoint = 0.4;
     let feather = 0.375;
-    let aspect = full_dims_f.y / full_dims_f.x;
-    let uv_centered = (coord_f / full_dims_f - 0.5) * 2.0;
+    let aspect = safe_dims.y / safe_dims.x;
+    let uv_centered = (coord_f / safe_dims - 0.5) * 2.0;
     let d = length(uv_centered * vec2<f32>(1.0, aspect)) * 0.5;
     let vignette_mask = smoothstep(midpoint - feather, midpoint + feather, d);
     let centre_mask = 1.0 - vignette_mask;
@@ -832,11 +846,14 @@ fn apply_centre_tonal_and_color(
         return color_in;
     }
     let full_dims_f = vec2<f32>(textureDimensions(input_texture));
+    // Guard against degenerate texture dimensions (0x0) which would
+    // cause division-by-zero in the aspect / UV calculations below.
+    let safe_dims = max(full_dims_f, vec2<f32>(1.0));
     let coord_f = vec2<f32>(coords_i);
     let midpoint = 0.4;
     let feather = 0.375;
-    let aspect = full_dims_f.y / full_dims_f.x;
-    let uv_centered = (coord_f / full_dims_f - 0.5) * 2.0;
+    let aspect = safe_dims.y / safe_dims.x;
+    let uv_centered = (coord_f / safe_dims - 0.5) * 2.0;
     let d = length(uv_centered * vec2<f32>(1.0, aspect)) * 0.5;
     let vignette_mask = smoothstep(midpoint - feather, midpoint + feather, d);
     let centre_mask = 1.0 - vignette_mask;
@@ -1673,13 +1690,14 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
 
     if (adjustments.global.vignette_amount != 0.0) {
         let full_dims_f = vec2<f32>(textureDimensions(input_texture));
+        let safe_dims = max(full_dims_f, vec2<f32>(1.0));
         let coord_f = vec2<f32>(absolute_coord);
         let v_amount = adjustments.global.vignette_amount;
         let v_mid = adjustments.global.vignette_midpoint;
         let v_round = 1.0 - adjustments.global.vignette_roundness;
         let v_feather = adjustments.global.vignette_feather * 0.5;
-        let aspect = full_dims_f.y / full_dims_f.x;
-        let uv_centered = (coord_f / full_dims_f - 0.5) * 2.0;
+        let aspect = safe_dims.y / safe_dims.x;
+        let uv_centered = (coord_f / safe_dims - 0.5) * 2.0;
         let uv_round = sign(uv_centered) * pow(abs(uv_centered), vec2<f32>(v_round, v_round));
         let d = length(uv_round * vec2<f32>(1.0, aspect)) * 0.5;
         let vignette_mask = smoothstep(v_mid - v_feather, v_mid + v_feather, d);
