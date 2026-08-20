@@ -361,9 +361,14 @@ fn apply_curve(val: f32, points: array<Point, 16>, count: u32) -> f32 {
             if (i + 1u == count - 1u) { tangent_at_p2 = delta_current; } else {
                 if (delta_current * delta_after <= 0.0) { tangent_at_p2 = 0.0; } else { tangent_at_p2 = (delta_current + delta_after) / 2.0; }
             }
-            if (delta_current != 0.0) {
-                let alpha = tangent_at_p1 / delta_current;
-                let beta = tangent_at_p2 / delta_current;
+            // Use a reasonable epsilon to avoid 1/0 when the
+            // denominator is vanishingly small – a common edge
+            // case when two control points have nearly identical
+            // Y values (flat regions of the curve).
+            if (abs(delta_current) > 1e-6) {
+                let safe_delta = max(abs(delta_current), 1e-6) * sign(delta_current);
+                let alpha = tangent_at_p1 / safe_delta;
+                let beta = tangent_at_p2 / safe_delta;
                 if (alpha * alpha + beta * beta > 9.0) {
                     let tau = 3.0 / sqrt(alpha * alpha + beta * beta);
                     tangent_at_p1 = tangent_at_p1 * tau;
@@ -425,7 +430,10 @@ fn apply_tonal_adjustments(
         let final_t = max(mix(t_pixel_curved, contrasted_t, 0.85), 0.0);
         let curved_luma = pow(final_t, 2.2);
 
-        let luma_ratio = curved_luma / safe_pixel_luma;
+        // Clamp luma_ratio to a safe range to prevent extreme
+        // amplification in near-black regions where safe_pixel_luma
+        // could be as small as 0.0001 (giving a ratio of up to 10000).
+        let luma_ratio = clamp(curved_luma / safe_pixel_luma, 0.0, 100.0);
         rgb *= luma_ratio;
 
         let detail = t_pixel / max(t_blurred, 0.0001);
@@ -760,7 +768,10 @@ fn apply_local_contrast(
     let safe_center_luma = max(center_luma, 0.0001);
     let safe_blurred_luma = max(blurred_luma, 0.0001);
 
-    let log_ratio = log2(safe_center_luma / safe_blurred_luma);
+    // Clamp the luma ratio before taking the log to avoid extreme
+    // values that would cause exp2() to overflow or underflow.
+    let luma_ratio = clamp(safe_center_luma / safe_blurred_luma, 1e-4, 1e4);
+    let log_ratio = clamp(log2(luma_ratio), -14.0, 14.0);
     var effective_amount = amount;
 
     if (mode == 0u) {
@@ -773,7 +784,9 @@ fn apply_local_contrast(
         effective_amount = amount;
     }
 
-    let contrast_factor = exp2(log_ratio * effective_amount);
+    // Clamp contrast_factor to a safe range [1e-4, 1e4] so that
+    // extreme adjustments don't produce NaN/Inf downstream.
+    let contrast_factor = clamp(exp2(log_ratio * effective_amount), 1e-4, 1e4);
     let final_color = processed_color_linear * contrast_factor;
 
     return mix(processed_color_linear, final_color, midtone_mask);
@@ -1232,7 +1245,15 @@ fn apply_all_curves(color: vec3<f32>, luma_curve: array<Point, 16>, luma_curve_c
         let luma_initial = get_luma(color);
         let luma_target = apply_curve(luma_initial, luma_curve, luma_curve_count);
         let luma_graded = get_luma(color_graded);
-        if (luma_graded > 0.001) { final_color = color_graded * (luma_target / luma_graded); } else { final_color = vec3<f32>(luma_target); }
+        if (luma_graded > 0.001) {
+            // Clamp the luma ratio to a reasonable range [0.01, 100.0] to
+            // prevent extreme colour shifts when the graded image has
+            // near-black regions (which would otherwise amplify noise).
+            let luma_ratio = clamp(luma_target / luma_graded, 0.01, 100.0);
+            final_color = color_graded * luma_ratio;
+        } else {
+            final_color = vec3<f32>(luma_target);
+        }
         let max_comp = max(final_color.r, max(final_color.g, final_color.b));
         if (max_comp > 1.0) { final_color = final_color / max_comp; }
     } else {

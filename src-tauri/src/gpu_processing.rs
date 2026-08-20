@@ -72,27 +72,70 @@ pub struct WgpuDisplay {
     pub transform_buffer: wgpu::Buffer,
     pub latest_transform: DisplayTransform,
     pub current_bind_group: Option<wgpu::BindGroup>,
+    /// Tracks consecutive frame-skips so we can log periodically (every Nth
+    /// skip) instead of spamming the log on every missed frame.
+    skip_count: u64,
 }
 
 impl WgpuDisplay {
     pub fn render(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
-        if let Some(bind_group) = &self.current_bind_group {
-            let output = match self.surface.get_current_texture() {
-                wgpu::CurrentSurfaceTexture::Success(tex)
-                | wgpu::CurrentSurfaceTexture::Suboptimal(tex) => tex,
-                wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
-                    self.surface.configure(device, &self.config);
-                    match self.surface.get_current_texture() {
-                        wgpu::CurrentSurfaceTexture::Success(tex)
-                        | wgpu::CurrentSurfaceTexture::Suboptimal(tex) => tex,
-                        _ => {
-                            eprintln!("Warning: Failed to acquire surface texture, skipping frame");
-                            return;
+        let bind_group = match &self.current_bind_group {
+            Some(bg) => bg,
+            None => {
+                // No bind group yet – the processor may not be initialised
+                // or the resolution may have changed.  Log periodically so
+                // the issue is observable without flooding the log.
+                self.skip_count += 1;
+                if self.skip_count % 60 == 0 {
+                    log::warn!(
+                        "WgpuDisplay::render skipped {} frames – no bind group \
+                         (processor not initialised or resolution changed?)",
+                        self.skip_count
+                    );
+                }
+                return;
+            }
+        };
+
+        let output = match self.surface.get_current_texture() {
+            wgpu::CurrentSurfaceTexture::Success(tex)
+            | wgpu::CurrentSurfaceTexture::Suboptimal(tex) => tex,
+            wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
+                self.surface.configure(device, &self.config);
+                match self.surface.get_current_texture() {
+                    wgpu::CurrentSurfaceTexture::Success(tex)
+                    | wgpu::CurrentSurfaceTexture::Suboptimal(tex) => {
+                        self.skip_count = 0; // reset on success
+                        tex
+                    }
+                    other => {
+                        self.skip_count += 1;
+                        if self.skip_count % 30 == 0 {
+                            log::warn!(
+                                "WgpuDisplay::render failed to acquire surface \
+                                 texture after reconfigure (status: {:?}); \
+                                 skipped {} frames",
+                                other,
+                                self.skip_count
+                            );
                         }
+                        return;
                     }
                 }
-                _ => return,
-            };
+            }
+            other => {
+                self.skip_count += 1;
+                if self.skip_count % 30 == 0 {
+                    log::warn!(
+                        "WgpuDisplay::render unexpected surface status {:?}; \
+                        skipped {} frames",
+                        other,
+                        self.skip_count
+                    );
+                }
+                return;
+            }
+        };
             let view = output
                 .texture
                 .create_view(&wgpu::TextureViewDescriptor::default());
@@ -155,7 +198,6 @@ impl WgpuDisplay {
             }
             queue.submit(Some(encoder.finish()));
             queue.present(output);
-        }
     }
 }
 
@@ -427,6 +469,7 @@ pub fn get_or_init_gpu_context(
             },
             sampler,
             current_bind_group: None,
+            skip_count: 0,
         })
     } else {
         None
@@ -2009,31 +2052,42 @@ fn process_and_get_dynamic_image_inner(
         display.latest_transform.texture_size =
             [processor_state.width as f32, processor_state.height as f32];
 
+        // Always update the transform buffer so the display shader sees the
+        // latest pan/zoom/clip geometry.  This is an in-place buffer write –
+        // the existing bind group still references the same buffer, so the
+        // resource update is sufficient.
         queue.write_buffer(
             &display.transform_buffer,
             0,
             bytemuck::bytes_of(&display.latest_transform),
         );
 
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &display.bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: display.transform_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&processor.output_texture_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&display.sampler),
-                },
-            ],
-            label: None,
-        });
-        display.current_bind_group = Some(bind_group);
+        // Only recreate the bind group when the processor's output texture
+        // view has changed (i.e. after a resize / processor rebuild).  The
+        // output_texture_view is created once in `GpuProcessor::new()` and
+        // never replaced, so recreating the bind group every frame was pure
+        // driver overhead with zero benefit.
+        if display.current_bind_group.is_none() {
+            let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                layout: &display.bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: display.transform_buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::TextureView(&processor.output_texture_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::Sampler(&display.sampler),
+                    },
+                ],
+                label: Some("Display Bind Group"),
+            });
+            display.current_bind_group = Some(bind_group);
+        }
         display.render(device, queue);
     }
 

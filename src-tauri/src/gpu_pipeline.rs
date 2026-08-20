@@ -51,27 +51,30 @@ struct Params {
 // ---- helper functions ----
 
 fn rgb_to_hsl(c: vec3<f32>) -> vec3<f32> {
-    let max_c = max(max(c.r, c.g), c.b);
-    let min_c = min(min(c.r, c.g), c.b);
+    // Guard against NaN / Inf inputs that would propagate through
+    // all downstream colour math.
+    let safe_c = clamp(isnan(c) ? vec3<f32>(0.0) : c, vec3<f32>(0.0), vec3<f32>(1.0));
+    let max_c = max(max(safe_c.r, safe_c.g), safe_c.b);
+    let min_c = min(min(safe_c.r, safe_c.g), safe_c.b);
     let l = (max_c + min_c) * 0.5;
     var h = 0.0;
     var s = 0.0;
     if max_c != min_c {
         let d = max_c - min_c;
         if l > 0.5 {
-            s = d / (2.0 - max_c - min_c);
+            s = d / max(2.0 - max_c - min_c, 1e-6);
         } else {
-            s = d / (max_c + min_c);
+            s = d / max(max_c + min_c, 1e-6);
         }
-        if max_c == c.r {
-            h = (c.g - c.b) / d;
-            if c.g < c.b {
+        if max_c == safe_c.r {
+            h = (safe_c.g - safe_c.b) / max(d, 1e-6);
+            if safe_c.g < safe_c.b {
                 h = h + 6.0;
             }
-        } else if max_c == c.g {
-            h = (c.b - c.r) / d + 2.0;
+        } else if max_c == safe_c.g {
+            h = (safe_c.b - safe_c.r) / max(d, 1e-6) + 2.0;
         } else {
-            h = (c.r - c.g) / d + 4.0;
+            h = (safe_c.r - safe_c.g) / max(d, 1e-6) + 4.0;
         }
         h = h / 6.0;
     }
@@ -309,14 +312,26 @@ impl<'a> Drop for TextureGuard<'a> {
     }
 }
 
+/// Internal texture cache storage that bundles entries with aggregate
+/// counters so both are always mutated under the same lock – eliminating
+/// the counter desync bug that existed when total_cached_textures and
+/// total_cached_bytes were stored behind separate Mutexes.
+struct TextureCacheInner {
+    entries: HashMap<(u32, u32), Vec<TextureCacheEntry>>,
+    total_textures: usize,
+    total_bytes: u64,
+}
+
 pub struct GpuPipeline {
     device: Arc<wgpu::Device>,
     queue: Arc<wgpu::Queue>,
     bind_group_layout: wgpu::BindGroupLayout,
     pipeline_cache: wgpu::ComputePipeline,
-    texture_cache: Mutex<HashMap<(u32, u32), Vec<TextureCacheEntry>>>,
-    total_cached_textures: Mutex<usize>,
-    total_cached_bytes: Mutex<u64>,
+    /// Pool of reusable output textures, keyed by (width, height).
+    /// Entries and aggregate counters are co-located so they are always
+    /// mutated under a single lock, preventing counter drift under
+    /// concurrent access.
+    texture_cache: Mutex<TextureCacheInner>,
     // Pool of readback (staging) buffers keyed by size – reusing these
     // avoids a `create_buffer` / `destroy_buffer` pair on every frame and
     // cuts allocation overhead by 5–10ms per adjustment pass.
@@ -339,13 +354,9 @@ pub struct GpuPipeline {
 impl Drop for GpuPipeline {
     fn drop(&mut self) {
         if let Ok(mut cache) = self.texture_cache.lock() {
-            cache.clear();
-        }
-        if let Ok(mut count) = self.total_cached_textures.lock() {
-            *count = 0;
-        }
-        if let Ok(mut bytes) = self.total_cached_bytes.lock() {
-            *bytes = 0;
+            cache.entries.clear();
+            cache.total_textures = 0;
+            cache.total_bytes = 0;
         }
         // Drop staging buffers
         if let Ok(mut sb_cache) = self.staging_buffer_cache.lock() {
@@ -462,9 +473,11 @@ impl GpuPipeline {
             queue,
             bind_group_layout,
             pipeline_cache,
-            texture_cache: Mutex::new(HashMap::new()),
-            total_cached_textures: Mutex::new(0),
-            total_cached_bytes: Mutex::new(0),
+            texture_cache: Mutex::new(TextureCacheInner {
+                entries: HashMap::new(),
+                total_textures: 0,
+                total_bytes: 0,
+            }),
             staging_buffer_cache: Mutex::new(HashMap::new()),
             #[cfg(target_os = "android")]
             instance,
@@ -541,9 +554,17 @@ impl GpuPipeline {
         Ok(())
     }
 
-    /// Render directly to the Android Surface, bypassing CPU readback.
+    /// Render raw RGBA pixel data directly to the Android Surface.
+    /// Creates a temporary texture from the processed pixel data and uses
+    /// a full-screen pass to blit it to the surface, bypassing the CPU
+    /// readback + JPEG encode + Base64 decode round-trip.
     #[cfg(target_os = "android")]
-    pub fn render_to_surface(&self, width: u32, height: u32) -> Result<()> {
+    pub fn render_to_surface(
+        &self,
+        width: u32,
+        height: u32,
+        pixel_data: &[u8],
+    ) -> Result<()> {
         let surface = self
             .surface
             .as_ref()
@@ -560,6 +581,22 @@ impl GpuPipeline {
             }
         }
 
+        // Validate input data size
+        let expected_len = (width as usize)
+            .checked_mul(height as usize)
+            .and_then(|v| v.checked_mul(4))
+            .ok_or_else(|| anyhow::anyhow!("Surface dimensions overflow: {}x{}", width, height))?;
+
+        if pixel_data.len() != expected_len {
+            return Err(anyhow::anyhow!(
+                "Surface pixel data size mismatch: expected {} bytes for {}x{}, got {} bytes",
+                expected_len,
+                width,
+                height,
+                pixel_data.len()
+            ));
+        }
+
         let frame = surface
             .get_current_texture()
             .map_err(|e| anyhow::anyhow!("Failed to acquire surface texture: {:?}", e))?;
@@ -568,16 +605,146 @@ impl GpuPipeline {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
+        // Create input texture from the processed pixel data
+        let input_texture = self.device.create_texture_with_data(
+            &self.queue,
+            &wgpu::TextureDescriptor {
+                label: Some("Surface Input Texture"),
+                size: wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: wgpu::TextureFormat::Rgba8Unorm,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING,
+                view_formats: &[],
+            },
+            wgpu::util::TextureDataOrder::MipMajor,
+            pixel_data,
+        );
+        let input_view = input_texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let sampler = self.device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("Surface Sampler"),
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+
+        // Create bind group layout and bind group for the full-screen pass
+        let bind_group_layout = self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Surface Blit BGL"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
+
+        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Surface Blit BG"),
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&input_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+            ],
+        });
+
+        // Create a simple full-screen vertex+fragment shader inline
+        let shader_module = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Surface Blit Shader"),
+            source: wgpu::ShaderSource::Wgsl(
+                r#"
+                @group(0) @binding(0) var input_tex: texture_2d<f32>;
+                @group(0) @binding(1) var input_sampler: sampler;
+
+                struct VertexOutput {
+                    @builtin(position) pos: vec4<f32>,
+                    @location(0) uv: vec2<f32>,
+                }
+
+                @vertex
+                fn vs_main(@builtin(vertex_index) id: u32) -> VertexOutput {
+                    let uvs = array<vec2<f32>, 4>(
+                        vec2<f32>(0.0, 0.0), vec2<f32>(1.0, 0.0),
+                        vec2<f32>(0.0, 1.0), vec2<f32>(1.0, 1.0)
+                    );
+                    let uv = uvs[id];
+                    var output: VertexOutput;
+                    output.pos = vec4<f32>(uv * 2.0 - 1.0, 0.0, 1.0);
+                    output.uv = vec2<f32>(uv.x, 1.0 - uv.y);
+                    return output;
+                }
+
+                @fragment
+                fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+                    return textureSample(input_tex, input_sampler, in.uv);
+                }
+                "#.into(),
+            ),
+        });
+
+        let pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Surface Blit Pipeline Layout"),
+            bind_group_layouts: &[Some(&bind_group_layout)],
+            immediate_size: 0,
+        });
+
+        let pipeline = self.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Surface Blit Pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader_module,
+                entry_point: Some("vs_main"),
+                buffers: &[],
+                compilation_options: Default::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader_module,
+                entry_point: Some("fs_main"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: view.format(),
+                    blend: None,
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: Default::default(),
+            }),
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            multiview_mask: std::num::NonZeroU32::new(0),
+            cache: None,
+        });
+
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Android Surface Render Encoder"),
             });
 
-        // Clear the frame with transparent black
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Android Surface Clear Pass"),
+                label: Some("Android Surface Blit Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
@@ -592,7 +759,9 @@ impl GpuPipeline {
                 occlusion_query_set: None,
                 multiview_mask: std::num::NonZeroU32::new(0),
             });
-            let _ = &mut pass; // Suppress unused warning
+            pass.set_pipeline(&pipeline);
+            pass.set_bind_group(0, &bind_group, &[]);
+            pass.draw(0..4, 0..1);
         }
 
         self.queue.submit(Some(encoder.finish()));
@@ -606,14 +775,11 @@ impl GpuPipeline {
         let key = (width, height);
         {
             if let Ok(mut cache) = self.texture_cache.lock() {
-                if let Some(entries) = cache.get_mut(&key) {
+                if let Some(entries) = cache.entries.get_mut(&key) {
                     if let Some(entry) = entries.pop() {
-                        if let Ok(mut count) = self.total_cached_textures.lock() {
-                            *count = count.saturating_sub(1);
-                        }
-                        if let Ok(mut bytes) = self.total_cached_bytes.lock() {
-                            *bytes = bytes.saturating_sub(entry.size_bytes);
-                        }
+                        // Update counters atomically with the cache removal.
+                        cache.total_textures = cache.total_textures.saturating_sub(1);
+                        cache.total_bytes = cache.total_bytes.saturating_sub(entry.size_bytes);
                         return entry;
                     }
                 }
@@ -648,85 +814,75 @@ impl GpuPipeline {
     }
 
     /// Return a texture to the cache for reuse.
+    ///
+    /// All cache mutations and counter updates happen under a single lock
+    /// (`texture_cache: Mutex<TextureCacheInner>`), eliminating the race
+    /// condition where counters could drift out of sync with the actual
+    /// cache contents under concurrent `acquire_texture` / `release_texture`
+    /// calls.
     fn release_texture(&self, entry: TextureCacheEntry) {
         let key = (entry.texture.width(), entry.texture.height());
-
-        let (total_count, total_bytes) = (
-            self.total_cached_textures.lock().map(|c| *c).unwrap_or(0),
-            self.total_cached_bytes.lock().map(|b| *b).unwrap_or(0),
-        );
-
-        // Enforce both the entry-count cap and the total byte budget. We must
-        // free room for the incoming texture before inserting it.
         let incoming_bytes = entry.size_bytes;
-        let would_exceed_bytes =
-            total_bytes.saturating_add(incoming_bytes) > MAX_TOTAL_TEXTURE_CACHE_BYTES;
-        let at_count_cap = total_count >= MAX_TOTAL_TEXTURE_CACHE_SIZE;
+
+        let Ok(mut cache) = self.texture_cache.lock() else {
+            return;
+        };
+
+        // Enforce both the entry-count cap and the total byte budget.
+        // We must free room for the incoming texture before inserting it.
+        let would_exceed_bytes = cache.total_bytes.saturating_add(incoming_bytes)
+            > MAX_TOTAL_TEXTURE_CACHE_BYTES;
+        let at_count_cap = cache.total_textures >= MAX_TOTAL_TEXTURE_CACHE_SIZE;
 
         if at_count_cap || would_exceed_bytes {
-            // Evict cached entries (oldest first) until both limits are satisfied.
-            if let Ok(mut cache) = self.texture_cache.lock() {
-                let mut evicted_count = 0usize;
-                let keys: Vec<(u32, u32)> = cache.keys().cloned().collect();
-                'outer: for k in keys {
-                    if let Some(entries) = cache.get_mut(&k) {
-                        while entries.pop().is_some() {
-                            evicted_count += 1;
-                        }
+            // Evict cached entries (oldest keys first) until both limits
+            // are satisfied.  Because the counters live inside the same
+            // lock as the entries, every `pop()` is followed by an
+            // immediate counter adjustment – no separate lock acquisition,
+            // no window for desynchronisation.
+            let keys: Vec<(u32, u32)> = cache.entries.keys().cloned().collect();
+            'outer: for k in keys {
+                if let Some(entries) = cache.entries.get_mut(&k) {
+                    while let Some(evicted) = entries.pop() {
+                        cache.total_textures = cache.total_textures.saturating_sub(1);
+                        cache.total_bytes = cache.total_bytes.saturating_sub(evicted.size_bytes);
                     }
-                    // Recompute the byte total by scanning the cache.
-                    let mut cur_bytes = 0u64;
-                    for entries in cache.values() {
-                        for e in entries {
-                            cur_bytes = cur_bytes.saturating_add(e.size_bytes);
-                        }
-                    }
-                    let cur_count = total_count.saturating_sub(evicted_count);
-                    if cur_count < MAX_TOTAL_TEXTURE_CACHE_SIZE
-                        && cur_bytes.saturating_add(incoming_bytes) <= MAX_TOTAL_TEXTURE_CACHE_BYTES
-                    {
-                        break 'outer;
+                    // Remove the key entirely if its bucket is now empty.
+                    if entries.is_empty() {
+                        cache.entries.remove(&k);
                     }
                 }
-                let evicted_bytes = total_bytes.saturating_sub({
-                    let mut b = 0u64;
-                    for entries in cache.values() {
-                        for e in entries {
-                            b = b.saturating_add(e.size_bytes);
-                        }
-                    }
-                    b
-                });
-                if let Ok(mut count) = self.total_cached_textures.lock() {
-                    *count = count.saturating_sub(evicted_count);
-                }
-                if let Ok(mut bytes) = self.total_cached_bytes.lock() {
-                    *bytes = bytes.saturating_sub(evicted_bytes);
+                if cache.total_textures < MAX_TOTAL_TEXTURE_CACHE_SIZE
+                    && cache
+                        .total_bytes
+                        .saturating_add(incoming_bytes)
+                        <= MAX_TOTAL_TEXTURE_CACHE_BYTES
+                {
+                    break 'outer;
                 }
             }
         }
 
-        // Re-check the byte budget after eviction; if the incoming texture alone
-        // exceeds the budget, drop it entirely rather than caching it.
-        let (new_count, new_bytes) = (
-            self.total_cached_textures.lock().map(|c| *c).unwrap_or(0),
-            self.total_cached_bytes.lock().map(|b| *b).unwrap_or(0),
-        );
-        if new_bytes.saturating_add(incoming_bytes) > MAX_TOTAL_TEXTURE_CACHE_BYTES {
+        // If the incoming texture alone exceeds the global byte budget,
+        // drop it entirely rather than caching it.
+        if cache
+            .total_bytes
+            .saturating_add(incoming_bytes)
+            > MAX_TOTAL_TEXTURE_CACHE_BYTES
+        {
             return;
         }
 
-        if let Ok(mut cache) = self.texture_cache.lock() {
-            let entries = cache.entry(key).or_insert_with(Vec::new);
-            if entries.len() < MAX_TEXTURE_CACHE_SIZE && new_count < MAX_TOTAL_TEXTURE_CACHE_SIZE {
-                entries.push(entry);
-                if let Ok(mut count) = self.total_cached_textures.lock() {
-                    *count = count.saturating_add(1);
-                }
-                if let Ok(mut bytes) = self.total_cached_bytes.lock() {
-                    *bytes = bytes.saturating_add(incoming_bytes);
-                }
-            }
+        // Insert the entry.  Counters are updated atomically with the
+        // push, so there is no window where a concurrent reader could see
+        // a stale count.
+        let bucket = cache.entries.entry(key).or_insert_with(Vec::new);
+        if bucket.len() < MAX_TEXTURE_CACHE_SIZE
+            && cache.total_textures < MAX_TOTAL_TEXTURE_CACHE_SIZE
+        {
+            bucket.push(entry);
+            cache.total_textures = cache.total_textures.saturating_add(1);
+            cache.total_bytes = cache.total_bytes.saturating_add(incoming_bytes);
         }
     }
 
@@ -1131,7 +1287,7 @@ pub fn gpu_apply_adjustments(
 ) -> Result<String, String> {
     // Android: Try to use WGPU Surface for direct rendering to screen.
     // If Surface is initialized, render adjustments directly to the surface
-    // and return the original image (since it's already on screen).
+    // and return the processed PNG so the frontend can update its state.
     #[cfg(target_os = "android")]
     {
         use base64::{Engine as _, engine::general_purpose};
@@ -1167,10 +1323,10 @@ pub fn gpu_apply_adjustments(
             Ok(g) => g,
             Err(e) => {
                 log::warn!(
-                    "GPU pipeline initialization failed on Android, returning original image: {}",
+                    "GPU pipeline initialization failed on Android: {}",
                     e
                 );
-                return Ok(image_data_base64);
+                return Err(format!("GPU pipeline initialization failed: {}", e));
             }
         };
 
@@ -1178,37 +1334,45 @@ pub fn gpu_apply_adjustments(
             PipelineState::Ready(p) => p,
             PipelineState::Failed(msg) => {
                 log::warn!("GPU pipeline unavailable on Android: {}", msg);
-                return Ok(image_data_base64);
+                return Err(format!("GPU pipeline unavailable: {}", msg));
             }
             PipelineState::Uninit => {
-                return Ok(image_data_base64);
+                return Err("GPU pipeline not initialized".to_string());
             }
         };
 
-        // Check if surface is initialized
-        if pipeline.surface.is_some() {
-            // Apply adjustments via GPU and render to surface
-            match apply_adjustments(pipeline, &image_data, width, height, uniforms) {
-                Ok(result_data) => {
-                    // Render to surface for direct screen output
-                    let _ = pipeline.render_to_surface(width, height);
+        // Apply adjustments via GPU compute shader
+        let result_data = apply_adjustments(pipeline, &image_data, width, height, uniforms)
+            .map_err(|e| format!("GPU adjustments failed on Android: {}", e))?;
 
-                    // Still return the original data as the result is on screen
-                    Ok(image_data_base64)
+        // If surface is initialized, render the processed result directly to screen
+        if pipeline.surface.is_some() {
+            match pipeline.render_to_surface(width, height, &result_data) {
+                Ok(()) => {
+                    log::debug!("Successfully rendered adjustments to Android surface");
                 }
                 Err(e) => {
                     log::warn!(
-                        "GPU adjustments failed on Android, returning original: {}",
+                        "Failed to render to Android surface, still returning processed data: {}",
                         e
                     );
-                    Ok(image_data_base64)
                 }
             }
-        } else {
-            // No surface, return original
-            log::debug!("Android Surface not initialized, returning original image");
-            Ok(image_data_base64)
         }
+
+        // Always return the processed PNG so the frontend state is consistent.
+        // When surface rendering succeeds, the screen is already updated;
+        // the returned data ensures any non-surface UI elements (thumbnails,
+        // waveform, etc.) reflect the adjustments too.
+        let img = image::RgbaImage::from_raw(width, height, result_data)
+            .ok_or_else(|| "Failed to create image from GPU output".to_string())?;
+        let dynamic = image::DynamicImage::ImageRgba8(img);
+        let mut png_buf = std::io::Cursor::new(Vec::new());
+        dynamic
+            .write_to(&mut png_buf, image::ImageFormat::Png)
+            .map_err(|e| format!("Failed to encode PNG: {}", e))?;
+
+        Ok(general_purpose::STANDARD.encode(png_buf.into_inner()))
     }
 
     #[cfg(not(target_os = "android"))]

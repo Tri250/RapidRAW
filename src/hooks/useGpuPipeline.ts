@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Invokes } from '../components/ui/AppProperties';
 
@@ -39,8 +39,28 @@ export interface LutInfo {
 }
 
 export function useGpuPipeline() {
+  /** Track consecutive GPU init failures so we can back off gracefully
+   *  instead of hammering the Tauri bridge on every slider drag. */
+  const consecutiveFailuresRef = useRef(0);
+
   const gpuApplyAdjustments = useCallback(async (params: GpuAdjustmentParams): Promise<string> => {
-    return invoke(Invokes.GpuApplyAdjustments, { ...params }) as Promise<string>;
+    try {
+      const result = await invoke(Invokes.GpuApplyAdjustments, { ...params }) as string;
+      consecutiveFailuresRef.current = 0; // reset on success
+      return result;
+    } catch (err) {
+      consecutiveFailuresRef.current += 1;
+      // Only log prominently once per batch of failures to avoid console spam.
+      if (consecutiveFailuresRef.current === 1 || consecutiveFailuresRef.current % 10 === 0) {
+        console.warn(
+          `[useGpuPipeline] gpuApplyAdjustments failed (consecutive: ${consecutiveFailuresRef.current}):`,
+          err instanceof Error ? err.message : err,
+        );
+      }
+      // Re-throw so the caller can decide whether to fall back to CPU
+      // processing, show a toast, or silently degrade.
+      throw err;
+    }
   }, []);
 
   /**

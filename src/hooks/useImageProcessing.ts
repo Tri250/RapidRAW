@@ -291,15 +291,31 @@ export function useImageProcessing(
           }
         }
       } catch (err) {
-        if (err !== 'Superseded or worker failed') {
-          console.error('Failed to apply adjustments:', err);
+        // "Superseded or worker failed" is an expected condition when
+        // the user drags sliders faster than the GPU can process – a
+        // newer request has already replaced this one.  It is not a
+        // real error and should not be reported to the user.
+        const errStr = err instanceof Error ? err.message : String(err);
+        const isSuperseded =
+          errStr.includes('Superseded') ||
+          errStr.includes('worker failed') ||
+          errStr.includes('superseded');
+
+        if (!isSuperseded) {
+          console.error(
+            `[useImageProcessing] Failed to apply adjustments (dragging=${dragging}):`,
+            err,
+          );
         }
-        if (!dragging) {
-          setEditor((state) => {
-            if (state.interactivePatch && state.interactivePatch.url) URL.revokeObjectURL(state.interactivePatch.url);
-            return { interactivePatch: null };
-          });
-        }
+
+        // Always clear the interactive patch on error so the UI
+        // doesn't remain stuck showing a stale partial render.
+        setEditor((state) => {
+          if (state.interactivePatch && state.interactivePatch.url) {
+            URL.revokeObjectURL(state.interactivePatch.url);
+          }
+          return { interactivePatch: null };
+        });
       }
     },
     [
