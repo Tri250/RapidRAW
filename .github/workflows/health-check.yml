@@ -118,10 +118,9 @@ jobs:
         working-directory: src-tauri
         run: cargo fmt -p RapidRAW -- --check
 
-      - name: Run clippy
+      - name: Run clippy (blocking)
         working-directory: src-tauri
         run: cargo clippy --all-targets --all-features -- -D warnings
-        continue-on-error: true
 
       - name: Install cargo-outdated
         working-directory: src-tauri
@@ -145,8 +144,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run npm audit
-        run: npm audit --audit-level=high || true
+      - name: Run npm audit (blocking)
+        run: npm audit --audit-level=high
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
@@ -157,9 +156,9 @@ jobs:
         working-directory: src-tauri
         run: cargo install cargo-audit --locked || true
 
-      - name: Run cargo audit
+      - name: Run cargo audit (blocking)
         working-directory: src-tauri
-        run: cargo audit || true
+        run: cargo audit
 
   config-validation:
     name: Config Validation

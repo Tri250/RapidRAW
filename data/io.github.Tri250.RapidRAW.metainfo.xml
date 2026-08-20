@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <component type="desktop-application">
-  <id>io.github.CyberTimon.RapidRAW</id>
+  <id>io.github.Tri250.RapidRAW</id>
 
   <name>RAW工坊</name>
   <summary>热爱摄影的开发者，为摄影爱好者打造专业的RAW图像处理工具</summary>
@@ -26,7 +26,7 @@
     </p>
   </description>
 
-  <launchable type="desktop-id">io.github.CyberTimon.RapidRAW.desktop</launchable>
+  <launchable type="desktop-id">io.github.Tri250.RapidRAW.desktop</launchable>
   <screenshots>
     <screenshot type="default">
       <image>https://raw.githubusercontent.com/CyberTimon/RapidRAW/2f7c0354580bbd403287a924e2a7fce9f2cdfc40/.github/assets/editor.png</image>

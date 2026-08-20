@@ -207,7 +207,7 @@ export default function MainLibrary(props: MainLibraryProps) {
         const currentVersion = await getVersion();
         setAppVersion(currentVersion);
 
-        const response = await fetch('https://api.github.com/repos/CyberTimon/RapidRAW/releases/latest');
+        const response = await fetch('https://api.github.com/repos/Tri250/RapidRAW/releases/latest');
         if (!response.ok) {
           console.error('Failed to fetch latest release info from GitHub.');
           return;

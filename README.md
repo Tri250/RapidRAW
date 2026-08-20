@@ -9,7 +9,7 @@
 [![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)](https://react.dev/)
 [![Tauri](https://img.shields.io/badge/Tauri-24C8DB?style=for-the-badge&logo=tauri&logoColor=white)](https://tauri.app/)
 [![AGPL-3.0](https://img.shields.io/badge/License-AGPL_v3-blue.svg?style=for-the-badge)](https://opensource.org/licenses/AGPL-3.0)
-[![GitHub stars](https://img.shields.io/github/stars/CyberTimon/RapidRAW?style=for-the-badge&logo=github&label=Stars)](https://github.com/CyberTimon/RapidRAW/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/Tri250/RapidRAW?style=for-the-badge&logo=github&label=Stars)](https://github.com/Tri250/RapidRAW/stargazers)
 <br>
 [![www.getrapidraw.com](https://img.shields.io/badge/getrapidraw.com-%232ea44f?style=for-the-badge&logo=safari&logoColor=white)](https://www.getrapidraw.com)
 [![Instagram](https://img.shields.io/badge/Instagram-%23E4405F.svg?style=for-the-badge&logo=Instagram&logoColor=white)](https://www.instagram.com/getrapidraw/)
@@ -29,12 +29,12 @@ RapidRAW 是 Adobe Lightroom 的现代高性能替代品。它在不到 20MB 的
   <tr>
     <td width="50%" valign="top" align="center">
       <br>
-      <a href="https://github.com/CyberTimon/RapidRAW/releases/latest">
+      <a href="https://github.com/Tri250/RapidRAW/releases/latest">
         <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/main/src-tauri/icons/full_res_original.png" alt="下载 RapidRAW" height="96">
       </a>
       <h3>下载 RapidRAW</h3>
       <p>获取 Windows、macOS、Linux 和 Android 的最新版本，开箱即用。</p>
-      <strong><a href="https://github.com/CyberTimon/RapidRAW/releases/latest">下载最新版本 →</a></strong>
+      <strong><a href="https://github.com/Tri250/RapidRAW/releases/latest">下载最新版本 →</a></strong>
       <br><br>
     </td>
     <td width="50%" valign="top" align="center">
@@ -428,7 +428,7 @@ RapidRAW 实际运行效果。
 | 寻找更好的 X-Trans 去马赛克算法                                                     | 中     | 高   | [ ]  |
 | 重构前端（减少 React 组件中的 prop 层层传递）                                       | 低     | 中   | [X]  |
 | 编写 ComfyUI 与 RapidRAW 连接教程                                                   | 中     | 中   | [ ]  |
-| 集中化坐标变换逻辑 - 参见 [#245](https://github.com/CyberTimon/RapidRAW/issues/245) | 中     | 高   | [X]  |
+| 集中化坐标变换逻辑 - 参见 [#245](https://github.com/Tri250/RapidRAW/issues/245) | 中     | 高   | [X]  |
 | 改善旧系统（如 Pascal GPU）上的速度                                                 | 中     | 高   | [X]  |
 | 实现变形工具                                                                        | 低     | 高   | [X]  |
 
@@ -446,7 +446,7 @@ RapidRAW 的 AI 功能设计灵活，提供三种使用方式，让你在快速�
 
 ### 2. 自托管 ComfyUI 集成（本地免费）
 
-对于拥有强大 GPU 并希望获得最大控制的用户，RapidRAW 可以连接到本地 [ComfyUI](https://github.com/comfyanonymous/ComfyUI) 服务器。这由 [**RapidRAW-AI-Connector**](https://github.com/CyberTimon/RapidRAW-AI-Connector) 管理，它是一个轻量级中间件，连接 RapidRAW 和 ComfyUI，负责图像缓存、工作流注入和 AI 协调。
+对于拥有强大 GPU 并希望获得最大控制的用户，RapidRAW 可以连接到本地 [ComfyUI](https://github.com/comfyanonymous/ComfyUI) 服务器。这由 [**RapidRAW-AI-Connector**](https://github.com/Tri250/RapidRAW-AI-Connector) 管理，它是一个轻量级中间件，连接 RapidRAW 和 ComfyUI，负责图像缓存、工作流注入和 AI 协调。
 
 **为什么采用这种架构？** 这种新架构使生成式编辑更加高效。AI 连接器会智能缓存图像，而不是每次更改都发送整个高分辨率图像。完整图像只发送一次；后续每次编辑只需传输微小的蒙版和文本。这使过程显著更快、响应更灵敏。
 
@@ -513,12 +513,12 @@ RapidRAW 的 AI 功能设计灵活，提供三种使用方式，让你在快速�
 
 **Windows 和 macOS：**
 
-- 从 [Releases](https://github.com/CyberTimon/RapidRAW/releases) 页面获取相应操作系统的预构建安装程序或应用程序包。
+- 从 [Releases](https://github.com/Tri250/RapidRAW/releases) 页面获取相应操作系统的预构建安装程序或应用程序包。
 
 **Linux：**
 
-- 官方 Flatpak 包支持所有 Linux 发行版，可在 [Flathub](https://flathub.org/apps/io.github.CyberTimon.RapidRAW) 获取。
-- 基于 Debian 的发行版，从 [Releases](https://github.com/CyberTimon/RapidRAW/releases) 页面安装 `.deb` 包。
+- 官方 Flatpak 包支持所有 Linux 发行版，可在 [Flathub](https://flathub.org/apps/io.github.Tri250.RapidRAW) 获取。
+- 基于 Debian 的发行版，从 [Releases](https://github.com/Tri250/RapidRAW/releases) 页面安装 `.deb` 包。
 - 基于 Arch 的发行版，使用 AUR 中的 [`rapidraw-bin`](https://aur.archlinux.org/packages/rapidraw-bin) 包。
 
 **2. 从源码构建**
@@ -527,7 +527,7 @@ RapidRAW 的 AI 功能设计灵活，提供三种使用方式，让你在快速�
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/CyberTimon/RapidRAW.git
+git clone https://github.com/Tri250/RapidRAW.git
 cd RapidRAW
 
 # 2. 安装前端依赖
@@ -584,7 +584,7 @@ WEBKIT_DISABLE_COMPOSITING_MODE=1 RapidRAW
 
 此问题与 **WebKit** 和 **NVIDIA 驱动**相关，并非 RapidRAW 直接导致。切换到 **X11** 或使用 **AMD / Intel GPU** 也可能有所帮助。
 
-详见 [#306](https://github.com/CyberTimon/RapidRAW/issues/306)。
+详见 [#306](https://github.com/Tri250/RapidRAW/issues/306)。
 </details>
 
 ## 参与贡献

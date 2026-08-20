@@ -1,4 +1,4 @@
-package io.github.CyberTimon.RapidRAW
+package io.github.Tri250.RapidRAW
 
 import android.Manifest
 import android.content.ComponentCallbacks2

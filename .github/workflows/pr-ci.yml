@@ -56,3 +56,10 @@ jobs:
     permissions:
       contents: read
       actions: write
+
+  # Blocking quality gates: typecheck / lint / tests / clippy / security audits.
+  # These fail the PR if any check fails, so defects and advisories are caught
+  # before merge instead of waiting for the weekly health-check.
+  quality-gates:
+    name: Quality gates (tests / clippy / audit)
+    uses: ./.github/workflows/quality-gates.yml

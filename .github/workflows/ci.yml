@@ -64,3 +64,9 @@ jobs:
     permissions:
       contents: write
       actions: write
+
+  # Blocking quality gates on push to main, mirroring the PR gate so a merged
+  # change is also validated on the default branch.
+  quality-gates:
+    name: Quality gates (tests / clippy / audit)
+    uses: ./.github/workflows/quality-gates.yml

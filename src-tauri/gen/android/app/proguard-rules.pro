@@ -60,7 +60,7 @@
 }
 
 # Keep the application class
--keep class io.github.CyberTimon.RapidRAW.** { *; }
+-keep class io.github.Tri250.RapidRAW.** { *; }
 
 # Keep Parcelable implementations
 -keep class * implements android.os.Parcelable {

@@ -15,11 +15,11 @@ val tauriProperties = Properties().apply {
 
 android {
     compileSdk = 36
-    namespace = "io.github.CyberTimon.RapidRAW"
+    namespace = "io.github.Tri250.RapidRAW"
     ndkVersion = "27.2.12479018"
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "false"
-        applicationId = "io.github.CyberTimon.RapidRAW"
+        applicationId = "io.github.Tri250.RapidRAW"
         minSdk = 26
         targetSdk = 36
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()

@@ -29,7 +29,6 @@
     "process:default",
     "process:allow-restart",
     "os:allow-os-type",
-    "shell:default",
     "shell:allow-open"
   ]
 }
