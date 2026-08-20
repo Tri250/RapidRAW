@@ -647,12 +647,7 @@ fn encode_image_to_bytes(
             let mut encoder =
                 image::codecs::jpeg::JpegEncoder::new_with_quality(&mut cursor, jpeg_quality);
             encoder
-                .encode(
-                    rgb_image.as_raw(),
-                    w,
-                    h,
-                    image::ExtendedColorType::Rgb8,
-                )
+                .encode(rgb_image.as_raw(), w, h, image::ExtendedColorType::Rgb8)
                 .map_err(|e| format!("JPEG encode failed: {}", e))?;
         }
         "png" => {

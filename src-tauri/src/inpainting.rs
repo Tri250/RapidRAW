@@ -31,11 +31,7 @@ fn resilient_lock<'a, T>(mutex: &'a Mutex<T>) -> MutexGuard<'a, T> {
 /// size (e.g. fine rotation or lens/geometry warping grows/shrinks the canvas),
 /// which otherwise makes the row-sliced scan misalign and falsely report
 /// "Mask is empty".
-fn align_mask_to_image(
-    mask: image::GrayImage,
-    target_w: u32,
-    target_h: u32,
-) -> image::GrayImage {
+fn align_mask_to_image(mask: image::GrayImage, target_w: u32, target_h: u32) -> image::GrayImage {
     let (w, h) = mask.dimensions();
     if w == target_w && h == target_h {
         return mask;

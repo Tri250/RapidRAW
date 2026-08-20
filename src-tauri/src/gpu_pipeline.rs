@@ -491,8 +491,7 @@ impl GpuPipeline {
         // the generic `RawHandle` variant is the supported way to attach a surface to
         // an ANativeWindow.
         let android_handle = wgpu::rwh::AndroidNdkWindowHandle::new(
-            std::ptr::NonNull::new(native_window_ptr)
-                .context("ANativeWindow pointer was null")?,
+            std::ptr::NonNull::new(native_window_ptr).context("ANativeWindow pointer was null")?,
         );
 
         let surface = unsafe {
