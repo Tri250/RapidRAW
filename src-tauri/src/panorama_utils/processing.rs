@@ -27,7 +27,10 @@ pub fn calculate_downscale_dimensions_capped(
     height: u32,
     max_dimension: u32,
 ) -> (u32, u32, f64) {
-    assert!(max_dimension > 0, "max_dimension must be positive");
+    if max_dimension == 0 {
+        log::warn!("calculate_downscale_dimensions_capped called with max_dimension=0, returning original dimensions");
+        return (width, height, 1.0);
+    }
     let long_side = width.max(height);
     if long_side <= max_dimension {
         return (width, height, 1.0);

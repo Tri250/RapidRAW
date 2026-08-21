@@ -2765,7 +2765,13 @@ pub fn run() {
             }
 
             let app_handle = app.handle().clone();
-            let config_dir = app_handle.path().app_config_dir().expect("Failed to get config dir");
+            let config_dir = match app_handle.path().app_config_dir() {
+                Ok(dir) => dir,
+                Err(e) => {
+                    log::error!("Failed to get config dir: {}, using temp dir", e);
+                    std::env::temp_dir()
+                }
+            };
             let crash_flag_path = config_dir.join(".gpu_init_crash_flag");
 
             {
@@ -2823,10 +2829,16 @@ pub fn run() {
 
                 #[cfg(not(target_os = "android"))]
                 {
-                    let resource_path = app_handle
+                    let resource_path = match app_handle
                         .path()
                         .resolve("resources", tauri::path::BaseDirectory::Resource)
-                        .expect("failed to resolve resource directory");
+                    {
+                        Ok(path) => path,
+                        Err(e) => {
+                            log::error!("Failed to resolve resource directory: {}", e);
+                            continue;
+                        }
+                    };
 
                     let ort_library_name = {
                         #[cfg(target_os = "windows")]
@@ -2888,7 +2900,15 @@ pub fn run() {
                 .cloned()
                 .unwrap_or_else(|| {
                     log::error!("Main window config not found, using first available window");
-                    app.config().app.windows.first().cloned().expect("No windows configured")
+                    app.config()
+                        .app
+                        .windows
+                        .first()
+                        .cloned()
+                        .unwrap_or_else(|| {
+                            log::error!("No windows configured, exiting");
+                            std::process::exit(1);
+                        })
                 });
 
             let mut window_builder =

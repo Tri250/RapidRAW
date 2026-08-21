@@ -221,10 +221,13 @@ pub fn progressive_seam_stitcher(
                                 };
 
                                 if dist_to_seam.abs() < dynamic_feather_width / 2.0 {
-                                    let color_on_pano = Rgb(row_slice
-                                        [x as usize * 3..x as usize * 3 + 3]
-                                        .try_into()
-                                        .unwrap());
+                                    let color_slice = &row_slice
+                                        [x as usize * 3..x as usize * 3 + 3];
+                                    let color_on_pano = Rgb([
+                                        color_slice[0],
+                                        color_slice[1],
+                                        color_slice[2],
+                                    ]);
                                     let color_to_add = get_interpolated_pixel(img_to_add, sx, sy);
 
                                     let alpha = if new_image_is_dominant_side {
@@ -313,10 +316,13 @@ pub fn progressive_seam_stitcher(
                                 };
 
                                 if dist_to_seam.abs() < dynamic_feather_width / 2.0 {
-                                    let color_on_pano = Rgb(row_slice
-                                        [x as usize * 3..x as usize * 3 + 3]
-                                        .try_into()
-                                        .unwrap());
+                                    let color_slice = &row_slice
+                                        [x as usize * 3..x as usize * 3 + 3];
+                                    let color_on_pano = Rgb([
+                                        color_slice[0],
+                                        color_slice[1],
+                                        color_slice[2],
+                                    ]);
                                     let color_to_add = get_interpolated_pixel(img_to_add, sx, sy);
 
                                     let alpha = if new_image_is_dominant_side {
@@ -649,7 +655,11 @@ pub fn warp_image_homography(
     width: u32,
     height: u32,
 ) -> Rgb32FImage {
-    assert!(width > 0 && height > 0, "warp output must be non-empty");
+    if width == 0 || height == 0 {
+        log::warn!("warp_image_homography called with zero dimensions, returning empty image");
+        return Rgb32FImage::from_raw(1, 1, vec![0.0f32; 3])
+            .unwrap_or_else(|| Rgb32FImage::new(1, 1));
+    }
     let mut buffer = vec![0.0f32; (width as usize) * (height as usize) * 3];
     buffer
         .par_chunks_mut(width as usize * 3)

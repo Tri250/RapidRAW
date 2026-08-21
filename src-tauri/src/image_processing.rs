@@ -4970,7 +4970,7 @@ fn cpu_apply_hsl_panel(pix: &mut [f32], hsl: &[HslColor; 8]) {
         pix[2] = t;
         return;
     }
-    let ratio = target_luma / new_luma;
+    let ratio = (target_luma / new_luma).clamp(0.01, 10.0);
     pix[0] = hs_rgb[0] * ratio;
     pix[1] = hs_rgb[1] * ratio;
     pix[2] = hs_rgb[2] * ratio;

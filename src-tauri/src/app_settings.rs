@@ -589,9 +589,8 @@ pub fn load_settings(app_handle: AppHandle) -> Result<AppSettings, String> {
         || settings
             .ai_model_mirror_url
             .as_ref()
-            .unwrap()
-            .trim()
-            .is_empty()
+            .map(|u| u.trim().is_empty())
+            .unwrap_or(true)
     {
         settings.ai_model_mirror_url = Some("https://hf-mirror.com".to_string());
         settings_modified = true;

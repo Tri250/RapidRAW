@@ -30,7 +30,10 @@ pub fn hydrate_sub_masks(
             let keys_to_check = ["mask_data_base64", "maskDataBase64"];
             for key in keys_to_check {
                 if params.contains_key(key) {
-                    let val = params.get(key).unwrap();
+                    let val = match params.get(key) {
+                        Some(v) => v,
+                        None => continue,
+                    };
                     if !val.is_null() {
                         cache.insert(id.clone(), val.clone());
                     } else if let Some(cached_data) = cache.get(&id) {

@@ -2036,12 +2036,14 @@ pub fn apply_body_reshape(
 
     let (body_y_start, face_cx_fallback): (u32, f32) = if fallback_mode {
         ((h as f32 * 0.22) as u32, w as f32 / 2.0)
-    } else {
-        let f = anchor_face_opt.as_ref().unwrap();
+    } else if let Some(f) = &anchor_face_opt {
         (
             f.face_rect.1 + f.face_rect.3,
             f.face_rect.0 as f32 + f.face_rect.2 as f32 / 2.0,
         )
+    } else {
+        log::warn!("anchor_face_opt was None in non-fallback mode, using fallback");
+        ((h as f32 * 0.22) as u32, w as f32 / 2.0)
     };
 
     if body_y_start >= h.saturating_sub(2) {

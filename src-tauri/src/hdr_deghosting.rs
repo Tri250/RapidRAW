@@ -45,7 +45,9 @@ pub fn load_hdr_frames(
     app_handle: &AppHandle,
     settings: &AppSettings,
 ) -> Result<Vec<HdrFrame>, String> {
-    assert!(paths.len() >= 2, "hdr merge requires at least two paths");
+    if paths.len() < 2 {
+        return Err("HDR merge requires at least two frames (got {})".format(paths.len()));
+    }
     paths
         .iter()
         .map(|path| {
@@ -115,7 +117,10 @@ pub fn assert_uniform_dimensions(frames: &[HdrFrame]) -> Result<(), String> {
 }
 
 pub fn align_hdr_frames(frames: &mut [HdrFrame], app_handle: &AppHandle) {
-    assert!(!frames.is_empty(), "alignment requires at least one frame");
+    if frames.is_empty() {
+        log::warn!("align_hdr_frames called with empty frame list, skipping alignment");
+        return;
+    }
     let brief_pairs = get_brief_pairs();
     let reference_index = frames.len() / 2;
     let detections: Vec<FrameDetection> = frames
@@ -236,10 +241,12 @@ fn estimate_rigid_transform(
     reference: &FrameDetection,
     frame: &FrameDetection,
 ) -> Result<Matrix3<f64>, String> {
-    assert!(
-        inliers.len() >= 2,
-        "rigid estimate requires at least two inliers"
-    );
+    if inliers.len() < 2 {
+        return Err(format!(
+            "rigid estimate requires at least two inliers (got {})",
+            inliers.len()
+        ));
+    }
     let pairs: Vec<((f64, f64), (f64, f64))> = inliers
         .iter()
         .map(|m| {
@@ -298,7 +305,10 @@ fn estimate_rigid_transform(
 }
 
 fn centroid(points: impl Iterator<Item = (f64, f64)>, count: f64) -> (f64, f64) {
-    assert!(count > 0.0, "centroid requires a positive count");
+    if count <= 0.0 {
+        log::warn!("centroid called with non-positive count, returning origin");
+        return (0.0, 0.0);
+    }
     let mut sum = (0.0, 0.0);
     for (x, y) in points {
         sum.0 += x;
