@@ -375,21 +375,21 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   movePanel: (panel, toRegion) =>
     set((state) => {
-      const layout = {
+      const layout: Record<PanelRegion, Panel[]> = {
         leftTop: [...state.panelLayout.leftTop],
         leftBottom: [...state.panelLayout.leftBottom],
         rightTop: [...state.panelLayout.rightTop],
         rightBottom: [...state.panelLayout.rightBottom],
       };
-      const active = { ...state.activePanels };
+      const active: Record<PanelRegion, Panel | null> = { ...state.activePanels };
 
       let fromRegion: PanelRegion | null = null;
-      (Object.keys(layout) as PanelRegion[]).forEach((r) => {
+      for (const r of Object.keys(layout) as PanelRegion[]) {
         if (layout[r].includes(panel)) {
           fromRegion = r;
           layout[r] = layout[r].filter((p) => p !== panel);
         }
-      });
+      }
 
       if (!layout[toRegion].includes(panel)) layout[toRegion].push(panel);
 
@@ -410,21 +410,21 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   movePanelToIndex: (panel, toRegion, index) =>
     set((state) => {
-      const layout = {
+      const layout: Record<PanelRegion, Panel[]> = {
         leftTop: [...state.panelLayout.leftTop],
         leftBottom: [...state.panelLayout.leftBottom],
         rightTop: [...state.panelLayout.rightTop],
         rightBottom: [...state.panelLayout.rightBottom],
       };
-      const active = { ...state.activePanels };
+      const active: Record<PanelRegion, Panel | null> = { ...state.activePanels };
 
       let fromRegion: PanelRegion | null = null;
-      (Object.keys(layout) as PanelRegion[]).forEach((r) => {
+      for (const r of Object.keys(layout) as PanelRegion[]) {
         if (layout[r].includes(panel)) {
           fromRegion = r;
           layout[r] = layout[r].filter((p) => p !== panel);
         }
-      });
+      }
 
       const clampedIndex = Math.max(0, Math.min(index, layout[toRegion].length));
       layout[toRegion].splice(clampedIndex, 0, panel);
