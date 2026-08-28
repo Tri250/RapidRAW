@@ -6,7 +6,6 @@ import { useEditorActions } from './useEditorActions';
 import { Adjustments, AiPatch, MaskContainer, Coord } from '../utils/adjustments';
 import { SubMask } from '../components/panel/right/Masks';
 import { Invokes } from '../components/ui/AppProperties';
-import { useAuth } from '@clerk/react';
 
 const getTransformAdjustments = (adj: Adjustments) => ({
   transformDistortion: adj.transformDistortion,
@@ -31,7 +30,6 @@ const getTransformAdjustments = (adj: Adjustments) => ({
 export function useAiMasking() {
   const { setAdjustments } = useEditorActions();
   const setEditor = useEditorStore((state) => state.setEditor);
-  const { getToken } = useAuth();
 
   const updateSubMask = useCallback(
     (subMaskId: string, updatedData: any) => {
@@ -110,7 +108,7 @@ export function useAiMasking() {
       if (!patch) return;
 
       const patchDefinition = { ...patch, prompt };
-      const token = await getToken();
+      const token: string | null = null;
 
       setAdjustments((prev: Adjustments) => ({
         ...prev,
@@ -155,14 +153,14 @@ export function useAiMasking() {
         setEditor({ isGeneratingAi: false });
       }
     },
-    [setAdjustments, setEditor, getToken],
+    [setAdjustments, setEditor],
   );
 
   const handleQuickErase = useCallback(
     async (subMaskId: string | null, startPoint: Coord, endPoint: Coord) => {
       const { selectedImage, adjustments, isGeneratingAi, patchesSentToBackend } = useEditorStore.getState();
       if (!selectedImage?.path || isGeneratingAi) return;
-      const token = await getToken();
+      const token: string | null = null;
 
       const patchId = adjustments.aiPatches.find((p: AiPatch) =>
         p.subMasks.some((sm: SubMask) => sm.id === subMaskId),
@@ -244,7 +242,7 @@ export function useAiMasking() {
         setEditor({ isGeneratingAi: false });
       }
     },
-    [setAdjustments, setEditor, getToken],
+    [setAdjustments, setEditor],
   );
 
   const handleDeleteMaskContainer = useCallback(
