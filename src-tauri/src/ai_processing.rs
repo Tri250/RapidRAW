@@ -226,6 +226,59 @@ fn persist_downloaded_asset(dest: &Path, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
+/// 获取 bundle 内预置模型目录（打包后路径）
+/// dev 模式自动指向 src-tauri/resources/models/，prod 指向 bundle resources
+fn get_builtin_models_dir(app_handle: &tauri::AppHandle) -> Option<PathBuf> {
+    // Tauri 2 resolve 会自动处理 dev/prod 差异
+    // tauri.conf.json 配了 "resources": ["resources"], 所以路径是 resources/models/
+    app_handle
+        .path()
+        .resolve("resources/models")
+        .ok()
+        .filter(|p| p.exists())
+}
+
+/// 从 bundle resources 拷贝预置模型到用户数据目录
+/// 返回 Ok(true) 表示拷贝成功，Ok(false) 表示 resources 里没有此文件
+fn copy_builtin_model_if_available(
+    app_handle: &tauri::AppHandle,
+    filename: &str,
+    dest: &Path,
+    expected_hash: &str,
+) -> Result<bool> {
+    let builtin_dir = match get_builtin_models_dir(app_handle) {
+        Some(d) => d,
+        None => return Ok(false),
+    };
+    let builtin_path = builtin_dir.join(filename);
+    if !builtin_path.exists() {
+        return Ok(false);
+    }
+
+    // 先校验预置模型 SHA256（防止打包时被篡改）
+    if !verify_sha256(&builtin_path, expected_hash)? {
+        eprintln!(
+            "[AI] Bundled model {} has incorrect hash, skipping builtin copy.",
+            filename
+        );
+        return Ok(false);
+    }
+
+    // 拷贝到 app_data_dir，用原子写入
+    let bytes = fs::read(&builtin_path).with_context(|| {
+        format!(
+            "Failed to read builtin model {} from {}",
+            filename,
+            builtin_path.display()
+        )
+    })?;
+    persist_downloaded_asset(dest, &bytes).with_context(|| {
+        format!("Failed to copy builtin model {} to {}", filename, dest.display())
+    })?;
+    log::info!("[AI] Copied builtin model: {} ({} bytes)", filename, bytes.len());
+    Ok(true)
+}
+
 async fn download_model(url: &str, dest: &Path) -> Result<()> {
     let max_retries = 3u32;
     let mut last_error: Option<anyhow::Error> = None;
@@ -296,7 +349,8 @@ fn promote_legacy_model_filename(
     Ok(())
 }
 
-async fn download_and_verify_model(
+/// 确保模型可用，优先级：已安装校验通过 → bundle resources 拷贝 → 网络下载
+async fn ensure_model(
     app_handle: &tauri::AppHandle,
     models_dir: &Path,
     filename: &str,
@@ -305,6 +359,8 @@ async fn download_and_verify_model(
     model_name: &str,
 ) -> Result<()> {
     let dest_path = models_dir.join(filename);
+
+    // SkySeg legacy filename promotion
     if filename == SKYSEG_FILENAME {
         promote_legacy_model_filename(
             models_dir,
@@ -313,25 +369,48 @@ async fn download_and_verify_model(
             SKYSEG_SHA256,
         )?;
     }
-    let is_valid = verify_sha256(&dest_path, expected_hash)?;
 
-    if !is_valid {
-        if dest_path.exists() {
-            println!("Model {} has incorrect hash. Re-downloading.", model_name);
-            fs::remove_file(&dest_path)?;
+    // === 优先级 1: 用户目录已有且 SHA256 校验通过 → 直接返回 ===
+    if verify_sha256(&dest_path, expected_hash)? {
+        log::info!("[AI] Model already valid: {}", filename);
+        return Ok(());
+    }
+
+    // === 优先级 2: 从 bundle resources 拷贝预置模型 ===
+    if dest_path.exists() {
+        log::warn!(
+            "[AI] Model {} hash mismatch or corrupted, re-installing.",
+            model_name
+        );
+        fs::remove_file(&dest_path)?;
+    }
+
+    match copy_builtin_model_if_available(app_handle, filename, &dest_path, expected_hash)? {
+        true => {
+            log::info!("[AI] Model ready via bundle resource: {}", filename);
+            return Ok(());
         }
-        let _ = app_handle.emit("ai-model-download-start", model_name);
-        let download_result = download_model(url, &dest_path).await;
-        let _ = app_handle.emit("ai-model-download-finish", model_name);
-        download_result?;
-
-        if !verify_sha256(&dest_path, expected_hash)? {
-            return Err(anyhow::anyhow!(
-                "Failed to verify model {} after download. Hash mismatch.",
-                model_name
-            ));
+        false => {
+            log::info!(
+                "[AI] No builtin model available for {}, will download.",
+                filename
+            );
         }
     }
+
+    // === 优先级 3: 网络下载（带 3 次重试 + SHA256 二次校验）===
+    let _ = app_handle.emit("ai-model-download-start", model_name);
+    let download_result = download_model(url, &dest_path).await;
+    let _ = app_handle.emit("ai-model-download-finish", model_name);
+    download_result?;
+
+    if !verify_sha256(&dest_path, expected_hash)? {
+        return Err(anyhow::anyhow!(
+            "Failed to verify model {} after download. Hash mismatch.",
+            model_name
+        ));
+    }
+    log::info!("[AI] Model ready via download: {}", filename);
     Ok(())
 }
 
@@ -362,7 +441,7 @@ pub async fn get_or_init_ai_models(
 
     let models_dir = get_models_dir(app_handle)?;
 
-    download_and_verify_model(
+    ensure_model(
         app_handle,
         &models_dir,
         ENCODER_FILENAME,
@@ -371,7 +450,7 @@ pub async fn get_or_init_ai_models(
         "SAM Encoder",
     )
     .await?;
-    download_and_verify_model(
+    ensure_model(
         app_handle,
         &models_dir,
         DECODER_FILENAME,
@@ -380,7 +459,7 @@ pub async fn get_or_init_ai_models(
         "SAM Decoder",
     )
     .await?;
-    download_and_verify_model(
+    ensure_model(
         app_handle,
         &models_dir,
         U2NETP_FILENAME,
@@ -389,7 +468,7 @@ pub async fn get_or_init_ai_models(
         "Foreground Model",
     )
     .await?;
-    download_and_verify_model(
+    ensure_model(
         app_handle,
         &models_dir,
         SKYSEG_FILENAME,
@@ -398,7 +477,7 @@ pub async fn get_or_init_ai_models(
         "Sky Model",
     )
     .await?;
-    download_and_verify_model(
+    ensure_model(
         app_handle,
         &models_dir,
         DEPTH_FILENAME,
@@ -475,7 +554,7 @@ pub async fn get_or_init_denoise_model(
     }
 
     let models_dir = get_models_dir(app_handle)?;
-    download_and_verify_model(
+    ensure_model(
         app_handle,
         &models_dir,
         DENOISE_FILENAME,
@@ -534,7 +613,7 @@ pub async fn get_or_init_clip_models(
 
     let models_dir = get_models_dir(app_handle)?;
 
-    download_and_verify_model(
+    ensure_model(
         app_handle,
         &models_dir,
         CLIP_MODEL_FILENAME,
@@ -544,13 +623,18 @@ pub async fn get_or_init_clip_models(
     )
     .await?;
 
+    // CLIP Tokenizer 也走 ensure_model（resources 优先，下载 fallback）
+    ensure_model(
+        app_handle,
+        models_dir,
+        CLIP_TOKENIZER_FILENAME,
+        CLIP_TOKENIZER_URL,
+        // Tokenizer JSON 无 SHA256 常量，用空字符串跳过 hash 校验
+        "",
+        "CLIP Tokenizer",
+    )
+    .await?;
     let clip_tokenizer_path = models_dir.join(CLIP_TOKENIZER_FILENAME);
-    if !clip_tokenizer_path.exists() {
-        let _ = app_handle.emit("ai-model-download-start", "CLIP Tokenizer");
-        let download_result = download_model(CLIP_TOKENIZER_URL, &clip_tokenizer_path).await;
-        let _ = app_handle.emit("ai-model-download-finish", "CLIP Tokenizer");
-        download_result?;
-    }
 
     let clip_model_path = models_dir.join(CLIP_MODEL_FILENAME);
     let model = Mutex::new(create_optimized_session(&clip_model_path)?);
@@ -603,7 +687,7 @@ pub async fn get_or_init_lama_model(
     }
 
     let models_dir = get_models_dir(app_handle)?;
-    download_and_verify_model(
+    ensure_model(
         app_handle,
         &models_dir,
         LAMA_FILENAME,
