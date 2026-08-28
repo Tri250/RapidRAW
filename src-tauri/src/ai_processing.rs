@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-use anyhow::Result;
+use anyhow::{anyhow, Context, Result};
 use image::imageops::{self, FilterType};
 use image::{
     DynamicImage, GenericImageView, GrayImage, ImageBuffer, Luma, Rgb, Rgb32FImage, Rgba, RgbaImage,
@@ -163,6 +163,21 @@ fn edt_2d(grid: &[bool], width: usize, height: usize) -> Vec<f32> {
     f.into_iter().map(|v| v.sqrt()).collect()
 }
 
+/// 创建优化的 ONNX Runtime Session：图优化 Level3 + 合理线程数
+fn create_optimized_session<P: AsRef<std::path::Path>>(path: P) -> Result<Session> {
+    use ort::session::builder::GraphOptimizationLevel;
+    let path_ref = path.as_ref();
+    let num_cpus = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(4)
+        .min(8);
+    Session::builder()?
+        .with_graph_optimization_level(GraphOptimizationLevel::Level3)?
+        .with_intra_threads(num_cpus)?
+        .commit_from_file(path_ref)
+        .map_err(|e| anyhow::anyhow!("Failed to create optimized session for {}: {}", path_ref.display(), e))
+}
+
 fn get_models_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf> {
     let models_dir = app_handle.path().app_data_dir()?.join("models");
     if !models_dir.exists() {
@@ -212,9 +227,28 @@ fn persist_downloaded_asset(dest: &Path, bytes: &[u8]) -> Result<()> {
 }
 
 async fn download_model(url: &str, dest: &Path) -> Result<()> {
-    let response = reqwest::get(url).await?.error_for_status()?;
-    let bytes = response.bytes().await?;
-    persist_downloaded_asset(dest, &bytes)
+    let max_retries = 3u32;
+    let mut last_error: Option<anyhow::Error> = None;
+    for attempt in 1..=max_retries {
+        match reqwest::get(url).await {
+            Ok(resp) => match resp.error_for_status() {
+                Ok(resp) => match resp.bytes().await {
+                    Ok(bytes) => match persist_downloaded_asset(dest, &bytes) {
+                        Ok(_) => return Ok(()),
+                        Err(e) => last_error = Some(e.context("Failed to persist downloaded asset")),
+                    },
+                    Err(e) => last_error = Some(e.into()),
+                },
+                Err(e) => last_error = Some(e.into()),
+            },
+            Err(e) => last_error = Some(e.into()),
+        }
+        if attempt < max_retries {
+            let backoff = std::time::Duration::from_millis(200 * attempt as u64);
+            tokio::time::sleep(backoff).await;
+        }
+    }
+    Err(last_error.unwrap_or_else(|| anyhow::anyhow!("Failed to download model after {max_retries} attempts")))
 }
 
 fn verify_sha256(path: &Path, expected_hash: &str) -> Result<bool> {
@@ -374,7 +408,8 @@ pub async fn get_or_init_ai_models(
     )
     .await?;
 
-    let _ = ort::init().with_name("AI").commit();
+    let _ = ort::init().with_name("RapidRAW-AI").commit();
+    crate::register_exit_handler();
 
     let encoder_path = models_dir.join(ENCODER_FILENAME);
     let decoder_path = models_dir.join(DECODER_FILENAME);
@@ -382,13 +417,12 @@ pub async fn get_or_init_ai_models(
     let sky_seg_path = models_dir.join(SKYSEG_FILENAME);
     let depth_path = models_dir.join(DEPTH_FILENAME);
 
-    let sam_encoder = Session::builder()?.commit_from_file(encoder_path)?;
-    let sam_decoder = Session::builder()?.commit_from_file(decoder_path)?;
-    let u2netp = Session::builder()?.commit_from_file(u2netp_path)?;
-    let sky_seg = Session::builder()?.commit_from_file(sky_seg_path)?;
-    let depth_anything = Session::builder()?.commit_from_file(depth_path)?;
+    let sam_encoder = create_optimized_session(&encoder_path)?;
+    let sam_decoder = create_optimized_session(&decoder_path)?;
+    let u2netp = create_optimized_session(&u2netp_path)?;
+    let sky_seg = create_optimized_session(&sky_seg_path)?;
+    let depth_anything = create_optimized_session(&depth_path)?;
 
-    crate::register_exit_handler();
 
     let models = Arc::new(AiModels {
         sam_encoder: Mutex::new(sam_encoder),
@@ -451,12 +485,10 @@ pub async fn get_or_init_denoise_model(
     )
     .await?;
 
-    let _ = ort::init().with_name("AI-Denoise").commit();
     let model_path = models_dir.join(DENOISE_FILENAME);
-    let session = Session::builder()?.commit_from_file(model_path)?;
+    let session = create_optimized_session(&model_path)?;
     let denoise_model = Arc::new(Mutex::new(session));
 
-    crate::register_exit_handler();
 
     let mut ai_state_lock = ai_state_mutex.lock().unwrap();
     if let Some(state) = ai_state_lock.as_mut() {
@@ -520,13 +552,11 @@ pub async fn get_or_init_clip_models(
         download_result?;
     }
 
-    let _ = ort::init().with_name("AI-Tagging").commit();
     let clip_model_path = models_dir.join(CLIP_MODEL_FILENAME);
-    let model = Mutex::new(Session::builder()?.commit_from_file(clip_model_path)?);
+    let model = Mutex::new(create_optimized_session(&clip_model_path)?);
     let tokenizer =
         Tokenizer::from_file(clip_tokenizer_path).map_err(|e| anyhow::anyhow!(e.to_string()))?;
 
-    crate::register_exit_handler();
 
     let clip_models = Arc::new(ClipModels { model, tokenizer });
 
@@ -583,12 +613,10 @@ pub async fn get_or_init_lama_model(
     )
     .await?;
 
-    let _ = ort::init().with_name("AI-Inpainting").commit();
     let model_path = models_dir.join(LAMA_FILENAME);
-    let session = Session::builder()?.commit_from_file(model_path)?;
+    let session = create_optimized_session(&model_path)?;
     let lama_model = Arc::new(Mutex::new(session));
 
-    crate::register_exit_handler();
 
     let mut ai_state_lock = ai_state_mutex.lock().unwrap();
     if let Some(state) = ai_state_lock.as_mut() {
