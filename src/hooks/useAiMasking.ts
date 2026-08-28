@@ -321,7 +321,7 @@ export function useAiMasking() {
 
     try {
       const transformAdjustments = getTransformAdjustments(adjustments);
-      const newParameters = await invoke('generate_ai_depth_mask', {
+      const newParameters = await invoke(Invokes.GenerateAiDepthMask, {
         jsAdjustments: transformAdjustments,
         path: selectedImage.path,
         minDepth: parameters.minDepth ?? 20,
@@ -412,7 +412,7 @@ export function useAiMasking() {
 
     if (activeSubMask?.type === 'ai-subject' && selectedImage?.path) {
       const transformAdjustments = getTransformAdjustments(adjustments);
-      invoke('precompute_ai_subject_mask', {
+      invoke(Invokes.PrecomputeAiSubjectMask, {
         jsAdjustments: transformAdjustments,
         path: selectedImage.path,
       }).catch((err) => console.error('Failed to precompute AI subject mask:', err));

@@ -95,6 +95,19 @@ pub struct AiState {
     pub depth_map: Option<CachedDepthMap>,
 }
 
+impl Default for AiState {
+    fn default() -> Self {
+        Self {
+            models: None,
+            denoise_model: None,
+            clip_models: None,
+            lama_model: None,
+            embeddings: None,
+            depth_map: None,
+        }
+    }
+}
+
 fn edt_1d(f: &mut [f32], v: &mut [usize], z: &mut [f32], d: &mut [f32]) {
     let n = f.len();
     if n == 0 {
@@ -279,25 +292,87 @@ fn copy_builtin_model_if_available(
     Ok(true)
 }
 
+/// 模型下载：带超时、重试、大小上限（防内存炸弹）
 async fn download_model(url: &str, dest: &Path) -> Result<()> {
+    use reqwest::Client;
+    use std::time::Duration;
+
+    // 最大允许下载大小 3GB（超过报错，防止内存炸弹）
+    let max_allowed_bytes: u64 = 3 * 1024 * 1024 * 1024;
+
+    let client = Client::builder()
+        .connect_timeout(Duration::from_secs(15))
+        .read_timeout(Duration::from_secs(300))  // 5min 足够下几百 MB
+        .timeout(Duration::from_secs(600))       // 总超时 10min
+        .build()
+        .context("Failed to create HTTP client")?;
+
     let max_retries = 3u32;
     let mut last_error: Option<anyhow::Error> = None;
     for attempt in 1..=max_retries {
-        match reqwest::get(url).await {
-            Ok(resp) => match resp.error_for_status() {
-                Ok(resp) => match resp.bytes().await {
-                    Ok(bytes) => match persist_downloaded_asset(dest, &bytes) {
+        let resp_result = client
+            .get(url)
+            .send()
+            .await
+            .and_then(|r| r.error_for_status());
+
+        match resp_result {
+            Ok(resp) => {
+                // 检查 Content-Length 上限
+                if let Some(cl) = resp.content_length() {
+                    if cl > max_allowed_bytes {
+                        return Err(anyhow::anyhow!(
+                            "Model download exceeds size limit: {} bytes > {}",
+                            cl,
+                            max_allowed_bytes
+                        ));
+                    }
+                }
+
+                // 流式读取 + 硬上限检查
+                use futures_util::StreamExt;
+                let mut stream = resp.bytes_stream();
+                let mut total: u64 = 0;
+                let mut all_bytes: Vec<u8> = Vec::with_capacity(cl.unwrap_or_else(|| 256 * 1024) as usize);
+                let mut exceeded = false;
+                while let Some(chunk) = stream.next().await {
+                    match chunk {
+                        Ok(bytes) => {
+                            total += bytes.len() as u64;
+                            if total > max_allowed_bytes {
+                                exceeded = true;
+                                break;
+                            }
+                            all_bytes.extend_from_slice(&bytes);
+                        }
+                        Err(e) => {
+                            last_error = Some(e.into());
+                            break;
+                        }
+                    }
+                }
+
+                if exceeded {
+                    return Err(anyhow::anyhow!(
+                        "Model download exceeded size limit ({} bytes)",
+                        total
+                    ));
+                }
+
+                if let Some(err) = last_error.as_ref() {
+                    // 下载中断，重试
+                } else {
+                    match persist_downloaded_asset(dest, &all_bytes) {
                         Ok(_) => return Ok(()),
                         Err(e) => last_error = Some(e.context("Failed to persist downloaded asset")),
-                    },
-                    Err(e) => last_error = Some(e.into()),
-                },
-                Err(e) => last_error = Some(e.into()),
-            },
+                    }
+                }
+            }
             Err(e) => last_error = Some(e.into()),
         }
+
         if attempt < max_retries {
-            let backoff = std::time::Duration::from_millis(200 * attempt as u64);
+            let backoff = Duration::from_millis(300 * attempt as u64);
             tokio::time::sleep(backoff).await;
         }
     }
@@ -512,17 +587,11 @@ pub async fn get_or_init_ai_models(
     });
 
     let mut ai_state_lock = ai_state_mutex.lock().unwrap();
+    if ai_state_lock.is_none() {
+        *ai_state_lock = Some(AiState::default());
+    }
     if let Some(state) = ai_state_lock.as_mut() {
         state.models = Some(models.clone());
-    } else {
-        *ai_state_lock = Some(AiState {
-            models: Some(models.clone()),
-            denoise_model: None,
-            clip_models: None,
-            lama_model: None,
-            embeddings: None,
-            depth_map: None,
-        });
     }
 
     Ok(models)
@@ -570,17 +639,11 @@ pub async fn get_or_init_denoise_model(
 
 
     let mut ai_state_lock = ai_state_mutex.lock().unwrap();
+    if ai_state_lock.is_none() {
+        *ai_state_lock = Some(AiState::default());
+    }
     if let Some(state) = ai_state_lock.as_mut() {
         state.denoise_model = Some(denoise_model.clone());
-    } else {
-        *ai_state_lock = Some(AiState {
-            models: None,
-            denoise_model: Some(denoise_model.clone()),
-            clip_models: None,
-            lama_model: None,
-            embeddings: None,
-            depth_map: None,
-        });
     }
 
     Ok(denoise_model)
@@ -645,17 +708,11 @@ pub async fn get_or_init_clip_models(
     let clip_models = Arc::new(ClipModels { model, tokenizer });
 
     let mut ai_state_lock = ai_state_mutex.lock().unwrap();
+    if ai_state_lock.is_none() {
+        *ai_state_lock = Some(AiState::default());
+    }
     if let Some(state) = ai_state_lock.as_mut() {
         state.clip_models = Some(clip_models.clone());
-    } else {
-        *ai_state_lock = Some(AiState {
-            models: None,
-            denoise_model: None,
-            clip_models: Some(clip_models.clone()),
-            lama_model: None,
-            embeddings: None,
-            depth_map: None,
-        });
     }
 
     Ok(clip_models)
@@ -703,17 +760,11 @@ pub async fn get_or_init_lama_model(
 
 
     let mut ai_state_lock = ai_state_mutex.lock().unwrap();
+    if ai_state_lock.is_none() {
+        *ai_state_lock = Some(AiState::default());
+    }
     if let Some(state) = ai_state_lock.as_mut() {
         state.lama_model = Some(lama_model.clone());
-    } else {
-        *ai_state_lock = Some(AiState {
-            models: None,
-            denoise_model: None,
-            clip_models: None,
-            lama_model: Some(lama_model.clone()),
-            embeddings: None,
-            depth_map: None,
-        });
     }
 
     Ok(lama_model)

@@ -256,7 +256,7 @@ export const useAppInitialization = ({
           });
         }
 
-        invoke('frontend_ready')
+        invoke(Invokes.FrontendReady)
           .then((launch: any) => {
             if (launch?.editSession) {
               useProcessStore.getState().setProcess({ externalEditSession: launch.editSession });

@@ -1,5 +1,6 @@
 import { useRef, useCallback, useMemo, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { Invokes } from '../components/ui/AppProperties';
 import debounce from 'lodash.debounce';
 
 export function useThumbnails() {
@@ -18,7 +19,7 @@ export function useThumbnails() {
             [pathsToSend[i], pathsToSend[j]] = [pathsToSend[j], pathsToSend[i]];
           }
 
-          invoke('update_thumbnail_queue', { paths: pathsToSend }).catch((err) => {
+          invoke(Invokes.UpdateThumbnailQueue, { paths: pathsToSend }).catch((err) => {
             console.error('Failed to update thumbnail queue:', err);
           });
 
@@ -57,7 +58,7 @@ export function useThumbnails() {
     generatedRef.current.clear();
     pendingQueueRef.current.clear();
     flushQueueToBackend.cancel();
-    invoke('update_thumbnail_queue', { paths: [] }).catch(console.error);
+    invoke(Invokes.UpdateThumbnailQueue, { paths: [] }).catch(console.error);
   }, [flushQueueToBackend]);
 
   useEffect(() => {

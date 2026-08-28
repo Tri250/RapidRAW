@@ -1,5 +1,6 @@
 use crate::panorama_stitching::ImageInfo;
 use image::{GrayImage, Rgb, Rgb32FImage};
+use anyhow::anyhow;
 use nalgebra::{Matrix3, Point3};
 use rayon::prelude::*;
 use std::collections::HashMap;
@@ -76,7 +77,21 @@ pub fn progressive_seam_stitcher(
 
     let base_img_info = images[0];
     let h_base = &global_homographies[&base_img_info.id];
-    let h_base_inv = h_base.try_inverse().unwrap();
+    let h_base_inv = 
+/// 安全求逆：行列式太小的矩阵认为退化不可求逆
+fn safe_inverse<M: nalgebra::base::MatrixNum + nalgebra::base::Matrix + nalgebra::ClosedMul + nalgebra::ClosedAdd + nalgebra::ClosedSub + nalgebra::Zero + nalgebra::One + Copy>(
+    m: &nalgebra::Matrix3<f64>,
+    det_min: f64,
+) -> Option<nalgebra::Matrix3<f64>> {
+    let det = m.determinant().abs();
+    if det < det_min {
+        return None;
+    }
+    m.try_inverse()
+}
+
+h_base = safe_inverse(&h_base, 1e-8)
+        .ok_or_else(|| anyhow::anyhow!("Homography h_base 退化 (det 太小), 无法求逆"))?;
     println!("  - Placing base image: '{}'", base_img_info.filename);
 
     let num_pixels_per_row = out_width as usize * 3;
@@ -118,7 +133,8 @@ pub fn progressive_seam_stitcher(
         println!("  - Progressively stitching '{}'", img_to_add_info.filename);
 
         let h_add = &global_homographies[&img_to_add_info.id];
-        let h_add_inv = h_add.try_inverse().unwrap();
+        let h_add_inv = safe_inverse(&h_add, 1e-8)
+        .ok_or_else(|| anyhow::anyhow!("Homography 退化 (det 太小), 无法求逆"))?;
         let img_to_add = &img_to_add_info.image;
 
         let ctx = SeamContext {
@@ -365,7 +381,8 @@ pub fn progressive_seam_stitcher(
 }
 
 fn find_adaptive_seam(ctx: &SeamContext) -> Option<SeamInfo> {
-    let h_add_inv = ctx.h_add.try_inverse().unwrap();
+    let h_add_inv = safe_inverse(&ctx.h_add, 1e-8)
+        .ok_or_else(|| anyhow::anyhow!("Homography h_add 退化 (det 太小), 无法求逆"))?;
     let (w_add, h_add_img) = ctx.img_to_add.dimensions();
 
     let mut min_ox = u32::MAX;
@@ -429,7 +446,8 @@ fn find_adaptive_seam(ctx: &SeamContext) -> Option<SeamInfo> {
 }
 
 fn find_pairwise_seam_dp_vertical(ctx: &SeamContext) -> Vec<i32> {
-    let h_add_inv = ctx.h_add.try_inverse().unwrap();
+    let h_add_inv = safe_inverse(&ctx.h_add, 1e-8)
+        .ok_or_else(|| anyhow::anyhow!("Homography h_add 退化 (det 太小), 无法求逆"))?;
     let (w_add, h_add_img) = ctx.img_to_add.dimensions();
     let out_width = ctx.out_width;
     let out_height = ctx.out_height;
@@ -532,7 +550,8 @@ fn find_pairwise_seam_dp_vertical(ctx: &SeamContext) -> Vec<i32> {
 }
 
 fn find_pairwise_seam_dp_horizontal(ctx: &SeamContext) -> Vec<i32> {
-    let h_add_inv = ctx.h_add.try_inverse().unwrap();
+    let h_add_inv = safe_inverse(&ctx.h_add, 1e-8)
+        .ok_or_else(|| anyhow::anyhow!("Homography h_add 退化 (det 太小), 无法求逆"))?;
     let (w_add, h_add_img) = ctx.img_to_add.dimensions();
     let out_width = ctx.out_width;
     let out_height = ctx.out_height;

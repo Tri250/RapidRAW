@@ -126,6 +126,17 @@ export enum Invokes {
   ConvertNegatives = 'convert_negatives',
   TetherAutofocus = 'tether_autofocus',
   PreviewGeometryTransform = 'preview_geometry_transform',
+  // 以下为端侧 AI / 缓存 / 系统类命令
+  GetLensDistortionParams = 'get_lens_distortion_params',
+  GetImageDimensions = 'get_image_dimensions',
+  ClearImageCaches = 'clear_image_caches',
+  ClearSessionCaches = 'clear_session_caches',
+  FrontendReady = 'frontend_ready',
+  UpdateThumbnailQueue = 'update_thumbnail_queue',
+  GenerateAiDepthMask = 'generate_ai_depth_mask',
+  PrecomputeAiSubjectMask = 'precompute_ai_subject_mask',
+  CancelThumbnailGeneration = 'cancel_thumbnail_generation',
+
 }
 
 export enum ExifOverlay {

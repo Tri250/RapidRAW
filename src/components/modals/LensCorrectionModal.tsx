@@ -235,7 +235,7 @@ export default function LensCorrectionModal({
 
   const fetchDistortionParams = async (maker: string, model: string) => {
     try {
-      const distParams: any = await invoke('get_lens_distortion_params', {
+      const distParams: any = await invoke(Invokes.GetLensDistortionParams, {
         maker,
         model,
         focalLength: focalLength,
@@ -299,7 +299,7 @@ export default function LensCorrectionModal({
       setIsMounted(true);
       const timer = setTimeout(() => setShow(true), 10);
 
-      invoke('load_settings').then((settings: any) => {
+      invoke(Invokes.LoadSettings).then((settings: any) => {
         if (settings?.myLenses) {
           setMyLenses(settings.myLenses);
         }

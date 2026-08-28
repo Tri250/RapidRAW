@@ -612,7 +612,7 @@ export default function SettingsPanel({
         key === 'rawPreprocessingSharpening' ||
         key === 'applyPreprocessingToNonRaws'
       ) {
-        await invoke('clear_image_caches');
+        await invoke(Invokes.ClearImageCaches);
       }
     }
   };

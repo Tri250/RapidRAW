@@ -266,7 +266,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
       const libraryViewMode = appSettings?.libraryViewMode;
 
       if (!preserveEditor) {
-        await invoke('cancel_thumbnail_generation');
+        await invoke(Invokes.CancelThumbnailGeneration);
         clearThumbnailQueue();
         setLibrary({ isViewLoading: true, activeAlbumId: null, libraryScrollTop: 0 });
         setProcess({ thumbnails: {} });
@@ -416,7 +416,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
       const { setUI } = useUIStore.getState();
 
       if (!preserveEditor) {
-        await invoke('cancel_thumbnail_generation');
+        await invoke(Invokes.CancelThumbnailGeneration);
         clearThumbnailQueue();
         setLibrary({ libraryScrollTop: 0 });
         globalImageCache.clear();

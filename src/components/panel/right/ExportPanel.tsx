@@ -304,7 +304,7 @@ export default function ExportPanel({
         return;
       }
       try {
-        const dims: any = await invoke('get_image_dimensions', { path: pathsToExport[0] });
+        const dims: any = await invoke(Invokes.GetImageDimensions, { path: pathsToExport[0] });
         if (dims.width > 0 && dims.height > 0) setImageAspectRatio(dims.width / dims.height);
       } catch {
         setImageAspectRatio(3 / 2);
@@ -320,7 +320,7 @@ export default function ExportPanel({
         return;
       }
       try {
-        const dimensions: { width: number; height: number } = await invoke('get_image_dimensions', {
+        const dimensions: { width: number; height: number } = await invoke(Invokes.GetImageDimensions, {
           path: watermarkPath,
         });
         setWatermarkImageAspectRatio(dimensions.height > 0 ? dimensions.width / dimensions.height : 1);
