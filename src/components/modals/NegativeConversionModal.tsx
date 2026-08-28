@@ -9,6 +9,7 @@ import Slider from '../ui/Slider';
 import clsx from 'clsx';
 import throttle from 'lodash.throttle';
 import Text from '../ui/Text';
+import { Invokes } from '../ui/AppProperties';
 import { TextColors, TextVariants } from '../../types/typography';
 
 interface NegativeParams {
@@ -115,7 +116,7 @@ export default function NegativeConversionModal({
     throttle(async (currentParams: NegativeParams, isInitialLoad: boolean = false) => {
       if (!selectedImagePath) return;
       try {
-        const result: string = await invoke('preview_negative_conversion', {
+        const result: string = await invoke(Invokes.PreviewNegativeConversion, {
           path: selectedImagePath,
           params: currentParams,
         });
@@ -177,7 +178,7 @@ export default function NegativeConversionModal({
     setIsSaving(true);
     setProgress(null);
     try {
-      const savedPaths: string[] = await invoke('convert_negatives', {
+      const savedPaths: string[] = await invoke(Invokes.ConvertNegatives, {
         paths: targetPaths,
         params,
       });

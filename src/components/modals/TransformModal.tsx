@@ -9,6 +9,7 @@ import throttle from 'lodash.throttle';
 import { Adjustments } from '../../utils/adjustments';
 import clsx from 'clsx';
 import Text from '../ui/Text';
+import { Invokes } from '../ui/AppProperties';
 import { TextColors, TextVariants } from '../../types/typography';
 
 interface GeometryParams {
@@ -222,7 +223,7 @@ export default function TransformModal({ isOpen, onClose, onApply, currentAdjust
           lens_vignette_enabled: currentAdjustments.lensVignetteEnabled ?? true,
         };
 
-        const result: string = await invoke('preview_geometry_transform', {
+        const result: string = await invoke(Invokes.PreviewGeometryTransform, {
           params: fullParams,
           jsAdjustments: currentAdjustments,
           showLines: linesEnabled,
@@ -314,7 +315,7 @@ export default function TransformModal({ isOpen, onClose, onApply, currentAdjust
         lens_tca_enabled: currentAdjustments.lensTcaEnabled ?? true,
         lens_vignette_enabled: currentAdjustments.lensVignetteEnabled ?? true,
       };
-      const result: string = await invoke('preview_geometry_transform', {
+      const result: string = await invoke(Invokes.PreviewGeometryTransform, {
         params: fullParams,
         jsAdjustments: currentAdjustments,
         showLines: false,

@@ -132,7 +132,7 @@ export function useEditorActions() {
     async (path: string, isBuiltIn: boolean = false) => {
       const isAndroid = useSettingsStore.getState().osPlatform === 'android';
       try {
-        const result: { size: number } = await invoke('load_and_parse_lut', { path });
+        const result: { size: number } = await invoke(Invokes.LoadAndParseLut, { path });
         const name =
           isAndroid && path.startsWith('content://')
             ? await invoke<string>('resolve_android_content_uri_name', { uriStr: path })

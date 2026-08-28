@@ -237,16 +237,80 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
                 setUI({ collageModalState: { isOpen: true, sourceImages: [selectedImage] } });
               },
             },
-            { label: t('contextMenus.editor.cullImage'), icon: Users, disabled: true },
+            {
+              label: t('contextMenus.editor.cullImage'),
+              icon: Users,
+              disabled: !selectedImage?.isReady,
+              onClick: () =>
+                setUI({
+                  cullingModalState: {
+                    isOpen: true,
+                    progress: null,
+                    suggestions: null,
+                    error: null,
+                    pathsToCull: [selectedImage?.path ?? ''],
+                  },
+                }),
+            },
           ],
         },
         {
           label: t('contextMenus.merge.title'),
           icon: Layers,
           submenu: [
-            { disabled: true, icon: SquaresUnite, label: t('contextMenus.editor.stitchPanorama') },
-            { disabled: true, icon: Images, label: t('contextMenus.editor.mergeHdr') },
-            { disabled: true, icon: Layers, label: t('contextMenus.merge.focusStack') },
+            {
+              disabled: !selectedImage?.isReady,
+              icon: SquaresUnite,
+              label: t('contextMenus.editor.stitchPanorama'),
+              onClick: () => {
+                const folder = selectedImage?.path.substring(0, selectedImage.path.lastIndexOf('/') + 1);
+                setUI({
+                  panoramaModalState: {
+                    error: null,
+                    finalImageBase64: null,
+                    isOpen: true,
+                    isProcessing: false,
+                    progressMessage: null,
+                    stitchingSourcePaths: folder ? [folder + '*.RAF', folder + '*.CR2', folder + '*.NEF'] : [],
+                  },
+                });
+              },
+            },
+            {
+              disabled: !selectedImage?.isReady,
+              icon: Images,
+              label: t('contextMenus.editor.mergeHdr'),
+              onClick: () => {
+                setUI({
+                  hdrModalState: {
+                    error: null,
+                    finalImageBase64: null,
+                    isOpen: true,
+                    isProcessing: false,
+                    progressMessage: null,
+                    stitchingSourcePaths: [selectedImage?.path ?? ''],
+                  },
+                });
+              },
+            },
+            {
+              disabled: !selectedImage?.isReady,
+              icon: Layers,
+              label: t('contextMenus.merge.focusStack'),
+              onClick: () => {
+                setUI({
+                  focusStackModalState: {
+                    error: null,
+                    finalImageBase64: null,
+                    depthMapBase64: null,
+                    isOpen: true,
+                    isProcessing: false,
+                    progressMessage: null,
+                    sourcePaths: [selectedImage?.path ?? ''],
+                  },
+                });
+              },
+            },
           ],
         },
         { type: OPTION_SEPARATOR },

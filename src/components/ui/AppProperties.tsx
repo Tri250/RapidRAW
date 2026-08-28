@@ -115,6 +115,22 @@ export enum Invokes {
   TetherSetSetting = 'tether_set_setting',
   TetherCapture = 'tether_capture',
   TetherGetPreview = 'tether_get_preview',
+  BatchDenoiseImages = 'batch_denoise_images',
+  GenerateFullImageDepthMap = 'generate_full_image_depth_map',
+  GenerateLiquifyPatch = 'generate_liquify_patch',
+  GenerateRetouchPatch = 'generate_retouch_patch',
+  GenerateManualCleanupPatch = 'generate_manual_cleanup_patch',
+  AutodetectLens = 'autodetect_lens',
+  GetLensfunMakers = 'get_lensfun_makers',
+  GetLensfunLensesForMaker = 'get_lensfun_lenses_for_maker',
+  ListLuts = 'list_luts',
+  ImportLuts = 'import_luts',
+  RemoveLut = 'remove_lut',
+  LoadAndParseLut = 'load_and_parse_lut',
+  PreviewNegativeConversion = 'preview_negative_conversion',
+  ConvertNegatives = 'convert_negatives',
+  TetherAutofocus = 'tether_autofocus',
+  PreviewGeometryTransform = 'preview_geometry_transform',
 }
 
 export enum ExifOverlay {
