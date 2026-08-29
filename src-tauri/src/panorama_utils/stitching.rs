@@ -9,6 +9,15 @@ use tauri::{AppHandle, Emitter};
 
 const FEATHER_WIDTH: f64 = 100.0;
 
+/// 安全求逆：行列式太小的矩阵认为退化不可求逆
+fn safe_inverse(m: &nalgebra::Matrix3<f64>, det_min: f64) -> Option<nalgebra::Matrix3<f64>> {
+    let det = m.determinant().abs();
+    if det < det_min {
+        return None;
+    }
+    m.try_inverse()
+}
+
 struct SeamContext<'a> {
     pano: &'a Rgb32FImage,
     pano_mask: &'a GrayImage,
@@ -77,20 +86,7 @@ pub fn progressive_seam_stitcher(
 
     let base_img_info = images[0];
     let h_base = &global_homographies[&base_img_info.id];
-    let h_base_inv = 
-/// 安全求逆：行列式太小的矩阵认为退化不可求逆
-fn safe_inverse<M: nalgebra::base::MatrixNum + nalgebra::base::Matrix + nalgebra::ClosedMul + nalgebra::ClosedAdd + nalgebra::ClosedSub + nalgebra::Zero + nalgebra::One + Copy>(
-    m: &nalgebra::Matrix3<f64>,
-    det_min: f64,
-) -> Option<nalgebra::Matrix3<f64>> {
-    let det = m.determinant().abs();
-    if det < det_min {
-        return None;
-    }
-    m.try_inverse()
-}
-
-h_base = safe_inverse(&h_base, 1e-8)
+    let h_base_inv = safe_inverse(h_base, 1e-8)
         .ok_or_else(|| anyhow::anyhow!("Homography h_base 退化 (det 太小), 无法求逆"))?;
     println!("  - Placing base image: '{}'", base_img_info.filename);
 

@@ -185,7 +185,7 @@ fn create_optimized_session<P: AsRef<std::path::Path>>(path: P) -> Result<Sessio
         .unwrap_or(4)
         .min(8);
     Session::builder()?
-        .with_graph_optimization_level(GraphOptimizationLevel::Level3)?
+        .with_optimization_level(GraphOptimizationLevel::Level3)?
         .with_intra_threads(num_cpus)?
         .commit_from_file(path_ref)
         .map_err(|e| anyhow::anyhow!("Failed to create optimized session for {}: {}", path_ref.display(), e))
@@ -246,7 +246,7 @@ fn get_builtin_models_dir(app_handle: &tauri::AppHandle) -> Option<PathBuf> {
     // tauri.conf.json 配了 "resources": ["resources"], 所以路径是 resources/models/
     app_handle
         .path()
-        .resolve("resources/models")
+        .resolve("resources/models", tauri::path::BaseDirectory::ResourceDir)
         .ok()
         .filter(|p| p.exists())
 }
@@ -319,7 +319,8 @@ async fn download_model(url: &str, dest: &Path) -> Result<()> {
         match resp_result {
             Ok(resp) => {
                 // 检查 Content-Length 上限
-                if let Some(cl) = resp.content_length() {
+                let content_length = resp.content_length();
+                if let Some(cl) = content_length {
                     if cl > max_allowed_bytes {
                         return Err(anyhow::anyhow!(
                             "Model download exceeds size limit: {} bytes > {}",
@@ -330,10 +331,10 @@ async fn download_model(url: &str, dest: &Path) -> Result<()> {
                 }
 
                 // 流式读取 + 硬上限检查
-                use futures_util::StreamExt;
+                use futures::StreamExt;
                 let mut stream = resp.bytes_stream();
                 let mut total: u64 = 0;
-                let mut all_bytes: Vec<u8> = Vec::with_capacity(cl.unwrap_or_else(|| 256 * 1024) as usize);
+                let mut all_bytes: Vec<u8> = Vec::with_capacity(content_length.unwrap_or_else(|| 256 * 1024) as usize);
                 let mut exceeded = false;
                 while let Some(chunk) = stream.next().await {
                     match chunk {
@@ -689,7 +690,7 @@ pub async fn get_or_init_clip_models(
     // CLIP Tokenizer 也走 ensure_model（resources 优先，下载 fallback）
     ensure_model(
         app_handle,
-        models_dir,
+        &models_dir,
         CLIP_TOKENIZER_FILENAME,
         CLIP_TOKENIZER_URL,
         // Tokenizer JSON 无 SHA256 常量，用空字符串跳过 hash 校验

@@ -2333,7 +2333,6 @@ pub fn run() {
             file_management::handle_import_legacy_presets_from_file,
             file_management::handle_import_presets_from_files,
             file_management::handle_export_presets_to_file,
-            file_management::save_community_preset,
             file_management::clear_all_sidecars,
             file_management::clear_thumbnail_cache,
             file_management::set_color_label_for_paths,
