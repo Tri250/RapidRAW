@@ -99,7 +99,7 @@ interface DragData {
   parentId?: string;
 }
 
-const SUB_MASK_CONFIG: Record<Mask, any> = {
+const SUB_MASK_CONFIG: Record<string, any> = {
   [Mask.Radial]: {
     parameters: [{ key: 'feather', min: 0, max: 100, step: 1, multiplier: 100, defaultValue: 50 }],
   },
@@ -143,6 +143,16 @@ const SUB_MASK_CONFIG: Record<Mask, any> = {
     ],
   },
   [Mask.QuickEraser]: { parameters: [] },
+  [Mask.Clone]: { showBrushTools: true },
+  [Mask.Heal]: { showBrushTools: true },
+  [Mask.Liquify]: {
+    showBrushTools: true,
+    parameters: [{ key: 'pressure', min: 1, max: 100, step: 1, defaultValue: 40 }],
+  },
+  [Mask.Retouch]: {
+    showBrushTools: true,
+    parameters: [{ key: 'intensity', min: 1, max: 100, step: 1, defaultValue: 40 }],
+  },
 };
 
 const BrushTools = ({
@@ -459,7 +469,7 @@ export default function MasksPanel() {
 
   const createMaskLogic = (type: Mask, mode: SubMaskMode = SubMaskMode.Additive) => {
     if (!selectedImage) return createSubMask(type, {} as any, mode);
-    const subMask = createSubMask(type, selectedImage, mode);
+    const subMask: SubMask = createSubMask(type, selectedImage, mode);
 
     const steps = adjustments?.orientationSteps || 0;
     const isRotated = steps === 1 || steps === 3;
@@ -814,9 +824,9 @@ export default function MasksPanel() {
           handleAddSubMask(overData.item!.id, dragData.maskType!);
         } else if (overData?.type === 'SubMask') {
           const container = adjustments.masks.find((m) => m.id === overData.parentId);
-          if (container) {
+          if (container && over) {
             const targetIndex = container.subMasks.findIndex((sm) => sm.id === over.id);
-            handleAddSubMask(overData.parentId!, dragData.maskType!, targetIndex);
+            handleAddSubMask(overData.parentId!, dragData.maskType!, SubMaskMode.Additive, targetIndex);
           }
         } else {
           handleAddMaskContainer(dragData.maskType!);
@@ -2080,7 +2090,7 @@ function SettingsPanel({
     };
 
     const isPasteAllowed = copiedSectionAdjustments && copiedSectionAdjustments.section === sectionName;
-    const sectionTitle = t(`editor.adjustments.sections.${sectionName}`);
+    const sectionTitle = (t as any)(`editor.adjustments.sections.${sectionName}`);
 
     const pasteLabel = copiedSectionAdjustments
       ? t('editor.masks.settings.pasteSectionSettings', { section: sectionTitle })
@@ -2213,7 +2223,7 @@ function SettingsPanel({
                   label={
                     param.key === 'feather' && activeSubMask.type === Mask.AiDepth
                       ? t('editor.masks.params.globalFeather')
-                      : t('editor.masks.params.' + param.key)
+                      : ((t as any)('editor.masks.params.' + param.key))
                   }
                   min={param.min}
                   max={param.max}
@@ -2263,7 +2273,7 @@ function SettingsPanel({
             details: DetailsPanel,
             effects: EffectsPanel,
           }[sectionName];
-          const title = t(`editor.adjustments.sections.${sectionName}`);
+          const title = (t as any)(`editor.adjustments.sections.${sectionName}`);
           return (
             <CollapsibleSection
               key={sectionName}

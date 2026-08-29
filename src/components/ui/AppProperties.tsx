@@ -37,7 +37,6 @@ export enum Invokes {
   ApplyDenoising = 'apply_denoising',
   CalculateAutoAdjustments = 'calculate_auto_adjustments',
   CancelExport = 'cancel_export',
-  CheckAIConnectorStatus = 'check_ai_connector_status',
   ClearAllSidecars = 'clear_all_sidecars',
   ClearAiTags = 'clear_ai_tags',
   ClearAllTags = 'clear_all_tags',
@@ -98,12 +97,8 @@ export enum Invokes {
   StitchFocusStack = 'stitch_focus_stack',
   SaveFocusStack = 'save_focus_stack',
   MergeHdr = 'merge_hdr',
-  TestAIConnectorConnection = 'test_ai_connector_connection',
   UpdateWgpuTransform = 'update_wgpu_transform',
   UpdateExifFields = 'update_exif_fields',
-  FetchCommunityPresets = 'fetch_community_presets',
-  GenerateAllCommunityPreviews = 'generate_all_community_previews',
-  SaveCommunityPreset = 'save_community_preset',
   SaveTempFile = 'save_temp_file',
   GetAlbums = 'get_albums',
   SaveAlbums = 'save_albums',
@@ -115,6 +110,33 @@ export enum Invokes {
   TetherSetSetting = 'tether_set_setting',
   TetherCapture = 'tether_capture',
   TetherGetPreview = 'tether_get_preview',
+  BatchDenoiseImages = 'batch_denoise_images',
+  GenerateFullImageDepthMap = 'generate_full_image_depth_map',
+  GenerateLiquifyPatch = 'generate_liquify_patch',
+  GenerateRetouchPatch = 'generate_retouch_patch',
+  GenerateManualCleanupPatch = 'generate_manual_cleanup_patch',
+  AutodetectLens = 'autodetect_lens',
+  GetLensfunMakers = 'get_lensfun_makers',
+  GetLensfunLensesForMaker = 'get_lensfun_lenses_for_maker',
+  ListLuts = 'list_luts',
+  ImportLuts = 'import_luts',
+  RemoveLut = 'remove_lut',
+  LoadAndParseLut = 'load_and_parse_lut',
+  PreviewNegativeConversion = 'preview_negative_conversion',
+  ConvertNegatives = 'convert_negatives',
+  TetherAutofocus = 'tether_autofocus',
+  PreviewGeometryTransform = 'preview_geometry_transform',
+  // 以下为端侧 AI / 缓存 / 系统类命令
+  GetLensDistortionParams = 'get_lens_distortion_params',
+  GetImageDimensions = 'get_image_dimensions',
+  ClearImageCaches = 'clear_image_caches',
+  ClearSessionCaches = 'clear_session_caches',
+  FrontendReady = 'frontend_ready',
+  UpdateThumbnailQueue = 'update_thumbnail_queue',
+  GenerateAiDepthMask = 'generate_ai_depth_mask',
+  PrecomputeAiSubjectMask = 'precompute_ai_subject_mask',
+  CancelThumbnailGeneration = 'cancel_thumbnail_generation',
+
 }
 
 export enum ExifOverlay {
@@ -185,7 +207,6 @@ export type GroupPreference = 'jpeg' | 'raw';
 export type GroupingMode = 'off' | GroupPreference;
 
 export interface AppSettings {
-  aiConnectorAddress?: string;
   aiProvider?: string;
   decorations?: any;
   editorPreviewResolution?: number;
@@ -325,6 +346,7 @@ export interface Preset {
 export interface Progress {
   completed?: number;
   current?: number;
+  stage?: string;
   total: number;
 }
 

@@ -106,7 +106,7 @@ export function getSubMaskName(subMask: Pick<SubMask, 'name' | 'type'>) {
   return subMask.name?.trim() || formatMaskTypeName(subMask.type);
 }
 
-export const MASK_ICON_MAP: Record<Mask, any> = {
+export const MASK_ICON_MAP: Record<string, any> = {
   [Mask.AiDepth]: BringToFront,
   [Mask.AiForeground]: User,
   [Mask.AiSky]: Cloud,
@@ -272,7 +272,7 @@ export function NewMaskDropZone({ isOver, textKey }: { isOver: boolean; textKey:
       transition={{ duration: 0.2, ease: 'easeOut' }}
       className={`p-3 rounded-lg text-center ${isOver ? 'border border-accent/80 bg-bg-tertiary/50' : ''}`}
     >
-      <Text weight={TextWeights.medium}>{t(textKey)}</Text>
+      <Text weight={TextWeights.medium}>{(t as any)(textKey)}</Text>
     </motion.div>
   );
 }

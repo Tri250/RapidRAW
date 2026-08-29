@@ -132,7 +132,7 @@ export function useEditorActions() {
     async (path: string, isBuiltIn: boolean = false) => {
       const isAndroid = useSettingsStore.getState().osPlatform === 'android';
       try {
-        const result: { size: number } = await invoke('load_and_parse_lut', { path });
+        const result: { size: number } = await invoke(Invokes.LoadAndParseLut, { path });
         const name =
           isAndroid && path.startsWith('content://')
             ? await invoke<string>('resolve_android_content_uri_name', { uriStr: path })
@@ -249,7 +249,7 @@ export function useEditorActions() {
 
       if (!copiedAdjustments || !appSettings) return;
 
-      const { mode, includedAdjustments } = appSettings.copyPasteSettings;
+      const { mode, includedAdjustments } = appSettings.copyPasteSettings!;
       const adjustmentsToApply: Partial<Adjustments> = {};
 
       for (const key of includedAdjustments) {
@@ -289,7 +289,7 @@ export function useEditorActions() {
       invoke(Invokes.ApplyAdjustmentsToPaths, { paths: pathsToUpdate, adjustments: adjustmentsToApply })
         .then(() => {
           if (selectedImage && pathsToUpdate.includes(selectedImage.path)) {
-            invoke('load_metadata', { path: selectedImage.path }).then((meta: any) => {
+            invoke(Invokes.LoadMetadata, { path: selectedImage.path }).then((meta: any) => {
               if (meta.adjustments) {
                 setAdjustments((prev: any) => ({
                   ...prev,

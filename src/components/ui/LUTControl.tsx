@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useContextMenu } from '../../context/ContextMenuContext';
 import { toast } from 'react-toastify';
 import Slider from './Slider';
+import { Invokes } from './AppProperties';
 import { useEditorStore } from '../../store/useEditorStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 
@@ -69,7 +70,7 @@ export default function LUTControl({
         isDestructive: true,
         onClick: async () => {
           try {
-            const updatedList = await invoke<LutEntry[]>('remove_lut', { path: entry.path });
+            const updatedList = await invoke<LutEntry[]>(Invokes.RemoveLut, { path: entry.path });
             setEntries(updatedList);
             setPreviews((prev) => {
               const next = { ...prev };
@@ -91,7 +92,7 @@ export default function LUTControl({
 
   const refreshList = useCallback(async () => {
     try {
-      const list = await invoke<LutEntry[]>('list_luts');
+      const list = await invoke<LutEntry[]>(Invokes.ListLuts);
       setEntries(list);
     } catch (err) {
       console.error('Failed to list LUTs:', err);
@@ -186,7 +187,7 @@ export default function LUTControl({
         }
       }
 
-      const list = await invoke<LutEntry[]>('import_luts', { sourcePaths: validPaths });
+      const list = await invoke<LutEntry[]>(Invokes.ImportLuts, { sourcePaths: validPaths });
       previewCache.current.clear();
       setEntries(list);
       setPreviews({});

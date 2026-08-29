@@ -382,7 +382,7 @@ export default function TetheringPanel({ onLibraryRefresh, onImageSelect }: Teth
     if (isFocusing || !isConnected) return;
     setIsFocusing(true);
     try {
-      await invoke('tether_autofocus');
+      await invoke(Invokes.TetherAutofocus);
     } catch (e) {
       toast.error(t('tethering.toasts.afFailed'));
     } finally {

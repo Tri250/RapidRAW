@@ -1,3 +1,4 @@
+use log::warn;
 use memmap2::{Mmap, MmapOptions};
 use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
@@ -43,6 +44,21 @@ use crate::image_processing::{
 use crate::mask_generation::MaskDefinition;
 use crate::preset_converter;
 use crate::tagging::COLOR_TAG_PREFIX;
+
+/// 原子写入 sidecar 文件：先写 temp 文件，再 rename 覆盖目标
+fn write_sidecar_atomic(path: &Path, content: &[u8]) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        if !parent.exists() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+    }
+    let temp_path = path.with_extension("xmp.tmp");
+    std::fs::write(&temp_path, content)
+        .map_err(|e| format!("Sidecar temp write failed {}: {}", path.display(), e))?;
+    std::fs::rename(&temp_path, path)
+        .map_err(|e| format!("Sidecar rename failed {}: {}", path.display(), e))?;
+    Ok(())
+}
 
 fn resolve_thumbnail_cache_dir(app_handle: &AppHandle) -> std::result::Result<PathBuf, String> {
     let cache_dir = app_handle
@@ -100,7 +116,8 @@ fn resolve_image_metadata(
         && sync_metadata_from_xmp(image_path, &mut metadata)
         && let Ok(json) = serde_json::to_string_pretty(&metadata)
     {
-        let _ = fs::write(sidecar_path, json);
+        write_sidecar_atomic(sidecar_path, json.as_bytes())
+            .unwrap_or_else(|e| warn!("{}", e));
     }
 
     let is_raw = crate::formats::is_raw_file(image_path);
@@ -500,7 +517,8 @@ pub async fn update_exif_fields(
 
             final_metadata.exif = Some(exif_data);
             if let Ok(json) = serde_json::to_string_pretty(&final_metadata) {
-                let _ = std::fs::write(&primary_path, json);
+                write_sidecar_atomic(&primary_path, json.as_bytes())
+                    .unwrap_or_else(|e| warn!("{}", e));
             }
         });
         Ok(())
@@ -1846,8 +1864,10 @@ fn generate_single_thumbnail_and_cache(
             encode_thumbnail(&thumb_image, target_width_medium),
         )
     {
-        let _ = fs::write(&small_path, &small_data);
-        let _ = fs::write(&medium_path, &medium_data);
+        fs::write(&small_path, &small_data)
+            .unwrap_or_else(|e| warn!("Thumbnail small write failed {}: {}", small_path.display(), e));
+        fs::write(&medium_path, &medium_data)
+            .unwrap_or_else(|e| warn!("Thumbnail medium write failed {}: {}", medium_path.display(), e));
         return Some((
             small_path.to_string_lossy().into_owned(),
             medium_path.to_string_lossy().into_owned(),
@@ -2661,7 +2681,8 @@ pub async fn apply_adjustments_to_paths(
             existing_metadata.adjustments = new_adjustments;
 
             if let Ok(json_string) = serde_json::to_string_pretty(&existing_metadata) {
-                let _ = std::fs::write(&sidecar_path, json_string);
+                write_sidecar_atomic(&sidecar_path, json_string.as_bytes())
+                    .unwrap_or_else(|e| warn!("{}", e));
             }
 
             if enable_xmp_sync {
@@ -2737,7 +2758,8 @@ pub async fn reset_adjustments_for_paths(
             existing_metadata.adjustments = serde_json::json!({});
 
             if let Ok(json_string) = serde_json::to_string_pretty(&existing_metadata) {
-                let _ = std::fs::write(&sidecar_path, json_string);
+                write_sidecar_atomic(&sidecar_path, json_string.as_bytes())
+                    .unwrap_or_else(|e| warn!("{}", e));
             }
 
             if enable_xmp_sync {
@@ -2870,7 +2892,8 @@ pub async fn apply_auto_adjustments_to_paths(
                 }
 
                 if let Ok(json_string) = serde_json::to_string_pretty(&existing_metadata) {
-                    let _ = std::fs::write(&sidecar_path, json_string);
+                    write_sidecar_atomic(&sidecar_path, json_string.as_bytes())
+                    .unwrap_or_else(|e| warn!("{}", e));
                 }
 
                 if enable_xmp_sync {
@@ -2940,7 +2963,8 @@ pub fn set_color_label_for_paths(
         }
 
         if let Ok(json_string) = serde_json::to_string_pretty(&metadata) {
-            let _ = std::fs::write(&sidecar_path, json_string);
+            write_sidecar_atomic(&sidecar_path, json_string.as_bytes())
+                    .unwrap_or_else(|e| warn!("{}", e));
         }
 
         if enable_xmp_sync {
@@ -2970,7 +2994,8 @@ pub fn set_rating_for_paths(
         metadata.rating = rating;
 
         if let Ok(json_string) = serde_json::to_string_pretty(&metadata) {
-            let _ = std::fs::write(&sidecar_path, json_string);
+            write_sidecar_atomic(&sidecar_path, json_string.as_bytes())
+                    .unwrap_or_else(|e| warn!("{}", e));
         }
 
         if enable_xmp_sync {
@@ -2994,7 +3019,8 @@ pub fn load_metadata(path: String, app_handle: AppHandle) -> Result<ImageMetadat
         && sync_metadata_from_xmp(&source_path, &mut metadata)
         && let Ok(json) = serde_json::to_string_pretty(&metadata)
     {
-        let _ = fs::write(&sidecar_path, json);
+        write_sidecar_atomic(&sidecar_path, json.as_bytes())
+            .unwrap_or_else(|e| warn!("{}", e));
     }
 
     Ok(metadata)
@@ -3222,60 +3248,6 @@ pub fn handle_export_presets_to_file(
     fs::write(file_path, json_string).map_err(|e| format!("Failed to write preset file: {}", e))
 }
 
-#[tauri::command]
-pub fn save_community_preset(
-    name: String,
-    adjustments: Value,
-    app_handle: AppHandle,
-    include_masks: Option<bool>,
-    include_crop_transform: Option<bool>,
-    preset_type: Option<String>,
-) -> Result<(), String> {
-    let mut current_presets = load_presets(app_handle.clone())?;
-
-    let community_folder_name = "Community";
-    let community_folder_id = match current_presets.iter_mut().find(|item| {
-        if let PresetItem::Folder(f) = item {
-            f.name == community_folder_name
-        } else {
-            false
-        }
-    }) {
-        Some(PresetItem::Folder(folder)) => folder.id.clone(),
-        _ => {
-            let new_folder_id = Uuid::new_v4().to_string();
-            let new_folder = PresetItem::Folder(PresetFolder {
-                id: new_folder_id.clone(),
-                name: community_folder_name.to_string(),
-                children: Vec::new(),
-            });
-            current_presets.insert(0, new_folder);
-            new_folder_id
-        }
-    };
-
-    let new_preset = Preset {
-        id: Uuid::new_v4().to_string(),
-        name,
-        adjustments,
-        include_masks,
-        include_crop_transform,
-        preset_type: preset_type.or(Some("style".to_string())),
-    };
-
-    if let Some(PresetItem::Folder(folder)) = current_presets.iter_mut().find(|item| {
-        if let PresetItem::Folder(f) = item {
-            f.id == community_folder_id
-        } else {
-            false
-        }
-    }) {
-        folder.children.retain(|p| p.name != new_preset.name);
-        folder.children.push(new_preset);
-    }
-
-    save_presets(current_presets, app_handle)
-}
 
 #[tauri::command]
 pub fn clear_all_sidecars(root_path: String) -> Result<usize, String> {
@@ -3611,14 +3583,12 @@ pub fn get_cached_or_generate_thumbnail_image(
             encode_thumbnail(&thumb_image, target_width_small),
             encode_thumbnail(&thumb_image, target_width_medium),
         ) {
-            let _ = fs::write(
-                thumb_cache_dir.join(format!("{}_small.jpg", cache_hash)),
-                &small_data,
-            );
-            let _ = fs::write(
-                thumb_cache_dir.join(format!("{}_medium.jpg", cache_hash)),
-                &medium_data,
-            );
+            let small_thumb_path = thumb_cache_dir.join(format!("{}_small.jpg", cache_hash));
+            fs::write(&small_thumb_path, &small_data)
+                .unwrap_or_else(|e| warn!("Thumbnail small write failed {}: {}", small_thumb_path.display(), e));
+            let medium_thumb_path = thumb_cache_dir.join(format!("{}_medium.jpg", cache_hash));
+            fs::write(&medium_thumb_path, &medium_data)
+                .unwrap_or_else(|e| warn!("Thumbnail medium write failed {}: {}", medium_thumb_path.display(), e));
         }
 
         Ok(thumb_image)
@@ -4221,6 +4191,7 @@ pub fn sync_metadata_to_xmp(source_path: &Path, metadata: &ImageMetadata, create
             }
         }
 
-        let _ = fs::write(&xmp_file, content);
+        write_sidecar_atomic(&xmp_file, content.as_bytes())
+            .unwrap_or_else(|e| warn!("{}", e));
     }
 }

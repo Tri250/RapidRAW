@@ -217,7 +217,7 @@ export const useAppInitialization = ({
               expandedFolders: settings.lastFolderState?.expandedFolders || [],
               showImageCounts: settings.enableFolderImageCounts || settings.folderTreeSort?.key === 'imageCount',
             });
-            setLibrary({ pinnedFolderTrees: trees });
+            setLibrary({ pinnedFolderTrees: trees as any[] });
           } catch (err) {
             console.error('Failed to load pinned folder trees:', err);
           }
@@ -256,7 +256,7 @@ export const useAppInitialization = ({
           });
         }
 
-        invoke('frontend_ready')
+        invoke(Invokes.FrontendReady)
           .then((launch: any) => {
             if (launch?.editSession) {
               useProcessStore.getState().setProcess({ externalEditSession: launch.editSession });

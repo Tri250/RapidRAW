@@ -11,7 +11,6 @@ import {
   RefreshCw,
   Settings,
   Search,
-  Users,
   LayoutGrid,
   Columns,
   SlidersHorizontal,
@@ -88,7 +87,6 @@ interface MainLibraryProps {
   thumbnailAspectRatio: ThumbnailAspectRatio;
   thumbnailProgress: Progress;
   thumbnailSize: ThumbnailSize;
-  onNavigateToCommunity(): void;
 }
 
 export interface ColumnWidths {
@@ -292,32 +290,17 @@ export default function MainLibrary(props: MainLibraryProps) {
       return 0;
     };
 
-    const checkVersion = async () => {
+    // 国内版禁用自动版本检查（避免外部网络依赖）
+    const loadVersion = async () => {
       try {
         const currentVersion = await getVersion();
         setAppVersion(currentVersion);
-
-        const response = await fetch('https://api.github.com/repos/CyberTimon/RapidRAW/releases/latest');
-        if (!response.ok) {
-          console.error('Failed to fetch latest release info from GitHub.');
-          return;
-        }
-        const data = await response.json();
-        const latestTag = data.tag_name;
-        if (!latestTag) return;
-
-        const latestVersionStr = latestTag.startsWith('v') ? latestTag.substring(1) : latestTag;
-        setLatestVersion(latestVersionStr);
-
-        if (compareVersions(currentVersion, latestVersionStr) < 0) {
-          setIsUpdateAvailable(true);
-        }
       } catch (error) {
-        console.error('Error checking for updates:', error);
+        console.error('Error getting version:', error);
       }
     };
 
-    checkVersion();
+    loadVersion();
   }, []);
 
   if (!props.rootPaths || props.rootPaths.length === 0) {
@@ -521,15 +504,6 @@ export default function MainLibrary(props: MainLibraryProps) {
               editedStatusOptions={translatedEditedStatusOptions}
               sortOptions={translatedSortOptions}
             />
-            {!props.isAndroid && (
-              <Button
-                className="h-12 w-12 bg-transparent text-text-primary shadow-none p-0 flex items-center justify-center"
-                onClick={props.onNavigateToCommunity}
-                data-tooltip={t('library.tooltips.communityPresets')}
-              >
-                <Users className="w-5 h-5" />
-              </Button>
-            )}
             <Button
               className="h-12 w-12 bg-transparent text-text-primary shadow-none p-0 flex items-center justify-center"
               onClick={props.onGoHome}

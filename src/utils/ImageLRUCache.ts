@@ -1,6 +1,6 @@
 import type { Adjustments } from './adjustments';
 
-interface ImageCacheEntry {
+export interface ImageCacheEntry {
   adjustments: Adjustments;
   histogram: any;
   waveform: any;

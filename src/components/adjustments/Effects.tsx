@@ -9,7 +9,7 @@ import Slider from '../ui/Slider';
 import Switch from '../ui/Switch';
 import { Adjustments, Effect, CreativeAdjustment } from '../../utils/adjustments';
 import LUTControl from '../ui/LUTControl';
-import { AppSettings } from '../ui/AppProperties';
+import { AppSettings, Invokes } from '../ui/AppProperties';
 import Text from '../ui/Text';
 import { TextVariants } from '../../types/typography';
 import { DepthRangePicker } from '../ui/DepthRangePicker';
@@ -152,7 +152,7 @@ export default function EffectsPanel({
   const handleGenerateLensBlurDepthMap = async () => {
     setIsGeneratingDepth(true);
     try {
-      const b64: string = await invoke('generate_full_image_depth_map', { jsAdjustments: adjustments });
+      const b64: string = await invoke(Invokes.GenerateFullImageDepthMap, { jsAdjustments: adjustments });
       setAdjustments((prev: Partial<Adjustments>) => ({
         ...prev,
         lensBlurDepthMap: b64,
