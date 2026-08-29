@@ -4,6 +4,8 @@ use image::{DynamicImage, imageops::FilterType};
 use ndarray::{Array, Axis};
 use ort::session::Session;
 use ort::value::Tensor;
+unsafe impl Send for ort::session::Session {}
+unsafe impl Sync for ort::session::Session {}
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::fs;

@@ -11,6 +11,9 @@ use image::{
 use ndarray::{Array, Array4, IxDyn};
 use ort::session::Session;
 use ort::value::Tensor;
+// ort 2.0.0-rc.13 的 Session 未标记 Send/Sync，但 ONNX Runtime session 在 Mutex 保护下是线程安全的
+unsafe impl Send for ort::session::Session {}
+unsafe impl Sync for ort::session::Session {}
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tauri::Emitter;
