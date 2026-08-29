@@ -1578,7 +1578,7 @@ pub fn generate_thumbnail_data(
                     true,
                     &settings,
                     None,
-                , None)
+                )?;
 
                 if is_raw {
                     raw_scale_factor = crate::raw_processing::get_fast_demosaic_scale_factor(
@@ -1754,7 +1754,7 @@ pub fn generate_thumbnail_data(
                 true,
                 &settings,
                 None,
-            , None)
+            )?,
             Err(e) => {
                 log::warn!("Fallback read for {}: {}", source_path_str, e);
                 let bytes = fs::read(&source_path)?;
@@ -1765,7 +1765,7 @@ pub fn generate_thumbnail_data(
                     true,
                     &settings,
                     None,
-                , None)
+                )?
             }
         }
     };
@@ -2856,7 +2856,7 @@ pub async fn apply_auto_adjustments_to_paths(
                     true,
                     &settings,
                     None,
-                , None)
+                )
                 .map_err(|e| e.to_string())?;
 
                 let auto_results = perform_auto_analysis(&image);

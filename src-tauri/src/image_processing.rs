@@ -1506,21 +1506,6 @@ pub struct GlobalAdjustments {
     pub halation_amount: f32,
     pub flare_amount: f32,
     pub sharpness_threshold: f32,
-
-    // --- Phase 2: GPU-side camera calibration hook ---
-    // Payload mirrored from rawler's RawImage and consumed by the shader at
-    // the earliest stage of the pipeline. Keeping this as first-class uniform
-    // fields lets future ICC/ACES scene-referred pipelines compose cleanly
-    // (WB → cam_to_canonical → ICC matrix → tonemapper) instead of being
-    // baked into rawler's `Calibrate` step.
-    pub camera_to_canonical: GpuMat3,
-    pub camera_wb_gains: [f32; 4],
-    pub calibration_valid: u32,
-    pub illuminant: u32,
-    pub working_space: u32,
-    pub gamut_warning: u32,
-    pub black_point_compensation: u32,
-    _pad_p2: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Pod, Zeroable, Default)]
@@ -2344,20 +2329,6 @@ fn get_global_adjustments_from_json(
             SCALES.sharpness_threshold,
             Some(15.0),
         ),
-
-        // --- Phase 6: ICC / camera calibration fields.
-        // Defaults are neutral fallback so the shader degrades gracefully
-        // when no calibration payload was extracted (JPEG inputs, legacy
-        // raw files). Callers (lib.rs main render path) override these with
-        // values from AppState.camera_calibration_cache before uploading.
-        camera_to_canonical: GpuMat3::default(),
-        camera_wb_gains: [1.0, 1.0, 1.0, 1.0],
-        calibration_valid: 0,
-        illuminant: 2,          // tungsten fallback
-        working_space: 0,       // 0 = sRGB-linear
-        gamut_warning: 0,       // disabled by default
-        black_point_compensation: 1,   // enabled by default
-        _pad_p2: 0.0,
     }
 }
 

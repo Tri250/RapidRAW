@@ -1,11 +1,9 @@
-use crate::app_state::CameraCalibration;
 use crate::image_processing::apply_orientation;
 use anyhow::{Result, anyhow};
 use image::{DynamicImage, ImageBuffer, Rgba};
 use rawler::{
     decoders::{Orientation, RawDecodeParams},
     imgop::develop::{DemosaicAlgorithm, Intermediate, ProcessingStep, RawDevelop},
-    imgop::xyz::Illuminant,
     rawimage::{RawImage, RawPhotometricInterpretation},
     rawsource::RawSource,
 };
@@ -20,15 +18,15 @@ pub fn develop_raw_image(
     highlight_compression: f32,
     linear_mode: String,
     cancel_token: Option<(Arc<AtomicUsize>, usize)>,
-) -> Result<(DynamicImage, CameraCalibration)> {
-    let (developed_image, orientation, calib) = develop_internal(
+) -> Result<DynamicImage> {
+    let (developed_image, orientation) = develop_internal(
         file_bytes,
         fast_demosaic,
         highlight_compression,
         linear_mode,
         cancel_token,
     )?;
-    Ok((apply_orientation(developed_image, orientation), calib))
+    Ok(apply_orientation(developed_image, orientation))
 }
 
 fn is_linear_raw_format(raw_image: &RawImage) -> bool {
@@ -47,76 +45,13 @@ fn srgb_to_linear(value: f32) -> f32 {
     }
 }
 
-/// Invert a 3x3 matrix stored row-major. Returns the identity on singular
-/// input so shader-side calibration can gracefully degrade.
-#[allow(clippy::too_many_arguments)]
-fn invert_3x3(
-    a: f32, b: f32, c: f32,
-    d: f32, e: f32, f: f32,
-    g: f32, h: f32, i: f32,
-) -> [[f32; 3]; 3] {
-    let det = a * (e * i - f * h)
-            - b * (d * i - f * g)
-            + c * (d * h - e * g);
-    if det.abs() < 1e-12 {
-        return [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-    }
-    let inv_det = 1.0 / det;
-    [
-        [(e * i - f * h) * inv_det, (c * h - b * i) * inv_det, (b * f - c * e) * inv_det],
-        [(f * g - d * i) * inv_det, (a * i - c * g) * inv_det, (c * d - a * f) * inv_det],
-        [(d * h - e * g) * inv_det, (b * g - a * h) * inv_det, (a * e - b * d) * inv_det],
-    ]
-}
-
-/// Collect `CameraCalibration` from a rawler `RawImage`. The Calibrate step is
-/// *not* disabled yet — we merely mirror its WB + color-matrix payload so the
-/// values can flow through to the GPU shader as a first-class hook.
-fn extract_camera_calibration(raw_image: &RawImage) -> CameraCalibration {
-    let wb_gains = raw_image.wb_coeffs;
-    let wb_valid = wb_gains[0].is_finite() && wb_gains[1].is_finite() && wb_gains[2].is_finite();
-
-    let mut cam_to_canonical = [[1.0f32, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-    let mut illuminant_idx: u32 = 2; // tungsten fallback
-    let mut matrix_valid = false;
-
-    let preferred_order = [Illuminant::D65, Illuminant::D50, Illuminant::Tungsten];
-    for illu in preferred_order.iter() {
-        if let Some(matrix) = raw_image.color_matrix.get(illu) {
-            // rawler stores DNG ColorMatrix as flat xyz→cam (3×4 or 4×4).
-            // We only need the 3×3 rotation part (ignore the 4th channel and
-            // translation column), then invert to get cam→canonical.
-            if matrix.len() >= 9 {
-                let m00 = matrix[0]; let m01 = matrix[1]; let m02 = matrix[2];
-                let m10 = matrix[3]; let m11 = matrix[4]; let m12 = matrix[5];
-                let m20 = matrix[6]; let m21 = matrix[7]; let m22 = matrix[8];
-                cam_to_canonical = invert_3x3(m00, m01, m02, m10, m11, m12, m20, m21, m22);
-                matrix_valid = true;
-                illuminant_idx = match illu {
-                    Illuminant::D65 => 0,
-                    Illuminant::D50 => 1,
-                    _ => 2,
-                };
-                break;
-            }
-        }
-    }
-
-    CameraCalibration {
-        wb_gains,
-        cam_to_canonical,
-        valid: wb_valid && matrix_valid,
-        illuminant: illuminant_idx,
-    }
-}
-
 fn develop_internal(
     file_bytes: &[u8],
     fast_demosaic: bool,
     highlight_compression: f32,
     linear_mode: String,
     cancel_token: Option<(Arc<AtomicUsize>, usize)>,
-) -> Result<(DynamicImage, Orientation, CameraCalibration)> {
+) -> Result<(DynamicImage, Orientation)> {
     let check_cancel = || -> Result<()> {
         if let Some((tracker, generation)) = &cancel_token
             && tracker.load(Ordering::SeqCst) != *generation
@@ -169,29 +104,21 @@ fn develop_internal(
 
     let mut developer = RawDevelop::default();
 
-    // --- Phase 6: forcibly disable rawler-side calibration. The WB gains
-    // and camera→canonical color matrix are now consumed by the GPU shader
-    // as a first-class hook (calibration_valid == 1u in GlobalAdjustments),
-    // where they can compose cleanly with ICC matrix chains, scene-referred
-    // LUTs, and ACES-style tonemappers. Keeping Calibrate/WhiteBalance on
-    // the CPU would double-apply the matrix once we flip the gate on the
-    // shader side. `Demosaic` is intentionally NOT disabled — we still want
-    // rawler's high-quality demosaicing, just without the RGB-space
-    // calibration pass.
-    developer
-        .steps
-        .retain(|&step| step != ProcessingStep::Calibrate && step != ProcessingStep::SRgb);
-
-    if fast_demosaic {
+    if is_linear_format {
+        developer.steps.retain(|&step| {
+            step != ProcessingStep::SRgb
+                && step != ProcessingStep::Demosaic
+                && (apply_calibration || step != ProcessingStep::Calibrate)
+        });
+    } else if fast_demosaic {
         developer.demosaic_algorithm = DemosaicAlgorithm::Speed;
+        developer.steps.retain(|&step| step != ProcessingStep::SRgb);
+    } else {
+        developer.steps.retain(|&step| step != ProcessingStep::SRgb);
     }
 
     raw_image.wb_coeffs =
         crate::multi_exposure::neutralize_wb_if_multiexposure(raw_image.wb_coeffs, file_bytes);
-
-    // --- Phase 2 hook: extract calibration BEFORE develop_intermediate so we
-    //     have access to the rawler `RawImage` (it's consumed by develop_intermediate).
-    let calibration = extract_camera_calibration(&raw_image);
 
     check_cancel()?;
     let mut developed_intermediate = developer.develop_intermediate(&raw_image)?;
@@ -303,7 +230,7 @@ fn develop_internal(
         }
     };
 
-    Ok((dynamic_image, orientation, calibration))
+    Ok((dynamic_image, orientation))
 }
 
 pub fn get_fast_demosaic_scale_factor(

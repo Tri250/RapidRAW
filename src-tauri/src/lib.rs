@@ -478,31 +478,6 @@ fn process_preview_job(
     let is_raw = loaded_image.is_raw;
     let tm_override = resolve_tonemapper_override_from_handle(app_handle, is_raw);
     let final_adjustments = get_all_adjustments_from_json(&adjustments_clone, is_raw, tm_override);
-
-    // --- Phase 6: stamp calibration payload onto the shader adjustments.
-    // When the loaded image is RAW we pull CameraCalibration out of
-    // `state.camera_calibration_cache` (populated by the RAW loader) and
-    // overwrite the neutral defaults. If the cache entry is missing or
-    // calibration failed, calibration_valid stays 0 and the shader
-    // gracefully falls back to the Planckian-only path.
-    let mut final_adjustments = final_adjustments;
-    if is_raw {
-        if let Ok(cache) = state.camera_calibration_cache.lock()
-            && let Some(calib) = cache.get(&loaded_image.path)
-        {
-            // Transpose row-major [[f32;3];3] → column-major GpuMat3 (col0/col1/col2).
-            let cam = calib.cam_to_canonical;
-            final_adjustments.camera_to_canonical = image_processing::GpuMat3 {
-                col0: [cam[0][0], cam[1][0], cam[2][0], 0.0],
-                col1: [cam[0][1], cam[1][1], cam[2][1], 0.0],
-                col2: [cam[0][2], cam[1][2], cam[2][2], 0.0],
-            };
-            final_adjustments.camera_wb_gains = calib.wb_gains;
-            final_adjustments.calibration_valid = if calib.valid { 1 } else { 0 };
-            final_adjustments.illuminant = calib.illuminant;
-        }
-    }
-
     let lut_path = adjustments_clone["lutPath"].as_str();
     let lut = lut_path.and_then(|p| lut_processing::get_or_load_lut(&state, p).ok());
 
@@ -1220,7 +1195,7 @@ async fn generate_all_community_previews(
             true,
             &settings,
             None,
-            Some(&state))
+        )
         .map_err(|e| e.to_string())?;
 
         let is_raw = is_raw_file(&source_path_str);
@@ -1529,7 +1504,7 @@ async fn generate_preview_for_path(
                 false,
                 &settings,
                 None,
-                Some(&state))
+            )
             .map_err(|e| e.to_string())?,
             Err(e) => {
                 log::warn!(
@@ -1545,7 +1520,7 @@ async fn generate_preview_for_path(
                     false,
                     &settings,
                     None,
-                    Some(&state))
+                )
                 .map_err(|e| e.to_string())?
             }
         };
@@ -2269,7 +2244,6 @@ pub fn run() {
             patch_cache: Mutex::new(HashMap::new()),
             geometry_cache: Mutex::new(HashMap::new()),
             thumbnail_geometry_cache: Mutex::new(HashMap::new()),
-            camera_calibration_cache: Mutex::new(HashMap::new()),
             lens_db: Mutex::new(None),
             load_image_generation: Arc::new(AtomicUsize::new(0)),
             full_warped_cache: Mutex::new(None),

@@ -137,25 +137,6 @@ impl MetadataManager {
 pub type ThumbnailGeometryEntry = (u64, Arc<DynamicImage>, f32);
 pub type TransformedImageCache = (u64, Arc<DynamicImage>, (f32, f32));
 
-/// Per-image camera calibration payload collected from the raw decoder.
-/// Rawler's `Calibrate` + `WhiteBalance` steps are deliberately turned off so
-/// the calibration can be moved to the GPU shader where it composes cleanly
-/// with ICC profile chains, scene-referred LUTs and ACES-style transforms.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct CameraCalibration {
-    /// per-channel WB gains [R, G, B, A] where A is unused (NaN from rawler).
-    pub wb_gains: [f32; 4],
-    /// Camera-to-canonical RGB 3×3 matrix (column-major, matches GpuMat3).
-    /// Derived as `inverse(M_xyz_to_cam)` — the cam→xyz block of the rawler
-    /// color matrix — truncated to 3×3 when the camera is 4-channel.
-    pub cam_to_canonical: [[f32; 3]; 3],
-    /// True when rawler found a usable color matrix and wb_coeffs for this
-    /// image. The shader gates its calibration path on this flag.
-    pub valid: bool,
-    /// Canonical illuminant index. 0 = D65, 1 = D50, 2 = Tungsten fallback.
-    pub illuminant: u32,
-}
-
 pub struct AppState {
     pub window_setup_complete: AtomicBool,
     pub gpu_crash_flag_path: Mutex<Option<PathBuf>>,
@@ -183,7 +164,6 @@ pub struct AppState {
     pub patch_cache: Mutex<HashMap<String, serde_json::Value>>,
     pub geometry_cache: Mutex<HashMap<u64, DynamicImage>>,
     pub thumbnail_geometry_cache: Mutex<HashMap<String, ThumbnailGeometryEntry>>,
-    pub camera_calibration_cache: Mutex<HashMap<String, CameraCalibration>>,
     pub lens_db: Mutex<Option<Arc<LensDatabase>>>,
     pub load_image_generation: Arc<AtomicUsize>,
     pub full_warped_cache: Mutex<Option<(u64, Arc<DynamicImage>)>>,
