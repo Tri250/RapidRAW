@@ -586,37 +586,6 @@ fn encode_image_to_bytes(
     match output_format.to_lowercase().as_str() {
         "jxl" => {
             return Err("JXL export disabled temporarily (archmage/safe_unaligned_simd compat). Use JPEG/PNG/WebP/TIFF".into());
-            let _ = jpeg_quality; // silence unused
-            let _ = image; // silence unused
-                if has_alpha {
-                    let rgba = image.to_rgba8();
-                    LosslessConfig::new()
-                        .encode(rgba.as_raw(), width, height, PixelLayout::Rgba8)
-                        .map_err(|e| format!("Failed to encode lossless JXL: {}", e))?
-                } else {
-                    let rgb = image.to_rgb8();
-                    LosslessConfig::new()
-                        .encode(rgb.as_raw(), width, height, PixelLayout::Rgb8)
-                        .map_err(|e| format!("Failed to encode lossless JXL: {}", e))?
-                }
-            } else {
-                let jxl_quality = calibrated_jxl_quality(jpeg_quality as f32);
-                let distance = quality_to_distance(jxl_quality);
-
-                if has_alpha {
-                    let rgba = image.to_rgba8();
-                    LossyConfig::new(distance)
-                        .encode(rgba.as_raw(), width, height, PixelLayout::Rgba8)
-                        .map_err(|e| format!("Failed to encode lossy JXL: {}", e))?
-                } else {
-                    let rgb = image.to_rgb8();
-                    LossyConfig::new(distance)
-                        .encode(rgb.as_raw(), width, height, PixelLayout::Rgb8)
-                        .map_err(|e| format!("Failed to encode lossy JXL: {}", e))?
-                }
-            };
-
-            return Ok(jxl_data);
         }
         "webp" => {
             let encoder = webp::Encoder::from_image(image)
