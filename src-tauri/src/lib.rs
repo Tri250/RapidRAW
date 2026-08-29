@@ -832,12 +832,11 @@ fn generate_uncropped_preview(
             },
             "generate_uncropped_preview",
         ) {
-            let (width, height) = processed_image.dimensions();
-            let rgb_pixels = processed_image.to_rgb8().into_vec();
             let mut jpeg_buf = Vec::new();
             let mut enc = JpegEncoder::new_with_quality(&mut jpeg_buf, 80);
             use image::ImageEncoder;
-            match enc.write_image(image::DynamicImage::ImageRgb8(image::ImageBuffer::from_raw(width, height, rgb_pixels.clone()).unwrap()), width, height, image::ExtendedColorType::Rgb8) {
+            let rgb = processed_image.to_rgb8();
+            match enc.write_image(rgb.as_raw(), rgb.width(), rgb.height(), image::ExtendedColorType::Rgb8) {
                 Ok(_) => {
                     let base64_str = general_purpose::STANDARD.encode(&jpeg_buf);
                     let data_url = format!("data:image/jpeg;base64,{}", base64_str);
@@ -1040,14 +1039,12 @@ async fn preview_geometry_transform(
     .await
     .map_err(|e| e.to_string())?;
 
-    let (width, height) = final_image.dimensions();
-    let rgb_pixels = final_image.to_rgb8().into_vec();
-
     let bytes = {
         let mut buf = Vec::new();
         let mut enc = JpegEncoder::new_with_quality(&mut buf, 75);
         use image::ImageEncoder;
-        enc.write_image(image::DynamicImage::ImageRgb8(image::ImageBuffer::from_raw(width, height, rgb_pixels).unwrap()), width, height, image::ExtendedColorType::Rgb8)?;
+        let rgb = final_image.to_rgb8();
+        enc.write_image(rgb.as_raw(), rgb.width(), rgb.height(), image::ExtendedColorType::Rgb8)?;
         buf
     };
 
@@ -1576,7 +1573,8 @@ async fn generate_preview_for_path(
             let mut buf = Vec::new();
             let mut enc = JpegEncoder::new_with_quality(&mut buf, 92);
             use image::ImageEncoder;
-            enc.write_image(image::DynamicImage::ImageRgb8(image::ImageBuffer::from_raw(width, height, rgb_pixels).unwrap()), width, height, image::ExtendedColorType::Rgb8)?;
+            let rgb = final_image.to_rgb8();
+            enc.write_image(rgb.as_raw(), rgb.width(), rgb.height(), image::ExtendedColorType::Rgb8)?;
             buf
         };
 
