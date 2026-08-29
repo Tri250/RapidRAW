@@ -194,7 +194,7 @@ fn edt_2d(grid: &[bool], width: usize, height: usize) -> Vec<f32> {
 }
 
 /// 创建优化的 ONNX Runtime Session：图优化 Level3 + 合理线程数
-fn create_optimized_session<P: AsRef<std::path::Path>>(path: P) -> Result<Session> {
+fn create_optimized_session<P: AsRef<std::path::Path>>(path: P) -> Result<OrtSession> {
     use ort::session::builder::GraphOptimizationLevel;
     let path_ref = path.as_ref();
     let num_cpus = std::thread::available_parallelism()
@@ -205,6 +205,7 @@ fn create_optimized_session<P: AsRef<std::path::Path>>(path: P) -> Result<Sessio
         .with_optimization_level(GraphOptimizationLevel::Level3)?
         .with_intra_threads(num_cpus)?
         .commit_from_file(path_ref)
+        .map(OrtSession)
         .map_err(|e| anyhow::anyhow!("Failed to create optimized session for {}: {}", path_ref.display(), e))
 }
 
