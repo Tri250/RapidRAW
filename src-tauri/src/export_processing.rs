@@ -8,10 +8,6 @@ use std::sync::{Arc, Mutex};
 
 use image::codecs::jpeg::JpegEncoder;
 use image::{DynamicImage, GenericImageView, GrayImage, ImageBuffer, ImageFormat, Luma, imageops};
-// use jxl_encoder: disabled
-    LosslessConfig, LossyConfig, PixelLayout,
-    api::{calibrated_jxl_quality, quality_to_distance},
-};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::Emitter;
