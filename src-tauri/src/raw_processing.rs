@@ -169,17 +169,21 @@ fn develop_internal(
 
     let mut developer = RawDevelop::default();
 
-    if is_linear_format {
-        developer.steps.retain(|&step| {
-            step != ProcessingStep::SRgb
-                && step != ProcessingStep::Demosaic
-                && (apply_calibration || step != ProcessingStep::Calibrate)
-        });
-    } else if fast_demosaic {
+    // --- Phase 6: forcibly disable rawler-side calibration. The WB gains
+    // and camera→canonical color matrix are now consumed by the GPU shader
+    // as a first-class hook (calibration_valid == 1u in GlobalAdjustments),
+    // where they can compose cleanly with ICC matrix chains, scene-referred
+    // LUTs, and ACES-style tonemappers. Keeping Calibrate/WhiteBalance on
+    // the CPU would double-apply the matrix once we flip the gate on the
+    // shader side. `Demosaic` is intentionally NOT disabled — we still want
+    // rawler's high-quality demosaicing, just without the RGB-space
+    // calibration pass.
+    developer
+        .steps
+        .retain(|&step| step != ProcessingStep::Calibrate && step != ProcessingStep::SRgb);
+
+    if fast_demosaic {
         developer.demosaic_algorithm = DemosaicAlgorithm::Speed;
-        developer.steps.retain(|&step| step != ProcessingStep::SRgb);
-    } else {
-        developer.steps.retain(|&step| step != ProcessingStep::SRgb);
     }
 
     raw_image.wb_coeffs =

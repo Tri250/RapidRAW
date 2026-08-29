@@ -2344,6 +2344,20 @@ fn get_global_adjustments_from_json(
             SCALES.sharpness_threshold,
             Some(15.0),
         ),
+
+        // --- Phase 6: ICC / camera calibration fields.
+        // Defaults are neutral fallback so the shader degrades gracefully
+        // when no calibration payload was extracted (JPEG inputs, legacy
+        // raw files). Callers (lib.rs main render path) override these with
+        // values from AppState.camera_calibration_cache before uploading.
+        camera_to_canonical: GpuMat3::default(),
+        camera_wb_gains: [1.0, 1.0, 1.0, 1.0],
+        calibration_valid: 0,
+        illuminant: 2,          // tungsten fallback
+        working_space: 0,       // 0 = sRGB-linear
+        gamut_warning: 0,       // disabled by default
+        black_point_compensation: 1,   // enabled by default
+        _pad_p2: 0.0,
     }
 }
 
