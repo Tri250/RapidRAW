@@ -15,16 +15,32 @@ use ort::session::Session;
 /// unsafe impl Send/Sync. The ORT crate does not mark Session as thread-safe
 /// in 2.0.0-rc.13, but we only access it via Mutex which is sound.
 #[derive(Debug)]
-pub struct OrtSession(pub ort::session::Session);
+pub struct OrtSession {
+        inner: *mut ort::session::Session,
+    }
 unsafe impl Send for OrtSession {}
 unsafe impl Sync for OrtSession {}
 
+impl OrtSession {
+    pub fn new(session: ort::session::Session) -> Self {
+        OrtSession { inner: Box::into_raw(Box::new(session)) }
+    }
+}
+
 impl std::ops::Deref for OrtSession {
     type Target = ort::session::Session;
-    fn deref(&self) -> &Self::Target { &self.0 }
+    fn deref(&self) -> &Self::Target { unsafe { &*self.inner } }
 }
 impl std::ops::DerefMut for OrtSession {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+    fn deref_mut(&mut self) -> &mut Self::Target { unsafe { &mut *self.inner } }
+}
+
+impl Drop for OrtSession {
+    fn drop(&mut self) {
+        if !self.inner.is_null() {
+            unsafe { let _ = Box::from_raw(self.inner); }
+        }
+    }
 }
 use ort::value::Tensor;
 // ort 2.0.0-rc.13 的 Session 未标记 Send/Sync，但 ONNX Runtime session 在 Mutex 保护下是线程安全的
@@ -205,7 +221,7 @@ fn create_optimized_session<P: AsRef<std::path::Path>>(path: P) -> Result<OrtSes
         .with_optimization_level(GraphOptimizationLevel::Level3)?
         .with_intra_threads(num_cpus)?
         .commit_from_file(path_ref)
-        .map(OrtSession)
+        .map(OrtSession::new)
         .map_err(|e| anyhow::anyhow!("Failed to create optimized session for {}: {}", path_ref.display(), e))
 }
 
