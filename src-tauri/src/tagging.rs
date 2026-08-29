@@ -3,9 +3,23 @@ use futures::stream::{self, StreamExt};
 use image::{DynamicImage, imageops::FilterType};
 use ndarray::{Array, Axis};
 use ort::session::Session;
+
+/// Wrapper around ort::session::Session to satisfy orphan rule for
+/// unsafe impl Send/Sync. The ORT crate does not mark Session as thread-safe
+/// in 2.0.0-rc.13, but we only access it via Mutex which is sound.
+#[derive(Debug)]
+pub struct OrtSession(pub ort::session::Session);
+unsafe impl Send for OrtSession {}
+unsafe impl Sync for OrtSession {}
+
+impl std::ops::Deref for OrtSession {
+    type Target = ort::session::Session;
+    fn deref(&self) -> &Self::Target { &self.0 }
+}
+impl std::ops::DerefMut for OrtSession {
+    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+}
 use ort::value::Tensor;
-unsafe impl Send for ort::session::Session {}
-unsafe impl Sync for ort::session::Session {}
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -146,7 +160,7 @@ pub fn extract_color_tags(image: &DynamicImage) -> Vec<String> {
 
 pub fn generate_tags_with_clip(
     image: &DynamicImage,
-    clip_session_mutex: &Mutex<Session>,
+    clip_session_mutex: &Mutex<OrtSession>,
     tokenizer: &Tokenizer,
     custom_tags: Option<Vec<String>>,
     max_tags: usize,

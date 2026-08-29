@@ -10,10 +10,24 @@ use image::{
 };
 use ndarray::{Array, Array4, IxDyn};
 use ort::session::Session;
+
+/// Wrapper around ort::session::Session to satisfy orphan rule for
+/// unsafe impl Send/Sync. The ORT crate does not mark Session as thread-safe
+/// in 2.0.0-rc.13, but we only access it via Mutex which is sound.
+#[derive(Debug)]
+pub struct OrtSession(pub ort::session::Session);
+unsafe impl Send for OrtSession {}
+unsafe impl Sync for OrtSession {}
+
+impl std::ops::Deref for OrtSession {
+    type Target = ort::session::Session;
+    fn deref(&self) -> &Self::Target { &self.0 }
+}
+impl std::ops::DerefMut for OrtSession {
+    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+}
 use ort::value::Tensor;
 // ort 2.0.0-rc.13 的 Session 未标记 Send/Sync，但 ONNX Runtime session 在 Mutex 保护下是线程安全的
-unsafe impl Send for ort::session::Session {}
-unsafe impl Sync for ort::session::Session {}
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tauri::Emitter;
@@ -63,15 +77,15 @@ const DEPTH_INPUT_SIZE: u32 = 518;
 const DEPTH_SHA256: &str = "d2b11a11c1d4a12b47608fa65a17ee9a4c605b55ee1730c8e3b526304f2562be";
 
 pub struct AiModels {
-    pub sam_encoder: Mutex<Session>,
-    pub sam_decoder: Mutex<Session>,
-    pub u2netp: Mutex<Session>,
-    pub sky_seg: Mutex<Session>,
-    pub depth_anything: Mutex<Session>,
+    pub sam_encoder: Mutex<OrtSession>,
+    pub sam_decoder: Mutex<OrtSession>,
+    pub u2netp: Mutex<OrtSession>,
+    pub sky_seg: Mutex<OrtSession>,
+    pub depth_anything: Mutex<OrtSession>,
 }
 
 pub struct ClipModels {
-    pub model: Mutex<Session>,
+    pub model: Mutex<OrtSession>,
     pub tokenizer: Tokenizer,
 }
 
@@ -91,9 +105,9 @@ pub struct CachedDepthMap {
 
 pub struct AiState {
     pub models: Option<Arc<AiModels>>,
-    pub denoise_model: Option<Arc<Mutex<Session>>>,
+    pub denoise_model: Option<Arc<Mutex<OrtSession>>>,
     pub clip_models: Option<Arc<ClipModels>>,
-    pub lama_model: Option<Arc<Mutex<Session>>>,
+    pub lama_model: Option<Arc<Mutex<OrtSession>>>,
     pub embeddings: Option<ImageEmbeddings>,
     pub depth_map: Option<CachedDepthMap>,
 }
@@ -605,7 +619,7 @@ pub async fn get_or_init_denoise_model(
     app_handle: &tauri::AppHandle,
     ai_state_mutex: &Mutex<Option<AiState>>,
     ai_init_lock: &TokioMutex<()>,
-) -> Result<Arc<Mutex<Session>>> {
+) -> Result<Arc<Mutex<OrtSession>>> {
     if let Some(denoise_model) = ai_state_mutex
         .lock()
         .unwrap()
@@ -726,7 +740,7 @@ pub async fn get_or_init_lama_model(
     app_handle: &tauri::AppHandle,
     ai_state_mutex: &Mutex<Option<AiState>>,
     ai_init_lock: &TokioMutex<()>,
-) -> Result<Arc<Mutex<Session>>> {
+) -> Result<Arc<Mutex<OrtSession>>> {
     if let Some(lama_model) = ai_state_mutex
         .lock()
         .unwrap()
@@ -902,7 +916,7 @@ fn apply_seamless(tile: &mut Array4<f32>, blend: &SeamlessBlend) {
 
 fn run_native_denoise(
     img: &Rgb32FImage,
-    session: &Mutex<Session>,
+    session: &Mutex<OrtSession>,
     accumulator: &mut [f32],
     width: usize,
     height: usize,
@@ -998,7 +1012,7 @@ fn accumulator_to_rgb32f(acc: &[f32], width: u32, height: u32) -> Rgb32FImage {
 pub fn run_ai_denoise(
     rgb_img: &Rgb32FImage,
     intensity: f32,
-    session: &Mutex<Session>,
+    session: &Mutex<OrtSession>,
     app_handle: &tauri::AppHandle,
 ) -> Result<DynamicImage> {
     let (width, height) = rgb_img.dimensions();
@@ -1023,7 +1037,7 @@ pub fn run_ai_denoise(
 pub fn run_lama_inpainting(
     image: &DynamicImage,
     mask: &GrayImage,
-    lama_session: &Mutex<Session>,
+    lama_session: &Mutex<OrtSession>,
 ) -> Result<RgbaImage> {
     let (w, h) = image.dimensions();
 
@@ -1159,7 +1173,7 @@ pub fn run_lama_inpainting(
 
 pub fn generate_image_embeddings(
     image: &DynamicImage,
-    encoder: &Mutex<Session>,
+    encoder: &Mutex<OrtSession>,
 ) -> Result<ImageEmbeddings> {
     let (orig_width, orig_height) = image.dimensions();
 
@@ -1202,7 +1216,7 @@ pub fn generate_image_embeddings(
 }
 
 pub fn run_sam_decoder(
-    decoder: &Mutex<Session>,
+    decoder: &Mutex<OrtSession>,
     embeddings: &ImageEmbeddings,
     start_point: (f64, f64),
     end_point: (f64, f64),
@@ -1434,7 +1448,7 @@ pub fn run_sam_decoder(
 
 pub fn run_sky_seg_model(
     image: &DynamicImage,
-    sky_seg_session: &Mutex<Session>,
+    sky_seg_session: &Mutex<OrtSession>,
 ) -> Result<GrayImage> {
     let (orig_width, orig_height) = image.dimensions();
 
@@ -1515,7 +1529,7 @@ pub fn run_sky_seg_model(
 
 pub fn run_u2netp_model(
     image: &DynamicImage,
-    u2netp_session: &Mutex<Session>,
+    u2netp_session: &Mutex<OrtSession>,
 ) -> Result<GrayImage> {
     let (orig_width, orig_height) = image.dimensions();
 
@@ -1596,7 +1610,7 @@ pub fn run_u2netp_model(
 
 pub fn run_depth_anything_model(
     image: &DynamicImage,
-    depth_session: &Mutex<Session>,
+    depth_session: &Mutex<OrtSession>,
 ) -> Result<GrayImage> {
     let resized_image = image.resize(DEPTH_INPUT_SIZE, DEPTH_INPUT_SIZE, FilterType::Triangle);
     let (resized_w, resized_h) = resized_image.dimensions();
