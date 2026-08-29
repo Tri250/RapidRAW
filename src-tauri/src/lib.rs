@@ -1220,7 +1220,7 @@ async fn generate_all_community_previews(
             true,
             &settings,
             None,
-        , Some(&state))
+            Some(&state))
         .map_err(|e| e.to_string())?;
 
         let is_raw = is_raw_file(&source_path_str);
@@ -1529,7 +1529,7 @@ async fn generate_preview_for_path(
                 false,
                 &settings,
                 None,
-            , Some(&state))
+                Some(&state))
             .map_err(|e| e.to_string())?,
             Err(e) => {
                 log::warn!(
@@ -1545,7 +1545,7 @@ async fn generate_preview_for_path(
                     false,
                     &settings,
                     None,
-                , Some(&state))
+                    Some(&state))
                 .map_err(|e| e.to_string())?
             }
         };
