@@ -299,7 +299,7 @@ fn denoise_image(
     intensity: f32,
     method: String,
     app_handle: AppHandle,
-    ai_session: Option<Arc<Mutex<ort::session::Session>>>,
+    ai_session: Option<Arc<Mutex<crate::ai_processing::OrtSession>>>,
 ) -> Result<(DynamicImage, String), String> {
     let path = Path::new(&path_str);
     if !path.exists() {

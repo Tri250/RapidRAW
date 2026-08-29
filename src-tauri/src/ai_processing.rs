@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result};
 use image::imageops::{self, FilterType};
 use image::{
     DynamicImage, GenericImageView, GrayImage, ImageBuffer, Luma, Rgb, Rgb32FImage, Rgba, RgbaImage,
@@ -226,9 +226,14 @@ fn create_optimized_session<P: AsRef<std::path::Path>>(path: P) -> Result<OrtSes
         .map(|n| n.get())
         .unwrap_or(4)
         .min(8);
-    Session::builder()?
-        .with_optimization_level(GraphOptimizationLevel::Level3)?
-        .with_intra_threads(num_cpus)?
+    // ort::Error<SessionBuilder> 承载的原始指针未实现 Send/Sync，不能直接用 `?` 转成 anyhow::Error。
+    // 这里每一步都先 map_err 转成 anyhow::Error（只会读取错误到字符串），再 `?` 传播。
+    let session = Session::builder()
+        .map_err(|e| anyhow::anyhow!("Failed to init ORT session builder: {}", e))?
+        .with_optimization_level(GraphOptimizationLevel::Level3)
+        .map_err(|e| anyhow::anyhow!("Failed to set optimization level: {}", e))?
+        .with_intra_threads(num_cpus)
+        .map_err(|e| anyhow::anyhow!("Failed to set intra threads: {}", e))?
         .commit_from_file(path_ref)
         .map(OrtSession::new)
         .map_err(|e| {
@@ -237,7 +242,8 @@ fn create_optimized_session<P: AsRef<std::path::Path>>(path: P) -> Result<OrtSes
                 path_ref.display(),
                 e
             )
-        })
+        })?;
+    Ok(session)
 }
 
 fn get_models_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf> {
@@ -295,7 +301,7 @@ fn get_builtin_models_dir(app_handle: &tauri::AppHandle) -> Option<PathBuf> {
     // tauri.conf.json 配了 "resources": ["resources"], 所以路径是 resources/models/
     app_handle
         .path()
-        .resolve("resources/models", tauri::path::BaseDirectory::ResourceDir)
+        .resolve("resources/models", tauri::path::BaseDirectory::Resource)
         .ok()
         .filter(|p| p.exists())
 }
@@ -418,7 +424,7 @@ async fn download_model(url: &str, dest: &Path) -> Result<()> {
                     ));
                 }
 
-                if let Some(err) = last_error.as_ref() {
+                if last_error.is_some() {
                     // 下载中断，重试
                 } else {
                     match persist_downloaded_asset(dest, &all_bytes) {

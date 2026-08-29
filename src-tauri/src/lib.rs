@@ -62,9 +62,7 @@ use image_hdr::input::HDRInput;
 use imageproc::drawing::draw_line_segment_mut;
 use imageproc::edges::canny;
 use imageproc::hough::{LineDetectionOptions, detect_lines};
-use imgref::ImgRef;
 // use mozjpeg_rs: disabled (archmage/safe_unaligned_simd compat pending)
-use rgb::{FromSlice, RGBA8};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -540,20 +538,13 @@ fn process_preview_job(
             _ => return Err("Expected Rgba8 image from GPU for encoding".to_string()),
         };
 
-        let raw_bytes: &[u8] = final_rgba_image.as_raw();
-        let rgba8_pixels: &[RGBA8] = raw_bytes.as_rgba();
-
-        let img_ref = ImgRef::new(
-            rgba8_pixels,
-            final_rgba_image.width() as usize,
-            final_rgba_image.height() as usize,
-        );
-
         let step_start = std::time::Instant::now();
 
         let mut jpeg_buf = Vec::new();
         let mut encoder = JpegEncoder::new_with_quality(&mut jpeg_buf, jpeg_quality as u8);
-        encoder.encode_imgref(&img_ref).map(|_| ())?;
+        encoder
+            .encode_image(final_rgba_image)
+            .map_err(|e| e.to_string())?;
         let encode_result = Ok(jpeg_buf);
 
         match encode_result {
@@ -833,7 +824,7 @@ fn generate_uncropped_preview(
             "generate_uncropped_preview",
         ) {
             let mut jpeg_buf = Vec::new();
-            let mut enc = JpegEncoder::new_with_quality(&mut jpeg_buf, 80);
+            let enc = JpegEncoder::new_with_quality(&mut jpeg_buf, 80);
             use image::ImageEncoder;
             let rgb = processed_image.to_rgb8();
             match enc.write_image(
@@ -1046,7 +1037,7 @@ async fn preview_geometry_transform(
 
     let bytes = {
         let mut buf = Vec::new();
-        let mut enc = JpegEncoder::new_with_quality(&mut buf, 75);
+        let enc = JpegEncoder::new_with_quality(&mut buf, 75);
         use image::ImageEncoder;
         let rgb = final_image.to_rgb8();
         enc.write_image(
@@ -1054,7 +1045,8 @@ async fn preview_geometry_transform(
             rgb.width(),
             rgb.height(),
             image::ExtendedColorType::Rgb8,
-        )?;
+        )
+        .map_err(|e| e.to_string())?;
         buf
     };
 
@@ -1581,7 +1573,7 @@ async fn generate_preview_for_path(
 
         let bytes = {
             let mut buf = Vec::new();
-            let mut enc = JpegEncoder::new_with_quality(&mut buf, 92);
+            let enc = JpegEncoder::new_with_quality(&mut buf, 92);
             use image::ImageEncoder;
             let rgb = final_image.to_rgb8();
             enc.write_image(
@@ -1589,7 +1581,8 @@ async fn generate_preview_for_path(
                 rgb.width(),
                 rgb.height(),
                 image::ExtendedColorType::Rgb8,
-            )?;
+            )
+            .map_err(|e| e.to_string())?;
             buf
         };
 
