@@ -48,12 +48,12 @@ jobs:
           fetch-depth: 0
 
       - name: Install Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v2
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           rustflags: ''
 
       - name: Rust Cache
-        uses: Swatinem/rust-cache@v3
+        uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
           key: ${{ inputs.mobile == '' && inputs.platform || format('{0}-{1}', inputs.platform, inputs.mobile) }}-${{ contains(inputs.build-args, 'tethering') && 'tethering' || 'standard' }}
@@ -145,7 +145,7 @@ jobs:
       - id: tauri-build
         name: Build with tauri-action
         if: ${{ inputs.mobile == '' }}
-        uses: tauri-apps/tauri-action@v0.8
+        uses: tauri-apps/tauri-action@v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NO_STRIP: ${{ startsWith(inputs.platform, 'ubuntu') }}
