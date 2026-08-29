@@ -2223,7 +2223,7 @@ function SettingsPanel({
                   label={
                     param.key === 'feather' && activeSubMask.type === Mask.AiDepth
                       ? t('editor.masks.params.globalFeather')
-                      : ((t as any)('editor.masks.params.' + param.key))
+                      : (t as any)('editor.masks.params.' + param.key)
                   }
                   min={param.min}
                   max={param.max}

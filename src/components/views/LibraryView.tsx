@@ -119,42 +119,42 @@ export default function LibraryView({
     <div className="flex flex-row grow h-full min-h-0">
       <div className="flex-1 flex flex-col min-w-0 gap-2">
         <MainLibrary
-            activePath={libraryActivePath}
-            aiModelDownloadStatus={aiModelDownloadStatus}
-            appSettings={appSettings}
-            currentFolderPath={currentFolderPath}
-            groupBadgeInfo={groupBadgeInfo}
-            imageList={sortedImageList}
-            imageRatings={imageRatings}
-            importState={importState}
-            indexingProgress={indexingProgress}
-            isIndexing={isIndexing}
-            isLoading={isViewLoading}
-            isTreeLoading={isTreeLoading}
-            isAndroid={isAndroid}
-            libraryViewMode={libraryViewMode}
-            multiSelectedPaths={multiSelectedPaths}
-            onClearSelection={handleClearSelection}
-            onContextMenu={handleThumbnailContextMenu}
-            onContinueSession={handleContinueSession}
-            onEmptyAreaContextMenu={handleMainLibraryContextMenu}
-            onGoHome={handleGoHome}
-            onImageClick={handleLibraryImageSingleClick}
-            onImageDoubleClick={handleImageSelect}
-            onImportClick={() => handleImportClick(currentFolderPath as string)}
-            onLibraryRefresh={handleLibraryRefresh}
-            onOpenFolder={handleOpenFolder}
-            onSettingsChange={handleSettingsChange}
-            onThumbnailAspectRatioChange={setThumbnailAspectRatio}
-            onThumbnailSizeChange={setThumbnailSize}
-            onRequestThumbnails={requestThumbnails}
-            rootPaths={rootPaths}
-            setLibraryViewMode={setLibraryViewMode}
-            theme={theme}
-            thumbnailAspectRatio={thumbnailAspectRatio}
-            thumbnailProgress={thumbnailProgress}
-            thumbnailSize={thumbnailSize}
-          />
+          activePath={libraryActivePath}
+          aiModelDownloadStatus={aiModelDownloadStatus}
+          appSettings={appSettings}
+          currentFolderPath={currentFolderPath}
+          groupBadgeInfo={groupBadgeInfo}
+          imageList={sortedImageList}
+          imageRatings={imageRatings}
+          importState={importState}
+          indexingProgress={indexingProgress}
+          isIndexing={isIndexing}
+          isLoading={isViewLoading}
+          isTreeLoading={isTreeLoading}
+          isAndroid={isAndroid}
+          libraryViewMode={libraryViewMode}
+          multiSelectedPaths={multiSelectedPaths}
+          onClearSelection={handleClearSelection}
+          onContextMenu={handleThumbnailContextMenu}
+          onContinueSession={handleContinueSession}
+          onEmptyAreaContextMenu={handleMainLibraryContextMenu}
+          onGoHome={handleGoHome}
+          onImageClick={handleLibraryImageSingleClick}
+          onImageDoubleClick={handleImageSelect}
+          onImportClick={() => handleImportClick(currentFolderPath as string)}
+          onLibraryRefresh={handleLibraryRefresh}
+          onOpenFolder={handleOpenFolder}
+          onSettingsChange={handleSettingsChange}
+          onThumbnailAspectRatioChange={setThumbnailAspectRatio}
+          onThumbnailSizeChange={setThumbnailSize}
+          onRequestThumbnails={requestThumbnails}
+          rootPaths={rootPaths}
+          setLibraryViewMode={setLibraryViewMode}
+          theme={theme}
+          thumbnailAspectRatio={thumbnailAspectRatio}
+          thumbnailProgress={thumbnailProgress}
+          thumbnailSize={thumbnailSize}
+        />
         {rootPaths && rootPaths.length > 0 && (
           <BottomBar
             isCopied={isCopied}

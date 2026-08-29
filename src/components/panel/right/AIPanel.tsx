@@ -191,10 +191,7 @@ interface ConnectionStatusProps {
   isAIConnectorConnected: boolean;
 }
 
-const ConnectionStatus = ({
-  aiProvider,
-  isAIConnectorConnected,
-}: ConnectionStatusProps) => {
+const ConnectionStatus = ({ aiProvider, isAIConnectorConnected }: ConnectionStatusProps) => {
   const { t } = useTranslation();
   const [isHovered, setIsHovered] = useState(false);
 
@@ -309,8 +306,7 @@ export default function AIPanel() {
   const appSettings = useSettingsStore((s) => s.appSettings);
   const aiProvider = appSettings?.aiProvider || 'cpu';
 
-  const isGenerativeAvailable =
-    aiProvider === 'ai-connector' ? isAIConnectorConnected : true;
+  const isGenerativeAvailable = aiProvider === 'ai-connector' ? isAIConnectorConnected : true;
 
   const setBrushSettings = useCallback(
     (updater: any) =>
@@ -1055,10 +1051,7 @@ export default function AIPanel() {
                     className="z-10 shrink-0"
                     onClick={handleDeselect}
                   >
-                    <ConnectionStatus
-                      aiProvider={aiProvider}
-                      isAIConnectorConnected={isAIConnectorConnected}
-                    />
+                    <ConnectionStatus aiProvider={aiProvider} isAIConnectorConnected={isAIConnectorConnected} />
 
                     <Text variant={TextVariants.heading} className="mb-2 mt-6">
                       {t('editor.ai.manualCleanupTitle')}

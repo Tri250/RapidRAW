@@ -269,12 +269,7 @@ interface AiProviderSwitchProps {
 const AiProviderSwitch = ({ selectedProvider, onProviderChange }: AiProviderSwitchProps) => {
   const { t } = useTranslation();
 
-  const aiProviders = useMemo(
-    () => [
-      { id: 'cpu', label: t('settings.processing.ai.providers.cpu'), icon: Cpu },
-    ],
-    [t],
-  );
+  const aiProviders = useMemo(() => [{ id: 'cpu', label: t('settings.processing.ai.providers.cpu'), icon: Cpu }], [t]);
 
   return (
     <div className="relative flex w-full p-1 bg-bg-primary rounded-md border border-border-color">
@@ -308,8 +303,6 @@ const AiProviderSwitch = ({ selectedProvider, onProviderChange }: AiProviderSwit
     </div>
   );
 };
-
-
 
 interface CanvasInputModeSwitchProps {
   mode: 'mouse' | 'trackpad';
@@ -846,7 +839,7 @@ export default function SettingsPanel({
     });
   };
 
-   const closeConfirmModal = () => {
+  const closeConfirmModal = () => {
     setConfirmModalState({ ...confirmModalState, isOpen: false });
   };
 

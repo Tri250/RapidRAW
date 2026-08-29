@@ -517,8 +517,6 @@ function App() {
     }
   }, [activePanel, activeMaskContainerId, activeAiPatchContainerId, setEditor]);
 
-
-
   const createResizeHandler = (stateKey: string, startSize: number) => (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.preventDefault();

@@ -136,7 +136,6 @@ export enum Invokes {
   GenerateAiDepthMask = 'generate_ai_depth_mask',
   PrecomputeAiSubjectMask = 'precompute_ai_subject_mask',
   CancelThumbnailGeneration = 'cancel_thumbnail_generation',
-
 }
 
 export enum ExifOverlay {

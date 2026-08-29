@@ -424,7 +424,10 @@ export default function LensCorrectionModal({
     setDetectionStatus('detecting');
 
     try {
-      const result: [string, string] | null = await invoke(Invokes.AutodetectLens, { maker: exifMaker, model: exifModel });
+      const result: [string, string] | null = await invoke(Invokes.AutodetectLens, {
+        maker: exifMaker,
+        model: exifModel,
+      });
 
       if (result) {
         const [detectedMaker, detectedModel] = result;
