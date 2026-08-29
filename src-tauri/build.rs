@@ -159,7 +159,12 @@ fn main() {
         println!("cargo:warning=URL: {}", download_url);
 
         if let Err(e) = download_and_verify(&download_url, &dest_path, expected_hash) {
-            panic!("Failed to download and verify ONNX Runtime library: {}", e);
+            println!(
+                "cargo:warning=WARNING: Failed to download and verify ONNX Runtime library: {}. \
+                Build will continue, but AI/ORT-dependent features may be unavailable at runtime. \
+                Please manually download {} and place it at {} with SHA256 {}.",
+                e, download_url, dest_path.display(), expected_hash
+            );
         }
     }
 
