@@ -71,9 +71,10 @@ pub fn load_and_composite(
     use_fast_raw_dev: bool,
     settings: &AppSettings,
     cancel_token: Option<(Arc<AtomicUsize>, usize)>,
+    state: Option<&AppState>,
 ) -> Result<DynamicImage> {
     let base_image =
-        load_base_image_from_bytes(base_image, path, use_fast_raw_dev, settings, cancel_token)?;
+        load_base_image_from_bytes(base_image, path, use_fast_raw_dev, settings, cancel_token, state)?;
     composite_patches_on_image(&base_image, adjustments)
 }
 
@@ -83,6 +84,7 @@ pub fn load_base_image_from_bytes(
     use_fast_raw_dev: bool,
     settings: &AppSettings,
     cancel_token: Option<(Arc<AtomicUsize>, usize)>,
+    state: Option<&AppState>,
 ) -> Result<DynamicImage> {
     let highlight_compression = settings.raw_highlight_compression.unwrap_or(2.5);
     let linear_mode = settings.linear_raw_mode.clone();
@@ -112,7 +114,14 @@ pub fn load_base_image_from_bytes(
                 cancel_token,
             )
         }) {
-            Ok(Ok(mut image)) => {
+            Ok(Ok((mut image, calibration))) => {
+                // --- Phase 2: stash calibration for the GPU shader pipeline ---
+                if let Some(app_state) = state {
+                    if let Ok(mut cache) = app_state.camera_calibration_cache.lock() {
+                        cache.insert(path_for_ext_check.to_string(), calibration);
+                    }
+                }
+
                 if !use_fast_raw_dev && (color_nr_amount > 0.0 || sharpening_amount > 0.0) {
                     let start = Instant::now();
                     remove_raw_artifacts_and_enhance(
@@ -901,7 +910,7 @@ pub async fn load_image(
                             false,
                             &settings,
                             cancel_token.clone(),
-                        )
+                        , None)
                         .map_err(|e| e.to_string())?;
                         let exif = exif_processing::read_exif_data(&path_clone, &mmap);
                         Ok((img, exif))
@@ -926,7 +935,7 @@ pub async fn load_image(
                             false,
                             &settings,
                             cancel_token.clone(),
-                        )
+                        , None)
                         .map_err(|e| e.to_string())?;
                         let exif = exif_processing::read_exif_data(&path_clone, &bytes);
                         Ok((img, exif))

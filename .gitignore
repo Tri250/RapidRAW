@@ -41,3 +41,7 @@ src-tauri/libs/
 
 # bench/replay.js result dumps
 bench/out/
+# Trae agent share artifacts (IDE-generated, never commit)
+.trae-html-share-packages/
+.trae*/
+.trae

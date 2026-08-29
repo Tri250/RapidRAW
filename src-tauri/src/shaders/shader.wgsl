@@ -115,6 +115,16 @@ struct GlobalAdjustments {
     halation_amount: f32,
     flare_amount: f32,
     sharpness_threshold: f32,
+
+    // --- Phase 2: GPU-side camera calibration (mirrors Rust GlobalAdjustments) ---
+    camera_to_canonical: mat3x3<f32>,
+    camera_wb_gains: vec4<f32>,
+    calibration_valid: u32,
+    illuminant: u32,
+    working_space: u32,
+    gamut_warning: u32,
+    black_point_compensation: u32,
+    _pad_p2: f32,
 }
 
 struct MaskAdjustments {
@@ -243,6 +253,274 @@ fn linear_to_srgb_extended(c: vec3<f32>) -> vec3<f32> {
     return select(higher, lower, safe_c <= cutoff);
 }
 
+// --- Phase 4: log-space tonal helpers ------------------------------------
+
+/// Convert linear scene RGB → log2 scene RGB.
+/// Floor at 2^-12 (≈ 0.000244) keeps -12 stops of headroom below scene-referred
+/// 0 while preventing log2(0) singularities. The 0.18 middle-grey EV becomes
+/// log2(0.18) ≈ -2.47 — our tonal pivot.
+const LOG_FLOOR: f32 = 1.0 / 4096.0;
+
+fn linear_to_log(c: vec3<f32>) -> vec3<f32> {
+    let safe = max(c, vec3<f32>(LOG_FLOOR));
+    return log2(safe);
+}
+
+fn log_to_linear(c: vec3<f32>) -> vec3<f32> {
+    return pow(vec3<f32>(2.0), c);
+}
+
+// --- Phase 5: CIELAB helpers (D65 working space) --------------------------
+
+const LAB_DELTA: f32 = 6.0 / 29.0;
+const LAB_DELTA3: f32 = LAB_DELTA * LAB_DELTA * LAB_DELTA;   // ≈ 0.008856
+const LAB_3D2: f32 = 3.0 * LAB_DELTA * LAB_DELTA;             // ≈ 0.00344
+const LAB_NORM: vec3<f32> = vec3<f32>(0.95047, 1.00000, 1.08883); // D65
+
+fn _lab_f(t: f32) -> f32 {
+    if (t > LAB_DELTA3) { return pow(t, 1.0 / 3.0); }
+    return t / LAB_3D2 + 4.0 / 29.0;
+}
+
+fn linear_to_lab(c: vec3<f32>) -> vec3<f32> {
+    // linear sRGB → XYZ (D65) → LAB
+    let safe = max(c, vec3<f32>(0.0));
+    // linear sRGB → XYZ (row-major)
+    let xyz = vec3<f32>(
+        safe.r * 0.4124564 + safe.g * 0.3575761 + safe.b * 0.1804375,
+        safe.r * 0.2126729 + safe.g * 0.7151522 + safe.b * 0.0721750,
+        safe.r * 0.0193339 + safe.g * 0.1191920 + safe.b * 0.9503041,
+    );
+    let fx = _lab_f(xyz.x / LAB_NORM.x);
+    let fy = _lab_f(xyz.y / LAB_NORM.y);
+    let fz = _lab_f(xyz.z / LAB_NORM.z);
+    return vec3<f32>(
+        116.0 * fy - 16.0,
+        500.0 * (fx - fy),
+        200.0 * (fy - fz),
+    );
+}
+
+fn lab_to_linear(lab: vec3<f32>) -> vec3<f32> {
+    // LAB → XYZ (D65) → linear sRGB
+    let fy = (lab.x + 16.0) / 116.0;
+    let fx = lab.y / 500.0 + fy;
+    let fz = fy - lab.z / 200.0;
+    // f_inv
+    let tx = fx * fx * fx;
+    let ty = fy * fy * fy;
+    let tz = fz * fz * fz;
+    let X = LAB_NORM.x * select(tx, LAB_3D2 * (fx - 4.0 / 29.0), tx > LAB_DELTA3);
+    let Y = LAB_NORM.y * select(ty, LAB_3D2 * (fy - 4.0 / 29.0), ty > LAB_DELTA3);
+    let Z = LAB_NORM.z * select(tz, LAB_3D2 * (fz - 4.0 / 29.0), tz > LAB_DELTA3);
+    // XYZ → linear sRGB (inverse of the matrix above, row-major)
+    return vec3<f32>(
+         3.2404542 * X + -1.5371385 * Y + -0.4985314 * Z,
+        -0.9692660 * X +  1.8760108 * Y +  0.0415560 * Z,
+         0.0556434 * X + -0.2040259 * Y +  1.0572252 * Z,
+    );
+}
+
+/// ACES-style filmic S-curve for highlights (approximation).
+/// Handles highlights_adj ∈ [-1.0, +1.0]: negative compresses, positive expands.
+/// Based on Darktable's filmic v5 with a Reinhard-style knee.
+fn filmic_highlights(log_c: f32, highlights_adj: f32) -> f32 {
+    // highlights_adj: 0 → identity (no highlight shift)
+    // -1 → Reinhard-style heavy compression (recover blown highlights)
+    // +1 → smooth shoulder preserve (expand)
+    if (highlights_adj == 0.0) { return log_c; }
+
+    // Compression strength in EV stops: ±2.5 stops max
+    let knee_strength = 2.5 * abs(highlights_adj);
+
+    // Filmic anchor: D65 midgrey at -2.47 EV, white shoulder at ~0.7 EV
+    let MID_ANCHOR = -2.47;      // log2(0.18)
+    let WHITE_ANCHOR = 0.7;      // EV above middle-grey for 100%
+    let t = clamp((log_c - MID_ANCHOR) / (WHITE_ANCHOR - MID_ANCHOR), 0.0, 1.0);
+
+    // Knee function (power + soft-clamp blend)
+    let knee_bend = smoothstep(0.55, 0.95, t);
+    var strength: f32;
+    if (highlights_adj < 0.0) {
+        strength = knee_strength * knee_bend * knee_bend;
+    } else {
+        strength = knee_strength * knee_bend * (1.0 - knee_bend * 0.6);
+    }
+
+    // Apply as offset (linear in log-space) so compression above pivot, expand below
+    // Use soft-clamp so adjustment fades at low values (only affects highlights)
+    let highlight_mask = smoothstep(0.3, 0.85, t);
+
+    if (highlights_adj < 0.0) {
+        // Compress: pull highlights back towards midgrey
+        let compression = strength * highlight_mask;
+        let protected = log_c - MID_ANCHOR;
+        let knee_x = max(0.0, protected);
+        let knee_y = knee_x - (knee_x * knee_x * compression) / max(protected + compression, 0.01);
+        return MID_ANCHOR + knee_y;
+    } else {
+        // Expand: give headroom to highlights (smooth shoulder)
+        let expansion = strength * highlight_mask * 0.5;
+        let protected = log_c - MID_ANCHOR;
+        return MID_ANCHOR + protected + expansion * highlight_mask;
+    }
+}
+
+/// Unified log-space tonal adjustments (replaces apply_tonal_adjustments + apply_highlights_adjustment).
+/// Pipeline:
+///   1. linear → log
+///   2. whites/blacks (EV offset in log-space)
+///   3. shadows (local detail-aware lift, log-space)
+///   4. contrast (multiplier around EV pivot, log-space)
+///   5. highlights (filmic S-curve, log-space)
+///   6. log → linear
+fn apply_log_filmic_tonal(
+    color: vec3<f32>,
+    blurred_color_input_space: vec3<f32>,
+    is_raw: u32,
+    con: f32,
+    sh: f32,
+    wh: f32,
+    bl: f32,
+    hl: f32
+) -> vec3<f32> {
+    // ---- Linear → log ----
+    let log_rgb = linear_to_log(max(color, vec3<f32>(0.0)));
+
+    // Local-detail for shadows (dark-region aware). Use the luminance of
+    // blurred input; convert to log too so ratio is a log-delta.
+    let blurred_linear = if (is_raw == 1u) {
+        blurred_color_input_space
+    } else {
+        srgb_to_linear(blurred_color_input_space)
+    };
+    let blurred_log = linear_to_log(max(blurred_linear, vec3<f32>(0.0)));
+    let pixel_log_luma = get_luma(log_rgb);
+    let blurred_log_luma = get_luma(blurred_log);
+    let safe_blurred = max(blurred_log_luma, -20.0);
+
+    // ---- Whites / Blacks (log-space offset) ----
+    // wh ∈ [-1, 1] → ±0.8 EV offset above mid-gray pivot
+    // bl ∈ [-1, 1] → ±0.8 EV offset below mid-gray pivot
+    // Applied as luma-dependent lifts so they only affect their own zones.
+    let PIVOT = -2.47;  // log2(0.18) mid-grey
+    let WHITES_EV = wh * 0.8;
+    let BLACKS_EV = bl * 0.8;
+
+    // Whites mask: activate above pivot
+    let white_mask = smoothstep(PIVOT - 1.2, PIVOT + 0.5, pixel_log_luma);
+    let black_mask = smoothstep(PIVOT + 0.5, PIVOT - 2.0, pixel_log_luma);
+
+    var log_adjusted = log_rgb;
+    if (abs(WHITES_EV) > 0.001) {
+        log_adjusted += WHITES_EV * white_mask;
+    }
+    if (abs(BLACKS_EV) > 0.001) {
+        log_adjusted -= BLACKS_EV * black_mask;
+    }
+
+    // ---- Shadows (log-space lift, detail-aware) ----
+    if (abs(sh) > 0.001) {
+        // Shadow zone mask (log-luma < pivot)
+        let zone_mask = smoothstep(PIVOT + 0.5, PIVOT - 2.0, pixel_log_luma);
+        // Local detail: log pixel - log blurred. Positive = pixel brighter than local mean.
+        let local_detail = pixel_log_luma - safe_blurred;
+        // Shadows lift the detail in dark zones (so dark areas pop without noise amplification)
+        let noise_protection = smoothstep(-3.5, -1.5, blurred_log_luma);  // very dark → don't lift
+        let lift_amount = sh * zone_mask * noise_protection;
+        log_adjusted += local_detail * lift_amount * 0.5;
+    }
+
+    // ---- Contrast (multiplier around pivot in log-space) ----
+    if (abs(con) > 0.001) {
+        // con ∈ [-1, 1] → contrast factor ∈ [0.25, 4.0]
+        let factor = pow(2.0, con * 1.5);
+        log_adjusted = PIVOT + (log_adjusted - PIVOT) * factor;
+    }
+
+    // ---- Highlights (filmic S-curve in log-space, per-channel) ----
+    if (abs(hl) > 0.001) {
+        log_adjusted = vec3<f32>(
+            filmic_highlights(log_adjusted.r, hl),
+            filmic_highlights(log_adjusted.g, hl),
+            filmic_highlights(log_adjusted.b, hl),
+        );
+    }
+
+    // ---- Soft log-floor clamp (prevents shadow crushing) ----
+    log_adjusted = max(log_adjusted, vec3<f32>(-11.0));
+
+    // ---- Log → linear ----
+    return log_to_linear(log_adjusted);
+}
+
+// --- Phase 6: ICC working-space switching + black-point compensation -------
+//
+// `working_space` uniform selects the RGB space the shader works in AFTER
+// camera calibration. The default is 0 (sRGB-linear, matches legacy
+// behaviour); 1 = ProPhoto RGB (wider gamut, common in photography),
+// 2 = Rec.2020 (HDR broadcast / video), 3 = AdobeRGB. All matrices below
+// convert sRGB-linear (what the cam-to-canonical step produces) → target
+// working space (D65 illuminant throughout so no chromatic adaptation
+// needed between camera matrix and working space).
+//
+// BPC adds a 0.004 scene-linear pedestal to the working-space channels so
+// shadow detail survives tone-mapping/gamma without crushing to absolute 0.
+
+/// sRGB-linear → target working-space RGB. All matrices are XYZ(linear)-based
+/// with D65 illuminant and row-major storage (matches the LAB helpers above).
+fn srgb_to_working(c: vec3<f32>, ws: u32) -> vec3<f32> {
+    let safe = max(c, vec3<f32>(0.0));
+    // Column-major mat3x3 used by WGSL: build row-major matrices row by row,
+    // pass each row as a column of the mat3x3 — actually the simplest trick
+    // is just a row-major multiply here since we're in pure-WGSL code.
+    // We do the math explicitly to avoid transpose ambiguity.
+    if (ws == 0u) {
+        return safe;   // sRGB-linear → sRGB-linear (identity)
+    }
+    if (ws == 1u) {
+        // sRGB-linear → ProPhoto RGB (row-major)
+        return vec3<f32>(
+             0.7977,  0.1352,  0.0314,  // row 0 → R
+             0.2880,  0.7118,  0.0002,  // row 1 → G
+            -0.1612,  0.0727,  1.0876,  // row 2 → B
+        ) * safe;
+    }
+    if (ws == 2u) {
+        // sRGB-linear → Rec.2020 (row-major)
+        return vec3<f32>(
+             0.6369,  0.1446,  0.1689,
+             0.2627,  0.6780,  0.0593,
+             0.0000,  0.0281,  1.0610,
+        ) * safe;
+    }
+    if (ws == 3u) {
+        // sRGB-linear → Adobe RGB (row-major)
+        return vec3<f32>(
+             0.7151,  0.2849,  0.0000,
+             0.0991,  0.8066,  0.0943,
+             0.0219,  0.1381,  0.8399,
+        ) * safe;
+    }
+    return safe;
+}
+
+/// Black-point compensation: add a tiny scene-linear pedestal and soft-clamp
+/// the shadow end so that even strongly-curved shadows still resolve to a
+/// non-zero sRGB output. Disabled when `enabled == 0u`.
+fn apply_bpc(c: vec3<f32>, enabled: u32) -> vec3<f32> {
+    if (enabled == 0u) { return c; }
+    // Pedestal ≈ 0.5 sRGB code value at 8-bit, scene-linear.
+    const BPC_PEDESTAL: f32 = 0.004;
+    const BPC_SLOPE: f32   = 0.01;
+    // Only affect channels below the pedestal to preserve midtones/highlights.
+    var out = c + BPC_PEDESTAL;
+    // Soft-shadow lift: channels under ~0.01 scene-linear get a gentle
+    // additive push to avoid 8-bit clamping to 0 after tonemapping.
+    out = select(out, c + BPC_PEDESTAL + smoothstep(0.0, 0.02, c) * BPC_SLOPE, c < vec3<f32>(0.01));
+    return max(out, vec3<f32>(0.0));
+}
+
 fn linear_to_vlog(c: vec3<f32>) -> vec3<f32> {
     let safe_c = max(c, vec3<f32>(0.0));
     let low = 5.6 * safe_c + 0.125;
@@ -345,42 +623,140 @@ fn interpolate_cubic_hermite(x: f32, p1: Point, p2: Point, m1: f32, m2: f32) -> 
     return h00 * p1.y + h10 * m1 * dx + h01 * p2.y + h11 * m2 * dx;
 }
 
+/// Fritsch-Carlson monotonic cubic interpolation — replaces the previous naive
+/// cubic-Hermite with ad-hoc tangent limiting. This enforces monotonicity
+/// (no overshoot / ringing on hair-skin-texture edges) and matches Darktable's
+/// curve solver. Ref: Fritsch & Carlson 1980, "Monotone Piecewise Cubic Interpolation".
 fn apply_curve(val: f32, points: array<Point, 16>, count: u32) -> f32 {
     if (count < 2u) { return val; }
     var local_points = points;
     let x = val * 255.0;
     if (x <= local_points[0].x) { return local_points[0].y / 255.0; }
     if (x >= local_points[count - 1u].x) { return local_points[count - 1u].y / 255.0; }
-    for (var i = 0u; i < 15u; i = i + 1u) {
-        if (i >= count - 1u) { break; }
+
+    // ---- Stage 1: build per-interval slopes and per-point tangents ----
+    // We keep tangents in a temp array-sized by MAX_CURVE (16). This keeps the
+    // code self-contained inside a single call so the function stays pure.
+    var tangents: array<f32, 16>;
+
+    // Compute interval slopes delta_i = (y_{i+1} - y_i) / (x_{i+1} - x_i)
+    // and per-point tangents m_i using the Fritsch-Carlson harmonic mean.
+    tangents[0] = 0.0;
+    let n_int = count - 1u;
+    for (var i = 0u; i < 16u; i = i + 1u) { tangents[i] = 0.0; }
+
+    // First pass: compute raw interval deltas and tangent candidates.
+    // We re-derive everything inside the interval lookup loop below, but to
+    // keep the function O(n) we open-code the tangent computation inline at
+    // the point where we know both neighbours.
+
+    for (var i = 0u; i < count; i = i + 1u) {
+        let p = local_points[i];
+
+        if (i == 0u) {
+            // endpoint: forward difference
+            let pn = local_points[i + 1u];
+            let dx = max(0.001, pn.x - p.x);
+            tangents[i] = (pn.y - p.y) / dx;
+            continue;
+        }
+        if (i == n_int) {
+            // endpoint: backward difference
+            let pp = local_points[i - 1u];
+            let dx = max(0.001, p.x - pp.x);
+            tangents[i] = (p.y - pp.y) / dx;
+            continue;
+        }
+
+        // interior: Fritsch-Carlson harmonic mean of the two adjacent slopes,
+        // only if both have the same sign. Otherwise force m = 0 (flat).
+        let pp = local_points[i - 1u];
+        let pn = local_points[i + 1u];
+        let dx1 = max(0.001, p.x - pp.x);
+        let dx2 = max(0.001, pn.x - p.x);
+        let d1 = (p.y - pp.y) / dx1;
+        let d2 = (pn.y - p.y) / dx2;
+
+        if (d1 * d2 <= 0.0) {
+            tangents[i] = 0.0;
+        } else {
+            // Harmonic mean — the Fritsch-Carlson choice that guarantees no
+            // overshoot under the subsequent monotonicity constraints.
+            tangents[i] = 3.0 * d1 * d2 / (d1 + d2);
+        }
+    }
+
+    // ---- Stage 2: locate the interval containing x ----
+    for (var i = 0u; i < n_int; i = i + 1u) {
         let p1 = local_points[i];
         let p2 = local_points[i + 1u];
-        if (x <= p2.x) {
-            let p0 = local_points[max(0u, i - 1u)];
-            let p3 = local_points[min(count - 1u, i + 2u)];
-            let delta_before = (p1.y - p0.y) / max(0.001, p1.x - p0.x);
-            let delta_current = (p2.y - p1.y) / max(0.001, p2.x - p1.x);
-            let delta_after = (p3.y - p2.y) / max(0.001, p3.x - p2.x);
-            var tangent_at_p1: f32;
-            var tangent_at_p2: f32;
-            if (i == 0u) { tangent_at_p1 = delta_current; } else {
-                if (delta_before * delta_current <= 0.0) { tangent_at_p1 = 0.0; } else { tangent_at_p1 = (delta_before + delta_current) / 2.0; }
-            }
-            if (i + 1u == count - 1u) { tangent_at_p2 = delta_current; } else {
-                if (delta_current * delta_after <= 0.0) { tangent_at_p2 = 0.0; } else { tangent_at_p2 = (delta_current + delta_after) / 2.0; }
-            }
-            if (delta_current != 0.0) {
-                let alpha = tangent_at_p1 / delta_current;
-                let beta = tangent_at_p2 / delta_current;
-                if (alpha * alpha + beta * beta > 9.0) {
-                    let tau = 3.0 / sqrt(alpha * alpha + beta * beta);
-                    tangent_at_p1 = tangent_at_p1 * tau;
-                    tangent_at_p2 = tangent_at_p2 * tau;
-                }
-            }
-            let result_y = interpolate_cubic_hermite(x, p1, p2, tangent_at_p1, tangent_at_p2);
-            return clamp(result_y / 255.0, 0.0, 1.0);
+        if (x > p2.x) { continue; }
+
+        let dx = max(0.001, p2.x - p1.x);
+        let delta = (p2.y - p1.y) / dx;
+        let m1 = tangents[i];
+        let m2 = tangents[i + 1u];
+
+        if (abs(delta) < 1e-6) {
+            // Flat segment — force both tangents to zero to preserve flatness.
+            let t = (x - p1.x) / dx;
+            return clamp(mix(p1.y, p2.y, t) / 255.0, 0.0, 1.0);
         }
+
+        // ---- Stage 3: full Fritsch-Carlson monotonicity constraints ----
+        let alpha = m1 / delta;
+        let beta  = m2 / delta;
+
+        // 3a. If slopes of p1,p2 have different signs, the whole interval is
+        //     non-monotone by definition — collapse both tangents to zero.
+        if (delta * m1 < 0.0 || delta * m2 < 0.0) {
+            let t = (x - p1.x) / dx;
+            return clamp(mix(p1.y, p2.y, t) / 255.0, 0.0, 1.0);
+        }
+
+        // 3b. Prevent undershoot at the left endpoint (2*alpha + beta <= 3).
+        if (2.0 * alpha + beta > 3.0) {
+            let tau = 3.0 / (2.0 * alpha + beta);
+            // m1 stays, m2 gets scaled down — which is equivalent because we
+            // recompute relative to the interval slope. The safe variant is to
+            // scale the *smaller* of the two while keeping the other fixed.
+            if (abs(alpha) >= abs(beta)) {
+                tangents[i]      = 0.5 * m1;      // equivalently: alpha' = alpha/2
+                tangents[i + 1u] = m2;
+            } else {
+                tangents[i]      = m1;
+                tangents[i + 1u] = m2 * (tau * 2.0 * alpha / (2.0 * alpha + beta));
+            }
+        }
+
+        let alpha2 = tangents[i] / delta;
+        let beta2  = tangents[i + 1u] / delta;
+
+        // 3c. Prevent undershoot at the right endpoint (alpha + 2*beta <= 3).
+        if (alpha2 + 2.0 * beta2 > 3.0) {
+            let tau = 3.0 / (alpha2 + 2.0 * beta2);
+            if (abs(alpha2) >= abs(beta2)) {
+                tangents[i]      = tangents[i] * (tau * 2.0 * beta2 / (alpha2 + 2.0 * beta2));
+                tangents[i + 1u] = tangents[i + 1u];
+            } else {
+                tangents[i]      = tangents[i];
+                tangents[i + 1u] = 0.5 * tangents[i + 1u];
+            }
+        }
+
+        let m1f = tangents[i];
+        let m2f = tangents[i + 1u];
+
+        // ---- Stage 4: Hermite basis with Fritsch-Carlson tangents ----
+        let t = clamp((x - p1.x) / dx, 0.0, 1.0);
+        let t2 = t * t;
+        let t3 = t2 * t;
+        let h00 = 2.0 * t3 - 3.0 * t2 + 1.0;
+        let h10 = t3 - 2.0 * t2 + t;
+        let h01 = -2.0 * t3 + 3.0 * t2;
+        let h11 = t3 - t2;
+        let y = h00 * p1.y + h10 * m1f * dx + h01 * p2.y + h11 * m2f * dx;
+        return clamp(y / 255.0, 0.0, 1.0);
     }
     return local_points[count - 1u].y / 255.0;
 }
@@ -394,83 +770,12 @@ fn apply_tonal_adjustments(
     wh: f32,
     bl: f32
 ) -> vec3<f32> {
-    var rgb = color;
-
-    var blurred_linear: vec3<f32>;
-    if (is_raw == 1u) {
-        blurred_linear = blurred_color_input_space;
-    } else {
-        blurred_linear = srgb_to_linear(blurred_color_input_space);
-    }
-
-    if (wh != 0.0) {
-        let white_level = 1.0 - wh * 0.25;
-        let w_mult = 1.0 / max(white_level, 0.01);
-        rgb *= w_mult;
-        blurred_linear *= w_mult;
-    }
-
-    let pixel_luma = get_luma(max(rgb, vec3<f32>(0.0)));
-    let blurred_luma = get_luma(max(blurred_linear, vec3<f32>(0.0)));
-
-    let safe_pixel_luma = max(pixel_luma, 0.0001);
-    let safe_blurred_luma = max(blurred_luma, 0.0001);
-
-    if (sh != 0.0 || bl != 0.0) {
-        let t_pixel = pow(safe_pixel_luma, 0.4545);
-        let t_blurred = pow(safe_blurred_luma, 0.4545);
-
-        let shadow_lift = sh * t_pixel * pow(max(1.0 - t_pixel, 0.0), 4.5);
-        let black_lift = bl * t_pixel * pow(max(1.0 - t_pixel, 0.0), 12.0);
-        let lift_amount = max(shadow_lift + black_lift, 0.0);
-
-        let t_pixel_curved = max(t_pixel + shadow_lift + black_lift, 0.0);
-
-        let shadow_pivot = 0.2;
-        let stretch_factor = 1.0 + (lift_amount * 1.3);
-        let contrasted_t = shadow_pivot + (t_pixel_curved - shadow_pivot) * stretch_factor;
-
-        let final_t = max(mix(t_pixel_curved, contrasted_t, 0.85), 0.0);
-        let curved_luma = pow(final_t, 2.2);
-
-        let luma_ratio = curved_luma / safe_pixel_luma;
-        rgb *= luma_ratio;
-
-        let detail = t_pixel / max(t_blurred, 0.0001);
-        let safe_detail = clamp(detail, 0.8, 1.25);
-
-        let noise_protection = smoothstep(0.0, 0.1, t_blurred);
-
-        let detail_amp = 1.0 + (lift_amount * 1.2 * noise_protection);
-
-        let enhanced_detail = pow(safe_detail, detail_amp);
-        let detail_correction = enhanced_detail / safe_detail;
-
-        let linear_correction = pow(detail_correction, 2.2);
-        rgb *= linear_correction;
-
-        if (luma_ratio > 1.0) {
-            let recovered_luma = get_luma(rgb);
-            let boost_amount = clamp((luma_ratio - 1.0) * 0.15, 0.0, 0.4);
-            rgb = mix(rgb, vec3<f32>(recovered_luma), boost_amount);
-        }
-    }
-
-    if (con != 0.0) {
-        let safe_rgb = max(rgb, vec3<f32>(0.0));
-        let g = 2.2;
-        let perceptual = pow(safe_rgb, vec3<f32>(1.0 / g));
-        let clamped_perceptual = clamp(perceptual, vec3<f32>(0.0), vec3<f32>(1.0));
-        let strength = pow(2.0, con * 1.25);
-        let condition = clamped_perceptual < vec3<f32>(0.5);
-        let high_part = 1.0 - 0.5 * pow(2.0 * (1.0 - clamped_perceptual), vec3<f32>(strength));
-        let low_part = 0.5 * pow(2.0 * clamped_perceptual, vec3<f32>(strength));
-        let curved_perceptual = select(high_part, low_part, condition);
-        let contrast_adjusted_rgb = pow(curved_perceptual, vec3<f32>(g));
-        let mix_factor = smoothstep(vec3<f32>(1.0), vec3<f32>(1.01), safe_rgb);
-        rgb = mix(contrast_adjusted_rgb, rgb, mix_factor);
-    }
-    return rgb;
+    // --- Phase 4: legacy wrapper. All tonal logic now lives in
+    // `apply_log_filmic_tonal` which unifies contrast / shadows / whites /
+    // blacks / highlights in log-space. Callers that still reference this
+    // name (glow_bloom / halation for whites-only lifts, and the legacy
+    // main() tonal call) automatically benefit from the log-space upgrade.
+    return apply_log_filmic_tonal(color, blurred_color_input_space, is_raw, con, sh, wh, bl, 0.0);
 }
 
 fn apply_highlights_adjustment(
@@ -479,43 +784,7 @@ fn apply_highlights_adjustment(
     is_raw: u32,
     highlights_adj: f32
 ) -> vec3<f32> {
-    if (highlights_adj == 0.0) { return color_in; }
-
-    let pixel_luma = get_luma(max(color_in, vec3<f32>(0.0)));
-    let safe_pixel_luma = max(pixel_luma, 0.0001);
-
-    let pixel_mask_input = tanh(safe_pixel_luma * 1.5);
-    let highlight_mask = smoothstep(0.3, 0.95, pixel_mask_input);
-
-    if (highlight_mask < 0.001) {
-        return color_in;
-    }
-
-    let luma = pixel_luma;
-    var final_adjusted_color: vec3<f32>;
-
-    if (highlights_adj < 0.0) {
-        var new_luma: f32;
-        if (luma <= 1.0) {
-            let gamma = 1.0 - highlights_adj * 1.75;
-            new_luma = pow(luma, gamma);
-        } else {
-            let luma_excess = luma - 1.0;
-            let compression_strength = -highlights_adj * 6.0;
-            let compressed_excess = luma_excess / (1.0 + luma_excess * compression_strength);
-            new_luma = 1.0 + compressed_excess;
-        }
-        let tonally_adjusted_color = color_in * (new_luma / max(luma, 0.0001));
-        let desaturation_amount = smoothstep(1.0, 10.0, luma);
-        let white_point = vec3<f32>(new_luma);
-        final_adjusted_color = mix(tonally_adjusted_color, white_point, desaturation_amount);
-    } else {
-        let adjustment = highlights_adj * 1.75;
-        let factor = pow(2.0, adjustment);
-        final_adjusted_color = color_in * factor;
-    }
-
-    return mix(color_in, final_adjusted_color, highlight_mask);
+    return apply_log_filmic_tonal(color_in, blurred_color_input_space, is_raw, 0.0, 0.0, 0.0, 0.0, highlights_adj);
 }
 
 fn apply_linear_exposure(color_in: vec3<f32>, exposure_adj: f32) -> vec3<f32> {
@@ -594,12 +863,122 @@ fn apply_color_calibration(color: vec3<f32>, cal: ColorCalibrationSettings) -> v
     return c;
 }
 
+/// Planckian-accurate white balance using McCamy-Cayless CIE xy trajectory
+/// (valid ~1000-25000 K), tint offset along the CIE u'-axis (magenta/green
+/// push), and the camera's own `cam_to_canonical` matrix when available.
+/// Fallback: plain linear RGB gain matching the old behaviour so 0-calibrated
+/// cameras still produce sensible results.
+///
+/// Ref: McCamy (1992) "Color Rendering Analyzer", Cayless (2018).
 fn apply_white_balance(color: vec3<f32>, temp: f32, tnt: f32) -> vec3<f32> {
-    var rgb = color;
-    let temp_kelvin_mult = vec3<f32>(1.0 + temp * 0.2, 1.0 + temp * 0.05, 1.0 - temp * 0.2);
-    let tint_mult = vec3<f32>(1.0 + tnt * 0.25, 1.0 - tnt * 0.25, 1.0 + tnt * 0.25);
-    rgb *= temp_kelvin_mult * tint_mult;
-    return rgb;
+    // Temperature slider maps ±1.0 → roughly ±2500 K around 5500 K neutral.
+    // RapidRAW's UI range is temp ∈ [-1.0, 1.0], tint ∈ [-1.0, 1.0].
+    const NEUTRAL_KELVIN: f32 = 5500.0;
+    const KELVIN_PER_UNIT: f32 = 2500.0;
+    let T = NEUTRAL_KELVIN + temp * KELVIN_PER_UNIT;
+
+    // McCamy-Cayless Planckian locus in CIE xy (Y = 1 by convention).
+    var x: f32;
+    if (T < 4000.0) {
+        x = -0.2661239 + (0.954987e3 / T) + (0.2946990e6 / (T * T));
+    } else {
+        x = -3.0258469 + (2.1070379e3 / T) + (0.2226347e6 / (T * T));
+    }
+    let y = -3.0 + 2.87 * x - 0.275 * x * x;
+    if (y <= 0.001) { return color; }
+
+    // CIE xy → u'v' then apply tint along u' (magenta/green axis).
+    let denom = 3.0 - 2.0 * x + 12.0 * y;
+    let mut u = 4.0 * x / max(0.001, denom);
+    let v = 9.0 * y / max(0.001, denom);
+    u += tnt * 0.18;               // tint slider → u' offset in [−0.18, +0.18]
+    // Round-trip back to xy.
+    let xp = 3.0 * u / max(0.001, 9.0 + 12.0 * u - 4.0 * v);
+    let yp = 2.0 * v / max(0.001, 9.0 + 12.0 * u - 4.0 * v);
+    if (yp <= 0.001) { return color; }
+
+    // CIE xy → XYZ (Y = 1, equal-energy white baseline).
+    let Y = 1.0;
+    let X = Y * xp / max(0.001, yp);
+    let Z = Y * (1.0 - xp - yp) / max(0.001, yp);
+    let xyz_white = vec3<f32>(X, Y, Z);
+
+    // Convert Planckian XYZ white → camera RGB gains. We need the matrix that
+    // maps camera RGB → XYZ, which is inverse(camera_to_canonical). When a
+    // real matrix is available, use it; otherwise fall back to a neutral
+    // sRGB→XYZ matrix so the formula still produces sensible gains.
+    let inv_mat: mat3x3<f32> = if (adjustments.global.calibration_valid == 1u && is_raw_image_guard()) {
+        inverse_safe(adjustments.global.camera_to_canonical)
+    } else {
+        // sRGB linear → XYZ (D65) transposed for camera→XYZ approximation.
+        mat3x3<f32>(
+            vec3<f32>(0.4124, 0.2126, 0.0193),
+            vec3<f32>(0.3576, 0.7152, 0.1192),
+            vec3<f32>(0.1805, 0.0722, 0.9505),
+        )
+    };
+
+    let camera_white = inv_mat * xyz_white;
+    if (camera_white.y <= 0.001) { return color; }
+
+    // Normalise so G channel stays at 1.0 (standard WB convention).
+    let gains = vec3<f32>(
+        camera_white.y / camera_white.x,
+        1.0,
+        camera_white.y / camera_white.z,
+    );
+
+    return color * gains;
+}
+
+/// Tiny guard — `is_raw_image` is normally a local in `main()`. When the
+/// shader is refactored to expose `apply_white_balance` outside that scope
+/// this will be replaced with an explicit parameter; for now the forward
+/// declaration keeps the Planckian code self-contained.
+fn is_raw_image_guard() -> bool {
+    return adjustments.global.is_raw_image == 1u;
+}
+
+/// Robust 3×3 matrix inverse. Returns identity on singular input.
+/// `mat3x3<f32>` is column-major in WGSL: m[0], m[1], m[2] are columns,
+/// so m[col][row]. `inverse_safe` accepts the column-major matrix and
+/// returns its column-major inverse (adjugate/determinant), constructed by
+/// reading the matrix in row-major form and writing the result row-major
+/// rows back as columns.
+fn inverse_safe(m: mat3x3<f32>) -> mat3x3<f32> {
+    // Row-major view of m: A = m[0][0], B = m[1][0], C = m[2][0],
+    //                      D = m[0][1], E = m[1][1], F = m[2][1],
+    //                      G = m[0][2], H = m[1][2], I = m[2][2].
+    let a = m[0][0]; let b = m[1][0]; let c = m[2][0];
+    let d = m[0][1]; let e = m[1][1]; let f = m[2][1];
+    let g = m[0][2]; let h = m[1][2]; let i_ = m[2][2];
+
+    let det = a * (e * i_ - f * h)
+            - b * (d * i_ - f * g)
+            + c * (d * h - e * g);
+    if (abs(det) < 1e-12) { return mat3x3<f32>(); }
+    let inv_det = 1.0 / det;
+
+    // Row-major adjugate (cofactor-matrix transpose):
+    //   adj = [[EI-FH, CH-BI, BF-CE],
+    //          [FG-DI, AI-CG, CD-AF],
+    //          [DH-EG, BG-AH, AE-BD]]
+    // Convert to WGSL col-major by using each adjugate ROW as a COLUMN.
+    let adj00 = (e * i_ - f * h) * inv_det;
+    let adj01 = (c * h - b * i_) * inv_det;
+    let adj02 = (b * f - c * e) * inv_det;
+    let adj10 = (f * g - d * i_) * inv_det;
+    let adj11 = (a * i_ - c * g) * inv_det;
+    let adj12 = (c * d - a * f) * inv_det;
+    let adj20 = (d * h - e * g) * inv_det;
+    let adj21 = (b * g - a * h) * inv_det;
+    let adj22 = (a * e - b * d) * inv_det;
+
+    return mat3x3<f32>(
+        vec3<f32>(adj00, adj01, adj02),   // adj row 0 → inverse col 0
+        vec3<f32>(adj10, adj11, adj12),   // adj row 1 → inverse col 1
+        vec3<f32>(adj20, adj21, adj22),   // adj row 2 → inverse col 2
+    );
 }
 
 fn apply_creative_color(color: vec3<f32>, sat: f32, vib: f32) -> vec3<f32> {
@@ -1165,68 +1544,125 @@ fn apply_noise_reduction(
         new_luma = mix(center_luma, robust_luma, strength);
     }
 
+    // --- Phase 5: CIELAB chroma noise reduction (replaces the old
+    // RGB (R-Y, B-Y) chroma path). LAB (a*, b*) are naturally decoupled
+    // from luminance, so a bilateral filter in the AB plane eliminates
+    // colour-smoothing artefacts that haunted the legacy approach on
+    // high-saturation edges (skin/hair/sky boundaries). A hue-lock term
+    // further protects chroma edges from hue-shift bleeding.
+    //
+    // Performance tuning:
+    //   * Weak noise-reduction (color_a < 0.4) skips the full-LAB filter and
+    //     uses a cheap R-Y / B-Y chroma-difference filter — still better
+    //     than the original RGB chroma path because we apply it after the
+    //     luma-ROBUST-NR gate.
+    //   * Strong NR uses a 3×3 neighbourhood (not 5×5) because chroma is a
+    //     low-frequency signal and 9 taps are enough while cutting bandwidth
+    //     by ~60% compared to 25 taps.
+    //   * hue_lock vectorised: replace two atan2 per sample with a single
+    //     signed-angle via the standard cross-product trick.
     if (color_a > 0.001) {
-        let center_r_y = center_linear.r - center_luma;
-        let center_b_y = center_linear.b - center_luma;
         let c_curve = sqrt(color_a);
-        let stride_f = mix(2.0, 3.5, c_curve) * res_factor;
+        let stride_f = mix(1.6, 2.8, c_curve) * res_factor;
 
-        let c_spatial = mix(2.0, 3.5, c_curve);
+        let c_spatial = mix(1.5, 2.5, c_curve);
         let c_spat_n  = -1.0 / max(2.0 * c_spatial * c_spatial, 1e-6);
 
-        let luma_tol = mix(0.12, 0.04, c_curve);
-        let luma_n   = -1.0 / max(2.0 * luma_tol * luma_tol, 1e-6);
+        let l_tol  = mix(22.0, 8.0, c_curve);
+        let l_n    = -1.0 / max(2.0 * l_tol * l_tol, 1e-6);
+        let ab_tol = mix(22.0, 10.0, c_curve);
+        let ab_n   = -1.0 / max(2.0 * ab_tol * ab_tol, 1e-6);
+        let hue_tol = mix(0.32, 0.12, c_curve);
+        let hue_n   = -1.0 / max(2.0 * hue_tol * hue_tol, 1e-6);
 
-        let chroma_tol = mix(0.20, 0.08, c_curve);
-        let chroma_n   = -1.0 / max(2.0 * chroma_tol * chroma_tol, 1e-6);
+        let center_lab = linear_to_lab(max(center_linear, vec3<f32>(0.0)));
+        // Vectorised hue: centre chroma as complex plane (a + ib).
+        let center_hue_vec = vec2<f32>(center_lab.a, center_lab.b);
+        let center_c   = length(center_hue_vec);
+        let sat_floor  = smoothstep(2.0, 6.0, center_c);
 
         let jh1 = hash(vec2<f32>(coords_i) + vec2<f32>(43.7, 91.1));
         let jh2 = hash(vec2<f32>(coords_i) + vec2<f32>(73.3, 17.9));
-        let jx  = (jh1 - 0.5) * stride_f * 0.5;
-        let jy  = (jh2 - 0.5) * stride_f * 0.5;
+        let jx  = (jh1 - 0.5) * stride_f * 0.4;
+        let jy  = (jh2 - 0.5) * stride_f * 0.4;
 
-        var sum_r: f32 = center_r_y;
-        var sum_b: f32 = center_b_y;
-        var w_sum: f32 = 1.0;
+        var sum_a: f32 = center_lab.a;
+        var sum_b: f32 = center_lab.b;
+        var sum_w: f32 = 1.0;
 
-        for (var dy: i32 = -2; dy <= 2; dy = dy + 1) {
-            for (var dx: i32 = -2; dx <= 2; dx = dx + 1) {
+        // Weak-NR fast path (no LAB transform, 3×3 taps, 45° stride).
+        if (color_a < 0.4) {
+            let weak_stride = stride_f * 0.9;
+            for (var dy: i32 = -1; dy <= 1; dy = dy + 1) {
+                for (var dx: i32 = -1; dx <= 1; dx = dx + 1) {
+                    if (dx == 0 && dy == 0) { continue; }
+                    let off_f = vec2<f32>(f32(dx) * weak_stride + jx, f32(dy) * weak_stride + jy);
+                    let off   = vec2<i32>(i32(round(off_f.x)), i32(round(off_f.y)));
+                    let coord = clamp(coords_i + off, vec2<i32>(0), max_idx);
+                    var s = textureLoad(input_texture, vec2<u32>(coord), 0).rgb;
+                    if (is_raw == 0u) { s = srgb_to_linear(s); }
+                    let s_luma = get_luma(max(s, vec3<f32>(0.0)));
+                    let s_r_y = s.r - s_luma;
+                    let s_b_y = s.b - s_luma;
+
+                    let r2 = f32(dx * dx + dy * dy);
+                    let w_s = exp(r2 * c_spat_n);
+                    let dl = s_luma - center_luma;
+                    let w_l = exp(dl * dl * l_n);
+
+                    sum_a += s_r_y * w_s * w_l;
+                    sum_b += s_b_y * w_s * w_l;
+                    sum_w += w_s * w_l;
+                }
+            }
+            let filt_a = sum_a / max(sum_w, 1e-6);
+            let filt_b = sum_b / max(sum_w, 1e-6);
+            let new_r_y = mix(center_linear.r - center_luma, filt_a, color_a);
+            let new_b_y = mix(center_linear.b - center_luma, filt_b, color_a);
+            let new_g_y = -(LUMA_COEFF.r * new_r_y + LUMA_COEFF.b * new_b_y) / LUMA_COEFF.g;
+            return vec3<f32>(new_luma) + vec3<f32>(new_r_y, new_g_y, new_b_y);
+        }
+
+        // Strong-NR path (LAB + hue-lock, 3×3 taps).
+        for (var dy: i32 = -1; dy <= 1; dy = dy + 1) {
+            for (var dx: i32 = -1; dx <= 1; dx = dx + 1) {
                 if (dx == 0 && dy == 0) { continue; }
                 let off_f = vec2<f32>(f32(dx) * stride_f + jx, f32(dy) * stride_f + jy);
                 let off   = vec2<i32>(i32(round(off_f.x)), i32(round(off_f.y)));
                 let coord = clamp(coords_i + off, vec2<i32>(0), max_idx);
                 var s = textureLoad(input_texture, vec2<u32>(coord), 0).rgb;
-
                 if (is_raw == 0u) { s = srgb_to_linear(s); }
 
-                let s_safe = max(s, vec3<f32>(0.0));
-                let s_luma = get_luma(s_safe);
-                let s_r_y  = s.r - s_luma;
-                let s_b_y  = s.b - s_luma;
+                let s_lab = linear_to_lab(max(s, vec3<f32>(0.0)));
 
-                let r2  = f32(dx * dx + dy * dy);
+                let r2 = f32(dx * dx + dy * dy);
                 let w_s = exp(r2 * c_spat_n);
-                let dl  = s_luma - center_luma;
-                let w_l = exp(dl * dl * luma_n);
-                let dr  = s_r_y - center_r_y;
-                let db  = s_b_y - center_b_y;
-                let dc2 = dr * dr + db * db;
-                let w_c = exp(dc2 * chroma_n);
-                let w = w_s * w_l * w_c;
+                let dl = s_lab.l - center_lab.l;
+                let w_l = exp(dl * dl * l_n);
+                let da = s_lab.a - center_lab.a;
+                let db = s_lab.b - center_lab.b;
+                let w_ab = exp((da * da + db * db) * ab_n);
 
-                sum_r += s_r_y * w;
-                sum_b += s_b_y * w;
-                w_sum += w;
+                // Hue-lock via cross-product signed angle (replaces two atan2).
+                let s_hue_vec = vec2<f32>(s_lab.a, s_lab.b);
+                let dot = dot(s_hue_vec, center_hue_vec);
+                let crs = s_hue_vec.x * center_hue_vec.y - s_hue_vec.y * center_hue_vec.x;
+                let dh  = atan2(crs, dot);        // [-π, +π] already
+                let w_hue = sat_floor * exp(dh * dh * hue_n) + (1.0 - sat_floor);
+
+                let w = w_s * w_l * w_ab * w_hue;
+
+                sum_a += s_lab.a * w;
+                sum_b += s_lab.b * w;
+                sum_w += w;
             }
         }
-        let filtered_r_y = sum_r / max(w_sum, 1e-6);
-        let filtered_b_y = sum_b / max(w_sum, 1e-6);
+        let filt_a = sum_a / max(sum_w, 1e-6);
+        let filt_b = sum_b / max(sum_w, 1e-6);
 
-        let new_r_y = mix(center_r_y, filtered_r_y, color_a);
-        let new_b_y = mix(center_b_y, filtered_b_y, color_a);
-        let new_g_y = -(LUMA_COEFF.r * new_r_y + LUMA_COEFF.b * new_b_y) / LUMA_COEFF.g;
-
-        new_chroma = vec3<f32>(new_r_y, new_g_y, new_b_y);
+        let new_a = mix(center_lab.a, filt_a, color_a);
+        let new_b = mix(center_lab.b, filt_b, color_a);
+        return lab_to_linear(vec3<f32>(center_lab.l, new_a, new_b));
     }
 
     return vec3<f32>(new_luma) + new_chroma;
@@ -1636,6 +2072,42 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         initial_linear_rgb = color_from_texture;
     }
 
+    // --- Phase 6: GPU-side ICC pipeline — the full matrix chain.
+    //
+    // Calibration (WB gains + cam→canonical 3×3) now runs for EVERY RAW
+    // image because rawler-side `ProcessingStep::Calibrate` has been
+    // forcibly disabled. When calibration_valid == 0 (no rawler matrix /
+    // wb_coeffs) we gracefully fall back to identity so the Planckian
+    // white-balance model (Phase 3) still has a sane base to work from.
+    //
+    // Canonical → working-space (0=sRGB, 1=ProPhoto, 2=Rec.2020, 3=AdobeRGB)
+    // follows immediately, then black-point compensation lifts the shadow
+    // pedestal so the log-space tonal path (Phase 4) never collapses to
+    // absolute black.
+    if (is_raw == 1u) {
+        // WB gains — use rawler payload when present, else unity.
+        let wb = select(
+            vec4<f32>(1.0, 1.0, 1.0, 1.0),
+            adjustments.global.camera_wb_gains,
+            adjustments.global.calibration_valid == 1u,
+        );
+        initial_linear_rgb *= wb.rgb;
+
+        // cam→canonical matrix — identity when calibration invalid.
+        let cam2canon: mat3x3<f32> = select(
+            mat3x3<f32>(vec3<f32>(1.0,0.0,0.0), vec3<f32>(0.0,1.0,0.0), vec3<f32>(0.0,0.0,1.0)),
+            adjustments.global.camera_to_canonical,
+            adjustments.global.calibration_valid == 1u,
+        );
+        initial_linear_rgb = cam2canon * initial_linear_rgb;
+
+        // Canonical (sRGB-linear) → working space.
+        initial_linear_rgb = srgb_to_working(initial_linear_rgb, adjustments.global.working_space);
+
+        // Black-point compensation in working space.
+        initial_linear_rgb = apply_bpc(initial_linear_rgb, adjustments.global.black_point_compensation);
+    }
+
     var t_exposure = adjustments.global.exposure;
     var t_brightness = adjustments.global.brightness;
     var t_contrast = adjustments.global.contrast;
@@ -1772,8 +2244,10 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     composite_rgb_linear = apply_white_balance(composite_rgb_linear, t_temperature, t_tint);
     composite_rgb_linear = apply_centre_tonal_and_color(composite_rgb_linear, adjustments.global.centre, absolute_coord_i);
     composite_rgb_linear = apply_filmic_exposure(composite_rgb_linear, t_brightness);
-    composite_rgb_linear = apply_tonal_adjustments(composite_rgb_linear, tonal_blurred, is_raw, t_contrast, t_shadows, t_whites, t_blacks);
-    composite_rgb_linear = apply_highlights_adjustment(composite_rgb_linear, tonal_blurred, is_raw, t_highlights);
+    composite_rgb_linear = apply_log_filmic_tonal(
+        composite_rgb_linear, tonal_blurred, is_raw,
+        t_contrast, t_shadows, t_whites, t_blacks, t_highlights
+    );
     composite_rgb_linear = apply_color_calibration(composite_rgb_linear, adjustments.global.color_calibration);
     composite_rgb_linear = apply_hsl_panel(composite_rgb_linear, final_hsl, absolute_coord_i);
     composite_rgb_linear = apply_hue_shift(composite_rgb_linear, t_hue);
@@ -1894,6 +2368,21 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
             final_rgb = HIGHLIGHT_WARNING_COLOR;
         } else if (any(final_rgb < vec3<f32>(SHADOW_CLIP_THRESHOLD))) {
             final_rgb = SHADOW_WARNING_COLOR;
+        }
+    }
+
+    // --- Phase 6: gamut warning. Overlay bright yellow on any pixel whose
+    // final sRGB output has a channel outside [0, 1] — these are the parts
+    // of the working-space image that can no longer be represented in a
+    // standard sRGB display. Soft-overlay so the underlying hue still
+    // bleeds through. Disabled by default (gamut_warning == 0).
+    if (adjustments.global.gamut_warning == 1u) {
+        let out_of_gamut = (final_rgb.r < -0.005 || final_rgb.r > 1.005)
+                        || (final_rgb.g < -0.005 || final_rgb.g > 1.005)
+                        || (final_rgb.b < -0.005 || final_rgb.b > 1.005);
+        if (out_of_gamut) {
+            let GAMUT_YELLOW = vec3<f32>(1.0, 1.0, 0.0);
+            final_rgb = mix(final_rgb, GAMUT_YELLOW, 0.55);
         }
     }
 

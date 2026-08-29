@@ -12,24 +12,24 @@ jobs:
       matrix:
         include:
           - platform: 'windows-latest'
-            builds-args: '--bundles nsis'
+            build-args: '--bundles nsis'
             target: ''
             asset-prefix: '01'
           - platform: 'windows-11-arm'
-            builds-args: '--bundles nsis'
+            build-args: '--bundles nsis'
             target: 'aarch64-pc-windows-msvc'
             asset-prefix: '01'
           - platform: 'macos-14'
             target: aarch64-apple-darwin
             asset-prefix: '02'
-          - platform: 'macos-15-intel'
+          - platform: 'macos-13'
             target: x86_64-apple-darwin
             asset-prefix: '02'
           - platform: 'macos-14'
             target: aarch64-apple-darwin
             args: '--features tethering'
             asset-prefix: '02_tethering'
-          - platform: 'macos-15-intel'
+          - platform: 'macos-13'
             target: x86_64-apple-darwin
             args: '--features tethering'
             asset-prefix: '02_tethering'
