@@ -1,12 +1,9 @@
+use crate::ai_processing::OrtSession;
 use anyhow::Result;
 use futures::stream::{self, StreamExt};
 use image::{DynamicImage, imageops::FilterType};
 use ndarray::{Array, Axis};
-use crate::ai_processing::OrtSession;
 
-        }
-    }
-}
 use ort::value::Tensor;
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};

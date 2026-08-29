@@ -653,7 +653,14 @@ fn render_lut_swatch(
     {
         let mut enc = JpegEncoder::new_with_quality(&mut jpeg_buf, 80);
         use image::ImageEncoder;
-        enc.write_image(image::DynamicImage::ImageRgb8(image::ImageBuffer::from_raw(width, height, rgb.into_vec()).unwrap()), width, height, image::ExtendedColorType::Rgb8)?;
+        enc.write_image(
+            image::DynamicImage::ImageRgb8(
+                image::ImageBuffer::from_raw(width, height, rgb.into_vec()).unwrap(),
+            ),
+            width,
+            height,
+            image::ExtendedColorType::Rgb8,
+        )?;
     }
     let bytes = jpeg_buf;
     Some(format!(

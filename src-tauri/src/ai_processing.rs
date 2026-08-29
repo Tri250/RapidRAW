@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use image::imageops::{self, FilterType};
 use image::{
     DynamicImage, GenericImageView, GrayImage, ImageBuffer, Luma, Rgb, Rgb32FImage, Rgba, RgbaImage,
@@ -16,29 +16,37 @@ use ort::session::Session;
 /// in 2.0.0-rc.13, but we only access it via Mutex which is sound.
 #[derive(Debug)]
 pub struct OrtSession {
-        inner: *mut ort::session::Session,
-    }
+    inner: *mut ort::session::Session,
+}
 unsafe impl Send for OrtSession {}
 unsafe impl Sync for OrtSession {}
 
 impl OrtSession {
     pub fn new(session: ort::session::Session) -> Self {
-        OrtSession { inner: Box::into_raw(Box::new(session)) }
+        OrtSession {
+            inner: Box::into_raw(Box::new(session)),
+        }
     }
 }
 
 impl std::ops::Deref for OrtSession {
     type Target = ort::session::Session;
-    fn deref(&self) -> &Self::Target { unsafe { &*self.inner } }
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.inner }
+    }
 }
 impl std::ops::DerefMut for OrtSession {
-    fn deref_mut(&mut self) -> &mut Self::Target { unsafe { &mut *self.inner } }
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { &mut *self.inner }
+    }
 }
 
 impl Drop for OrtSession {
     fn drop(&mut self) {
         if !self.inner.is_null() {
-            unsafe { let _ = Box::from_raw(self.inner); }
+            unsafe {
+                let _ = Box::from_raw(self.inner);
+            }
         }
     }
 }
@@ -65,7 +73,8 @@ const U2NETP_FILENAME: &str = "u2net.onnx";
 const U2NETP_INPUT_SIZE: u32 = 320;
 const U2NETP_SHA256: &str = "8d10d2f3bb75ae3b6d527c77944fc5e7dcd94b29809d47a739a7a728a912b491";
 
-const SKYSEG_URL: &str = "https://hf-mirror.com/CyberTimon/RapidRAW-Models/resolve/main/skyseg-u2net.onnx?download=true";
+const SKYSEG_URL: &str =
+    "https://hf-mirror.com/CyberTimon/RapidRAW-Models/resolve/main/skyseg-u2net.onnx?download=true";
 const SKYSEG_FILENAME: &str = "skyseg_u2net.onnx";
 const SKYSEG_LEGACY_FILENAME: &str = "skyseg-u2net.onnx";
 const SKYSEG_INPUT_SIZE: u32 = 320;
@@ -222,7 +231,13 @@ fn create_optimized_session<P: AsRef<std::path::Path>>(path: P) -> Result<OrtSes
         .with_intra_threads(num_cpus)?
         .commit_from_file(path_ref)
         .map(OrtSession::new)
-        .map_err(|e| anyhow::anyhow!("Failed to create optimized session for {}: {}", path_ref.display(), e))
+        .map_err(|e| {
+            anyhow::anyhow!(
+                "Failed to create optimized session for {}: {}",
+                path_ref.display(),
+                e
+            )
+        })
 }
 
 fn get_models_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf> {
@@ -320,9 +335,17 @@ fn copy_builtin_model_if_available(
         )
     })?;
     persist_downloaded_asset(dest, &bytes).with_context(|| {
-        format!("Failed to copy builtin model {} to {}", filename, dest.display())
+        format!(
+            "Failed to copy builtin model {} to {}",
+            filename,
+            dest.display()
+        )
     })?;
-    log::info!("[AI] Copied builtin model: {} ({} bytes)", filename, bytes.len());
+    log::info!(
+        "[AI] Copied builtin model: {} ({} bytes)",
+        filename,
+        bytes.len()
+    );
     Ok(true)
 }
 
@@ -336,8 +359,8 @@ async fn download_model(url: &str, dest: &Path) -> Result<()> {
 
     let client = Client::builder()
         .connect_timeout(Duration::from_secs(15))
-        .read_timeout(Duration::from_secs(300))  // 5min 足够下几百 MB
-        .timeout(Duration::from_secs(600))       // 总超时 10min
+        .read_timeout(Duration::from_secs(300)) // 5min 足够下几百 MB
+        .timeout(Duration::from_secs(600)) // 总超时 10min
         .build()
         .context("Failed to create HTTP client")?;
 
@@ -368,7 +391,8 @@ async fn download_model(url: &str, dest: &Path) -> Result<()> {
                 use futures::StreamExt;
                 let mut stream = resp.bytes_stream();
                 let mut total: u64 = 0;
-                let mut all_bytes: Vec<u8> = Vec::with_capacity(content_length.unwrap_or_else(|| 256 * 1024) as usize);
+                let mut all_bytes: Vec<u8> =
+                    Vec::with_capacity(content_length.unwrap_or_else(|| 256 * 1024) as usize);
                 let mut exceeded = false;
                 while let Some(chunk) = stream.next().await {
                     match chunk {
@@ -399,7 +423,9 @@ async fn download_model(url: &str, dest: &Path) -> Result<()> {
                 } else {
                     match persist_downloaded_asset(dest, &all_bytes) {
                         Ok(_) => return Ok(()),
-                        Err(e) => last_error = Some(e.context("Failed to persist downloaded asset")),
+                        Err(e) => {
+                            last_error = Some(e.context("Failed to persist downloaded asset"))
+                        }
                     }
                 }
             }
@@ -411,7 +437,9 @@ async fn download_model(url: &str, dest: &Path) -> Result<()> {
             tokio::time::sleep(backoff).await;
         }
     }
-    Err(last_error.unwrap_or_else(|| anyhow::anyhow!("Failed to download model after {max_retries} attempts")))
+    Err(last_error.unwrap_or_else(|| {
+        anyhow::anyhow!("Failed to download model after {max_retries} attempts")
+    }))
 }
 
 fn verify_sha256(path: &Path, expected_hash: &str) -> Result<bool> {
@@ -612,7 +640,6 @@ pub async fn get_or_init_ai_models(
     let sky_seg = create_optimized_session(&sky_seg_path)?;
     let depth_anything = create_optimized_session(&depth_path)?;
 
-
     let models = Arc::new(AiModels {
         sam_encoder: Mutex::new(sam_encoder),
         sam_decoder: Mutex::new(sam_decoder),
@@ -671,7 +698,6 @@ pub async fn get_or_init_denoise_model(
     let model_path = models_dir.join(DENOISE_FILENAME);
     let session = create_optimized_session(&model_path)?;
     let denoise_model = Arc::new(Mutex::new(session));
-
 
     let mut ai_state_lock = ai_state_mutex.lock().unwrap();
     if ai_state_lock.is_none() {
@@ -739,7 +765,6 @@ pub async fn get_or_init_clip_models(
     let tokenizer =
         Tokenizer::from_file(clip_tokenizer_path).map_err(|e| anyhow::anyhow!(e.to_string()))?;
 
-
     let clip_models = Arc::new(ClipModels { model, tokenizer });
 
     let mut ai_state_lock = ai_state_mutex.lock().unwrap();
@@ -792,7 +817,6 @@ pub async fn get_or_init_lama_model(
     let model_path = models_dir.join(LAMA_FILENAME);
     let session = create_optimized_session(&model_path)?;
     let lama_model = Arc::new(Mutex::new(session));
-
 
     let mut ai_state_lock = ai_state_mutex.lock().unwrap();
     if ai_state_lock.is_none() {

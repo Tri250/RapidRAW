@@ -116,8 +116,7 @@ fn resolve_image_metadata(
         && sync_metadata_from_xmp(image_path, &mut metadata)
         && let Ok(json) = serde_json::to_string_pretty(&metadata)
     {
-        write_sidecar_atomic(sidecar_path, json.as_bytes())
-            .unwrap_or_else(|e| warn!("{}", e));
+        write_sidecar_atomic(sidecar_path, json.as_bytes()).unwrap_or_else(|e| warn!("{}", e));
     }
 
     let is_raw = crate::formats::is_raw_file(image_path);
@@ -1864,10 +1863,20 @@ fn generate_single_thumbnail_and_cache(
             encode_thumbnail(&thumb_image, target_width_medium),
         )
     {
-        fs::write(&small_path, &small_data)
-            .unwrap_or_else(|e| warn!("Thumbnail small write failed {}: {}", small_path.display(), e));
-        fs::write(&medium_path, &medium_data)
-            .unwrap_or_else(|e| warn!("Thumbnail medium write failed {}: {}", medium_path.display(), e));
+        fs::write(&small_path, &small_data).unwrap_or_else(|e| {
+            warn!(
+                "Thumbnail small write failed {}: {}",
+                small_path.display(),
+                e
+            )
+        });
+        fs::write(&medium_path, &medium_data).unwrap_or_else(|e| {
+            warn!(
+                "Thumbnail medium write failed {}: {}",
+                medium_path.display(),
+                e
+            )
+        });
         return Some((
             small_path.to_string_lossy().into_owned(),
             medium_path.to_string_lossy().into_owned(),
@@ -2893,7 +2902,7 @@ pub async fn apply_auto_adjustments_to_paths(
 
                 if let Ok(json_string) = serde_json::to_string_pretty(&existing_metadata) {
                     write_sidecar_atomic(&sidecar_path, json_string.as_bytes())
-                    .unwrap_or_else(|e| warn!("{}", e));
+                        .unwrap_or_else(|e| warn!("{}", e));
                 }
 
                 if enable_xmp_sync {
@@ -2964,7 +2973,7 @@ pub fn set_color_label_for_paths(
 
         if let Ok(json_string) = serde_json::to_string_pretty(&metadata) {
             write_sidecar_atomic(&sidecar_path, json_string.as_bytes())
-                    .unwrap_or_else(|e| warn!("{}", e));
+                .unwrap_or_else(|e| warn!("{}", e));
         }
 
         if enable_xmp_sync {
@@ -2995,7 +3004,7 @@ pub fn set_rating_for_paths(
 
         if let Ok(json_string) = serde_json::to_string_pretty(&metadata) {
             write_sidecar_atomic(&sidecar_path, json_string.as_bytes())
-                    .unwrap_or_else(|e| warn!("{}", e));
+                .unwrap_or_else(|e| warn!("{}", e));
         }
 
         if enable_xmp_sync {
@@ -3019,8 +3028,7 @@ pub fn load_metadata(path: String, app_handle: AppHandle) -> Result<ImageMetadat
         && sync_metadata_from_xmp(&source_path, &mut metadata)
         && let Ok(json) = serde_json::to_string_pretty(&metadata)
     {
-        write_sidecar_atomic(&sidecar_path, json.as_bytes())
-            .unwrap_or_else(|e| warn!("{}", e));
+        write_sidecar_atomic(&sidecar_path, json.as_bytes()).unwrap_or_else(|e| warn!("{}", e));
     }
 
     Ok(metadata)
@@ -3247,7 +3255,6 @@ pub fn handle_export_presets_to_file(
         .map_err(|e| format!("Failed to serialize presets: {}", e))?;
     fs::write(file_path, json_string).map_err(|e| format!("Failed to write preset file: {}", e))
 }
-
 
 #[tauri::command]
 pub fn clear_all_sidecars(root_path: String) -> Result<usize, String> {
@@ -3584,11 +3591,21 @@ pub fn get_cached_or_generate_thumbnail_image(
             encode_thumbnail(&thumb_image, target_width_medium),
         ) {
             let small_thumb_path = thumb_cache_dir.join(format!("{}_small.jpg", cache_hash));
-            fs::write(&small_thumb_path, &small_data)
-                .unwrap_or_else(|e| warn!("Thumbnail small write failed {}: {}", small_thumb_path.display(), e));
+            fs::write(&small_thumb_path, &small_data).unwrap_or_else(|e| {
+                warn!(
+                    "Thumbnail small write failed {}: {}",
+                    small_thumb_path.display(),
+                    e
+                )
+            });
             let medium_thumb_path = thumb_cache_dir.join(format!("{}_medium.jpg", cache_hash));
-            fs::write(&medium_thumb_path, &medium_data)
-                .unwrap_or_else(|e| warn!("Thumbnail medium write failed {}: {}", medium_thumb_path.display(), e));
+            fs::write(&medium_thumb_path, &medium_data).unwrap_or_else(|e| {
+                warn!(
+                    "Thumbnail medium write failed {}: {}",
+                    medium_thumb_path.display(),
+                    e
+                )
+            });
         }
 
         Ok(thumb_image)
@@ -4191,7 +4208,6 @@ pub fn sync_metadata_to_xmp(source_path: &Path, metadata: &ImageMetadata, create
             }
         }
 
-        write_sidecar_atomic(&xmp_file, content.as_bytes())
-            .unwrap_or_else(|e| warn!("{}", e));
+        write_sidecar_atomic(&xmp_file, content.as_bytes()).unwrap_or_else(|e| warn!("{}", e));
     }
 }

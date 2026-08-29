@@ -836,7 +836,12 @@ fn generate_uncropped_preview(
             let mut enc = JpegEncoder::new_with_quality(&mut jpeg_buf, 80);
             use image::ImageEncoder;
             let rgb = processed_image.to_rgb8();
-            match enc.write_image(rgb.as_raw(), rgb.width(), rgb.height(), image::ExtendedColorType::Rgb8) {
+            match enc.write_image(
+                rgb.as_raw(),
+                rgb.width(),
+                rgb.height(),
+                image::ExtendedColorType::Rgb8,
+            ) {
                 Ok(_) => {
                     let base64_str = general_purpose::STANDARD.encode(&jpeg_buf);
                     let data_url = format!("data:image/jpeg;base64,{}", base64_str);
@@ -1044,7 +1049,12 @@ async fn preview_geometry_transform(
         let mut enc = JpegEncoder::new_with_quality(&mut buf, 75);
         use image::ImageEncoder;
         let rgb = final_image.to_rgb8();
-        enc.write_image(rgb.as_raw(), rgb.width(), rgb.height(), image::ExtendedColorType::Rgb8)?;
+        enc.write_image(
+            rgb.as_raw(),
+            rgb.width(),
+            rgb.height(),
+            image::ExtendedColorType::Rgb8,
+        )?;
         buf
     };
 
@@ -1574,7 +1584,12 @@ async fn generate_preview_for_path(
             let mut enc = JpegEncoder::new_with_quality(&mut buf, 92);
             use image::ImageEncoder;
             let rgb = final_image.to_rgb8();
-            enc.write_image(rgb.as_raw(), rgb.width(), rgb.height(), image::ExtendedColorType::Rgb8)?;
+            enc.write_image(
+                rgb.as_raw(),
+                rgb.width(),
+                rgb.height(),
+                image::ExtendedColorType::Rgb8,
+            )?;
             buf
         };
 

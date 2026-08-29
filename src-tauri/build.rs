@@ -163,7 +163,10 @@ fn main() {
                 "cargo:warning=WARNING: Failed to download and verify ONNX Runtime library: {}. \
                 Build will continue, but AI/ORT-dependent features may be unavailable at runtime. \
                 Please manually download {} and place it at {} with SHA256 {}.",
-                e, download_url, dest_path.display(), expected_hash
+                e,
+                download_url,
+                dest_path.display(),
+                expected_hash
             );
         }
     }
