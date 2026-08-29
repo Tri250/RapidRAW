@@ -1195,7 +1195,7 @@ async fn generate_all_community_previews(
             true,
             &settings,
             None,
-        )
+        , Some(&state))
         .map_err(|e| e.to_string())?;
 
         let is_raw = is_raw_file(&source_path_str);
@@ -1504,7 +1504,7 @@ async fn generate_preview_for_path(
                 false,
                 &settings,
                 None,
-            )
+            , Some(&state))
             .map_err(|e| e.to_string())?,
             Err(e) => {
                 log::warn!(
@@ -1520,7 +1520,7 @@ async fn generate_preview_for_path(
                     false,
                     &settings,
                     None,
-                )
+                , Some(&state))
                 .map_err(|e| e.to_string())?
             }
         };
@@ -2244,6 +2244,7 @@ pub fn run() {
             patch_cache: Mutex::new(HashMap::new()),
             geometry_cache: Mutex::new(HashMap::new()),
             thumbnail_geometry_cache: Mutex::new(HashMap::new()),
+            camera_calibration_cache: Mutex::new(HashMap::new()),
             lens_db: Mutex::new(None),
             load_image_generation: Arc::new(AtomicUsize::new(0)),
             full_warped_cache: Mutex::new(None),

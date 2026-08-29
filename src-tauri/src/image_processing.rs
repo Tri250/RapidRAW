@@ -1506,6 +1506,21 @@ pub struct GlobalAdjustments {
     pub halation_amount: f32,
     pub flare_amount: f32,
     pub sharpness_threshold: f32,
+
+    // --- Phase 2: GPU-side camera calibration hook ---
+    // Payload mirrored from rawler's RawImage and consumed by the shader at
+    // the earliest stage of the pipeline. Keeping this as first-class uniform
+    // fields lets future ICC/ACES scene-referred pipelines compose cleanly
+    // (WB → cam_to_canonical → ICC matrix → tonemapper) instead of being
+    // baked into rawler's `Calibrate` step.
+    pub camera_to_canonical: GpuMat3,
+    pub camera_wb_gains: [f32; 4],
+    pub calibration_valid: u32,
+    pub illuminant: u32,
+    pub working_space: u32,
+    pub gamut_warning: u32,
+    pub black_point_compensation: u32,
+    _pad_p2: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Pod, Zeroable, Default)]

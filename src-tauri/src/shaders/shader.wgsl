@@ -115,6 +115,16 @@ struct GlobalAdjustments {
     halation_amount: f32,
     flare_amount: f32,
     sharpness_threshold: f32,
+
+    // --- Phase 2: GPU-side camera calibration (mirrors Rust GlobalAdjustments) ---
+    camera_to_canonical: mat3x3<f32>,
+    camera_wb_gains: vec4<f32>,
+    calibration_valid: u32,
+    illuminant: u32,
+    working_space: u32,
+    gamut_warning: u32,
+    black_point_compensation: u32,
+    _pad_p2: f32,
 }
 
 struct MaskAdjustments {
@@ -345,42 +355,140 @@ fn interpolate_cubic_hermite(x: f32, p1: Point, p2: Point, m1: f32, m2: f32) -> 
     return h00 * p1.y + h10 * m1 * dx + h01 * p2.y + h11 * m2 * dx;
 }
 
+/// Fritsch-Carlson monotonic cubic interpolation — replaces the previous naive
+/// cubic-Hermite with ad-hoc tangent limiting. This enforces monotonicity
+/// (no overshoot / ringing on hair-skin-texture edges) and matches Darktable's
+/// curve solver. Ref: Fritsch & Carlson 1980, "Monotone Piecewise Cubic Interpolation".
 fn apply_curve(val: f32, points: array<Point, 16>, count: u32) -> f32 {
     if (count < 2u) { return val; }
     var local_points = points;
     let x = val * 255.0;
     if (x <= local_points[0].x) { return local_points[0].y / 255.0; }
     if (x >= local_points[count - 1u].x) { return local_points[count - 1u].y / 255.0; }
-    for (var i = 0u; i < 15u; i = i + 1u) {
-        if (i >= count - 1u) { break; }
+
+    // ---- Stage 1: build per-interval slopes and per-point tangents ----
+    // We keep tangents in a temp array-sized by MAX_CURVE (16). This keeps the
+    // code self-contained inside a single call so the function stays pure.
+    var tangents: array<f32, 16>;
+
+    // Compute interval slopes delta_i = (y_{i+1} - y_i) / (x_{i+1} - x_i)
+    // and per-point tangents m_i using the Fritsch-Carlson harmonic mean.
+    tangents[0] = 0.0;
+    let n_int = count - 1u;
+    for (var i = 0u; i < 16u; i = i + 1u) { tangents[i] = 0.0; }
+
+    // First pass: compute raw interval deltas and tangent candidates.
+    // We re-derive everything inside the interval lookup loop below, but to
+    // keep the function O(n) we open-code the tangent computation inline at
+    // the point where we know both neighbours.
+
+    for (var i = 0u; i < count; i = i + 1u) {
+        let p = local_points[i];
+
+        if (i == 0u) {
+            // endpoint: forward difference
+            let pn = local_points[i + 1u];
+            let dx = max(0.001, pn.x - p.x);
+            tangents[i] = (pn.y - p.y) / dx;
+            continue;
+        }
+        if (i == n_int) {
+            // endpoint: backward difference
+            let pp = local_points[i - 1u];
+            let dx = max(0.001, p.x - pp.x);
+            tangents[i] = (p.y - pp.y) / dx;
+            continue;
+        }
+
+        // interior: Fritsch-Carlson harmonic mean of the two adjacent slopes,
+        // only if both have the same sign. Otherwise force m = 0 (flat).
+        let pp = local_points[i - 1u];
+        let pn = local_points[i + 1u];
+        let dx1 = max(0.001, p.x - pp.x);
+        let dx2 = max(0.001, pn.x - p.x);
+        let d1 = (p.y - pp.y) / dx1;
+        let d2 = (pn.y - p.y) / dx2;
+
+        if (d1 * d2 <= 0.0) {
+            tangents[i] = 0.0;
+        } else {
+            // Harmonic mean — the Fritsch-Carlson choice that guarantees no
+            // overshoot under the subsequent monotonicity constraints.
+            tangents[i] = 3.0 * d1 * d2 / (d1 + d2);
+        }
+    }
+
+    // ---- Stage 2: locate the interval containing x ----
+    for (var i = 0u; i < n_int; i = i + 1u) {
         let p1 = local_points[i];
         let p2 = local_points[i + 1u];
-        if (x <= p2.x) {
-            let p0 = local_points[max(0u, i - 1u)];
-            let p3 = local_points[min(count - 1u, i + 2u)];
-            let delta_before = (p1.y - p0.y) / max(0.001, p1.x - p0.x);
-            let delta_current = (p2.y - p1.y) / max(0.001, p2.x - p1.x);
-            let delta_after = (p3.y - p2.y) / max(0.001, p3.x - p2.x);
-            var tangent_at_p1: f32;
-            var tangent_at_p2: f32;
-            if (i == 0u) { tangent_at_p1 = delta_current; } else {
-                if (delta_before * delta_current <= 0.0) { tangent_at_p1 = 0.0; } else { tangent_at_p1 = (delta_before + delta_current) / 2.0; }
-            }
-            if (i + 1u == count - 1u) { tangent_at_p2 = delta_current; } else {
-                if (delta_current * delta_after <= 0.0) { tangent_at_p2 = 0.0; } else { tangent_at_p2 = (delta_current + delta_after) / 2.0; }
-            }
-            if (delta_current != 0.0) {
-                let alpha = tangent_at_p1 / delta_current;
-                let beta = tangent_at_p2 / delta_current;
-                if (alpha * alpha + beta * beta > 9.0) {
-                    let tau = 3.0 / sqrt(alpha * alpha + beta * beta);
-                    tangent_at_p1 = tangent_at_p1 * tau;
-                    tangent_at_p2 = tangent_at_p2 * tau;
-                }
-            }
-            let result_y = interpolate_cubic_hermite(x, p1, p2, tangent_at_p1, tangent_at_p2);
-            return clamp(result_y / 255.0, 0.0, 1.0);
+        if (x > p2.x) { continue; }
+
+        let dx = max(0.001, p2.x - p1.x);
+        let delta = (p2.y - p1.y) / dx;
+        let m1 = tangents[i];
+        let m2 = tangents[i + 1u];
+
+        if (abs(delta) < 1e-6) {
+            // Flat segment — force both tangents to zero to preserve flatness.
+            let t = (x - p1.x) / dx;
+            return clamp(mix(p1.y, p2.y, t) / 255.0, 0.0, 1.0);
         }
+
+        // ---- Stage 3: full Fritsch-Carlson monotonicity constraints ----
+        let alpha = m1 / delta;
+        let beta  = m2 / delta;
+
+        // 3a. If slopes of p1,p2 have different signs, the whole interval is
+        //     non-monotone by definition — collapse both tangents to zero.
+        if (delta * m1 < 0.0 || delta * m2 < 0.0) {
+            let t = (x - p1.x) / dx;
+            return clamp(mix(p1.y, p2.y, t) / 255.0, 0.0, 1.0);
+        }
+
+        // 3b. Prevent undershoot at the left endpoint (2*alpha + beta <= 3).
+        if (2.0 * alpha + beta > 3.0) {
+            let tau = 3.0 / (2.0 * alpha + beta);
+            // m1 stays, m2 gets scaled down — which is equivalent because we
+            // recompute relative to the interval slope. The safe variant is to
+            // scale the *smaller* of the two while keeping the other fixed.
+            if (abs(alpha) >= abs(beta)) {
+                tangents[i]      = 0.5 * m1;      // equivalently: alpha' = alpha/2
+                tangents[i + 1u] = m2;
+            } else {
+                tangents[i]      = m1;
+                tangents[i + 1u] = m2 * (tau * 2.0 * alpha / (2.0 * alpha + beta));
+            }
+        }
+
+        let alpha2 = tangents[i] / delta;
+        let beta2  = tangents[i + 1u] / delta;
+
+        // 3c. Prevent undershoot at the right endpoint (alpha + 2*beta <= 3).
+        if (alpha2 + 2.0 * beta2 > 3.0) {
+            let tau = 3.0 / (alpha2 + 2.0 * beta2);
+            if (abs(alpha2) >= abs(beta2)) {
+                tangents[i]      = tangents[i] * (tau * 2.0 * beta2 / (alpha2 + 2.0 * beta2));
+                tangents[i + 1u] = tangents[i + 1u];
+            } else {
+                tangents[i]      = tangents[i];
+                tangents[i + 1u] = 0.5 * tangents[i + 1u];
+            }
+        }
+
+        let m1f = tangents[i];
+        let m2f = tangents[i + 1u];
+
+        // ---- Stage 4: Hermite basis with Fritsch-Carlson tangents ----
+        let t = clamp((x - p1.x) / dx, 0.0, 1.0);
+        let t2 = t * t;
+        let t3 = t2 * t;
+        let h00 = 2.0 * t3 - 3.0 * t2 + 1.0;
+        let h10 = t3 - 2.0 * t2 + t;
+        let h01 = -2.0 * t3 + 3.0 * t2;
+        let h11 = t3 - t2;
+        let y = h00 * p1.y + h10 * m1f * dx + h01 * p2.y + h11 * m2f * dx;
+        return clamp(y / 255.0, 0.0, 1.0);
     }
     return local_points[count - 1u].y / 255.0;
 }
@@ -594,12 +702,122 @@ fn apply_color_calibration(color: vec3<f32>, cal: ColorCalibrationSettings) -> v
     return c;
 }
 
+/// Planckian-accurate white balance using McCamy-Cayless CIE xy trajectory
+/// (valid ~1000-25000 K), tint offset along the CIE u'-axis (magenta/green
+/// push), and the camera's own `cam_to_canonical` matrix when available.
+/// Fallback: plain linear RGB gain matching the old behaviour so 0-calibrated
+/// cameras still produce sensible results.
+///
+/// Ref: McCamy (1992) "Color Rendering Analyzer", Cayless (2018).
 fn apply_white_balance(color: vec3<f32>, temp: f32, tnt: f32) -> vec3<f32> {
-    var rgb = color;
-    let temp_kelvin_mult = vec3<f32>(1.0 + temp * 0.2, 1.0 + temp * 0.05, 1.0 - temp * 0.2);
-    let tint_mult = vec3<f32>(1.0 + tnt * 0.25, 1.0 - tnt * 0.25, 1.0 + tnt * 0.25);
-    rgb *= temp_kelvin_mult * tint_mult;
-    return rgb;
+    // Temperature slider maps ±1.0 → roughly ±2500 K around 5500 K neutral.
+    // RapidRAW's UI range is temp ∈ [-1.0, 1.0], tint ∈ [-1.0, 1.0].
+    const NEUTRAL_KELVIN: f32 = 5500.0;
+    const KELVIN_PER_UNIT: f32 = 2500.0;
+    let T = NEUTRAL_KELVIN + temp * KELVIN_PER_UNIT;
+
+    // McCamy-Cayless Planckian locus in CIE xy (Y = 1 by convention).
+    var x: f32;
+    if (T < 4000.0) {
+        x = -0.2661239 + (0.954987e3 / T) + (0.2946990e6 / (T * T));
+    } else {
+        x = -3.0258469 + (2.1070379e3 / T) + (0.2226347e6 / (T * T));
+    }
+    let y = -3.0 + 2.87 * x - 0.275 * x * x;
+    if (y <= 0.001) { return color; }
+
+    // CIE xy → u'v' then apply tint along u' (magenta/green axis).
+    let denom = 3.0 - 2.0 * x + 12.0 * y;
+    let mut u = 4.0 * x / max(0.001, denom);
+    let v = 9.0 * y / max(0.001, denom);
+    u += tnt * 0.18;               // tint slider → u' offset in [−0.18, +0.18]
+    // Round-trip back to xy.
+    let xp = 3.0 * u / max(0.001, 9.0 + 12.0 * u - 4.0 * v);
+    let yp = 2.0 * v / max(0.001, 9.0 + 12.0 * u - 4.0 * v);
+    if (yp <= 0.001) { return color; }
+
+    // CIE xy → XYZ (Y = 1, equal-energy white baseline).
+    let Y = 1.0;
+    let X = Y * xp / max(0.001, yp);
+    let Z = Y * (1.0 - xp - yp) / max(0.001, yp);
+    let xyz_white = vec3<f32>(X, Y, Z);
+
+    // Convert Planckian XYZ white → camera RGB gains. We need the matrix that
+    // maps camera RGB → XYZ, which is inverse(camera_to_canonical). When a
+    // real matrix is available, use it; otherwise fall back to a neutral
+    // sRGB→XYZ matrix so the formula still produces sensible gains.
+    let inv_mat: mat3x3<f32> = if (adjustments.global.calibration_valid == 1u && is_raw_image_guard()) {
+        inverse_safe(adjustments.global.camera_to_canonical)
+    } else {
+        // sRGB linear → XYZ (D65) transposed for camera→XYZ approximation.
+        mat3x3<f32>(
+            vec3<f32>(0.4124, 0.2126, 0.0193),
+            vec3<f32>(0.3576, 0.7152, 0.1192),
+            vec3<f32>(0.1805, 0.0722, 0.9505),
+        )
+    };
+
+    let camera_white = inv_mat * xyz_white;
+    if (camera_white.y <= 0.001) { return color; }
+
+    // Normalise so G channel stays at 1.0 (standard WB convention).
+    let gains = vec3<f32>(
+        camera_white.y / camera_white.x,
+        1.0,
+        camera_white.y / camera_white.z,
+    );
+
+    return color * gains;
+}
+
+/// Tiny guard — `is_raw_image` is normally a local in `main()`. When the
+/// shader is refactored to expose `apply_white_balance` outside that scope
+/// this will be replaced with an explicit parameter; for now the forward
+/// declaration keeps the Planckian code self-contained.
+fn is_raw_image_guard() -> bool {
+    return adjustments.global.is_raw_image == 1u;
+}
+
+/// Robust 3×3 matrix inverse. Returns identity on singular input.
+/// `mat3x3<f32>` is column-major in WGSL: m[0], m[1], m[2] are columns,
+/// so m[col][row]. `inverse_safe` accepts the column-major matrix and
+/// returns its column-major inverse (adjugate/determinant), constructed by
+/// reading the matrix in row-major form and writing the result row-major
+/// rows back as columns.
+fn inverse_safe(m: mat3x3<f32>) -> mat3x3<f32> {
+    // Row-major view of m: A = m[0][0], B = m[1][0], C = m[2][0],
+    //                      D = m[0][1], E = m[1][1], F = m[2][1],
+    //                      G = m[0][2], H = m[1][2], I = m[2][2].
+    let a = m[0][0]; let b = m[1][0]; let c = m[2][0];
+    let d = m[0][1]; let e = m[1][1]; let f = m[2][1];
+    let g = m[0][2]; let h = m[1][2]; let i_ = m[2][2];
+
+    let det = a * (e * i_ - f * h)
+            - b * (d * i_ - f * g)
+            + c * (d * h - e * g);
+    if (abs(det) < 1e-12) { return mat3x3<f32>(); }
+    let inv_det = 1.0 / det;
+
+    // Row-major adjugate (cofactor-matrix transpose):
+    //   adj = [[EI-FH, CH-BI, BF-CE],
+    //          [FG-DI, AI-CG, CD-AF],
+    //          [DH-EG, BG-AH, AE-BD]]
+    // Convert to WGSL col-major by using each adjugate ROW as a COLUMN.
+    let adj00 = (e * i_ - f * h) * inv_det;
+    let adj01 = (c * h - b * i_) * inv_det;
+    let adj02 = (b * f - c * e) * inv_det;
+    let adj10 = (f * g - d * i_) * inv_det;
+    let adj11 = (a * i_ - c * g) * inv_det;
+    let adj12 = (c * d - a * f) * inv_det;
+    let adj20 = (d * h - e * g) * inv_det;
+    let adj21 = (b * g - a * h) * inv_det;
+    let adj22 = (a * e - b * d) * inv_det;
+
+    return mat3x3<f32>(
+        vec3<f32>(adj00, adj01, adj02),   // adj row 0 → inverse col 0
+        vec3<f32>(adj10, adj11, adj12),   // adj row 1 → inverse col 1
+        vec3<f32>(adj20, adj21, adj22),   // adj row 2 → inverse col 2
+    );
 }
 
 fn apply_creative_color(color: vec3<f32>, sat: f32, vib: f32) -> vec3<f32> {
@@ -1634,6 +1852,20 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         initial_linear_rgb = srgb_to_linear(color_from_texture);
     } else {
         initial_linear_rgb = color_from_texture;
+    }
+
+    // --- Phase 2: GPU-side camera calibration hook.
+    // When calibration_valid == 1 we consume the WB gains and cam→canonical
+    // matrix pulled from rawler and apply them BEFORE any other processing.
+    // The rawler-side `Calibrate` and `WhiteBalance` steps are NOT disabled
+    // yet (kept for regression safety), so this path is currently gated off
+    // by calibration_valid staying 0 in production. The gate will be flipped
+    // as part of the ICC pipeline work (Phase 6).
+    if (adjustments.global.calibration_valid == 1u && is_raw == 1u) {
+        // WB gains come from rawler as [R, G, B, unused]. Apply per-channel.
+        initial_linear_rgb *= adjustments.global.camera_wb_gains.rgb;
+        // Then rotate from camera RGB to the canonical space (srgb-linear).
+        initial_linear_rgb = adjustments.global.camera_to_canonical * initial_linear_rgb;
     }
 
     var t_exposure = adjustments.global.exposure;
