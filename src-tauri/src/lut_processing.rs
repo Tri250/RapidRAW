@@ -12,7 +12,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use base64::{Engine as _, engine::general_purpose};
-use mozjpeg_rs::{Encoder, Preset};
+// use mozjpeg_rs: disabled (archmage compat pending)
+use image::codecs::jpeg::JpegEncoder;
 use tauri::{AppHandle, Manager, State};
 
 use crate::AppState;
@@ -648,10 +649,13 @@ fn render_lut_swatch(
 
     let rgb = processed.to_rgb8();
     let (width, height) = rgb.dimensions();
-    let bytes = Encoder::new(Preset::BaselineFastest)
-        .quality(80)
-        .encode_rgb(&rgb.into_vec(), width, height)
-        .ok()?;
+    let mut jpeg_buf = Vec::new();
+    {
+        let mut enc = JpegEncoder::new_with_quality(&mut jpeg_buf, 80);
+        use image::ImageEncoder;
+        enc.write_image(image::DynamicImage::ImageRgb8(image::ImageBuffer::from_raw(width, height, rgb.into_vec()).unwrap()), width, height, image::ExtendedColorType::Rgb8)?;
+    }
+    let bytes = jpeg_buf;
     Some(format!(
         "data:image/jpeg;base64,{}",
         general_purpose::STANDARD.encode(&bytes)

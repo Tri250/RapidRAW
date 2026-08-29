@@ -63,7 +63,7 @@ use imageproc::drawing::draw_line_segment_mut;
 use imageproc::edges::canny;
 use imageproc::hough::{LineDetectionOptions, detect_lines};
 use imgref::ImgRef;
-use mozjpeg_rs::{Encoder, Preset};
+// use mozjpeg_rs: disabled (archmage/safe_unaligned_simd compat pending)
 use rgb::{FromSlice, RGBA8};
 
 use serde::{Deserialize, Serialize};
@@ -551,10 +551,10 @@ fn process_preview_job(
 
         let step_start = std::time::Instant::now();
 
-        let encode_result = Encoder::new(Preset::BaselineFastest)
-            .quality(jpeg_quality)
-            .fast_color(true)
-            .encode_imgref(img_ref);
+        let mut jpeg_buf = Vec::new();
+        let mut encoder = JpegEncoder::new_with_quality(&mut jpeg_buf, jpeg_quality as u8);
+        encoder.encode_imgref(&img_ref).map(|_| ())?;
+        let encode_result = Ok(jpeg_buf);
 
         match encode_result {
             Ok(jpeg_bytes) => {
@@ -834,17 +834,17 @@ fn generate_uncropped_preview(
         ) {
             let (width, height) = processed_image.dimensions();
             let rgb_pixels = processed_image.to_rgb8().into_vec();
-            match Encoder::new(Preset::BaselineFastest)
-                .quality(80)
-                .encode_rgb(&rgb_pixels, width, height)
-            {
-                Ok(bytes) => {
-                    let base64_str = general_purpose::STANDARD.encode(&bytes);
+            let mut jpeg_buf = Vec::new();
+            let mut enc = JpegEncoder::new_with_quality(&mut jpeg_buf, 80);
+            use image::ImageEncoder;
+            match enc.write_image(image::DynamicImage::ImageRgb8(image::ImageBuffer::from_raw(width, height, rgb_pixels.clone()).unwrap()), width, height, image::ExtendedColorType::Rgb8) {
+                Ok(_) => {
+                    let base64_str = general_purpose::STANDARD.encode(&jpeg_buf);
                     let data_url = format!("data:image/jpeg;base64,{}", base64_str);
                     let _ = app_handle.emit("preview-update-uncropped", data_url);
                 }
                 Err(e) => {
-                    log::error!("Failed to encode uncropped preview with mozjpeg-rs: {}", e);
+                    log::error!("Failed to encode uncropped preview: {}", e);
                 }
             }
         }
@@ -1043,10 +1043,13 @@ async fn preview_geometry_transform(
     let (width, height) = final_image.dimensions();
     let rgb_pixels = final_image.to_rgb8().into_vec();
 
-    let bytes = Encoder::new(Preset::BaselineFastest)
-        .quality(75)
-        .encode_rgb(&rgb_pixels, width, height)
-        .map_err(|e| format!("Failed to encode with mozjpeg-rs: {}", e))?;
+    let bytes = {
+        let mut buf = Vec::new();
+        let mut enc = JpegEncoder::new_with_quality(&mut buf, 75);
+        use image::ImageEncoder;
+        enc.write_image(image::DynamicImage::ImageRgb8(image::ImageBuffer::from_raw(width, height, rgb_pixels).unwrap()), width, height, image::ExtendedColorType::Rgb8)?;
+        buf
+    };
 
     let base64_str = general_purpose::STANDARD.encode(&bytes);
     Ok(format!("data:image/jpeg;base64,{}", base64_str))
@@ -1569,10 +1572,13 @@ async fn generate_preview_for_path(
         let (width, height) = final_image.dimensions();
         let rgb_pixels = final_image.to_rgb8().into_vec();
 
-        let bytes = Encoder::new(Preset::BaselineFastest)
-            .quality(92)
-            .encode_rgb(&rgb_pixels, width, height)
-            .map_err(|e| format!("Failed to encode with mozjpeg-rs: {}", e))?;
+        let bytes = {
+            let mut buf = Vec::new();
+            let mut enc = JpegEncoder::new_with_quality(&mut buf, 92);
+            use image::ImageEncoder;
+            enc.write_image(image::DynamicImage::ImageRgb8(image::ImageBuffer::from_raw(width, height, rgb_pixels).unwrap()), width, height, image::ExtendedColorType::Rgb8)?;
+            buf
+        };
 
         Ok(Response::new(bytes))
     })

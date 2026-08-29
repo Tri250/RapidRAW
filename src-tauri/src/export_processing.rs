@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 
 use image::codecs::jpeg::JpegEncoder;
 use image::{DynamicImage, GenericImageView, GrayImage, ImageBuffer, ImageFormat, Luma, imageops};
-use jxl_encoder::{
+// use jxl_encoder: disabled
     LosslessConfig, LossyConfig, PixelLayout,
     api::{calibrated_jxl_quality, quality_to_distance},
 };
@@ -589,10 +589,9 @@ fn encode_image_to_bytes(
 
     match output_format.to_lowercase().as_str() {
         "jxl" => {
-            let (width, height) = image.dimensions();
-            let has_alpha = image.color().has_alpha();
-
-            let jxl_data = if jpeg_quality == 100 {
+            return Err("JXL export disabled temporarily (archmage/safe_unaligned_simd compat). Use JPEG/PNG/WebP/TIFF".into());
+            let _ = jpeg_quality; // silence unused
+            let _ = image; // silence unused
                 if has_alpha {
                     let rgba = image.to_rgba8();
                     LosslessConfig::new()
